@@ -5,52 +5,53 @@ description: Use when reviewing Blueprint structure, complexity, naming conventi
 
 # Blueprint Review
 
-Reviews Blueprint assets for structure, naming, complexity, and UE best practices.
-
-## Before Starting
-
-Read `.cortex/domains/blueprints.md` for project-specific BP conventions and class hierarchy.
+Reviews Blueprint assets for structure, naming, complexity, and UE best practices using the Blueprint Developer agent.
 
 ## Steps
 
-### 1. List Blueprints
+### 1. Launch Blueprint Developer Agent
 
-Use `list_blueprints` to get all Blueprint assets, optionally filtered by path.
+Use the Task tool with `subagent_type: "cortex-blueprint:blueprint-developer"` to delegate Blueprint review.
 
-### 2. Inspect Each Blueprint
+Pass the review scope:
+- Specific Blueprint paths to review (if targeted review)
+- "Review all Blueprints in /Game/Blueprints/" (if full project review)
+- Specific concerns to check (naming, complexity, compilation, variable organization)
 
-For each Blueprint under review:
-- `get_blueprint_info` — check type, parent class, compilation status, variable/function count
-- `graph_list_graphs` — check graph count and complexity
+Example prompts:
+- "Review BP_PlayerCharacter for complexity and best practices"
+- "Review all actor Blueprints in /Game/Characters/ for naming violations"
+- "Check if BP_GameMode follows project conventions"
 
-### 3. Check Structure
+### 2. Agent Workflow (runs in background)
 
-**Naming:**
-- Verify naming follows project conventions from `.cortex/domains/blueprints.md`
-- Default pattern: `BP_{Type}_{Name}` for actors, `BPC_{Name}` for components
+The Blueprint Developer agent will:
+1. Read `.cortex/domains/blueprints.md` for project conventions
+2. List and inspect relevant Blueprints
+3. Check structure (naming, type appropriateness, parent class)
+4. Analyze complexity (node counts per graph, variable counts)
+5. Verify compilation status
+6. Check variable organization (categories, exposure, naming)
+7. Cross-reference against project conventions
 
-**Type appropriateness:**
-- Is it the right BP type? (Actor vs ActorComponent vs FunctionLibrary vs Interface)
-- Does the parent class make sense?
+All MCP tool calls happen in the background — you won't see each individual call.
 
-**Complexity:**
-- Count nodes per graph via `graph_list_nodes`
-- Flag graphs with >50 nodes — consider splitting into functions
-- Flag Blueprints with >10 variables — consider grouping or struct
+### 3. Review Agent Results
 
-**Compilation:**
-- Is `is_compiled` true? If false, suggest `compile_blueprint`
-
-### 4. Check Variables
-
-- List variables via `get_blueprint_info`
-- Verify categories are assigned
-- Check for exposed variables that shouldn't be (or vice versa)
-- Flag variables without meaningful names
-
-### 5. Report
-
-Group findings by Blueprint:
-- **Errors:** Won't compile, broken references
-- **Warnings:** Naming violations, high complexity, missing categories
+The agent returns findings grouped by severity:
+- **Errors:** Won't compile, broken references, critical issues
+- **Warnings:** Naming violations, high complexity (>50 nodes/graph, >10 variables), missing categories
 - **Info:** Optimization suggestions, C++ migration candidates
+
+Each finding includes:
+- Blueprint path
+- Issue description
+- Recommendation for fix
+- Context from project conventions
+
+## Why Use the Agent?
+
+- **Clean conversation** — no flood of MCP tool calls
+- **Context-aware analysis** — agent compares against project conventions
+- **Comprehensive checks** — agent performs all standard review steps systematically
+- **Expandable details** — use Ctrl+O to see inspection details if needed

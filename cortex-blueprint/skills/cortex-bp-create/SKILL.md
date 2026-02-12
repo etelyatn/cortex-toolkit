@@ -5,69 +5,49 @@ description: Use when creating new Blueprints with variables, functions, or comp
 
 # Blueprint Create
 
-Creates Blueprint assets with structure from specifications.
-
-## Before Starting
-
-Read `.cortex/domains/blueprints.md` for project conventions and existing class hierarchy.
+Creates Blueprint assets with structure from specifications using the Blueprint Developer agent.
 
 ## Steps
 
-### 1. Understand the Spec
+### 1. Launch Blueprint Developer Agent
 
-Determine from the user's description:
-- Blueprint type (Actor, ActorComponent, FunctionLibrary, Interface, custom parent)
-- Name (following project conventions)
-- Variables (name, type, default, category, exposed)
+Use the Task tool with `subagent_type: "cortex-blueprint:blueprint-developer"` to delegate Blueprint creation.
+
+Pass the full user specification including:
+- Blueprint type needed (Actor, ActorComponent, FunctionLibrary, Interface, etc.)
+- Name and desired path
+- Variables (name, type, default value, category, exposed status)
 - Functions (name, inputs, outputs)
 - Components (for Actor BPs)
+- Any specific parent class requirements
 
-### 2. Choose Parent Class
+### 2. Agent Workflow (runs in background)
 
-Use `list_blueprints` and project conventions to pick the right parent:
-- Gameplay entity → `AActor` or project-specific base class
-- Reusable behavior → `UActorComponent`
-- Static utility functions → `UBlueprintFunctionLibrary`
-- Shared interface → `UInterface`
+The Blueprint Developer agent will:
+1. Read `.cortex/domains/blueprints.md` for project conventions
+2. Investigate existing Blueprints to choose appropriate parent class
+3. Create the Blueprint asset
+4. Add all specified variables with proper configuration
+5. Add function signatures (implementation requires manual editor work)
+6. Compile and save the Blueprint
+7. Verify the result matches the specification
 
-### 3. Create Blueprint
+All MCP tool calls happen in the background — you won't see each individual call.
 
-```
-create_blueprint(name, path, parent_class)
-```
+### 3. Review Agent Results
 
-Path should follow project structure (e.g., `/Game/Blueprints/`).
+The agent returns a summary including:
+- Created Blueprint path
+- Parent class used
+- Variables added
+- Functions created
+- Compilation status
 
-### 4. Add Variables
+If the agent encounters issues (compilation errors, invalid types, etc.), it will report them for you to address.
 
-For each variable in the spec:
-```
-add_blueprint_variable(blueprint_path, variable_name, variable_type, options)
-```
+## Why Use the Agent?
 
-Options: `default_value`, `is_exposed`, `category`
-
-### 5. Add Functions
-
-For each function in the spec:
-```
-add_blueprint_function(blueprint_path, function_name, options)
-```
-
-Note: Function implementation (node graphs) requires manual work in the editor.
-
-### 6. Compile and Save
-
-```
-compile_blueprint(blueprint_path) → save_blueprint(blueprint_path)
-```
-
-Verify compilation succeeds. If not, check variable types and function signatures.
-
-### 7. Verify
-
-Use `get_blueprint_info` to confirm the Blueprint matches the spec:
-- Correct parent class
-- All variables present with right types
-- All functions created
-- Compilation status clean
+- **Clean conversation** — no flood of MCP tool calls
+- **Context-aware decisions** — agent reads project conventions and existing patterns
+- **Error handling** — agent handles compilation issues and retries
+- **Expandable details** — use Ctrl+O to see what the agent did if needed
