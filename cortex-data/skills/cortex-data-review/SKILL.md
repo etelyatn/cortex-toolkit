@@ -5,54 +5,55 @@ description: Use when reviewing DataTables or DataAssets for balance issues, nam
 
 # Data Review
 
-Reviews DataTables, DataAssets, and related data for quality and balance issues.
-
-## Before Starting
-
-Read `.cortex/domains/data.md` for project-specific table schemas, balance rules, and naming conventions.
+Reviews DataTables, DataAssets, and related data for quality and balance issues using the Game Balancer agent.
 
 ## Steps
 
-### 1. Discover Data Assets
+### 1. Launch Game Balancer Agent
 
-Use `get_data_catalog` for a project overview, or target specific assets:
-- `list_datatables` — all DataTables with row counts
-- `list_data_assets` — all DataAssets by type
-- `list_curve_tables` — all CurveTables
-- `list_string_tables` — all StringTables
+Use the Task tool with `subagent_type: "cortex-data:game-balancer"` to delegate data review.
 
-### 2. Check Naming Conventions
+Pass the review scope and focus:
+- Specific assets to review (if targeted)
+- "Review all DataTables for balance issues" (if full project review)
+- Specific concerns (naming, balance, structure, data integrity)
 
-Verify assets follow project naming patterns from `.cortex/domains/data.md`:
-- DataTables: `DT_{SystemName}`
-- DataAssets: `DA_{Name}`
-- CurveTables: `CT_{Name}`
-- StringTables: `ST_{Name}`
+Example prompts:
+- "Review DT_WeaponStats for balance issues across all levels"
+- "Check all quest DataTables for reward scaling problems"
+- "Review data assets for naming violations and broken references"
+- "Analyze XP progression curve in CT_LevelCurve"
 
-### 3. Review Structure
+### 2. Agent Workflow (runs in background)
 
-For each DataTable:
-- `get_datatable_schema` — verify struct fields match design
-- `query_datatable` — sample rows to check data quality
-- Check for empty required fields, outlier values, orphaned references
+The Game Balancer agent will:
+1. Read `.cortex/domains/data.md` for project schemas, balance rules, naming conventions
+2. Discover relevant data assets (DataTables, DataAssets, CurveTables, StringTables)
+3. Check naming conventions against project patterns
+4. Review structure (schemas, row counts, field population)
+5. Perform balance analysis against defined rules
+6. Cross-reference related tables for consistency
+7. Validate GameplayTags used in data
+8. Flag outliers, missing data, broken references
 
-For DataAssets:
-- `get_data_asset` — verify all properties are populated
-- Check soft references resolve to existing assets
+All MCP tool calls happen in the background — you won't see each individual call.
 
-### 4. Balance Analysis
+### 3. Review Agent Results
 
-If `.cortex/domains/data.md` defines balance rules:
-- Cross-reference tables (e.g., quest rewards vs level brackets)
-- Check progression curves via `get_curve_table`
-- Validate GameplayTags used in data: `validate_gameplay_tag`
-- Flag values outside expected ranges
+The agent returns findings grouped by severity:
+- **Errors:** Missing data, broken references, invalid GameplayTags, critical issues
+- **Warnings:** Naming violations, potential balance issues, outlier values
+- **Info:** Suggestions for improvement, optimization opportunities
 
-### 5. Report Findings
+Each finding includes:
+- Asset path and row name
+- Field values and issue description
+- Recommendation for fix
+- Context from balance rules
 
-Group by severity:
-- **Errors:** Missing data, broken references, invalid tags
-- **Warnings:** Naming violations, potential balance issues
-- **Info:** Suggestions for improvement
+## Why Use the Agent?
 
-Include specific row names and field values for each finding.
+- **Clean conversation** — no flood of MCP tool calls
+- **Context-aware analysis** — agent applies project balance rules and naming conventions
+- **Cross-table validation** — checks consistency across related tables
+- **Expandable details** — use Ctrl+O to see inspection details if needed

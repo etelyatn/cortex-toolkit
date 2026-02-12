@@ -5,75 +5,56 @@ description: Use when creating new widgets, screens, or UI components from a spe
 
 # UI Create
 
-Creates UMG widget hierarchies from specifications.
-
-## Before Starting
-
-Read `.cortex/domains/umg.md` for project widget conventions, base classes, and style guide.
+Creates UMG widget hierarchies from specifications using the UI Developer agent.
 
 ## Steps
 
-### 1. Understand the Spec
+### 1. Launch UI Developer Agent
 
-Determine from the user's description:
+Use the Task tool with `subagent_type: "cortex-ui:ui-developer"` to delegate UI creation.
+
+Pass the full specification including:
 - Screen type (full screen menu, HUD overlay, dialog, popup)
-- Widget hierarchy (panels, text, buttons, images)
-- Layout approach (anchored, boxed, grid)
+- Widget hierarchy (panels, text blocks, buttons, images)
+- Layout approach (anchored, box layouts, grids)
+- Properties (text content, fonts, colors, anchors, padding)
 - Interactions (button clicks, hover states)
 - Animations (transitions, feedback)
 
-### 2. Identify Base Widget
+Example prompts:
+- "Create WBP_MainMenu with title, 3 buttons (Play, Settings, Quit), and background image"
+- "Create a health bar HUD overlay with player name, HP bar, and portrait"
+- "Create WBP_ConfirmDialog with message text, Cancel and Confirm buttons"
+- "Build an inventory screen with grid layout, item slots, and detail panel"
 
-Check if the project has a base widget class (e.g., `WBP_BaseScreen`).
-Use `list_widget_classes` to see available widget types.
+### 2. Agent Workflow (runs in background)
 
-### 3. Plan the Hierarchy
+The UI Developer agent will:
+1. Read `.cortex/domains/umg.md` for project widget conventions and style guide
+2. Identify base widget class or parent (e.g., `WBP_BaseScreen`)
+3. Plan the widget hierarchy top-down
+4. Create the Widget Blueprint (or verify it exists)
+5. Build widget tree with proper nesting
+6. Configure properties (anchors, alignment, padding, text, colors)
+7. Add animations if specified
+8. Compile and verify the widget
 
-Design the widget tree top-down:
-```
-Root (CanvasPanel or Overlay)
-├── Background (Image)
-├── Content (VerticalBox or HorizontalBox)
-│   ├── Header (TextBlock)
-│   ├── Body (ScrollBox or panel)
-│   └── Footer (HorizontalBox)
-│       ├── BtnCancel (Button > TextBlock)
-│       └── BtnConfirm (Button > TextBlock)
-└── Overlay effects
-```
+All MCP tool calls happen in the background — you won't see each individual call.
 
-### 4. Build the Widget
+### 3. Review Agent Results
 
-The Widget Blueprint must already exist (create in editor or via `create_blueprint` with UUserWidget parent).
+The agent returns:
+- Created widget path
+- Widget hierarchy tree
+- Key properties set
+- Animations added
+- Compilation status
 
-Add widgets top-down:
-```
-add_widget(blueprint, parent_name, widget_class, widget_name)
-```
+If the agent encounters issues (invalid widget class, layout conflicts), it will report them for you to address.
 
-Common widget classes: `CanvasPanel`, `VerticalBox`, `HorizontalBox`, `Overlay`, `TextBlock`, `Button`, `Image`, `Spacer`, `ScrollBox`
+## Why Use the Agent?
 
-### 5. Set Properties
-
-For each widget, configure:
-- `set_anchor` — responsive positioning
-- `set_alignment` — content alignment
-- `set_padding` — spacing
-- `set_size` — explicit sizing where needed
-- `set_text` — text content
-- `set_font` — typography
-- `set_color` — colors
-- `set_visibility` — initial visibility state
-
-### 6. Add Animations
-
-For screen transitions and feedback:
-```
-create_animation(blueprint, animation_name)
-```
-
-### 7. Verify
-
-- `get_tree` — confirm hierarchy matches spec
-- `get_widget` — spot-check key widget properties
-- Compile the widget Blueprint
+- **Clean conversation** — no flood of MCP tool calls
+- **Context-aware design** — agent follows project widget conventions and base classes
+- **Hierarchy planning** — designs proper widget nesting automatically
+- **Expandable details** — use Ctrl+O to see build steps if needed

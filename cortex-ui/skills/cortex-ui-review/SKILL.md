@@ -5,47 +5,55 @@ description: Use when reviewing widget hierarchy, layout patterns, UI structure,
 
 # UI Review
 
-Reviews UMG widget hierarchies for structure, layout patterns, and best practices.
-
-## Before Starting
-
-Read `.cortex/domains/umg.md` for project-specific widget conventions and screen inventory.
+Reviews UMG widget hierarchies for structure, layout patterns, and best practices using the UI Developer agent.
 
 ## Steps
 
-### 1. Discover Widgets
+### 1. Launch UI Developer Agent
 
-Use `search_assets` with class filter for Widget Blueprints, or `list_blueprints` filtered to UI path.
+Use the Task tool with `subagent_type: "cortex-ui:ui-developer"` to delegate UI review.
 
-### 2. Inspect Widget Tree
+Pass the review scope and focus:
+- Specific widgets to review (if targeted)
+- "Review all widgets in /Game/UI/" (if full project review)
+- Specific concerns (naming, layout, anchors, animations, nesting)
 
-For each widget under review:
-- `get_tree` — examine the full widget hierarchy
-- Check nesting depth (>5 levels may indicate over-nesting)
-- Verify layout panels are used correctly (Canvas, Vertical/Horizontal Box, Overlay)
+Example prompts:
+- "Review WBP_MainMenu for layout and naming issues"
+- "Check all HUD widgets for proper anchor usage"
+- "Review widget hierarchy depth in WBP_InventoryScreen"
+- "Verify all UI screens follow project conventions"
 
-### 3. Check Properties
+### 2. Agent Workflow (runs in background)
 
-For key widgets:
-- `get_widget` — inspect properties of specific widgets
-- Verify anchors are set correctly (responsive layouts)
-- Check padding consistency
-- Verify text widgets have proper font settings
+The UI Developer agent will:
+1. Read `.cortex/domains/umg.md` for project widget conventions and screen inventory
+2. Discover relevant Widget Blueprints
+3. Inspect widget trees (hierarchy, nesting depth, panel usage)
+4. Check properties (anchors, padding, fonts, visibility)
+5. Verify naming conventions (descriptive names, no defaults)
+6. Review animations (screen transitions, feedback)
+7. Cross-reference against project style guide
 
-### 4. Check Naming
+All MCP tool calls happen in the background — you won't see each individual call.
 
-- Widget names should describe their purpose: `TxtPlayerName`, `BtnStartGame`
-- Avoid default names: `TextBlock_0`, `Button_1`
-- Follow project conventions from `.cortex/domains/umg.md`
+### 3. Review Agent Results
 
-### 5. Review Animations
+The agent returns findings grouped by widget and severity:
+- **Errors:** Broken bindings, missing required widgets, invalid properties
+- **Warnings:** Naming violations, deep nesting (>5 levels), missing anchors, inconsistent padding
+- **Info:** Animation suggestions, layout optimizations, accessibility improvements
 
-- `list_animations` — check for animation assets
-- Verify animations cover key UX moments (screen enter/exit, feedback)
+Each finding includes:
+- Widget Blueprint path
+- Widget element name
+- Issue description
+- Recommendation for fix
+- Context from project conventions
 
-### 6. Report
+## Why Use the Agent?
 
-Group findings by widget:
-- **Errors:** Broken bindings, missing required widgets
-- **Warnings:** Naming violations, deep nesting, missing anchors
-- **Info:** Animation suggestions, layout optimizations
+- **Clean conversation** — no flood of MCP tool calls
+- **Context-aware analysis** — agent applies project widget conventions and style guide
+- **Comprehensive checks** — systematic review of hierarchy, properties, naming, animations
+- **Expandable details** — use Ctrl+O to see inspection details if needed

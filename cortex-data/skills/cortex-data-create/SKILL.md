@@ -5,55 +5,53 @@ description: Use when creating new DataTables, DataAssets, CurveTables, or Strin
 
 # Data Create
 
-Creates and populates data assets from specifications.
-
-## Before Starting
-
-Read `.cortex/domains/data.md` for project naming conventions and existing table schemas.
+Creates and populates data assets from specifications using the Data Architect agent.
 
 ## Steps
 
-### 1. Understand the Spec
+### 1. Launch Data Architect Agent
 
-Parse the user's description to determine:
+Use the Task tool with `subagent_type: "cortex-data:data-architect"` to delegate data creation.
+
+Pass the full specification including:
 - Asset type (DataTable, DataAsset, CurveTable, StringTable)
-- Name (following project conventions)
-- Struct/schema (fields, types)
-- Initial data (rows, values)
+- Name and desired path
+- Struct/schema (fields and types)
+- Initial data (rows, values, translations)
+- Any GameplayTags that need registration
 
-### 2. Check for Existing Assets
+Example prompts:
+- "Create DT_WeaponStats with fields: Name (String), Damage (Float), AttackSpeed (Float)"
+- "Create a CurveTable for level-up XP requirements from level 1 to 50"
+- "Create StringTable ST_UIText with translations for MainMenu, Settings, Quit"
 
-Use `search_assets` and `list_datatables` to verify the asset doesn't already exist.
+### 2. Agent Workflow (runs in background)
 
-### 3. Register GameplayTags
+The Data Architect agent will:
+1. Read `.cortex/domains/data.md` for project conventions and existing schemas
+2. Check for existing assets to avoid duplicates
+3. Register any required GameplayTags
+4. Create the asset (or guide for in-editor creation if needed)
+5. Populate data rows/curves/translations
+6. Validate structure and data integrity
+7. Cross-reference with related tables if applicable
 
-If the data uses GameplayTags, register them first:
-- `validate_gameplay_tag` to check if tag exists
-- `register_gameplay_tag` or `register_gameplay_tags` to create new ones
+All MCP tool calls happen in the background — you won't see each individual call.
 
-### 4. Create the Asset
+### 3. Review Agent Results
 
-Currently, DataTables and CurveTables are created in UE Editor (not via MCP).
-Guide the user to create the asset in-editor, then populate it.
+The agent returns:
+- Created asset path
+- Schema/structure confirmation
+- Row/entry count
+- Any GameplayTags registered
+- Validation results
 
-### 5. Populate Data
+If the agent encounters issues (invalid types, missing tags, conflicts), it will report them for you to address.
 
-For DataTables:
-- `add_datatable_row` for each row
-- Verify with `query_datatable` after adding
+## Why Use the Agent?
 
-For CurveTables:
-- `update_curve_table_row` to set curve keys
-
-For StringTables:
-- `set_translation` for each string entry
-
-For bulk data:
-- `import_datatable_json` for large datasets
-
-### 6. Validate
-
-- `get_datatable_schema` to verify structure
-- `query_datatable` to verify populated data
-- `validate_gameplay_tag` for any tags used
-- Cross-reference with related tables if applicable
+- **Clean conversation** — no flood of MCP tool calls
+- **Context-aware design** — agent follows project naming conventions and validates against existing schemas
+- **Bulk operations** — handles large datasets efficiently
+- **Expandable details** — use Ctrl+O to see what the agent did if needed
