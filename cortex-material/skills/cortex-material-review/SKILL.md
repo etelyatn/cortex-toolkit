@@ -5,11 +5,11 @@ description: Use when reviewing material structure, parameter usage, graph compl
 
 # Material Review
 
-Reviews materials, instances, and parameter collections for structure, performance, and best practices using the Material Developer agent.
+Reviews materials, instances, and parameter collections for structure, performance, and best practices using the Material Designer agent.
 
 ## Steps
 
-### 1. Launch Material Developer Agent
+### 1. Launch Material Designer Agent
 
 Use the Task tool with `subagent_type: "cortex-material:material-developer"` to delegate material review.
 
@@ -27,7 +27,7 @@ Example prompts:
 
 ### 2. Agent Workflow (runs in background)
 
-The Material Developer agent will:
+The Material Designer agent will:
 1. Read `.cortex/domains/material.md` for project material conventions
 2. Discover relevant material assets
 3. Inspect expression graphs (node count, connection patterns, unused nodes)

@@ -5,11 +5,11 @@ description: Use when creating new materials, material instances, parameter coll
 
 # Material Create
 
-Creates materials, instances, and parameter collections from specifications using the Material Developer agent.
+Creates materials, instances, and parameter collections from specifications using the Material Designer agent.
 
 ## Steps
 
-### 1. Launch Material Developer Agent
+### 1. Launch Material Designer Agent
 
 Use the Task tool with `subagent_type: "cortex-material:material-developer"` to delegate material creation.
 
@@ -29,7 +29,7 @@ Example prompts:
 
 ### 2. Agent Workflow (runs in background)
 
-The Material Developer agent will:
+The Material Designer agent will:
 1. Read `.cortex/domains/material.md` for project material conventions
 2. Identify parent materials and existing assets
 3. Plan the expression graph (nodes, connections, parameters)

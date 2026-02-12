@@ -12,7 +12,7 @@ Install only what you need:
 | **cortex-data** | DataTables, DataAssets, CurveTables, GameplayTags | cortex-data-review, cortex-data-create | Game Balancer, Data Architect |
 | **cortex-blueprint** | Blueprints, Graphs | cortex-bp-review, cortex-bp-create | Blueprint Developer, C++ Migration Specialist |
 | **cortex-ui** | UMG Widgets | cortex-ui-review, cortex-ui-create | UI Developer |
-| **cortex-material** | Materials, Instances, Parameter Collections | cortex-material-review, cortex-material-create | Material Developer |
+| **cortex-material** | Materials, Instances, Parameter Collections | cortex-material-review, cortex-material-create | Material Designer |
 
 ## Installation
 
@@ -53,7 +53,7 @@ This sets up `.cortex/` project memory, configures MCP, and detects your Unreal 
 
 ### Skills
 Skills are slash commands that launch specialized agents to handle complex workflows. For example:
-- `/cortex-material-create` → launches Material Developer agent to build materials/instances from specs
+- `/cortex-material-create` → launches Material Designer agent to build materials/instances from specs
 - `/cortex-ui-create` → launches UI Developer agent to build UMG widget hierarchies
 - `/cortex-bp-review` → launches Blueprint Developer agent to review graph structure
 
@@ -61,7 +61,7 @@ Skills keep your conversation clean by running MCP tool sequences in the backgro
 
 ### Agents
 Domain specialists with deep knowledge of specific Unreal Engine systems:
-- **Material Developer** — creates materials, modifies expression graphs, manages parameter collections
+- **Material Designer** — creates materials, modifies expression graphs, manages parameter collections
 - **UI Developer** — builds UMG hierarchies, sets properties, creates animations
 - **Blueprint Developer** — manages Blueprint assets, modifies graphs, analyzes C++ migration
 - **Game Balancer** — tunes DataTables, validates balance rules, tracks progression curves
