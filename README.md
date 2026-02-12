@@ -12,6 +12,7 @@ Install only what you need:
 | **cortex-data** | DataTables, DataAssets, CurveTables, GameplayTags | cortex-data-review, cortex-data-create | Game Balancer, Data Architect |
 | **cortex-blueprint** | Blueprints, Graphs | cortex-bp-review, cortex-bp-create | Blueprint Developer, C++ Migration Specialist |
 | **cortex-ui** | UMG Widgets | cortex-ui-review, cortex-ui-create | UI Developer |
+| **cortex-material** | Materials, Instances, Parameter Collections | cortex-material-review, cortex-material-create | Material Developer |
 
 ## Installation
 
@@ -26,6 +27,7 @@ Install only what you need:
 /plugin install cortex-data@cortex-toolkit       # Pick your domains
 /plugin install cortex-blueprint@cortex-toolkit
 /plugin install cortex-ui@cortex-toolkit
+/plugin install cortex-material@cortex-toolkit
 ```
 
 ### Claude Code (Direct)
@@ -36,6 +38,7 @@ claude plugin add etelyatn/cortex-toolkit/cortex-core      # Required
 claude plugin add etelyatn/cortex-toolkit/cortex-data       # Pick your domains
 claude plugin add etelyatn/cortex-toolkit/cortex-blueprint
 claude plugin add etelyatn/cortex-toolkit/cortex-ui
+claude plugin add etelyatn/cortex-toolkit/cortex-material
 ```
 
 ### After Installation
@@ -57,7 +60,8 @@ The `.cortex/` directory stores project-specific knowledge that agents read auto
 └── domains/
     ├── data.md          ← table schemas, balance rules
     ├── blueprints.md    ← class hierarchy, conventions
-    └── umg.md           ← screen inventory, style guide
+    ├── umg.md           ← screen inventory, style guide
+    └── material.md      ← material conventions, instance hierarchies
 ```
 
 Fill these files with your game's specifics. Agents use this context to work without repeated questions.
