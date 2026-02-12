@@ -11,28 +11,28 @@
   "plugins": [
     {
       "name": "cortex-core",
-      "source": "../cortex-core",
+      "source": "./cortex-core",
       "description": "Foundation plugin — project setup, build/test workflows, editor lifecycle, cross-domain agents. Required by all other plugins.",
       "version": "0.1.0",
       "strict": true
     },
     {
       "name": "cortex-data",
-      "source": "../cortex-data",
+      "source": "./cortex-data",
       "description": "Data domain — DataTables, DataAssets, CurveTables, StringTables, GameplayTags.",
       "version": "0.1.0",
       "strict": true
     },
     {
       "name": "cortex-blueprint",
-      "source": "../cortex-blueprint",
+      "source": "./cortex-blueprint",
       "description": "Blueprint domain — asset management, graph operations, C++ migration analysis.",
       "version": "0.1.0",
       "strict": true
     },
     {
       "name": "cortex-ui",
-      "source": "../cortex-ui",
+      "source": "./cortex-ui",
       "description": "UI domain — UMG widget hierarchy, properties, animations.",
       "version": "0.1.0",
       "strict": true
