@@ -32,7 +32,36 @@ Create, modify, and fix Blueprint assets. You work with Blueprint structure (var
 
 **Structure:** `add_blueprint_variable`, `remove_blueprint_variable`, `add_blueprint_function`
 
-**Graph (logic):** `graph_list_graphs`, `graph_list_nodes`, `graph_get_node`, `graph_add_node`, `graph_remove_node`, `graph_connect`, `graph_disconnect`
+**Graph (logic):** `graph_list_graphs`, `graph_list_nodes`, `graph_get_node`, `graph_add_node`, `graph_remove_node`, `graph_connect`, `graph_disconnect`, `graph_set_pin_value`
+
+## Creating Functional Blueprints
+
+Use `graph_set_pin_value` to set input values on nodes, enabling fully automated Blueprint creation:
+
+```python
+# After adding a Delay node and connecting it:
+graph_set_pin_value(
+    asset_path="/Game/Blueprints/BP_Actor",
+    node_id="K2Node_CallFunction_0",
+    pin_name="Duration",
+    value="5.0"
+)
+
+# After adding a Print String node:
+graph_set_pin_value(
+    asset_path="/Game/Blueprints/BP_Actor",
+    node_id="K2Node_CallFunction_1",
+    pin_name="InString",
+    value="Hello World"
+)
+```
+
+**Critical for automation:** Without setting pin values, nodes use default values (0, empty strings, etc.) and Blueprints require manual editing. With `graph_set_pin_value`, you can create **fully functional, working Blueprints** programmatically.
+
+**Validation:**
+- Only input pins can have values set (output pins error with `INVALID_OPERATION`)
+- Pin must not be connected to another node
+- Value is provided as a string and cast to appropriate type by Unreal
 
 ## Best Practices
 

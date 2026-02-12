@@ -45,6 +45,75 @@ Best practices and patterns for Blueprint development with UnrealCortex.
 create_blueprint → add_blueprint_variable (×N) → add_blueprint_function (×N) → compile_blueprint → save_blueprint
 ```
 
+### Create Fully Functional Blueprint (Automated)
+```
+create_blueprint
+  → add_blueprint_variable (×N)
+  → graph_add_node (×N)        # Add function call nodes
+  → graph_connect (×N)          # Wire execution and data flow
+  → graph_set_pin_value (×N)    # Set input values on nodes
+  → compile_blueprint
+  → save_blueprint
+```
+
+**Example: Hello World Blueprint**
+```python
+# 1. Create Actor Blueprint
+create_blueprint(name="BP_HelloWorld", path="/Game/Blueprints", type="Actor")
+
+# 2. Add Delay node
+graph_add_node(
+    asset_path="/Game/Blueprints/BP_HelloWorld",
+    node_class="UK2Node_CallFunction",
+    params={"function_name": "KismetSystemLibrary.Delay"},
+    position={"x": 300, "y": 0}
+)
+# Returns: {"node_id": "K2Node_CallFunction_0"}
+
+# 3. Add Print String node
+graph_add_node(
+    asset_path="/Game/Blueprints/BP_HelloWorld",
+    node_class="UK2Node_CallFunction",
+    params={"function_name": "KismetSystemLibrary.PrintString"},
+    position={"x": 600, "y": 0}
+)
+# Returns: {"node_id": "K2Node_CallFunction_1"}
+
+# 4. Connect nodes: BeginPlay → Delay → PrintString
+graph_connect(
+    asset_path="/Game/Blueprints/BP_HelloWorld",
+    source_node="K2Node_Event_0", source_pin="then",
+    target_node="K2Node_CallFunction_0", target_pin="execute"
+)
+
+graph_connect(
+    asset_path="/Game/Blueprints/BP_HelloWorld",
+    source_node="K2Node_CallFunction_0", source_pin="then",
+    target_node="K2Node_CallFunction_1", target_pin="execute"
+)
+
+# 5. Set input values (makes Blueprint functional!)
+graph_set_pin_value(
+    asset_path="/Game/Blueprints/BP_HelloWorld",
+    node_id="K2Node_CallFunction_0",
+    pin_name="Duration",
+    value="5.0"
+)
+
+graph_set_pin_value(
+    asset_path="/Game/Blueprints/BP_HelloWorld",
+    node_id="K2Node_CallFunction_1",
+    pin_name="InString",
+    value="Hello World"
+)
+
+# 6. Compile and save
+compile_blueprint(asset_path="/Game/Blueprints/BP_HelloWorld")
+save_blueprint(asset_path="/Game/Blueprints/BP_HelloWorld")
+```
+
+**Result:** Fully functional Blueprint that prints "Hello World" 5 seconds after BeginPlay — no manual editing required!
+
 ### Review Blueprint
 ```
 get_blueprint_info → graph_list_graphs → graph_list_nodes (per graph) → assess complexity
