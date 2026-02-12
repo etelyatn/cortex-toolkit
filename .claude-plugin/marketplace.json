@@ -36,6 +36,13 @@
       "description": "UI domain — UMG widget hierarchy, properties, animations.",
       "version": "0.1.0",
       "strict": true
+    },
+    {
+      "name": "cortex-material",
+      "source": "./cortex-material",
+      "description": "Material domain — materials, instances, parameter collections, graph operations.",
+      "version": "0.1.0",
+      "strict": true
     }
   ]
 }
