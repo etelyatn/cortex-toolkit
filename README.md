@@ -49,6 +49,32 @@ claude plugin add etelyatn/cortex-toolkit/cortex-material
 
 This sets up `.cortex/` project memory, configures MCP, and detects your Unreal Engine installation.
 
+## How It Works
+
+### Skills
+Skills are slash commands that launch specialized agents to handle complex workflows. For example:
+- `/cortex-material-create` → launches Material Developer agent to build materials/instances from specs
+- `/cortex-ui-create` → launches UI Developer agent to build UMG widget hierarchies
+- `/cortex-bp-review` → launches Blueprint Developer agent to review graph structure
+
+Skills keep your conversation clean by running MCP tool sequences in the background. Use Ctrl+O to expand agent output if needed.
+
+### Agents
+Domain specialists with deep knowledge of specific Unreal Engine systems:
+- **Material Developer** — creates materials, modifies expression graphs, manages parameter collections
+- **UI Developer** — builds UMG hierarchies, sets properties, creates animations
+- **Blueprint Developer** — manages Blueprint assets, modifies graphs, analyzes C++ migration
+- **Game Balancer** — tunes DataTables, validates balance rules, tracks progression curves
+- **Data Architect** — designs table schemas, manages GameplayTags, organizes DataAssets
+
+Agents read `.cortex/domains/*.md` to follow your project conventions automatically.
+
+### Resources
+Each plugin includes pattern documentation and workflow guides:
+- `material-patterns.md` — common material graphs (PBR, masked, emissive), instance hierarchies
+- `umg-patterns.md` — screen layouts (menu, HUD, dialog), widget naming conventions
+- `blueprint-patterns.md` — graph structures, function libraries, event handling
+
 ## Project Memory
 
 The `.cortex/` directory stores project-specific knowledge that agents read automatically:
