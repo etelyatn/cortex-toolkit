@@ -15,14 +15,25 @@ Install only what you need:
 
 ## Installation
 
-### Claude Code
+### Claude Code (Marketplace)
 
 ```bash
-# Required
-claude plugin add etelyatn/cortex-toolkit/cortex-core
+# Add the marketplace
+/plugin marketplace add etelyatn/cortex-toolkit
 
-# Pick your domains
-claude plugin add etelyatn/cortex-toolkit/cortex-data
+# Then browse and install via /plugins, or install directly:
+/plugin install cortex-core@cortex-toolkit      # Required
+/plugin install cortex-data@cortex-toolkit       # Pick your domains
+/plugin install cortex-blueprint@cortex-toolkit
+/plugin install cortex-ui@cortex-toolkit
+```
+
+### Claude Code (Direct)
+
+```bash
+# Or install directly without marketplace:
+claude plugin add etelyatn/cortex-toolkit/cortex-core      # Required
+claude plugin add etelyatn/cortex-toolkit/cortex-data       # Pick your domains
 claude plugin add etelyatn/cortex-toolkit/cortex-blueprint
 claude plugin add etelyatn/cortex-toolkit/cortex-ui
 ```
