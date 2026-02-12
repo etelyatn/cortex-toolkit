@@ -1,18 +1,61 @@
 # Cortex Toolkit
 
-Toolkit for the UnrealCortex framework enabling advanced AI-powered game development.
+Skills, agents, and domain knowledge for AI coding assistants working with Unreal Engine projects powered by [UnrealCortex](https://github.com/etelyatn/UnrealCortex).
 
-## Overview
+## Plugins
 
-A collection of skills, agents, and domain knowledge for AI coding assistants working with Unreal Engine projects powered by UnrealCortex. LLM-agnostic core with platform-specific wiring for Claude Code, Codex, Cursor, and other AI coding agents.
+Install only what you need:
 
-## Status
+| Plugin | Domain | Skills | Agents |
+|--------|--------|--------|--------|
+| **cortex-core** | Foundation | cortex-init, cortex-build, cortex-test, cortex-status, cortex-editor | Game Architect, Game Designer, Blueprint Debugger, Test Debugger, Project Setup |
+| **cortex-data** | DataTables, DataAssets, CurveTables, GameplayTags | cortex-data-review, cortex-data-create | Game Balancer, Data Architect |
+| **cortex-blueprint** | Blueprints, Graphs | cortex-bp-review, cortex-bp-create | Blueprint Developer, C++ Migration Specialist |
+| **cortex-ui** | UMG Widgets | cortex-ui-review, cortex-ui-create | UI Developer |
 
-🚧 **In Development** — Design phase
+## Installation
 
-## Repository
+### Claude Code
 
-Development happens in [CortexSandbox](https://github.com/etelyatn/CortexSandbox) as a submodule.
+```bash
+# Required
+claude plugin add etelyatn/cortex-toolkit/cortex-core
+
+# Pick your domains
+claude plugin add etelyatn/cortex-toolkit/cortex-data
+claude plugin add etelyatn/cortex-toolkit/cortex-blueprint
+claude plugin add etelyatn/cortex-toolkit/cortex-ui
+```
+
+### After Installation
+
+```
+/cortex-init
+```
+
+This sets up `.cortex/` project memory, configures MCP, and detects your Unreal Engine installation.
+
+## Project Memory
+
+The `.cortex/` directory stores project-specific knowledge that agents read automatically:
+
+```
+.cortex/
+├── config.yaml          ← engine path, active domains
+├── context.md           ← shared project knowledge (read every session)
+└── domains/
+    ├── data.md          ← table schemas, balance rules
+    ├── blueprints.md    ← class hierarchy, conventions
+    └── umg.md           ← screen inventory, style guide
+```
+
+Fill these files with your game's specifics. Agents use this context to work without repeated questions.
+
+## Requirements
+
+- [UnrealCortex](https://github.com/etelyatn/UnrealCortex) plugin installed in your UE project
+- Unreal Engine 5.x
+- Python 3.10+ with `uv` (for MCP server)
 
 ## License
 
