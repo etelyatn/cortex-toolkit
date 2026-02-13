@@ -38,6 +38,62 @@ Built-in commands (no namespace): `get_status`, `get_capabilities`
 - `get_status` — connection health, registered domains
 - `get_data_catalog` — unified project data overview (cached 10 min)
 - `refresh_cache` — clear all cached MCP responses
+- `batch` — execute multiple commands sequentially with $ref resolution
+
+#### Batch Command
+
+Execute multiple commands in a single round-trip with cross-step data references.
+
+**Parameters:**
+- `commands` (array, required): Array of command objects with `command` and `params` fields
+- `stop_on_error` (bool, default `false`): Halt execution at first failure
+
+**Limits:**
+- MaxBatchSize: 200 commands per batch
+- Max message size: 2MB
+
+**$ref Resolution:**
+String parameter values matching `$steps[N].data.field` are resolved from previous step results before execution:
+
+```json
+{
+  "command": "batch",
+  "params": {
+    "stop_on_error": true,
+    "commands": [
+      {"command": "material.create_material", "params": {"name": "M_Test", "asset_path": "/Game/Materials/"}},
+      {"command": "material.add_node", "params": {
+        "asset_path": "$steps[0].data.asset_path",
+        "expression_class": "MaterialExpressionConstant"
+      }}
+    ]
+  }
+}
+```
+
+**$ref rules:**
+- Must be entire string value (no mid-string interpolation)
+- Only references to previous steps (N < current step)
+- Type-preserving (numbers stay numbers, bools stay bools)
+- Escape literal `$steps[` with `$$steps[`
+- Works in nested objects/arrays (max depth: 10)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "results": [
+      {"index": 0, "success": true, "data": {...}, "timing_ms": 12.3},
+      {"index": 1, "success": true, "data": {...}, "timing_ms": 2.1}
+    ],
+    "count": 2,
+    "total_timing_ms": 14.4
+  }
+}
+```
+
+See `cortex-toolkit/cortex-core/resources/batch-pipeline-guide.md` for comprehensive reference.
 
 ### Data (`data.*`)
 - DataTables: `list_datatables`, `get_datatable_schema`, `query_datatable`, `get_datatable_row`, `add_datatable_row`, `update_datatable_row`, `delete_datatable_row`, `search_datatable_content`, `import_datatable_json`, `batch_query`, `get_struct_schema`

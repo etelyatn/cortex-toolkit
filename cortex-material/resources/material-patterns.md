@@ -108,37 +108,53 @@ Vectors:
 
 ## MCP Tool Workflows
 
-### Build a PBR Material from Scratch (Recommended: Composite Tool)
+### Composite Tool Creation Pattern (Primary Method)
+
+The `create_material_graph` composite tool is the **recommended** way to build materials. It leverages UnrealCortex's batch pipeline for atomic, reliable creation.
+
+#### Why Use Composite Tools
+
+**OLD approach (unreliable, slow):**
+- 60+ individual MCP tool calls for a complex material
+- Each call is a TCP round-trip (5+ minutes total)
+- Fragile: failure at step 45 leaves orphaned partial asset
+- Hard to recover: must delete partial asset manually
+- 90% failure rate on large graphs
+
+**NEW approach (atomic, fast):**
+- Single `create_material_graph` call
+- Atomic batch execution with stop-on-error
+- Auto-cleanup on failure (deletes partial .uasset)
+- <2 minutes, reliable
+- Clear error reporting with recovery actions
+
+#### Usage
+
+```python
+create_material_graph(
+    name="M_PBR",
+    path="/Game/Materials/",
+    nodes=[
+        {"name": "BaseColor", "class": "TextureSampleParameter2D", "params": {"Texture": "/Game/Textures/T_Base"}},
+        {"name": "Normal", "class": "TextureSampleParameter2D", "params": {"Texture": "/Game/Textures/T_Normal"}},
+        {"name": "ORM", "class": "TextureSampleParameter2D", "params": {"Texture": "/Game/Textures/T_ORM"}},
+        {"name": "TintColor", "class": "VectorParameter", "params": {"ParameterName": "TintColor", "DefaultValue": [1,1,1,1]}},
+        {"name": "Multiply", "class": "Multiply"}
+    ],
+    connections=[
+        {"from": "BaseColor.RGB", "to": "Multiply.A"},
+        {"from": "TintColor.0", "to": "Multiply.B"},
+        {"from": "Multiply.0", "to": "Material.BaseColor"},
+        {"from": "Normal.RGB", "to": "Material.Normal"},
+        {"from": "ORM.R", "to": "Material.AmbientOcclusion"},
+        {"from": "ORM.G", "to": "Material.Roughness"},
+        {"from": "ORM.B", "to": "Material.Metallic"}
+    ]
+)
 ```
-create_material_graph (name, path, nodes, connections)
-→ Atomically creates material + all nodes + connections in single batch
-→ Pre-validates node specs and pin names before execution
-→ Auto-cleans partial assets on failure (deletes .uasset files)
-→ Runs auto_layout after completion (warns if fails, non-critical)
-→ Scales timeout dynamically for large graphs
-→ Returns detailed failure info (completed_steps, failed_step, recovery_action)
 
-Example nodes spec (with params):
-[
-  {name: "BaseColor", class: "TextureSampleParameter2D", params: {Texture: "/Game/Textures/T_Base"}},
-  {name: "Normal", class: "TextureSampleParameter2D", params: {Texture: "/Game/Textures/T_Normal"}},
-  {name: "ORM", class: "TextureSampleParameter2D", params: {Texture: "/Game/Textures/T_ORM"}},
-  {name: "TintColor", class: "VectorParameter", params: {ParameterName: "TintColor", DefaultValue: [1,1,1,1]}},
-  {name: "Multiply", class: "Multiply"}
-]
-
-Example connections spec (use named pins):
-[
-  {from: "BaseColor.RGB", to: "Multiply.A"},
-  {from: "TintColor.0", to: "Multiply.B"},
-  {from: "Multiply.0", to: "Material.BaseColor"},
-  {from: "Normal.RGB", to: "Material.Normal"},
-  {from: "ORM.R", to: "Material.AmbientOcclusion"},
-  {from: "ORM.G", to: "Material.Roughness"},
-  {from: "ORM.B", to: "Material.Metallic"}
-]
-
-Success response:
+**Success response:**
+```json
 {
   "success": true,
   "asset_path": "/Game/Materials/M_PBR",
@@ -147,26 +163,245 @@ Success response:
   "connection_count": 7,
   "properties_set": 4,
   "total_timing_ms": 850,
-  "steps_summary": {create: 1, add_node: 5, set_node_property: 4, connect: 7, auto_layout: 1}
+  "steps_summary": {"create": 1, "add_node": 5, "set_node_property": 4, "connect": 7, "auto_layout": 1}
 }
+```
 
-Failure response (with auto-cleanup):
+**Failure response (with auto-cleanup):**
+```json
 {
   "success": false,
   "summary": "Step 8 of 15 failed: material.connect - Output pin 'XYZ' not found on node",
   "asset_path": "/Game/Materials/M_PBR",
   "completed_steps": 8,
-  "failed_step": {index: 8, command: "material.connect", error: "Pin not found"},
+  "failed_step": {"index": 8, "command": "material.connect", "error": "Pin not found"},
   "total_steps": 15,
-  "recovery_action": {action: "deleted_partial", path: "/Game/Materials/M_PBR"}
+  "recovery_action": {"action": "deleted_partial", "path": "/Game/Materials/M_PBR"}
 }
 ```
 
-### Build a Material with Individual Tools (Modifying Existing Only)
-```
-⚠️ Only use individual tools when modifying existing materials.
-   For new materials, always use create_material_graph composite tool.
+#### What Happens Under the Hood
 
+1. **Validation** (Python MCP layer):
+   - Required fields (name, path)
+   - Node name uniqueness
+   - Connection validity (source/target nodes exist, pin names known)
+   - No user params starting with `$steps[` (prevents $ref collision)
+
+2. **Translation** (Python):
+   - Short class names → full UE names (`TextureSample` → `MaterialExpressionTextureSample`)
+   - Generate batch commands: create → add nodes → set properties → connect
+   - Wire `$ref` between steps: `$steps[0].data.asset_path`, `$steps[1].data.node_id`
+
+3. **Batch Execution** (C++ CortexCore):
+   - Deep-copy params before $ref resolution (preserve original request)
+   - Resolve refs from previous step results
+   - Execute sequentially on Game Thread
+   - Defer PostEditChange/RebuildGraph until batch end (prevents freeze)
+   - Single FScopedTransaction (one undo entry)
+   - Halt on first failure (stop-on-error mode)
+
+4. **Post-Batch** (Python):
+   - Call `material.auto_layout` separately (non-critical, warns if fails)
+   - On failure: delete partial asset, return recovery_action
+
+#### $ref Wiring Patterns
+
+The composite tool auto-generates $ref strings between steps:
+
+**Pattern 1: Asset path propagation**
+```json
+// Step 0: create_material → returns {asset_path: "/Game/Materials/M_Test"}
+// Step 1: add_node uses "$steps[0].data.asset_path"
+// After resolution: asset_path = "/Game/Materials/M_Test"
+```
+
+**Pattern 2: Node ID chaining**
+```json
+// Step 1: add_node → returns {node_id: "MaterialExpressionConstant_0"}
+// Step 5: connect uses "$steps[1].data.node_id" for source_node
+// After resolution: source_node = "MaterialExpressionConstant_0"
+```
+
+**Pattern 3: Multi-step connection**
+```json
+// Connect two previously created nodes:
+{
+  "asset_path": "$steps[0].data.asset_path",    // Ref to create_material
+  "source_node": "$steps[2].data.node_id",      // Ref to second add_node
+  "target_node": "$steps[3].data.node_id"       // Ref to third add_node
+}
+```
+
+**Type preservation:** $ref maintains JSON types (numbers stay numbers, not strings).
+
+#### Failure Recovery
+
+**Auto-cleanup on failure:**
+If batch fails mid-execution and step 0 (create_material) succeeded, the composite tool automatically deletes the partial asset:
+
+```python
+if failed_step is not None and asset_path:
+    connection.send_command("material.delete_material", {"asset_path": asset_path})
+    return {
+        "success": False,
+        "recovery_action": {"action": "deleted_partial", "path": asset_path}
+    }
+```
+
+This prevents `ASSET_ALREADY_EXISTS` errors on retry.
+
+**Recovery actions:**
+- `deleted_partial`: Partial asset was deleted, safe to retry
+- `cleanup_failed`: Deletion failed, manual intervention required (path provided)
+
+#### Timeout Scaling
+
+Composite tools scale TCP timeout dynamically to handle large graphs:
+```python
+timeout = max(60, len(commands) * 2)  # 60s minimum, 2s per command
+```
+
+A 127-step batch gets 254s timeout instead of the default 60s.
+
+### Manual Batch Construction (Advanced)
+
+For updating existing materials or edge cases not covered by composite tools, construct batches manually.
+
+#### When to Use Manual Batches
+
+- Modifying existing materials (add/remove nodes, rewire connections)
+- Complex updates requiring atomicity but not full graph recreation
+- Operations not yet supported by composite tools
+
+#### Example: Add Parameter to Existing Material
+
+```json
+{
+  "command": "batch",
+  "params": {
+    "stop_on_error": true,
+    "commands": [
+      {"command": "material.add_node", "params": {
+        "asset_path": "/Game/Materials/M_Existing",
+        "expression_class": "MaterialExpressionScalarParameter"
+      }},
+      {"command": "material.set_node_property", "params": {
+        "asset_path": "/Game/Materials/M_Existing",
+        "node_id": "$steps[0].data.node_id",
+        "property_name": "ParameterName",
+        "value": "Metallic"
+      }},
+      {"command": "material.set_node_property", "params": {
+        "asset_path": "/Game/Materials/M_Existing",
+        "node_id": "$steps[0].data.node_id",
+        "property_name": "DefaultValue",
+        "value": 0.5
+      }},
+      {"command": "material.connect", "params": {
+        "asset_path": "/Game/Materials/M_Existing",
+        "source_node": "$steps[0].data.node_id",
+        "source_output": "0",
+        "target_node": "MaterialResult",
+        "target_input": "Metallic"
+      }},
+      {"command": "material.auto_layout", "params": {
+        "asset_path": "/Game/Materials/M_Existing"
+      }}
+    ]
+  }
+}
+```
+
+**Key differences from composite tools:**
+- Direct asset path (not a new material, so no create step)
+- Manual $ref wiring (Python layer doesn't auto-generate)
+- No spec validation (you're responsible for correctness)
+- No auto-cleanup on failure (partial changes remain)
+
+#### $ref Syntax Reference
+
+**Basic field reference:**
+```
+$steps[0].data.asset_path
+$steps[1].data.node_id
+```
+
+**Nested field reference:**
+```
+$steps[0].data.created.id
+$steps[2].data.connections[0].pin
+```
+
+**Escape literal strings:**
+```
+"$$steps[0]"  →  resolves to "$steps[0]" (literal)
+```
+
+**Rules:**
+- Must be entire string value (no mid-string interpolation)
+- Only references to previous steps (N < current step index)
+- References to failed steps return error
+- Type-preserving (numbers stay numbers, bools stay bools)
+
+#### Error Handling in Manual Batches
+
+**stop_on_error: true (recommended for atomic operations):**
+Halts at first failure, returns all completed steps + error:
+```json
+{
+  "success": true,
+  "data": {
+    "results": [
+      {"index": 0, "success": true, "data": {...}, "timing_ms": 10.2},
+      {"index": 1, "success": false, "error_code": "INVALID_FIELD", "error_message": "...", "timing_ms": 1.3}
+    ],
+    "count": 2,
+    "total_timing_ms": 11.5
+  }
+}
+```
+
+**stop_on_error: false (default, for independent operations):**
+Executes all steps regardless of failures:
+```json
+{
+  "success": true,
+  "data": {
+    "results": [
+      {"index": 0, "success": true, ...},
+      {"index": 1, "success": false, "error_code": "ASSET_NOT_FOUND", ...},
+      {"index": 2, "success": true, ...}
+    ],
+    "count": 3
+  }
+}
+```
+
+**$ref resolution errors:**
+- Future/self reference: `BATCH_REF_RESOLUTION_FAILED: Ref to step N out of bounds`
+- Failed step: `BATCH_REF_RESOLUTION_FAILED: Ref to failed step N`
+- Missing field: `BATCH_REF_RESOLUTION_FAILED: Field 'X' not found in step N data`
+- Malformed: `BATCH_REF_RESOLUTION_FAILED: Malformed ref`
+
+#### Performance Characteristics
+
+| Batch Size | Typical Duration | Notes |
+|------------|------------------|-------|
+| 10 commands | 50-100ms | Small graph modifications |
+| 50 commands | 200-400ms | Medium material graph |
+| 127 commands | 800-1500ms | Production material (40 nodes) |
+| 200 commands | 1000-2000ms | Max batch size |
+
+**Optimization:** Batch-aware operations defer `PostEditChange`/`RebuildGraph` until batch end, preventing 5-30s editor freeze on large batches.
+
+### Individual Tool Usage (Legacy, Not Recommended)
+
+⚠️ Only use individual tools when modifying existing materials and a batch is unnecessary.
+   For new materials, always use `create_material_graph` composite tool.
+   For complex updates, use manual batch construction.
+
+```
 add_node (asset_path, expression_class)
 → set_node_property (asset_path, node_id, property_name, value)
 → connect_material_nodes (asset_path, source_node, source_output, target_node, target_input)

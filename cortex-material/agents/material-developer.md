@@ -112,3 +112,127 @@ Use `get_material_node_pins(asset_path, node_id)` to query actual pin names on a
 - Derive asset-specific instances from category instances
 - Use `reset_parameter` to fall back to parent values
 - Use `set_parameters` for batch updates when configuring multiple values
+
+## Batch Pipeline Workflow
+
+The `create_material_graph` composite tool uses UnrealCortex's batch pipeline under the hood. Understanding this architecture helps when building complex materials or troubleshooting failures.
+
+### How It Works
+
+1. **Python Layer (MCP)** — validates spec and translates to batch commands:
+   - Validates required fields (name, path), node name uniqueness, connection validity
+   - Resolves short class names (`TextureSample` → `MaterialExpressionTextureSample`)
+   - Generates batch commands: create → add nodes → set properties → connect
+   - Wires `$ref` between steps automatically (e.g., `$steps[0].data.asset_path`)
+   - Sends single batch with `stop_on_error: true`
+
+2. **C++ Layer (CortexCore)** — executes batch with $ref resolution:
+   - Deep-copies params before resolution (preserves original request)
+   - Resolves `$ref` strings like `$steps[1].data.node_id` from previous step results
+   - Executes commands sequentially on Game Thread
+   - Defers `PostEditChange`/`RebuildGraph` until batch end (prevents editor freeze)
+   - Creates single `FScopedTransaction` (one undo entry for entire batch)
+   - Halts on first failure (stop-on-error mode)
+
+3. **Post-Batch** — auto-layout and cleanup:
+   - Calls `material.auto_layout` separately (non-critical, warns if fails)
+   - On failure: auto-deletes partial asset, returns recovery_action
+
+### $ref Resolution Examples
+
+**Basic node wiring:**
+```json
+[
+  {"command": "material.create_material", "params": {"name": "M_Test", "asset_path": "/Game/Materials/"}},
+  {"command": "material.add_node", "params": {
+    "asset_path": "$steps[0].data.asset_path",  // Ref to step 0 result
+    "expression_class": "MaterialExpressionConstant"
+  }}
+]
+```
+
+**Multi-node connection:**
+```json
+{"command": "material.connect", "params": {
+  "asset_path": "$steps[0].data.asset_path",      // Ref to create_material result
+  "source_node": "$steps[1].data.node_id",        // Ref to first add_node result
+  "source_output": "0",
+  "target_node": "$steps[2].data.node_id",        // Ref to second add_node result
+  "target_input": "A"
+}}
+```
+
+**Type preservation:** $ref maintains JSON types (numbers stay numbers, not strings):
+```json
+// Step 0 returns: {"data": {"default_value": 2.5}}
+// Step 1 params: {"value": "$steps[0].data.default_value"}
+// After resolution: {"value": 2.5}  ← number, not "2.5" string
+```
+
+### Short Class Names Vocabulary
+
+The composite tool accepts short names for common material expressions:
+
+| Short Name | Full UE Class Name |
+|------------|-------------------|
+| `TextureCoordinate` | `MaterialExpressionTextureCoordinate` |
+| `TextureSample` | `MaterialExpressionTextureSample` |
+| `TextureParameter` | `MaterialExpressionTextureSampleParameter2D` |
+| `ScalarParameter` | `MaterialExpressionScalarParameter` |
+| `VectorParameter` | `MaterialExpressionVectorParameter` |
+| `Constant` | `MaterialExpressionConstant` |
+| `Constant3Vector` | `MaterialExpressionConstant3Vector` |
+| `Multiply` | `MaterialExpressionMultiply` |
+| `Add` | `MaterialExpressionAdd` |
+| `Lerp` | `MaterialExpressionLinearInterpolate` |
+| `Power` | `MaterialExpressionPower` |
+| `Clamp` | `MaterialExpressionClamp` |
+| `OneMinus` | `MaterialExpressionOneMinus` |
+| `Sine` | `MaterialExpressionSine` |
+| `Cosine` | `MaterialExpressionCosine` |
+| `Fresnel` | `MaterialExpressionFresnel` |
+| `Panner` | `MaterialExpressionPanner` |
+| `Time` | `MaterialExpressionTime` |
+| `WorldPosition` | `MaterialExpressionWorldPosition` |
+| `ComponentMask` | `MaterialExpressionComponentMask` |
+| `AppendVector` | `MaterialExpressionAppendVector` |
+| `DotProduct` | `MaterialExpressionDotProduct` |
+| `Normalize` | `MaterialExpressionNormalize` |
+
+See `_CLASS_MAP` in `MCP/tools/material/composites.py` for the complete list.
+
+### Connection Format: NodeName.PinName
+
+Connections use readable `"NodeName.PinName"` format instead of pin indices:
+
+**Source pins (from):**
+- Most nodes: `"NodeName.0"` (single unnamed output)
+- Texture nodes: `"Diffuse.RGBA"`, `"Diffuse.RGB"`, `"Diffuse.R"`, etc.
+- Examples: `"UV.UV"`, `"Time.0"`, `"Multiply.0"`
+
+**Target pins (to):**
+- Node inputs: `"Multiply.A"`, `"Lerp.Alpha"`, `"TextureSample.UVs"`
+- Material result: `"Material.BaseColor"`, `"Material.Normal"`, `"Material.EmissiveColor"`
+
+Pin names are passed to C++ as strings — the C++ layer does name-to-index lookup via `GetOutputName(i)` and `GetInputName(i)` iteration. This keeps pin resolution in the engine where it belongs, preventing Python-side drift across UE versions.
+
+### Manual Batch Construction (Advanced)
+
+For updating existing materials or edge cases not covered by composite tools, construct batches manually:
+
+```json
+{
+  "command": "batch",
+  "params": {
+    "stop_on_error": true,
+    "commands": [
+      {"command": "material.add_node", "params": {"asset_path": "/Game/Materials/M_Existing", "expression_class": "MaterialExpressionScalarParameter"}},
+      {"command": "material.set_node_property", "params": {"asset_path": "/Game/Materials/M_Existing", "node_id": "$steps[0].data.node_id", "property_name": "ParameterName", "value": "NewParam"}},
+      {"command": "material.connect", "params": {"asset_path": "/Game/Materials/M_Existing", "source_node": "$steps[0].data.node_id", "source_output": "0", "target_node": "MaterialResult", "target_input": "Metallic"}},
+      {"command": "material.auto_layout", "params": {"asset_path": "/Game/Materials/M_Existing"}}
+    ]
+  }
+}
+```
+
+See `cortex-toolkit/cortex-core/resources/batch-pipeline-guide.md` for comprehensive $ref syntax, error handling, and performance characteristics.
