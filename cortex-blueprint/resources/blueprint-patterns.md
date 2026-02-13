@@ -6,11 +6,42 @@ Best practices and patterns for Blueprint development with UnrealCortex.
 
 | Type | Use When | Parent Class |
 |------|----------|--------------|
-| Actor Blueprint | Placeable entity in the world | `AActor` or custom base |
-| Component Blueprint | Reusable behavior attached to actors | `UActorComponent` |
+| Actor Blueprint | Placeable entity in the world | `AActor` or custom C++ base |
+| Component Blueprint | Reusable behavior attached to actors | `UActorComponent` or custom C++ base |
 | Function Library | Static utility functions | `UBlueprintFunctionLibrary` |
 | Interface | Shared contract between unrelated classes | `UInterface` |
-| Widget Blueprint | UI screen or component | `UUserWidget` |
+| Widget Blueprint | UI screen or component | `UUserWidget` or custom C++ base |
+
+### Creating Blueprints with Custom C++ Parents
+
+Use the `parent_class` parameter to inherit from project-specific C++ base classes:
+
+**Short name (recommended for project classes):**
+```python
+create_blueprint(
+    name="BP_SpecializedActor",
+    path="/Game/Blueprints",
+    parent_class="MyGameActor"  # Resolves to project's C++ class
+)
+```
+
+**Full class path (for disambiguation):**
+```python
+create_blueprint(
+    name="BP_SpecializedActor",
+    path="/Game/Blueprints",
+    parent_class="/Script/MyGame.MyGameActor"
+)
+```
+
+**Auto-detection:** Widget subclasses are automatically detected and create WidgetBlueprints. Interface and FunctionLibrary types are also inferred from parent class hierarchy.
+
+**Common use cases:**
+- Game-specific base classes: `AMyGameCharacter`, `AMyGameWeapon`, `UMyInventoryComponent`
+- Engine framework classes: `AGameModeBase`, `APlayerController`, `APawn`
+- Specialized components: `USceneComponent`, `UPrimitiveComponent`, `UWidgetComponent`
+
+**When `parent_class` is provided, the `type` parameter is ignored.** The Blueprint type is inferred automatically from the parent class.
 
 ## Naming Conventions
 
@@ -39,6 +70,35 @@ Best practices and patterns for Blueprint development with UnrealCortex.
 | 100+ | Consider C++ migration for core logic |
 
 ## MCP Tool Workflows
+
+### Create Blueprint with Custom C++ Parent
+```python
+# Create Blueprint inheriting from custom C++ base class
+create_blueprint(
+    name="BP_CustomEnemy",
+    path="/Game/Blueprints/Enemies",
+    parent_class="AEnemyBase"  # Your C++ base class
+)
+# Returns: {"asset_path": "/Game/Blueprints/Enemies/BP_CustomEnemy", "parent_class": "EnemyBase", "type": "Actor"}
+
+# Add Blueprint-specific variables
+add_blueprint_variable(
+    asset_path="/Game/Blueprints/Enemies/BP_CustomEnemy",
+    name="PatrolRadius",
+    type="float",
+    default_value="500.0",
+    category="AI"
+)
+
+# Compile and save
+compile_blueprint(asset_path="/Game/Blueprints/Enemies/BP_CustomEnemy")
+save_blueprint(asset_path="/Game/Blueprints/Enemies/BP_CustomEnemy")
+```
+
+**Why use custom C++ parents:**
+- Inherit optimized C++ logic (tick functions, collision handling, networking)
+- Blueprint only adds designer-tunable overrides (patrol radius, visual mesh, sounds)
+- Best of both worlds: performance + iteration speed
 
 ### Create Blueprint with Structure
 ```

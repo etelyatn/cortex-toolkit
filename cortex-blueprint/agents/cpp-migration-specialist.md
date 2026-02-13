@@ -48,3 +48,22 @@ Analyze Blueprint graphs and translate them to equivalent C++ code following UE 
 3. C++ source file (implementation)
 4. Blueprint changes needed (reparent, remove migrated logic)
 5. Testing plan (what to verify after migration)
+
+## Reparenting Blueprints to C++ Classes
+
+After creating a C++ base class, reparent existing Blueprints using `create_blueprint` with `parent_class`:
+
+**Example workflow:**
+1. Write C++ base class (`AEnemyBase`) with core logic
+2. Create new Blueprint inheriting from it:
+```python
+create_blueprint(
+    name="BP_Enemy_Reparented",
+    path="/Game/Blueprints",
+    parent_class="AEnemyBase"  # Your new C++ class
+)
+```
+3. Migrate Blueprint-specific overrides (variables, event handlers) from old BP
+4. Delete old Blueprint after verification
+
+**Note:** Direct reparenting of existing Blueprints is not yet supported. Create new BP with `parent_class`, then migrate content manually.

@@ -155,6 +155,39 @@ All Blueprint operations require the Cortex MCP server connected to a running Un
 
 **Graph (logic):** `graph_list_graphs`, `graph_list_nodes`, `graph_get_node`, `graph_add_node`, `graph_remove_node`, `graph_connect`, `graph_disconnect`, `graph_set_pin_value`
 
+### Creating Blueprints with Custom C++ Parents
+
+`create_blueprint` accepts an optional `parent_class` parameter to inherit from custom C++ classes:
+
+```python
+# Inherit from custom C++ base class (short name)
+create_blueprint(
+    name="BP_SpecializedBenchmark",
+    path="/Game/Blueprints",
+    parent_class="CortexBenchmarkActor"
+)
+
+# Or use full class path
+create_blueprint(
+    name="BP_SpecializedBenchmark",
+    path="/Game/Blueprints",
+    parent_class="/Script/CortexSandbox.CortexBenchmarkActor"
+)
+```
+
+**Parameters:**
+- `name`: Blueprint name (e.g., 'BP_Character')
+- `path`: Asset path directory (e.g., '/Game/Blueprints')
+- `type`: Base type (Actor, Component, Widget, Interface, FunctionLibrary) - **ignored when `parent_class` is provided**
+- `parent_class`: Optional C++ class to use as Blueprint parent. Accepts short name or full path. Overrides `type` parameter.
+
+**Use cases:**
+- Creating Blueprint subclasses of game-specific C++ base classes
+- Inheriting from custom component or actor base classes
+- Building on specialized C++ systems (networking, replication, AI)
+
+**Important:** When `parent_class` is provided, the `type` parameter is ignored. The Blueprint type is inferred from the parent class hierarchy (Widget subclasses auto-detect as WidgetBlueprint, Interfaces as InterfaceBlueprint, etc.).
+
 ## Creating Functional Blueprints
 
 Use `graph_set_pin_value` to set input values on nodes, enabling fully automated Blueprint creation:
