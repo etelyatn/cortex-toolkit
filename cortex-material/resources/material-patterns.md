@@ -108,19 +108,44 @@ Vectors:
 
 ## MCP Tool Workflows
 
-### Build a PBR Material from Scratch
+### Build a PBR Material from Scratch (Recommended: Composite Tool)
 ```
-create_material (asset_path, name)
-→ add_node (TextureSampleParameter2D, position for BaseColor)
-→ add_node (TextureSampleParameter2D, position for Normal)
-→ add_node (TextureSampleParameter2D, position for ORM)
-→ add_node (VectorParameter, position for TintColor)
-→ add_node (Multiply, position for tint blend)
-→ connect (BaseColor tex → Multiply A)
-→ connect (TintColor → Multiply B)
-→ connect (Multiply → Material BaseColor)
-→ connect (Normal tex → Material Normal)
-→ connect (ORM tex channels → Material Roughness, Metallic, AO)
+create_material_graph (name, path, nodes, connections)
+→ Atomically creates material + all nodes + connections in single batch
+→ Auto-validates pin names before execution
+→ Auto-cleans partial assets on failure
+→ Runs auto_layout after completion
+
+Example nodes spec:
+[
+  {name: "BaseColor", class: "TextureSampleParameter2D"},
+  {name: "Normal", class: "TextureSampleParameter2D"},
+  {name: "ORM", class: "TextureSampleParameter2D"},
+  {name: "TintColor", class: "VectorParameter", params: {DefaultValue: [1,1,1,1]}},
+  {name: "Multiply", class: "Multiply"}
+]
+
+Example connections spec:
+[
+  {from: "BaseColor.RGB", to: "Multiply.A"},
+  {from: "TintColor.0", to: "Multiply.B"},
+  {from: "Multiply.0", to: "Material.BaseColor"},
+  {from: "Normal.RGB", to: "Material.Normal"},
+  {from: "ORM.R", to: "Material.AmbientOcclusion"},
+  {from: "ORM.G", to: "Material.Roughness"},
+  {from: "ORM.B", to: "Material.Metallic"}
+]
+```
+
+### Build a Material with Individual Tools (Modifying Existing Only)
+```
+⚠️ Only use individual tools when modifying existing materials.
+   For new materials, always use create_material_graph composite tool.
+
+add_node (asset_path, expression_class)
+→ set_node_property (asset_path, node_id, property_name, value)
+→ connect_material_nodes (asset_path, source_node, source_output, target_node, target_input)
+→ auto_layout (asset_path)
 ```
 
 ### Create Instance with Overrides
@@ -162,4 +187,33 @@ list_materials (path, recursive) → find all materials
 → get_material (each) → check node count, connections
 → list_nodes (each) → identify unused nodes
 → list_connections (each) → verify all outputs are connected
+```
+
+## Pin Naming Reference
+
+### Output Pins (source_output in connections)
+- **Most nodes**: `"0"` (single unnamed output)
+- **Texture nodes**: `"RGBA"`, `"RGB"`, `"R"`, `"G"`, `"B"`, `"A"`
+- **ComponentMask**: `"R"`, `"G"`, `"B"`, `"A"`, `"RG"`, `"RGB"`, etc.
+
+### Input Pins (target_input in connections)
+| Node Type | Input Pins |
+|-----------|------------|
+| Math binary (Multiply, Add, Subtract, Divide) | `"A"`, `"B"` |
+| Math unary (Sine, Cosine, Abs, OneMinus, Floor, Ceil, Frac) | `"Input"` |
+| Lerp/LinearInterpolate | `"A"`, `"B"`, `"Alpha"` |
+| Clamp | `"Input"`, `"Min"`, `"Max"` |
+| Power | `"Base"`, `"Exp"` |
+| TextureSample | `"UVs"`, `"Tex"` |
+| Panner | `"Coordinate"`, `"Time"`, `"Speed"` |
+| MaterialResult | `"BaseColor"`, `"Metallic"`, `"Roughness"`, `"Normal"`, `"EmissiveColor"`, `"Specular"`, `"Opacity"`, `"OpacityMask"`, `"AmbientOcclusion"` |
+
+### Discovering Pins at Runtime
+Use `get_material_node_pins(asset_path, node_id)` to query actual pin names on any node:
+```
+get_material_node_pins("/Game/Materials/M_Test", "Expr_0")
+→ Returns: {
+    "outputs": [{index: 0, name: "0"}],
+    "inputs": [{index: 0, name: "A", connected_to: "Expr_1"}, ...]
+  }
 ```
