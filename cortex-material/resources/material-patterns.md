@@ -112,20 +112,22 @@ Vectors:
 ```
 create_material_graph (name, path, nodes, connections)
 → Atomically creates material + all nodes + connections in single batch
-→ Auto-validates pin names before execution
-→ Auto-cleans partial assets on failure
-→ Runs auto_layout after completion
+→ Pre-validates node specs and pin names before execution
+→ Auto-cleans partial assets on failure (deletes .uasset files)
+→ Runs auto_layout after completion (warns if fails, non-critical)
+→ Scales timeout dynamically for large graphs
+→ Returns detailed failure info (completed_steps, failed_step, recovery_action)
 
-Example nodes spec:
+Example nodes spec (with params):
 [
-  {name: "BaseColor", class: "TextureSampleParameter2D"},
-  {name: "Normal", class: "TextureSampleParameter2D"},
-  {name: "ORM", class: "TextureSampleParameter2D"},
-  {name: "TintColor", class: "VectorParameter", params: {DefaultValue: [1,1,1,1]}},
+  {name: "BaseColor", class: "TextureSampleParameter2D", params: {Texture: "/Game/Textures/T_Base"}},
+  {name: "Normal", class: "TextureSampleParameter2D", params: {Texture: "/Game/Textures/T_Normal"}},
+  {name: "ORM", class: "TextureSampleParameter2D", params: {Texture: "/Game/Textures/T_ORM"}},
+  {name: "TintColor", class: "VectorParameter", params: {ParameterName: "TintColor", DefaultValue: [1,1,1,1]}},
   {name: "Multiply", class: "Multiply"}
 ]
 
-Example connections spec:
+Example connections spec (use named pins):
 [
   {from: "BaseColor.RGB", to: "Multiply.A"},
   {from: "TintColor.0", to: "Multiply.B"},
@@ -135,6 +137,29 @@ Example connections spec:
   {from: "ORM.G", to: "Material.Roughness"},
   {from: "ORM.B", to: "Material.Metallic"}
 ]
+
+Success response:
+{
+  "success": true,
+  "asset_path": "/Game/Materials/M_PBR",
+  "total_steps": 15,
+  "node_count": 5,
+  "connection_count": 7,
+  "properties_set": 4,
+  "total_timing_ms": 850,
+  "steps_summary": {create: 1, add_node: 5, set_node_property: 4, connect: 7, auto_layout: 1}
+}
+
+Failure response (with auto-cleanup):
+{
+  "success": false,
+  "summary": "Step 8 of 15 failed: material.connect - Output pin 'XYZ' not found on node",
+  "asset_path": "/Game/Materials/M_PBR",
+  "completed_steps": 8,
+  "failed_step": {index: 8, command: "material.connect", error: "Pin not found"},
+  "total_steps": 15,
+  "recovery_action": {action: "deleted_partial", path: "/Game/Materials/M_PBR"}
+}
 ```
 
 ### Build a Material with Individual Tools (Modifying Existing Only)
@@ -186,34 +211,97 @@ create_collection (asset_path, name)
 list_materials (path, recursive) → find all materials
 → get_material (each) → check node count, connections
 → list_nodes (each) → identify unused nodes
-→ list_connections (each) → verify all outputs are connected
+→ list_connections (each) → verify all outputs are connected (includes expression-to-expression)
+→ get_material_node_pins (each node) → verify pin usage
+```
+
+### Delete Materials and Instances (Improved: Actual File Deletion)
+```
+delete_material (asset_path)
+→ Uses ObjectTools::ForceDeleteObjects for proper reference cleanup
+→ Deletes .uasset file from disk (not just MarkAsGarbage)
+→ Returns error if material has references that prevent deletion
+→ Returns {asset_path, deleted: true} on success
+
+delete_instance (asset_path)
+→ Same disk deletion behavior as delete_material
+→ Cleanup is reliable — no orphaned files after deletion
+```
+
+### Set Node Properties (Improved: Struct Property Support)
+```
+set_node_property (asset_path, node_id, property_name, value)
+→ Now supports FLinearColor properties (e.g., VectorParameter.DefaultValue)
+→ Now supports FVector properties
+→ Format for FLinearColor: [R, G, B, A] as array of floats
+→ Example: set_node_property(..., "DefaultValue", [1.0, 0.0, 0.0, 1.0])
+→ Previously only supported scalar/string properties
 ```
 
 ## Pin Naming Reference
 
+### Composite Tool Pin Validation
+The `create_material_graph` composite tool validates pin names against a comprehensive _PIN_MAP covering 30+ expression types before executing the batch. This catches pin name errors early and prevents cascading failures.
+
+Validated expression types include:
+- Parameters: ScalarParameter, VectorParameter, TextureParameter, StaticSwitchParameter, StaticBoolParameter
+- Constants: Constant, Constant2Vector, Constant3Vector, Constant4Vector
+- Math binary: Multiply, Add, Subtract, Divide, Power, DotProduct, CrossProduct
+- Math unary: OneMinus, Abs, Sine, Cosine, Floor, Ceil, Frac, Normalize
+- Interpolation: Lerp, Clamp, If
+- Texture: TextureCoordinate, TextureSample, TextureObject
+- Animation: Time, Panner
+- World: WorldPosition, VertexColor
+- Vector ops: ComponentMask, AppendVector, Desaturation
+- Special: Fresnel, Noise
+
 ### Output Pins (source_output in connections)
 - **Most nodes**: `"0"` (single unnamed output)
-- **Texture nodes**: `"RGBA"`, `"RGB"`, `"R"`, `"G"`, `"B"`, `"A"`
-- **ComponentMask**: `"R"`, `"G"`, `"B"`, `"A"`, `"RG"`, `"RGB"`, etc.
+- **Texture nodes** (TextureSample, TextureParameter): `"RGBA"`, `"RGB"`, `"R"`, `"G"`, `"B"`, `"A"`
+- **VertexColor**: `"RGBA"`, `"RGB"`, `"R"`, `"G"`, `"B"`, `"A"`
+- **ComponentMask**: `"0"` (output depends on configured channels)
 
 ### Input Pins (target_input in connections)
 | Node Type | Input Pins |
 |-----------|------------|
-| Math binary (Multiply, Add, Subtract, Divide) | `"A"`, `"B"` |
+| Math binary (Multiply, Add, Subtract, Divide, DotProduct, CrossProduct) | `"A"`, `"B"` |
 | Math unary (Sine, Cosine, Abs, OneMinus, Floor, Ceil, Frac) | `"Input"` |
+| Normalize | `"VectorInput"` |
 | Lerp/LinearInterpolate | `"A"`, `"B"`, `"Alpha"` |
 | Clamp | `"Input"`, `"Min"`, `"Max"` |
+| If | `"A"`, `"B"`, `"AGreaterThanB"`, `"AEqualsB"`, `"ALessThanB"` |
 | Power | `"Base"`, `"Exp"` |
 | TextureSample | `"UVs"`, `"Tex"` |
-| Panner | `"Coordinate"`, `"Time"`, `"Speed"` |
-| MaterialResult | `"BaseColor"`, `"Metallic"`, `"Roughness"`, `"Normal"`, `"EmissiveColor"`, `"Specular"`, `"Opacity"`, `"OpacityMask"`, `"AmbientOcclusion"` |
+| Panner | `"Coordinate"`, `"Time"`, `"Speed"`, `"SpeedX"`, `"SpeedY"` |
+| Fresnel | `"ExponentIn"`, `"BaseReflectFractionIn"`, `"Normal"` |
+| ComponentMask | `"Input"` |
+| AppendVector | `"A"`, `"B"` |
+| Desaturation | `"Input"`, `"Fraction"` |
+| Noise | `"Position"` |
+| StaticSwitchParameter | `"True"`, `"False"`, `"Value"` |
+| MaterialResult | `"BaseColor"`, `"Metallic"`, `"Roughness"`, `"Normal"`, `"EmissiveColor"`, `"Specular"`, `"Opacity"`, `"OpacityMask"`, `"WorldPositionOffset"`, `"AmbientOcclusion"` |
 
-### Discovering Pins at Runtime
-Use `get_material_node_pins(asset_path, node_id)` to query actual pin names on any node:
+### Discovering Pins at Runtime (New: get_material_node_pins)
+Use `get_material_node_pins(asset_path, node_id)` to query actual pin names on any node.
+This is the definitive way to discover available pins and see what's currently connected.
+
 ```
 get_material_node_pins("/Game/Materials/M_Test", "Expr_0")
 → Returns: {
+    "node_id": "Expr_0",
+    "expression_class": "MaterialExpressionMultiply",
     "outputs": [{index: 0, name: "0"}],
-    "inputs": [{index: 0, name: "A", connected_to: "Expr_1"}, ...]
+    "inputs": [
+      {index: 0, name: "A", connected_to: "Expr_1"},
+      {index: 1, name: "B"}
+    ],
+    "input_count": 2,
+    "output_count": 1
   }
+
+Use case:
+1. Add a node with add_material_node
+2. Get its node_id from the response
+3. Call get_material_node_pins to discover exact pin names
+4. Use discovered pin names in connect_material_nodes
 ```

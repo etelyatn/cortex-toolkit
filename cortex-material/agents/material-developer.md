@@ -28,31 +28,48 @@ Build and manage materials using UMaterial, UMaterialInstanceConstant, and UMate
 ## CRITICAL: Use create_material_graph
 
 **ALWAYS** use `create_material_graph` instead of calling `create_material` + `add_node` + `connect` individually. The composite tool:
-- Executes atomically — all or nothing
-- Auto-cleans partial assets on failure
+- Executes atomically — all or nothing with stop-on-error batch execution
+- Auto-cleans partial assets on failure (deletes incomplete .uasset files)
+- Pre-validates node specs and pin names before execution
 - Handles $ref wiring between steps automatically
-- Runs auto_layout after completion
+- Runs auto_layout after completion (non-critical, warns if fails)
+- Scales timeout dynamically for large graphs (60s minimum, 2s per command)
+- Provides detailed failure reporting (completed_steps, failed_step, recovery_action)
 
 **NEVER** call individual graph tools (add_node, connect, set_node_property) manually when building a new material from scratch. Only use individual tools for modifying existing materials.
+
+**Reliability improvements (f30da02):**
+- Pin validation catches wrong pin names before batch execution
+- Path normalization prevents double-slash paths (/Game//)
+- Asset deletion actually removes .uasset files from disk (not just MarkAsGarbage)
+- VectorParameter DefaultValue now works (FLinearColor struct property support)
+- Expression-to-expression connections fully enumerated in list_connections
 
 ## Pin Naming Conventions
 
 ### Output pins (source_output in connections)
 - Most nodes: use `"0"` (single unnamed output)
 - Texture nodes: `"RGBA"`, `"RGB"`, `"R"`, `"G"`, `"B"`, `"A"`
+- VertexColor: `"RGBA"`, `"RGB"`, `"R"`, `"G"`, `"B"`, `"A"`
 
 ### Input pins (target_input in connections)
-- Math binary (Multiply, Add, Subtract, Divide): `"A"`, `"B"`
-- Math unary (Sine, Cosine, Abs, OneMinus, Floor, Ceil, Frac): `"Input"`
+- Math binary (Multiply, Add, Subtract, Divide, DotProduct, CrossProduct): `"A"`, `"B"`
+- Math unary (Sine, Cosine, Abs, OneMinus, Floor, Ceil, Frac, Normalize): `"Input"`
 - Lerp/LinearInterpolate: `"A"`, `"B"`, `"Alpha"`
 - Clamp: `"Input"`, `"Min"`, `"Max"`
+- If: `"A"`, `"B"`, `"AGreaterThanB"`, `"AEqualsB"`, `"ALessThanB"`
 - Power: `"Base"`, `"Exp"`
 - TextureSample: `"UVs"`, `"Tex"`
-- Panner: `"Coordinate"`, `"Time"`, `"Speed"`
-- MaterialResult: `"BaseColor"`, `"Metallic"`, `"Roughness"`, `"Normal"`, `"EmissiveColor"`, `"Specular"`, `"Opacity"`, `"OpacityMask"`
+- Panner: `"Coordinate"`, `"Time"`, `"Speed"`, `"SpeedX"`, `"SpeedY"`
+- Fresnel: `"ExponentIn"`, `"BaseReflectFractionIn"`, `"Normal"`
+- ComponentMask: `"Input"`
+- AppendVector: `"A"`, `"B"`
+- Desaturation: `"Input"`, `"Fraction"`
+- Noise: `"Position"`
+- MaterialResult: `"BaseColor"`, `"Metallic"`, `"Roughness"`, `"Normal"`, `"EmissiveColor"`, `"Specular"`, `"Opacity"`, `"OpacityMask"`, `"WorldPositionOffset"`, `"AmbientOcclusion"`
 
 ### Discovering pins at runtime
-Use `get_material_node_pins(asset_path, node_id)` to query actual pin names on any node.
+Use `get_material_node_pins(asset_path, node_id)` to query actual pin names on any node. This is the definitive way to discover available pins and see what's currently connected.
 
 ## Material Tools
 
