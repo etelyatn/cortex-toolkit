@@ -13,38 +13,38 @@ Creates materials, instances, and parameter collections from specifications usin
 
 Use the Task tool with `subagent_type: "cortex-material:material-developer"` to delegate material creation.
 
-Pass the full specification including:
-- Material type (opaque PBR, masked, emissive, transparent)
-- Graph structure (expression nodes, connections to material outputs)
-- Parameters to expose (scalars, vectors, textures, static switches)
-- Material instances to derive (parent, parameter overrides)
-- Parameter collections (shared parameters across materials)
+**IMPORTANT: Structure the prompt as a mandatory pipeline directive.** Do NOT pass a free-form natural language description. Instead, pass a structured prompt that forces the agent to use the composite tool:
 
-Example prompts:
-- "Create M_Master_PBR with BaseColor, Normal, Roughness, Metallic texture parameters and a tint color"
-- "Create MI_BrickWall from M_Master_PBR with brick textures and roughness 0.85"
-- "Create a masked foliage material with subsurface color and wind animation"
-- "Create MPC_Environment with TimeOfDay scalar and SunColor vector parameters"
-- "Build the expression graph for M_Water with panning normal maps and depth fade"
+```
+Create the following material using the MANDATORY pipeline:
+
+**Material:** [name, e.g. M_PulsatingRed]
+**Path:** [e.g. /Game/Materials/]
+**Description:** [visual description of what the material should look like]
+**Parameters to expose:** [list of ScalarParameter/VectorParameter names and defaults]
+**Material instances:** [list of instances to derive, if any]
+
+MANDATORY WORKFLOW:
+1. Read `.cortex/domains/material.md` for pin conventions
+2. Design your nodes[] and connections[] arrays as a JSON spec
+3. Call `create_material_graph(name, path, nodes, connections)` as a SINGLE call
+4. Create material instances if requested
+
+PROHIBITED: Do NOT call create_material, add_node, connect, set_node_property, or auto_layout individually. These are ONLY for modifying existing materials. For new materials, you MUST use create_material_graph exclusively.
+```
 
 ### 2. Agent Workflow (runs in background)
 
 The Material Designer agent will:
 1. Read `.cortex/domains/material.md` for project material conventions
-2. Identify parent materials and existing assets
-3. Plan the expression graph (nodes, connections, parameters)
-4. **Use `create_material_graph` composite tool** — atomic creation of material + nodes + connections in single batch
-5. Validate pin names and node properties before execution
-6. Set parameter values and overrides (for instances)
-7. Configure parameter collections if specified
+2. Design the full expression graph spec (nodes + connections as JSON arrays)
+3. **Call `create_material_graph` once** — atomic creation of material + nodes + connections in single batch
+4. Create material instances if requested
 
-**Reliability features:**
-- **Atomic operations** — all nodes and connections created in single batch, or nothing
-- **Pin validation** — catches invalid pin names before execution
-- **Auto-cleanup** — partial assets deleted on failure
-- **Auto-layout** — automatic graph layout after completion
-
-All MCP tool calls happen in the background — you won't see each individual call.
+**Enforcement:**
+- The agent prompt contains a PROHIBITED tools list — it will not use individual graph tools for new materials
+- The composite tool executes atomically: all-or-nothing with auto-cleanup on failure
+- One `create_material_graph` call replaces what would be 20-60 individual tool calls
 
 ### 3. Review Agent Results
 
@@ -59,7 +59,7 @@ If the agent encounters issues (invalid expression class, missing parent materia
 
 ## Why Use the Agent?
 
-- **Clean conversation** — no flood of MCP tool calls
+- **Single tool call** — one `create_material_graph` instead of dozens of individual calls
 - **Context-aware design** — agent follows project material conventions and naming
 - **Graph planning** — designs proper expression graphs automatically
 - **Reliability** — atomic operations with validation and auto-cleanup
@@ -67,9 +67,8 @@ If the agent encounters issues (invalid expression class, missing parent materia
 
 ## Troubleshooting
 
-**Agent creates empty material (no nodes/connections):**
-- Agent may be using old approach (individual tool calls instead of composite)
-- Solution: Check that agent reads `.cortex/domains/material.md` and uses `create_material_graph`
+**Agent makes individual tool calls instead of using composite:**
+- The structured prompt above should prevent this. If it still happens, check that the agent prompt (`material-developer.md`) has the PROHIBITED section intact.
 
 **"Pin not found" or connection errors:**
 - Pin names must match exact conventions (outputs by index `"0"`, inputs by name `"A"`, `"Input"`, etc.)
