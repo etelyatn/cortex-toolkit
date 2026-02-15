@@ -106,7 +106,7 @@ BP Analysis Complete
     │   └─ No → Continue
     │
     ├─ BP has dead nodes / unreachable logic / no references?
-    │   │   └─ Yes → DELETE (garbage)
+    │   └─ Yes → DELETE (garbage)
     │
     ├─ BP logic fits C++ migration criteria (from "When to Migrate" table)?
     │   ├─ Yes → MIGRATE
