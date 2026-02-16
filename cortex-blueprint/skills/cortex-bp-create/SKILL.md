@@ -5,7 +5,7 @@ description: Use when creating new Blueprints with variables, functions, or comp
 
 # Blueprint Create
 
-Creates Blueprint assets with structure from specifications using the Blueprint Developer agent.
+Creates Blueprint assets using the `create_blueprint_graph` composite tool via the Blueprint Developer agent.
 
 ## Steps
 
@@ -14,40 +14,28 @@ Creates Blueprint assets with structure from specifications using the Blueprint 
 Use the Task tool with `subagent_type: "cortex-blueprint:blueprint-developer"` to delegate Blueprint creation.
 
 Pass the full user specification including:
-- Blueprint type needed (Actor, ActorComponent, FunctionLibrary, Interface, etc.)
+- Blueprint type (Actor, ActorComponent, FunctionLibrary, Interface, etc.)
 - Name and desired path
 - Variables (name, type, default value, category, exposed status)
 - Functions (name, inputs, outputs)
-- Components (for Actor BPs)
-- Any specific parent class requirements
+- Graph nodes and connections (BeginPlay events, function calls, branches, etc.)
+- Pin values for node configuration
 
 ### 2. Agent Workflow (runs in background)
 
 The Blueprint Developer agent will:
-1. Read `.cortex/domains/blueprints.md` for project conventions
-2. Investigate existing Blueprints to choose appropriate parent class
-3. Create the Blueprint asset
-4. Add all specified variables with proper configuration
-5. Add function signatures (implementation requires manual editor work)
-6. Compile and save the Blueprint
-7. Verify the result matches the specification
+1. Read `.cortex/domains/blueprints.md` for node class names and pin conventions
+2. Investigate existing Blueprints to avoid name collisions
+3. **Use `create_blueprint_graph` composite tool** — single call creates the entire Blueprint
+4. Review warnings from auto_layout and compilation
+5. Report final result with asset path and stats
 
-All MCP tool calls happen in the background — you won't see each individual call.
+**IMPORTANT:** The agent MUST use `create_blueprint_graph` for new Blueprint creation. Individual tools (`create_blueprint`, `add_blueprint_variable`, `graph_add_node`) are PROHIBITED for new Blueprint creation.
 
 ### 3. Review Agent Results
 
-The agent returns a summary including:
+The agent returns:
 - Created Blueprint path
-- Parent class used
-- Variables added
-- Functions created
+- Variable, function, node, and connection counts
 - Compilation status
-
-If the agent encounters issues (compilation errors, invalid types, etc.), it will report them for you to address.
-
-## Why Use the Agent?
-
-- **Clean conversation** — no flood of MCP tool calls
-- **Context-aware decisions** — agent reads project conventions and existing patterns
-- **Error handling** — agent handles compilation issues and retries
-- **Expandable details** — use Ctrl+O to see what the agent did if needed
+- Any warnings from auto_layout or post-batch steps

@@ -240,3 +240,23 @@ graph_set_pin_value(
 - Expose only variables designers need to tune
 - Compile after structural changes to catch errors early
 - Always `save_blueprint` after modifications
+
+## MANDATORY: Composite Pipeline for New Blueprints
+
+When **creating a new Blueprint from scratch**, you MUST use the `create_blueprint_graph` composite tool. This replaces 10-40+ individual MCP calls with a single declarative specification.
+
+**PROHIBITED tools when creating new Blueprints:**
+- `create_blueprint` (use `create_blueprint_graph` instead)
+- `add_blueprint_variable` (included in composite spec)
+- `add_blueprint_function` (included in composite spec)
+- `graph_add_node` (included in composite spec)
+- `graph_set_pin_value` (included in composite spec)
+- `graph_connect` (included in composite spec)
+
+**When MODIFYING an existing Blueprint** (adding a single node, connecting pins, changing a variable), use individual atomic tools as needed. The prohibition only applies to new Blueprint creation.
+
+**Workflow:**
+1. Design the complete Blueprint spec (variables, functions, nodes, connections)
+2. Call `create_blueprint_graph` with the full spec
+3. Review the result — handle any warnings from auto_layout/compile
+4. If modifications needed after creation, use individual tools
