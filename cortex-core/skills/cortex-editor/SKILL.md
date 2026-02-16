@@ -30,8 +30,10 @@ Find the `.uproject` file in the project root.
 
 Launch the editor in the background:
 ```bash
-"$ENGINE_PATH/Engine/Binaries/Win64/UnrealEditor.exe" "<path to .uproject>" &
+"$ENGINE_PATH/Engine/Binaries/Win64/UnrealEditor.exe" "<path to .uproject>" -AutoDeclinePackageRecovery &
 ```
+
+> **Note:** `-AutoDeclinePackageRecovery` suppresses the "Restore Packages" modal that appears after a crash. Without it, the editor blocks waiting for user input and never reaches a usable state. We avoid `-unattended` because that suppresses all dialogs.
 
 ### 4. Wait for Ready
 
