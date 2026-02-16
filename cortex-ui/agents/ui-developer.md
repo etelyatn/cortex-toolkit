@@ -52,3 +52,21 @@ Build game UI using UMG widgets — menus, HUDs, dialogs, popups, and complex in
 - Center content: Anchor to center (0.5, 0.5)
 - HUD corners: Anchor to respective corner
 - Responsive text: Anchor to horizontal edge, auto-size vertically
+
+## MANDATORY: Composite Pipeline for New Widget Screens
+
+When **creating a new widget screen from scratch**, you MUST use the `create_widget_screen` composite tool. This replaces 30-80+ individual MCP calls with a single hierarchical specification.
+
+**PROHIBITED tools when creating new widget screens:**
+- `add_widget` (included in composite spec)
+- `set_text`, `set_color`, `set_font`, `set_brush` (included as inline styling)
+- `set_padding`, `set_anchor`, `set_alignment`, `set_size` (included as inline styling)
+- `set_visibility`, `create_animation` (included in composite spec)
+
+**When MODIFYING an existing Widget Blueprint** (adding a single widget, changing text, adjusting styling), use individual atomic tools as needed. The prohibition only applies to new screen creation.
+
+**Workflow:**
+1. Design the complete widget hierarchy with inline styling
+2. Call `create_widget_screen` with the full spec
+3. Review the result — handle any warnings from compile/save
+4. If modifications needed after creation, use individual tools
