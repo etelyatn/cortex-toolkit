@@ -13,6 +13,7 @@ Install only what you need:
 | **cortex-blueprint** | Blueprints, Graphs | cortex-bp-review, cortex-bp-create | Blueprint Developer, C++ Migration Specialist |
 | **cortex-ui** | UMG Widgets | cortex-ui-review, cortex-ui-create | UI Developer |
 | **cortex-material** | Materials, Instances, Parameter Collections | cortex-material-review, cortex-material-create | Material Designer |
+| **cortex-level** | Actors, Transforms, Components, Queries, Streaming | cortex-level-review, cortex-level-create | Level Designer |
 
 ## Installation
 
@@ -28,6 +29,7 @@ Install only what you need:
 /plugin install cortex-blueprint@cortex-toolkit
 /plugin install cortex-ui@cortex-toolkit
 /plugin install cortex-material@cortex-toolkit
+/plugin install cortex-level@cortex-toolkit
 ```
 
 ### Claude Code (Direct)
@@ -39,6 +41,7 @@ claude plugin add etelyatn/cortex-toolkit/cortex-data       # Pick your domains
 claude plugin add etelyatn/cortex-toolkit/cortex-blueprint
 claude plugin add etelyatn/cortex-toolkit/cortex-ui
 claude plugin add etelyatn/cortex-toolkit/cortex-material
+claude plugin add etelyatn/cortex-toolkit/cortex-level
 ```
 
 ### After Installation
@@ -66,6 +69,7 @@ Domain specialists with deep knowledge of specific Unreal Engine systems:
 - **Blueprint Developer** — manages Blueprint assets, modifies graphs, analyzes C++ migration
 - **Game Balancer** — tunes DataTables, validates balance rules, tracks progression curves
 - **Data Architect** — designs table schemas, manages GameplayTags, organizes DataAssets
+- **Level Designer** — spawns actors, manages transforms, constructs multi-actor scenes, organizes level content
 
 Agents read `.cortex/domains/*.md` to follow your project conventions automatically.
 
@@ -74,6 +78,7 @@ Each plugin includes pattern documentation and workflow guides:
 - `material-patterns.md` — common material graphs (PBR, masked, emissive), instance hierarchies
 - `umg-patterns.md` — screen layouts (menu, HUD, dialog), widget naming conventions
 - `blueprint-patterns.md` — graph structures, function libraries, event handling
+- `level-patterns.md` — actor workflows, scene construction, organization patterns
 
 ## Project Memory
 
@@ -87,7 +92,8 @@ The `.cortex/` directory stores project-specific knowledge that agents read auto
     ├── data.md          ← table schemas, balance rules
     ├── blueprints.md    ← class hierarchy, conventions
     ├── umg.md           ← screen inventory, style guide
-    └── material.md      ← material conventions, instance hierarchies
+    ├── material.md      ← material conventions, instance hierarchies
+    └── level.md         ← actor conventions, level structure
 ```
 
 Fill these files with your game's specifics. Agents use this context to work without repeated questions.

@@ -43,6 +43,13 @@
       "description": "Material domain — materials, instances, parameter collections, graph operations.",
       "version": "0.1.0",
       "strict": true
+    },
+    {
+      "name": "cortex-level",
+      "source": "./cortex-level",
+      "description": "Level domain — actor lifecycle, transforms, components, queries, organization, streaming, scene construction.",
+      "version": "0.1.0",
+      "strict": true
     }
   ]
 }
