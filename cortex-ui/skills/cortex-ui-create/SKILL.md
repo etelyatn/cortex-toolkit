@@ -28,7 +28,7 @@ The UI Developer agent will:
 4. Review warnings from compilation
 5. Report final result with widget tree and stats
 
-**IMPORTANT:** The agent MUST use `create_widget_screen` for new screen creation. Individual tools (`add_widget`, `set_text`, `set_color`) are PROHIBITED for new screen creation.
+**IMPORTANT:** The agent MUST use `create_widget_screen` for new screen creation. Individual tools (`add_widget`, `set_text`, `set_color`, `set_font`, `set_brush`, `set_padding`, `set_anchor`, `set_alignment`, `set_size`, `set_visibility`, `create_animation`) are PROHIBITED for new screen creation.
 
 ### 3. Review Agent Results
 

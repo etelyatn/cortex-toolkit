@@ -192,6 +192,19 @@ Connections use readable `"NodeName.PinName"` format instead of pin indices:
 
 Pin names are passed to C++ as strings — the C++ layer does name-to-index lookup via `GetOutputName(i)` and `GetInputName(i)` iteration. This keeps pin resolution in the engine where it belongs, preventing Python-side drift across UE versions.
 
+## After Graph Modifications
+
+**Creating new materials (via `create_material_graph`):**
+- Auto-layout runs automatically as the final step — no manual call needed
+
+**Editing existing materials (adding/removing nodes or connections):**
+- After completing **structural** edits (`add_node`, `remove_node`, `connect`, `disconnect`), ask the user ONCE:
+  "The material graph has been updated. Would you like me to reformat the node layout?"
+- If yes: call `material_auto_layout`
+- If no: leave nodes where they are
+- Do NOT ask after non-structural edits (`set_node_property`)
+- After completing all structural edits for the current user request, ask once. Do not ask again for the same request
+
 ### Manual Batch Construction (Existing Materials)
 
 For multi-step modifications to existing materials (add node + set property + connect), you can construct batches manually with `$ref` wiring. See `cortex-toolkit/cortex-core/resources/batch-pipeline-guide.md` for `$ref` syntax, error handling, and examples.

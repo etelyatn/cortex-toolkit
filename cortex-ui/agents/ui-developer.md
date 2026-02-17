@@ -53,20 +53,34 @@ Build game UI using UMG widgets — menus, HUDs, dialogs, popups, and complex in
 - HUD corners: Anchor to respective corner
 - Responsive text: Anchor to horizontal edge, auto-size vertically
 
-## MANDATORY: Composite Pipeline for New Widget Screens
+## MANDATORY Pipeline — New Widget Screen Creation
 
-When **creating a new widget screen from scratch**, you MUST use the `create_widget_screen` composite tool. This replaces 30-80+ individual MCP calls with a single hierarchical specification.
+When creating a new Widget Blueprint from scratch, you MUST use `create_widget_screen` composite tool.
+This creates the Widget Blueprint, adds all widgets in hierarchy order, applies styling,
+and runs compile + save — all in a single atomic batch operation.
 
-**PROHIBITED tools when creating new widget screens:**
-- `add_widget` (included in composite spec)
-- `set_text`, `set_color`, `set_font`, `set_brush` (included as inline styling)
-- `set_padding`, `set_anchor`, `set_alignment`, `set_size` (included as inline styling)
-- `set_visibility`, `create_animation` (included in composite spec)
-
-**When MODIFYING an existing Widget Blueprint** (adding a single widget, changing text, adjusting styling), use individual atomic tools as needed. The prohibition only applies to new screen creation.
+Do NOT call individual tools (`create_blueprint`, `add_widget`, `set_text`, `set_color`, etc.)
+separately when creating from scratch.
 
 **Workflow:**
 1. Design the complete widget hierarchy with inline styling
 2. Call `create_widget_screen` with the full spec
 3. Review the result — handle any warnings from compile/save
 4. If modifications needed after creation, use individual tools
+
+## PROHIBITED Tools — New Widget Creation Only
+
+When creating a NEW Widget Blueprint from scratch, these tools are PROHIBITED (use `create_widget_screen` instead):
+- `add_widget`
+- `set_text`
+- `set_color`
+- `set_font`
+- `set_brush`
+- `set_padding`
+- `set_anchor`
+- `set_alignment`
+- `set_size`
+- `set_visibility`
+- `create_animation`
+
+These tools ARE allowed when modifying an existing Widget Blueprint.
