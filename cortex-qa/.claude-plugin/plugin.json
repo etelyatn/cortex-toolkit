@@ -1,0 +1,11 @@
+{
+  "name": "cortex-qa",
+  "description": "QA domain plugin for UnrealCortex — AI-driven game testing with scenario execution, error detection, and report generation.",
+  "version": "0.1.0",
+  "author": {
+    "name": "etelyatn"
+  },
+  "repository": "https://github.com/etelyatn/cortex-toolkit",
+  "license": "MIT",
+  "keywords": ["unreal-engine", "qa", "testing", "game-testing", "automation"]
+}

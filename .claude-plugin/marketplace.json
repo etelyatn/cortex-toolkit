@@ -50,6 +50,13 @@
       "description": "Level domain — actor lifecycle, transforms, components, queries, organization, streaming, scene construction.",
       "version": "0.1.0",
       "strict": true
+    },
+    {
+      "name": "cortex-qa",
+      "source": "./cortex-qa",
+      "description": "QA domain — gameplay scenario execution, assertions, structured bug detection, and report generation.",
+      "version": "0.1.0",
+      "strict": true
     }
   ]
 }

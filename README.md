@@ -14,6 +14,7 @@ Install only what you need:
 | **cortex-ui** | UMG Widgets | cortex-ui-review, cortex-ui-create | UI Developer |
 | **cortex-material** | Materials, Instances, Parameter Collections | cortex-material-review, cortex-material-create | Material Designer |
 | **cortex-level** | Actors, Transforms, Components, Queries, Streaming | cortex-level-review, cortex-level-create | Level Designer |
+| **cortex-qa** | Gameplay QA, Scenarios, Assertions | cortex-qa-init, cortex-qa-run, cortex-qa-interactive | QA Engineer |
 
 ## Installation
 
@@ -30,6 +31,7 @@ Install only what you need:
 /plugin install cortex-ui@cortex-toolkit
 /plugin install cortex-material@cortex-toolkit
 /plugin install cortex-level@cortex-toolkit
+/plugin install cortex-qa@cortex-toolkit
 ```
 
 ### Claude Code (Direct)
@@ -42,6 +44,7 @@ claude plugin add etelyatn/cortex-toolkit/cortex-blueprint
 claude plugin add etelyatn/cortex-toolkit/cortex-ui
 claude plugin add etelyatn/cortex-toolkit/cortex-material
 claude plugin add etelyatn/cortex-toolkit/cortex-level
+claude plugin add etelyatn/cortex-toolkit/cortex-qa
 ```
 
 ### After Installation
