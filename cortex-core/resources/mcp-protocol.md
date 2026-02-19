@@ -115,6 +115,25 @@ See `cortex-toolkit/cortex-core/resources/batch-pipeline-guide.md` for comprehen
 - Properties: `set_color`, `set_text`, `set_font`, `set_brush`, `set_padding`, `set_anchor`, `set_alignment`, `set_size`, `set_visibility`, `set_property`, `get_property`, `get_schema`
 - Animations: `create_animation`, `list_animations`, `remove_animation`
 
+## Connection Guard (PreToolUse Hook)
+
+The `cortex-core` plugin includes a PreToolUse hook that gates every `cortex_mcp` tool call, ensuring the editor and CortexCore TCP server are ready before any MCP command executes.
+
+**Fast path (~50ms):** Port file exists + TCP socket responds → hook exits silently, no delay.
+
+**Auto-start path:** If the editor is not running, the hook:
+1. Acquires a lock file to prevent parallel startup races (Claude batches MCP calls)
+2. Resolves the engine path from `UE_56_PATH` or `.cortex/config.yaml`
+3. Launches the editor with `-nosplash -unattended -nopause`
+4. Two-phase polls for up to 180s (silent wait → process-alive checks)
+5. Exits 0 once `CortexPort.txt` is written and TCP responds
+
+**Failure path:** If the editor cannot be started or times out, the hook exits with code 2 and directs the agent to present options to the user (start manually, fix config, or abort).
+
+## Port Re-discovery
+
+The MCP TCP client automatically re-reads `Saved/CortexPort.txt` on reconnect. If the editor restarts on a different port (e.g., another editor instance was already using the default), the client picks up the new port without requiring a manual restart.
+
 ## Caching
 
 MCP tools implement intelligent caching:

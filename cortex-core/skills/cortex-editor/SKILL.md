@@ -7,6 +7,8 @@ description: Use when the Unreal Editor needs to be running, MCP connection fail
 
 Editor lifecycle management — detect, start, and verify the Unreal Editor.
 
+> **Note:** The PreToolUse hook (`check-ue-editor.sh`) now auto-starts the editor when any MCP tool is called and the editor is down. This skill is for **explicit** editor management — when the user asks to start/restart the editor, when you need to verify status interactively, or when the hook's auto-start failed and the user chose to start manually.
+
 ## Steps
 
 ### 1. Check If Running

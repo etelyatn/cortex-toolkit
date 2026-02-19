@@ -65,6 +65,11 @@ Skills are slash commands that launch specialized agents to handle complex workf
 
 Skills keep your conversation clean by running MCP tool sequences in the background. Use Ctrl+O to expand agent output if needed.
 
+### Hooks
+The `cortex-core` plugin includes hooks that run automatically:
+- **PreToolUse guard** — before any MCP tool call, verifies the Unreal Editor is running and CortexCore TCP is responsive. Auto-starts the editor if it's down, with lock-protected parallel safety and a 180s two-phase startup poll.
+- **SessionStart** — injects `.cortex/` project memory into the conversation context.
+
 ### Agents
 Domain specialists with deep knowledge of specific Unreal Engine systems:
 - **Material Designer** — creates materials, modifies expression graphs, manages parameter collections

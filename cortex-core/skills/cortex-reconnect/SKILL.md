@@ -9,10 +9,11 @@ Reconnect to the Cortex MCP server when connection is lost or unresponsive.
 
 ## When to Use
 
-- MCP tools are failing with connection errors
-- After editor restart when MCP hasn't reconnected
+> **Note:** Most reconnection scenarios are now handled automatically. The PreToolUse hook verifies editor connectivity before every MCP call, and the TCP client re-reads `CortexPort.txt` on reconnect to pick up port changes. Use this skill only when automatic recovery has failed.
+
+- MCP tools are failing with connection errors **after** the PreToolUse hook passed
 - When `/cortex-status` reports MCP unavailable but editor is running
-- During agent workflows when MCP becomes unresponsive
+- Persistent connection issues that survive automatic retry
 
 ## Steps
 

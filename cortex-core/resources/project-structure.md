@@ -46,6 +46,8 @@ ProjectRoot/
 | `.mcp.json` | MCP server connection config |
 | `Saved/CortexPort.txt` | TCP port for MCP ↔ editor communication |
 | `Plugins/UnrealCortex/UnrealCortex.uplugin` | Plugin module list |
+| `cortex-toolkit/cortex-core/hooks/check-ue-editor.sh` | PreToolUse guard — auto-verifies/starts editor before MCP calls |
+| `cortex-toolkit/cortex-core/hooks/hooks.json` | Hook configuration (PreToolUse + SessionStart) |
 
 ## Content Organization Rules
 
