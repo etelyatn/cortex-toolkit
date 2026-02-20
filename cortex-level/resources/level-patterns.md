@@ -4,14 +4,23 @@ Common patterns and workflows for level design with UnrealCortex MCP tools.
 
 ## Actor Lifecycle Workflows
 
-### Spawn and Configure
+### Spawn and Configure (use level_batch)
 ```
-spawn_actor → set_transform → set_actor_property (x N) → save_level
+level_batch(operations=[{"op": "spawn", ..., "folder": "...", "properties": {...}}])
 ```
 
-### Spawn with Components
+### Spawn and Attach (use level_batch)
 ```
-spawn_actor → add_component → set_component_property (x N) → save_level
+level_batch(operations=[
+    {"op": "spawn", "id": "parent", ...},
+    {"op": "spawn", "id": "child", ...},
+    {"op": "attach", "actor": "$ops[child].name", "parent": "$ops[parent].name"}
+])
+```
+
+### Single Actor Quick Edit (individual tools OK)
+```
+set_transform -> set_actor_property -> save_level
 ```
 
 ### Duplicate and Offset
@@ -119,13 +128,15 @@ set_sublevel_visibility(sublevel="SubLevel_Lighting", visible=false)
 list_data_layers → set_data_layer(actors=["Actor1", "Actor2"], data_layer="Gameplay") → save_level
 ```
 
-## Scene Construction (Composite)
+## Scene Construction and Modification (level_batch)
 
-### Multi-Actor Scene
+### Multi-Actor Scene Creation
+
 ```python
-create_level_scene(
-    actors=[
+level_batch(
+    operations=[
         {
+            "op": "spawn",
             "id": "sun",
             "class": "DirectionalLight",
             "rotation": [-45.0, 0.0, 0.0],
@@ -133,6 +144,7 @@ create_level_scene(
             "folder": "Lighting"
         },
         {
+            "op": "spawn",
             "id": "sky",
             "class": "SkyLight",
             "location": [0.0, 0.0, 500.0],
@@ -140,6 +152,7 @@ create_level_scene(
             "folder": "Lighting"
         },
         {
+            "op": "spawn",
             "id": "floor",
             "class": "StaticMeshActor",
             "location": [0.0, 0.0, 0.0],
@@ -149,41 +162,95 @@ create_level_scene(
             "mesh": "/Engine/BasicShapes/Plane"
         }
     ],
-    save=true
+    stop_on_error=True,
+    save=True
 )
 ```
 
 ### Scene with Attachments
+
 ```python
-create_level_scene(
-    actors=[
+level_batch(
+    operations=[
         {
+            "op": "spawn",
             "id": "vehicle",
             "class": "StaticMeshActor",
             "location": [0.0, 0.0, 0.0],
             "label": "Vehicle_Body"
         },
         {
+            "op": "spawn",
             "id": "turret",
             "class": "StaticMeshActor",
             "location": [0.0, 0.0, 100.0],
             "label": "Vehicle_Turret"
+        },
+        {
+            "op": "attach",
+            "actor": "$ops[turret].name",
+            "parent": "$ops[vehicle].name"
         }
     ],
-    organization={
-        "attachments": [
-            {"child": "turret", "parent": "vehicle"}
-        ]
-    },
-    save=true
+    stop_on_error=True,
+    save=True
 )
 ```
 
-### Scene with Properties
+### Bulk Modification of Existing Actors
+
 ```python
-create_level_scene(
-    actors=[
+level_batch(
+    operations=[
+        {"op": "modify", "actor": "Wall_North", "folder": "Geometry/Walls", "tags": ["wall"]},
+        {"op": "modify", "actor": "Wall_South", "folder": "Geometry/Walls", "tags": ["wall"]},
+        {"op": "modify", "actor": "Wall_East",  "folder": "Geometry/Walls", "tags": ["wall"]},
+        {"op": "modify", "actor": "Wall_West",  "folder": "Geometry/Walls", "tags": ["wall"]}
+    ],
+    stop_on_error=False,
+    save=True
+)
+```
+
+### Mixed Create, Modify, Delete
+
+```python
+level_batch(
+    operations=[
+        {"op": "spawn", "id": "fill", "class": "PointLight",
+         "label": "FillLight", "folder": "Lighting",
+         "properties": {"PointLightComponent0.Intensity": 8000.0}},
+        {"op": "modify", "actor": "KeyLight",
+         "properties": {"PointLightComponent0.LightColor": {"R": 255, "G": 200, "B": 150, "A": 255}}},
+        {"op": "delete", "actor": "OldRimLight"}
+    ],
+    stop_on_error=False,
+    save=True
+)
+```
+
+### Duplicate and Offset (Repeated Geometry)
+
+```python
+level_batch(
+    operations=[
+        {"op": "duplicate", "actor": "Wall_Section_A", "id": "wall_b", "offset": [200, 0, 0]},
+        {"op": "duplicate", "actor": "Wall_Section_A", "id": "wall_c", "offset": [400, 0, 0]},
+        {"op": "modify", "actor": "$ops[wall_b].name", "label": "Wall_Section_B"},
+        {"op": "modify", "actor": "$ops[wall_c].name", "label": "Wall_Section_C"}
+    ],
+    stop_on_error=True,
+    save=True
+)
+```
+
+### Spawn with Component Properties
+
+```python
+level_batch(
+    operations=[
         {
+            "op": "spawn",
             "id": "light",
             "class": "PointLight",
             "location": [0.0, 0.0, 300.0],
@@ -199,7 +266,7 @@ create_level_scene(
 )
 ```
 
-**Property paths:** Use `Component.Property` for component properties, or just `Property` for actor properties. The composite tool resolves these to `set_component_property` or `set_actor_property` commands automatically.
+**Property paths:** `"Component.Property"` -> `set_component_property`; `"Property"` -> `set_actor_property`.
 
 ## Response Format Reference
 
