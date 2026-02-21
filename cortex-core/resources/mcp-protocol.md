@@ -110,6 +110,39 @@ See `cortex-toolkit/cortex-core/resources/batch-pipeline-guide.md` for comprehen
 ### Graph (`graph.*`)
 - `graph_list_graphs`, `graph_list_nodes`, `graph_get_node`, `graph_add_node`, `graph_remove_node`, `graph_connect`, `graph_disconnect`
 
+### Editor (composite tools — no namespace prefix)
+- PIE lifecycle: `start_pie_session`, `stop_pie_session`, `get_pie_state`, `pause_pie`, `resume_pie`, `restart_pie`
+- Viewport: `get_viewport_info`, `capture_screenshot`, `set_viewport_camera`, `focus_actor`, `set_viewport_mode`
+- Utilities: `get_editor_state`, `get_recent_logs`, `execute_console_command`, `set_time_dilation`, `get_world_info`
+- Input injection (requires active PIE): `press_key`, `run_input_sequence`
+
+#### Input Injection Tools
+
+`press_key` — inject a single key event into the active PIE session:
+- `key` (str): UE key name — `"W"`, `"SpaceBar"`, `"LeftShift"`, `"Enter"`, `"Escape"`, `"F1"`, `"LeftMouseButton"`. Case-sensitive.
+- `action` (str): `"tap"` (press + timed release), `"press"` (hold), or `"release"`. Default `"tap"`.
+- `duration_ms` (int): Hold duration for tap. Default 100.
+
+`run_input_sequence` — execute a timed multi-step input sequence during PIE (deferred):
+- `steps` (list): Each step has `at_ms` (int, timing offset from start) and `kind` (`"key"`, `"mouse"`, or `"action"`).
+  - `kind="key"`: `key` (str), `action` (str, default `"tap"`), `duration_ms` (int, default 100)
+  - `kind="mouse"`: `action` (`"click"`, `"move"`, or `"scroll"`), `button` (str, for click), `x`/`y` (float), `delta` (float, for scroll)
+  - `kind="action"`: `action_name` (str), `value` (float, default 1.0) — Enhanced Input action injection
+- `timeout` (float): Total wait time for sequence completion. Default 60s.
+
+Example — walk and jump:
+```json
+{
+  "steps": [
+    {"at_ms": 0,    "kind": "key", "key": "W",        "action": "press"},
+    {"at_ms": 500,  "kind": "key", "key": "SpaceBar", "action": "tap"},
+    {"at_ms": 1000, "kind": "key", "key": "W",        "action": "release"}
+  ]
+}
+```
+
+**Constraint:** Only one `run_input_sequence` should run at a time — concurrent sequences share a single callback slot (see ED-001 in `docs/tech-debt/cortex-editor-tech-debt.md`).
+
 ### UMG (`umg.*`)
 - Tree: `add_widget`, `remove_widget`, `reparent`, `get_tree`, `get_widget`, `list_widget_classes`, `duplicate_widget`
 - Properties: `set_color`, `set_text`, `set_font`, `set_brush`, `set_padding`, `set_anchor`, `set_alignment`, `set_size`, `set_visibility`, `set_property`, `get_property`, `get_schema`
