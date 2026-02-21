@@ -22,8 +22,23 @@ Default mode is `guided` unless the user specifies otherwise.
 For each scenario step:
 1. `Observe` using `observe_game_state`, `get_player_details`, `get_actor_details`.
 2. `Orient` against expected behavior and `resources/qa-patterns.md`.
-3. `Decide` next action (`move_player_to`, `look_at_target`, `interact_with`, `wait_for_condition`).
+3. `Decide` next action:
+   - **Game-logic interactions:** `move_player_to`, `look_at_target`, `interact_with`, `wait_for_condition`
+   - **Raw input sequences:** `press_key`, `run_input_sequence` — use for multi-key combos, hold-and-release mechanics, timed input patterns, or any mechanic `interact_with` cannot express
 4. `Act` and re-check state, logs, and assertions.
+
+## Tool Selection: QA Composites vs Direct Input
+
+| Situation | Tool |
+|-----------|------|
+| Interact with a specific actor (door, button, NPC) | `interact_with` |
+| Move player to a location or actor | `move_player_to` |
+| Single key tap outside actor context | `press_key` |
+| Hold-then-release (charge, sprint) | `run_input_sequence` with press + release steps |
+| Multi-key combo or timed sequence | `run_input_sequence` |
+| Wait for a condition after input | `wait_for_condition` |
+
+**Limitation:** `press_key` and `run_input_sequence` only confirm that the Slate event was dispatched — they cannot verify the game reacted. Always follow direct input with an `observe_game_state` or `wait_for_condition` to check the effect.
 
 ## Tooling Rules
 
@@ -31,6 +46,7 @@ For each scenario step:
 - Start with connectivity checks (`get_status`, editor PIE state).
 - Capture screenshots on assertion failures.
 - Persist findings as report artifacts whenever a scenario run completes.
+- Never run two `run_input_sequence` calls concurrently — sequences share a single callback slot (see ED-001 in cortex-editor-tech-debt.md).
 
 ## Deliverables
 
