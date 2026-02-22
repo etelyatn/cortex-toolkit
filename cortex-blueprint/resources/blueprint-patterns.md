@@ -106,15 +106,40 @@ create_blueprint → add_blueprint_variable (×N) → add_blueprint_function (×
 ```
 
 ### Create Fully Functional Blueprint (Automated)
+
+Prefer `create_blueprint_graph` for creating from scratch — it runs all steps atomically.
+For manual step-by-step construction:
 ```
 create_blueprint
   → add_blueprint_variable (×N)
   → graph_add_node (×N)        # Add function call nodes
   → graph_connect (×N)          # Wire execution and data flow
   → graph_set_pin_value (×N)    # Set input values on nodes
+  → graph_auto_layout           # Auto-arrange node positions
   → compile_blueprint
   → save_blueprint
 ```
+
+### graph_add_node — Node Class Short Names
+
+When calling `graph_add_node` or specifying nodes in `create_blueprint_graph`, use these short names:
+
+| Short Name | UK2Node Class | Params Required |
+|-----------|--------------|-----------------|
+| `Event` | `UK2Node_Event` | `{"function_name": "ClassName.FunctionName"}` e.g. `"Actor.ReceiveBeginPlay"` |
+| `CustomEvent` | `UK2Node_CustomEvent` | none |
+| `CallFunction` | `UK2Node_CallFunction` | `{"function_name": "ClassName.FunctionName"}` |
+| `Branch` | `UK2Node_IfThenElse` | none — outputs: `True`, `False` |
+| `Sequence` | `UK2Node_ExecutionSequence` | none — outputs: `then 0`, `then 1`, etc. |
+| `VariableGet` | `UK2Node_VariableGet` | `{"variable_name": "X"}`, `variable_class` optional |
+| `VariableSet` | `UK2Node_VariableSet` | `{"variable_name": "X"}`, `variable_class` optional |
+| `SpawnActor` | `UK2Node_SpawnActorFromClass` | |
+| `CastTo` | `UK2Node_DynamicCast` | |
+| `ForEachLoop` | `UK2Node_MacroInstance` | |
+
+**UK2Node_Event parameter format:** `"function_name"` must be `"ClassName.FunctionName"`. The class must exist in the engine and the function must be defined on it. Invalid class or function name returns `InvalidField` error.
+
+**Sequence node outputs:** `"then 0"`, `"then 1"` etc. (space before number, not underscore).
 
 **Example: Hello World Blueprint**
 ```python

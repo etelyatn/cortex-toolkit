@@ -40,6 +40,33 @@ Built-in commands (no namespace): `get_status`, `get_capabilities`
 - `refresh_cache` — clear all cached MCP responses
 - `batch` — execute multiple commands sequentially with $ref resolution
 
+#### Asset Editor Commands (`core.*`)
+
+Manage asset lifecycle in the Unreal Editor. All commands accept a single path, a list of paths, or glob patterns (e.g., `/Game/Data/DT_*`).
+
+`save_asset` — persist in-memory changes to disk:
+- `asset_path` (str | list): Asset path(s) or glob pattern
+- `force` (bool, default `false`): Save even if asset is not dirty
+- `dry_run` (bool): Preview without writing — returns `can_save` per asset
+- Returns: `results[]` with `asset_path`, `asset_type`, `was_dirty`, `saved`
+
+`open_asset` — open asset editor tab(s):
+- `asset_path` (str | list): Asset path(s) or glob pattern
+- `dry_run` (bool): Preview without opening — returns `would_open` per asset
+- Returns: `results[]` with `asset_path`, `asset_type`, `was_already_open`, `editor_opened`
+
+`close_asset` — close asset editor tab(s):
+- `asset_path` (str | list): Asset path(s) or glob pattern
+- `save` (bool, default `false`): Save before closing if dirty
+- `dry_run` (bool): Preview without closing — returns `would_close`, `would_save` per asset
+- Returns: `results[]` with `asset_path`, `asset_type`, `was_dirty`, `was_open`, `saved`, `closed`
+
+`reload_asset` — discard in-memory changes and reload from disk:
+- `asset_path` (str | list): Asset path(s) or glob pattern
+- `dry_run` (bool): Preview without reloading — returns `has_disk_file` per asset
+- Returns: `results[]` with `asset_path`, `asset_type`, `was_dirty`, `reloaded`, `discarded_changes`
+- Note: Closes open editor tabs before reloading, then reopens them
+
 #### Batch Command
 
 Execute multiple commands in a single round-trip with cross-step data references.
@@ -108,7 +135,35 @@ See `cortex-toolkit/cortex-core/resources/batch-pipeline-guide.md` for comprehen
 - Structure: `add_blueprint_variable`, `remove_blueprint_variable`, `add_blueprint_function`
 
 ### Graph (`graph.*`)
-- `graph_list_graphs`, `graph_list_nodes`, `graph_get_node`, `graph_add_node`, `graph_remove_node`, `graph_connect`, `graph_disconnect`
+- `graph_list_graphs`, `graph_list_nodes`, `graph_get_node`, `graph_add_node`, `graph_remove_node`, `graph_connect`, `graph_disconnect`, `graph_set_pin_value`, `graph_auto_layout`
+
+#### graph_add_node — Supported Node Types
+
+Explicit class map (use short name or full `UK2Node_*` name):
+
+| Short Name | Full Class | Notes |
+|-----------|-----------|-------|
+| `Event` | `UK2Node_Event` | Requires `params: {"function_name": "ClassName.FunctionName"}` |
+| `CustomEvent` | `UK2Node_CustomEvent` | |
+| `CallFunction` | `UK2Node_CallFunction` | Requires `params: {"function_name": "ClassName.FunctionName"}` |
+| `Branch` | `UK2Node_IfThenElse` | |
+| `Sequence` | `UK2Node_ExecutionSequence` | Outputs: "then 0", "then 1", etc. |
+| `VariableGet` | `UK2Node_VariableGet` | Params: `variable_name`, optional `variable_class` |
+| `VariableSet` | `UK2Node_VariableSet` | Params: `variable_name`, optional `variable_class` |
+| `SpawnActor` | `UK2Node_SpawnActorFromClass` | |
+| `CastTo` | `UK2Node_DynamicCast` | |
+| `ForEachLoop` | `UK2Node_MacroInstance` | |
+
+For `UK2Node_Event`: `function_name` must use `"ClassName.FunctionName"` format. The class must exist and the function must be defined on it. Example: `{"function_name": "Actor.ReceiveBeginPlay"}`.
+
+#### graph_auto_layout — Layout Algorithm
+
+Repositions nodes using execution-first left-to-right layout with parameter grouping:
+- Exec nodes (nodes with exec input or output pins) are laid out on the main execution spine
+- Pure/data nodes are grouped near the nodes that consume them (parameter grouping)
+- `mode`: `"full"` repositions all nodes; `"incremental"` only repositions nodes at position (0,0)
+- `graph_name`: Layout a specific graph, or omit to layout all graphs
+- `horizontal_spacing` / `vertical_spacing`: Override default spacing (80/40)
 
 ### Editor (composite tools — no namespace prefix)
 - PIE lifecycle: `start_pie_session`, `stop_pie_session`, `get_pie_state`, `pause_pie`, `resume_pie`, `restart_pie`

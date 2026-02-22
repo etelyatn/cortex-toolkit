@@ -153,7 +153,24 @@ All Blueprint operations require the Cortex MCP server connected to a running Un
 
 **Structure:** `add_blueprint_variable`, `remove_blueprint_variable`, `add_blueprint_function`
 
-**Graph (logic):** `graph_list_graphs`, `graph_list_nodes`, `graph_get_node`, `graph_add_node`, `graph_remove_node`, `graph_connect`, `graph_disconnect`, `graph_set_pin_value`
+**Graph (logic):** `graph_list_graphs`, `graph_list_nodes`, `graph_get_node`, `graph_add_node`, `graph_remove_node`, `graph_connect`, `graph_disconnect`, `graph_set_pin_value`, `graph_auto_layout`
+
+**graph_add_node node types** (use short name or full `UK2Node_*` name):
+
+| Short Name | Notes |
+|-----------|-------|
+| `Event` | Override event — requires `params: {"function_name": "ClassName.FunctionName"}` (e.g. `"Actor.ReceiveBeginPlay"`) |
+| `CallFunction` | Function call — requires `params: {"function_name": "ClassName.FunctionName"}` |
+| `Branch` | If/then/else — outputs: `True`, `False` |
+| `Sequence` | Execution sequence — outputs: `then 0`, `then 1`, ... |
+| `VariableGet` | Read variable — params: `variable_name`, optional `variable_class` |
+| `VariableSet` | Write variable — params: `variable_name`, optional `variable_class` |
+| `CustomEvent` | Custom event node |
+| `SpawnActor` | Spawn actor from class |
+| `CastTo` | Dynamic cast |
+| `ForEachLoop` | Macro-based loop |
+
+**Asset editor tools (for saving/opening assets):** `save_asset`, `open_asset`, `close_asset`, `reload_asset`
 
 ### Creating Blueprints with Custom C++ Parents
 
