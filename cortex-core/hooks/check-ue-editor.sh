@@ -31,6 +31,38 @@ _find_project_dir() {
 
 PROJECT_DIR=$(_find_project_dir) || PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
 PORT_FILE="$PROJECT_DIR/Saved/CortexPort.txt"
+RESTART_LOCK="$PROJECT_DIR/Saved/CortexRestarting.lock"
+
+# ── Restart lock guard ────────────────────────────────────────────────────
+# If another process is restarting the editor, wait instead of launching a duplicate.
+if [ -f "$RESTART_LOCK" ]; then
+    LOCK_TS=$(tr -d '[:space:]' < "$RESTART_LOCK" 2>/dev/null)
+    if [[ "$LOCK_TS" =~ ^[0-9]+$ ]]; then
+        LOCK_AGE=$(( $(date +%s) - LOCK_TS ))
+    else
+        LOCK_AGE=999
+    fi
+
+    if [ "$LOCK_AGE" -gt 300 ]; then
+        rm -f "$RESTART_LOCK"
+    else
+        WAIT=0
+        while [ $WAIT -lt 180 ] && [ -f "$RESTART_LOCK" ]; do
+            sleep 3; WAIT=$((WAIT + 3))
+        done
+        if [ -f "$RESTART_LOCK" ]; then
+            cat >&2 <<'EOF'
+Editor restart timed out. Lock file still present.
+Tell the user: an editor restart did not complete within 180s. Ask them to choose:
+1. Delete Saved/CortexRestarting.lock and retry
+2. Start the editor manually, then retry
+3. Abort the current task
+Do not proceed with MCP tool calls until the user chooses.
+EOF
+            exit 2
+        fi
+    fi
+fi
 
 # Validate port file and check TCP using bash built-in /dev/tcp (no external tools needed)
 is_editor_ready() {
