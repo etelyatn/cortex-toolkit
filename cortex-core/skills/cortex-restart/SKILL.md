@@ -35,8 +35,9 @@ If yes, call `save_all` MCP tool (via `core.save_asset` with `path: "/Game/"` or
 
 Ask the user: "Build C++ before restart?"
 
-If yes, run:
+If yes, run the build command from the project's CLAUDE.md (substitute your project name):
 ```bash
+# Replace CortexSandboxEditor / CortexSandbox.uproject with your project
 "$UE_56_PATH/Engine/Binaries/DotNET/UnrealBuildTool/UnrealBuildTool.exe" CortexSandboxEditor Win64 Development -Project="$(pwd)/CortexSandbox.uproject" -WaitMutex -FromMsBuild
 ```
 

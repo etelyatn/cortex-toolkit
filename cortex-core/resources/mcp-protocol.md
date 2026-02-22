@@ -115,6 +115,7 @@ See `cortex-toolkit/cortex-core/resources/batch-pipeline-guide.md` for comprehen
 - Viewport: `get_viewport_info`, `capture_screenshot`, `set_viewport_camera`, `focus_actor`, `set_viewport_mode`
 - Utilities: `get_editor_state`, `get_recent_logs`, `execute_console_command`, `set_time_dilation`, `get_world_info`
 - Input injection (requires active PIE): `press_key`, `run_input_sequence`
+- Editor lifecycle: `shutdown_editor`, `restart_editor`
 
 #### Input Injection Tools
 
