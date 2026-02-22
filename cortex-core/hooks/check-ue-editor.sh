@@ -35,9 +35,17 @@ PORT_FILE="$PROJECT_DIR/Saved/CortexPort.txt"
 # Validate port file and check TCP using bash built-in /dev/tcp (no external tools needed)
 is_editor_ready() {
     [ -f "$PORT_FILE" ] || return 1
-    local port
-    port=$(tr -d '[:space:]' < "$PORT_FILE")
-    [[ "$port" =~ ^[0-9]+$ ]] && [ "$port" -ge 1024 ] && [ "$port" -le 65535 ] || return 1
+    local raw port
+    raw=$(tr -d '[:space:]' < "$PORT_FILE")
+    # Support both plain-number and JSON {"port":N,...} formats
+    if [[ "$raw" =~ ^[0-9]+$ ]]; then
+        port="$raw"
+    elif [[ "$raw" =~ \"port\":([0-9]+) ]]; then
+        port="${BASH_REMATCH[1]}"
+    else
+        return 1
+    fi
+    [ "$port" -ge 1024 ] && [ "$port" -le 65535 ] || return 1
     (echo >/dev/tcp/127.0.0.1/$port) 2>/dev/null
 }
 
