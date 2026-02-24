@@ -1,215 +1,61 @@
 # C++ Migration Guide
 
-Decision framework and patterns for migrating Blueprint logic to C++.
+Decision framework and concrete translation patterns for migrating Blueprint logic to C++.
 
-**Coding Standards:** All generated C++ must follow `docs/unreal-coding-standards.md` (Epic standard — PascalCase, Allman braces, tabs, UPROPERTY/UFUNCTION on everything Blueprint-visible).
+## Quick Reference Tables
 
-## When to Migrate
-
-| Signal | Priority |
-|--------|----------|
-| Profiler shows BP overhead in hot path | High |
-| Same logic duplicated across 5+ BPs | High |
-| Tick function with heavy computation | High |
-| Need base class for BP subclasses | Medium |
-| Complex state machine with many branches | Medium |
-| Simple event handler (overlap → action) | Don't migrate |
-| Designer is actively iterating on logic | Don't migrate |
-
-## Migration Outcomes
-
-Not every Blueprint should be migrated. After analysis, classify into one of these outcomes:
-
-| Outcome | When | Action |
-|---------|------|--------|
-| **Migrate** | BP has no C++ counterpart, logic belongs in C++ | Generate new C++ class, reparent BP |
-| **Merge** | C++ class exists with partial overlap | Show diff, generate patch to extend existing C++ |
-| **Improve** | C++ exists but BP has better/corrected logic | Show comparison, suggest C++ improvements |
-| **Delete** | BP duplicates existing C++ exactly, or is garbage/unused | Recommend deletion with evidence |
-| **Keep** | BP logic is appropriate as BP (designer iteration, simple events) | Explain why migration is not recommended |
-
-## Migration Patterns
-
-### Pattern 1: C++ Base + BP Subclass (Actor)
-
-Most common. Create C++ class with core logic, BP extends for customization.
-
-```cpp
-UCLASS(Blueprintable)
-class YOURMODULE_API AMyActor : public AActor
-{
-	GENERATED_BODY()
-
-public:
-	AMyActor();
-
-protected:
-	virtual void BeginPlay() override;
-	virtual void Tick(float DeltaTime) override;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gameplay")
-	float BaseDamage;
-
-	UFUNCTION(BlueprintNativeEvent, Category = "Gameplay")
-	void OnActivated();
-};
-```
-
-**Constructor (required for every class):**
-
-```cpp
-AMyActor::AMyActor()
-{
-	PrimaryActorTick.bCanEverTick = true; // only if BP has Tick enabled
-
-	// Default values from BP Class Defaults
-	BaseDamage = 50.0f;
-}
-```
-
-BP subclass overrides `OnActivated` for specific behavior.
-
-### Pattern 2: C++ Component
-
-Extract logic into a component that BPs can attach.
-
-```cpp
-UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class YOURMODULE_API UMyComponent : public UActorComponent
-{
-	GENERATED_BODY()
-
-public:
-	UFUNCTION(BlueprintCallable, Category = "MySystem")
-	void DoWork();
-};
-```
-
-### Pattern 3: Function Library
-
-Static utility functions accessible from any BP.
-
-```cpp
-UCLASS()
-class YOURMODULE_API UMyFunctionLibrary : public UBlueprintFunctionLibrary
-{
-	GENERATED_BODY()
-
-public:
-	UFUNCTION(BlueprintCallable, Category = "Utils")
-	static float CalculateValue(float Input);
-};
-```
-
-### Pattern 4: Widget Blueprint (UUserWidget Subclass)
-
-For migrating Widget Blueprints to C++. Use `BindWidget` to connect C++ to UMG designer widgets.
-
-```cpp
-UCLASS()
-class YOURMODULE_API UMyWidget : public UUserWidget
-{
-	GENERATED_BODY()
-
-public:
-	UMyWidget(const FObjectInitializer& ObjectInitializer);
-
-protected:
-	virtual void NativePreConstruct() override; // design-time preview
-	virtual void NativeConstruct() override;    // runtime initialization
-
-	// BindWidget — the UMG designer must have a widget with this exact name
-	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
-	TObjectPtr<UTextBlock> TitleText;
-
-	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
-	TObjectPtr<UButton> ConfirmButton;
-
-	// Optional widget — won't crash if missing from designer
-	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional))
-	TObjectPtr<UImage> IconImage;
-
-	// Animation binding — must match animation name in designer
-	UPROPERTY(meta = (BindWidgetAnim), Transient)
-	UWidgetAnimation* FadeInAnimation;
-
-	UFUNCTION()
-	void HandleConfirmClicked();
-};
-```
-
-**Source file pattern:**
-
-```cpp
-UMyWidget::UMyWidget(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
-{
-}
-
-void UMyWidget::NativeConstruct()
-{
-	Super::NativeConstruct();
-
-	if (ConfirmButton)
-	{
-		ConfirmButton->OnClicked.AddDynamic(this, &UMyWidget::HandleConfirmClicked);
-	}
-}
-
-void UMyWidget::HandleConfirmClicked()
-{
-	// Implementation here
-}
-```
-
-**Key rules for Widget migration:**
-- Use `meta = (BindWidget)` for required widgets, `meta = (BindWidgetOptional)` for optional
-- Use `meta = (BindWidgetAnim)` with `Transient` for animation bindings
-- Widget variable names must match the UMG designer widget names exactly
-- Override `NativeConstruct()` for runtime init (replaces BP Construct event)
-- Override `NativePreConstruct()` for design-time preview if needed
-- Bind delegates in `NativeConstruct()` with null checks
-- After migration, reparent the Widget BP to the new C++ class
-
-## Function Classification
-
-| BP Pattern | C++ Specifier | When |
-|-----------|--------------|------|
-| Function with logic that BP should override | `BlueprintNativeEvent` | Logic benefits from C++, BP needs override point. Generates `_Implementation` virtual. |
-| Function only for BP to implement | `BlueprintImplementableEvent` | No C++ body, pure BP override point |
-| Final C++ logic, BP calls only | `BlueprintCallable` | BP should not override, just call |
-
-## Common Blueprint Node → C++ Translations
+### Node Translation Table
 
 | Blueprint Node | C++ Equivalent | Notes |
-|---------------|---------------|-------|
-| **Event BeginPlay** | `virtual void BeginPlay() override;` | Call `Super::BeginPlay()` |
-| **Event Tick** | `virtual void Tick(float DeltaTime) override;` | Call `Super::Tick()`, set `bCanEverTick` in constructor |
-| **Branch** | `if (Condition) { } else { }` | |
-| **Sequence** | Statements in order | Emit in pin order (Then 0, Then 1, ...) |
-| **ForEachLoop** | `for (auto& Item : Array) { ... }` | |
-| **WhileLoop** | `while (Condition) { ... }` | |
-| **Gate** | `if (bGateOpen)` with bool state | |
-| **DoOnce** | `if (!bHasDone) { bHasDone = true; ... }` | |
-| **SwitchOnInt/String/Enum** | `switch (Value) { case ...: }` | Or `if/else if` chains |
-| **Get/Set variable** | Direct member access (`MyVariable = Value;`) | |
-| **Cast To** | `Cast<ATargetClass>(Actor)` | |
-| **Is Valid** | `IsValid(Object)` or `if (Object)` | |
-| **Print String** | `UE_LOG(LogYourModule, Log, TEXT("%s"), *Message);` | Or `GEngine->AddOnScreenDebugMessage()` |
-| **Spawn Actor** | `GetWorld()->SpawnActor<AMyClass>(SpawnParams);` | |
-| **Destroy Actor** | `Destroy();` | |
-| **Get/Set Actor Location** | `GetActorLocation()` / `SetActorLocation(NewLocation)` | |
-| **Get Player Controller** | `UGameplayStatics::GetPlayerController(this, 0)` | |
-| **Create Widget** | `CreateWidget<UMyWidget>(GetOwningPlayer());` | |
-| **Add to Viewport** | `Widget->AddToViewport();` | |
-| **Delay** | **Unsupported in PoC** | Requires `FTimerHandle` + `SetTimer` |
-| **Timeline** | **Unsupported in PoC** | Requires `UTimelineComponent` + `UCurveFloat` |
-| **Event Dispatcher** | **Unsupported in PoC** | Requires `DECLARE_DYNAMIC_MULTICAST_DELEGATE` |
+|---|---|---|
+| Event BeginPlay | `virtual void BeginPlay() override;` | Call `Super::BeginPlay()` |
+| Event Tick | `virtual void Tick(float DeltaTime) override;` | Set `PrimaryActorTick.bCanEverTick = true` |
+| Branch | `if/else` | |
+| Sequence | Statements in pin order | `Then 0`, `Then 1`, ... |
+| ForEachLoop | `for (auto& Item : Array)` | |
+| ForEachLoopWithBreak | ranged `for` + `break` | |
+| WhileLoop | `while (Condition)` | |
+| DoOnce | guard bool | `if (!bDidRun) { bDidRun = true; }` |
+| Gate | bool-gated execution | open/close/toggle state |
+| FlipFlop | toggling bool/branch | |
+| SwitchOnInt | `switch` | |
+| SwitchOnString | `if/else if` or `switch`-style map | |
+| SwitchOnEnum | `switch` on enum | |
+| Select | ternary or branch assignment | |
+| MakeArray | initializer list / `TArray` push | |
+| BreakStruct | field access | |
+| MakeStruct | struct literal + assignments | |
+| Get variable | direct member read | |
+| Set variable | direct member write | |
+| Cast To | `Cast<T>(Object)` | |
+| IsValid | `IsValid(Object)` | |
+| SpawnActor | `GetWorld()->SpawnActor<T>()` | |
+| DestroyActor | `Destroy()` | |
+| GetActorLocation | `GetActorLocation()` | |
+| SetActorLocation | `SetActorLocation(NewLocation)` | |
+| Call Function | direct function call | include module/header |
+| Interface Call | `IInterface::Execute_Function(Target, ...)` | never direct virtual call from BP node |
+| Print String | `UE_LOG(...)` or on-screen debug | no `LogTemp` |
+| Timeline | `UTimelineComponent` + curve UPROPERTYs | see complex section |
+| Event Dispatcher (Create) | `DECLARE_DYNAMIC_MULTICAST_DELEGATE_*` | select macro by param count |
+| Event Dispatcher (Call) | `Dispatcher.Broadcast(...)` | |
+| Event Dispatcher (Bind) | `Dispatcher.AddDynamic(...)` | |
+| Event Dispatcher (Unbind) | `Dispatcher.RemoveDynamic(...)` | |
+| Delay | `FTimerHandle` callback | latent translation |
+| RetriggerableDelay | resettable timer handle | latent translation |
+| MoveComponentTo | callback/timer chain | latent translation |
+| AsyncLoadAsset | async callback path | latent translation |
+| CreateDelegate | bind function pointer/delegate | |
+| AssignDelegate | dynamic delegate bind | |
+| InputAction | Enhanced Input binding | |
+| Macro Instance | expand to native statements | no generic macro runtime |
+| FunctionEntry | function signature | |
+| FunctionResult | return/output writes | |
 
-## Common Include Paths
+### Include Path Table
 
 | Type | Include Path |
-|------|-------------|
+|---|---|
 | AActor | `GameFramework/Actor.h` |
 | APawn | `GameFramework/Pawn.h` |
 | ACharacter | `GameFramework/Character.h` |
@@ -221,6 +67,10 @@ void UMyWidget::HandleConfirmClicked()
 | UCapsuleComponent | `Components/CapsuleComponent.h` |
 | UBoxComponent | `Components/BoxComponent.h` |
 | USphereComponent | `Components/SphereComponent.h` |
+| UTimelineComponent | `Components/TimelineComponent.h` |
+| UCurveFloat | `Curves/CurveFloat.h` |
+| UCurveVector | `Curves/CurveVector.h` |
+| UCurveLinearColor | `Curves/CurveLinearColor.h` |
 | UUserWidget | `Blueprint/UserWidget.h` |
 | UTextBlock | `Components/TextBlock.h` |
 | UButton | `Components/Button.h` |
@@ -230,40 +80,164 @@ void UMyWidget::HandleConfirmClicked()
 | UBlueprintFunctionLibrary | `Kismet/BlueprintFunctionLibrary.h` |
 | UGameplayStatics | `Kismet/GameplayStatics.h` |
 | UKismetMathLibrary | `Kismet/KismetMathLibrary.h` |
+| UKismetSystemLibrary | `Kismet/KismetSystemLibrary.h` |
+| FLatentActionInfo | `LatentActions.h` |
+| FPendingLatentAction | `LatentActions.h` |
 | FTimerHandle | `TimerManager.h` |
+| FTimerManager | `TimerManager.h` |
+| UInterface | `UObject/Interface.h` |
+| UEnhancedInputComponent | `EnhancedInputComponent.h` |
+| UInputAction | `InputAction.h` |
+| UAITask_MoveTo | `Tasks/AITask_MoveTo.h` |
+| FAIMoveRequest | `AITypes.h` |
+| FOnTimelineEvent | `Components/TimelineComponent.h` |
+| FOnTimelineFloat | `Components/TimelineComponent.h` |
 
-## BP Audit Patterns
+### Module Dependency Table
 
-When analyzing a Blueprint against existing C++ code, check for:
+| Construct | Typical Build.cs Dependencies |
+|---|---|
+| Core Actor/Component migration | `Core`, `CoreUObject`, `Engine` |
+| UMG widgets | `UMG`, `Slate`, `SlateCore` |
+| Timelines | `Engine` |
+| Event dispatchers | `CoreUObject`, `Engine` |
+| Latent actions (timers/system) | `Engine` |
+| AI latent actions | `AIModule`, `NavigationSystem` |
+| Interfaces | `CoreUObject`, `Engine` |
+| Enhanced Input | `EnhancedInput` |
 
-- **Duplication:** BP reimplements logic already in a C++ parent or sibling class
-- **No-op overrides:** BP overrides a C++ function with identical or trivial logic (just calls Super)
-- **Dead code:** Nodes with no execution path leading to them, disconnected subgraphs
-- **Variable shadowing:** BP variable with same name as a parent C++ variable
-- **Orphaned BP:** No other assets reference this Blueprint (check with `search_assets`)
+### Function Classification Table
 
-## Known Limitations (PoC)
+| BP Pattern | UFUNCTION Specifier | When |
+|---|---|---|
+| C++ logic with BP override point | `BlueprintNativeEvent` | Keep default native behavior with optional BP override |
+| Pure BP-defined implementation | `BlueprintImplementableEvent` | No native body needed |
+| C++ API callable from BP | `BlueprintCallable` | BP should invoke, not override |
 
-| Limitation | Impact | Future Work |
-|-----------|--------|-------------|
-| Timelines not supported | Agent warns and skips timeline nodes | Requires UTimelineComponent + UCurveFloat pattern |
-| Latent actions not supported | Delay, MoveTo etc. skipped with warning | Requires FTimerHandle / async patterns |
-| BP Interfaces not supported | Agent warns if BP implements interfaces | Requires multiple inheritance pattern |
-| Event dispatchers not supported | Agent warns and skips | Requires DECLARE_DYNAMIC_MULTICAST_DELEGATE |
-| Complex graph flow | May produce approximate translations | Flag for user review |
-| No compilation validation | Generated code is not compiled/verified | Future: integrate with build system |
+## Migration Decision Framework
 
-## UE Coding Standards for Migration
+### When to Migrate
 
-- `UPROPERTY` for all Blueprint-visible variables with `Category`
-- `UFUNCTION(BlueprintCallable)` for functions BPs can call
-- `UFUNCTION(BlueprintNativeEvent)` for functions BPs can override (generates `_Implementation`)
-- `UFUNCTION(BlueprintImplementableEvent)` for pure BP override points (no C++ body)
-- `GENERATED_BODY()` in every UCLASS
-- `YOURMODULE_API` export macro on all classes
-- Constructor with default values from BP Class Defaults
-- No `LogTemp` — use project log category
-- PascalCase naming, Allman braces, tabs for indentation
-- Forward declare in .h where possible, full includes in .cpp only
-- `#pragma once` header guard
-- Correct parent class from BP analysis (never hardcode AActor)
+| Signal | Priority |
+|---|---|
+| Profiler shows BP overhead in hot path | High |
+| Logic duplicated across many Blueprints | High |
+| Tick does non-trivial work every frame | High |
+| Needs reusable base class API | Medium |
+| Designer-iterated simple event hooks only | Keep in BP |
+
+### Migration Outcomes
+
+| Outcome | Action |
+|---|---|
+| Migrate | Generate new C++ class + reparent Blueprint |
+| Merge | Patch existing C++ class |
+| Improve | Replace weaker C++ logic with BP logic |
+| Delete | Recommend deletion with evidence |
+| Keep | Explain why BP should remain BP |
+
+### BP Audit Patterns
+
+- Duplication against existing C++ classes.
+- No-op BP overrides that only call super.
+- Dead/disconnected graph logic.
+- Variable shadowing of parent members.
+- Orphaned assets with no references.
+
+## Migration Patterns (by BP type)
+
+### Actor (C++ Base + BP Subclass)
+
+- Generate `A*` class with constructor defaults and `BeginPlay`/`Tick` only when required.
+- Reparent Blueprint and keep designer-tunable values as `EditAnywhere`.
+
+### Component (UActorComponent subclass)
+
+- Generate `U*Component` for reusable gameplay systems.
+- Use `BlueprintSpawnableComponent` metadata where creation in editor is expected.
+
+### FunctionLibrary (static utility)
+
+- Generate `UBlueprintFunctionLibrary` with static helpers.
+- Keep side-effect free math/utility methods here.
+
+### Interface (UInterface + IInterface pair)
+
+- Generate paired `UInterface` + `IInterface` classes.
+- Define API on `IInterface`; call through `Execute_*`.
+
+### Widget (UUserWidget + BindWidget)
+
+- Use `BindWidget`/`BindWidgetOptional` and `BindWidgetAnim` (`Transient`).
+- Bind delegates in `NativeConstruct()` with null checks.
+
+## Complex Construct Translations
+
+### Timeline -> UTimelineComponent
+
+- Detect `UK2Node_Timeline`.
+- Generate `UTimelineComponent` subobject + curve UPROPERTY references.
+- Bind `FOnTimelineFloat` / vector / linear color delegates.
+- Wire autoplay/loop/play rate flags from timeline template.
+- Emit `TODO(MANUAL)` for curve asset extraction when keys are embedded in BP timeline.
+
+### Event Dispatcher -> DECLARE_DYNAMIC_MULTICAST_DELEGATE
+
+- Generate macro by parameter count (`_OneParam`, `_TwoParams`, etc.).
+- Expose with `UPROPERTY(BlueprintAssignable)`.
+- Translate call/bind/unbind to `Broadcast`, `AddDynamic`, `RemoveDynamic`.
+
+### Latent Actions -> FTimerHandle / Callback Chains
+
+- Detect latent metadata and known latent nodes.
+- 1-2 sequential latent steps: callback chain with timers.
+- 3+ sequential latent steps: explicit state machine.
+- Always emit `TODO(VERIFY)` for latent approximations.
+
+### Blueprint Interfaces -> UInterface + Execute_*
+
+- Generate interface pair and implementation stubs where needed.
+- Use `Target->GetClass()->ImplementsInterface(...)` before calls.
+- Invoke with `IYourInterface::Execute_Function(Target, ...)`.
+
+## Translation Patterns (for nodes not in the table)
+
+### Engine API Call pattern
+
+- `K2Node_CallFunction` -> direct C++ invocation with correct include/module.
+
+### Cast Node pattern
+
+- `K2Node_DynamicCast` -> `Cast<TargetClass>(Source)` with null guard.
+
+### Macro Instance pattern
+
+- `K2Node_MacroInstance` -> inline native control-flow structure.
+
+### Struct Member Access pattern
+
+- `K2Node_BreakStruct`/`K2Node_MakeStruct` -> direct field reads/writes.
+
+## Error Handling
+
+### TODO Severity Levels (MANUAL/VERIFY/OPTIMIZE)
+
+- `TODO(MANUAL)`: no reliable translation; user must author final code.
+- `TODO(VERIFY)`: approximate behavior generated; user must validate runtime equivalence.
+- `TODO(OPTIMIZE)`: functionally correct, but improve performance/readability later.
+
+Example format:
+
+```cpp
+// TODO(MANUAL): Extract BP timeline keys into a standalone UCurveFloat asset.
+// TODO(VERIFY): Delay chain translated to timer callbacks; validate ordering and cancellation behavior.
+// TODO(OPTIMIZE): Dispatcher broadcast currently per-tick; consider throttling.
+```
+
+## Known Limitations
+
+| Limitation | Impact | Mitigation |
+|---|---|---|
+| Complex graph flow | Approximate translation may be emitted | Add `TODO(VERIFY)` and user review |
+| Custom latent actions (`FPendingLatentAction`) | Cannot be fully auto-translated | Emit `TODO(MANUAL)` with callback-pattern suggestion |
+| No compile/build execution in migration agent output | Generated code not auto-verified | User compiles and validates after generation |
