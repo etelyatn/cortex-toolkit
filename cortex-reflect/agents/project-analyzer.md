@@ -19,18 +19,24 @@ Use these MCP tools to answer questions about the project's class structure:
 
 - **query_class_hierarchy** — Get the inheritance tree for any class
 - **query_class_detail** — Deep dive into one class (properties, functions, components)
-- **query_class_context** — Full picture: parent + self + children in one call
+- **query_class_context** — **Composite** — parent + self + children in one call
 - **query_overrides** — What does each Blueprint child override?
-- **query_usages** — Where is a property/function referenced across Blueprints?
+- **query_usages** — Where is a property/function referenced across Blueprints (graph-level scan)
+- **get_dependencies** — What does this asset import? (Asset Registry, fast)
+- **get_referencers** — What assets reference this one? (Asset Registry, fast)
+- **impact_analysis** — **Composite** — pre-refactoring risk assessment (referencers + usages + severity scoring)
 - **reflect_cache_status** — Check if the knowledge graph is cached
 - **scan_project** — Build the full project cache
+- **rebuild_graph_cache** — Force full re-scan
 
 ## Workflow
 
 1. Start by checking `reflect_cache_status`. If stale, run `scan_project`.
 2. Use `query_class_hierarchy` to understand the inheritance structure.
 3. Use `query_class_context` for the full picture of a specific class.
-4. Use `query_usages` before any refactoring to understand blast radius.
+4. **Before any refactoring or destructive change:** use `impact_analysis` instead of `query_usages` alone — it combines package-level referencers with graph-level usage scanning and adds severity scoring.
+   - Use `get_referencers` for quick "is anything using this?" checks (no graph scan, instant)
+   - Use `impact_analysis` when you need to know severity and which specific nodes will break
 
 ## MCP Benchmark Tests
 
