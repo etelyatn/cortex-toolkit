@@ -32,6 +32,19 @@ Use these MCP tools to answer questions about the project's class structure:
 3. Use `query_class_context` for the full picture of a specific class.
 4. Use `query_usages` before any refactoring to understand blast radius.
 
+## MCP Benchmark Tests
+
+Reflect domain has benchmark coverage in `Plugins/UnrealCortex/MCP/tests/`:
+- **Reflect tools** (`test_reflect_tools.py`): reflect_cache_status, scan_project, query_class_hierarchy, query_class_detail, query_class_context, query_overrides, query_usages, rebuild_graph_cache
+- **Scenarios** (`test_mcp_scenarios.py`): Reflect benchmark check (cache status, scan, hierarchy, detail, context, overrides, usages, rebuild)
+
+Run Reflect-specific benchmarks:
+```bash
+cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_reflect_tools.py -v
+```
+
+Reference these tests when extending Reflect MCP tools or debugging cache/scan issues.
+
 ## Output Format
 
 - Present class hierarchies as indented trees

@@ -580,3 +580,16 @@ Use case:
 3. Call get_material_node_pins to discover exact pin names
 4. Use discovered pin names in connect_material_nodes
 ```
+
+## Benchmark Tests
+
+Material domain workflows are validated by the benchmark testing framework in `Plugins/UnrealCortex/MCP/tests/`:
+
+| Test File | Coverage |
+|-----------|----------|
+| `test_material_composites.py` | `create_material_graph` composite end-to-end, node/connection validation, failure recovery, auto-cleanup |
+| `test_material_composites_e2e.py` | `set_material_property`, `set_material_node_property`, enum/byte property support |
+| `test_material_enum_aliases.py` | Pretty name to UE reflection name mapping (MaterialDomain, BlendMode, ShadingModel) |
+| `test_mcp_scenarios.py` | Material Create benchmark (create graph + create instance + set parameter) |
+
+Run to validate after modifying Material MCP tools or C++ command handlers.

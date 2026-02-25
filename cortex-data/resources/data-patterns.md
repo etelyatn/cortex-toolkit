@@ -2,6 +2,14 @@
 
 Common patterns for working with UE data assets via UnrealCortex MCP tools.
 
+## Schema Discovery (fast path)
+
+Check `.cortex/schema/_catalog.md` first for project overview, struct schemas, and table inventory. The catalog includes engine and plugin version info. If schema files are missing or stale (>24h), use `schema_status` to check freshness, then `generate_project_schema` to regenerate.
+
+```
+schema_status → (if stale) generate_project_schema → read _catalog.md → read data.md
+```
+
 ## DataTable Workflows
 
 ### Query and Filter
@@ -54,6 +62,18 @@ list_curve_tables → get_curve_table (specific) → analyze keys
 ```
 get_curve_table → update_curve_table_row (modify keys) → get_curve_table (verify)
 ```
+
+## Benchmark Tests
+
+Data domain workflows are validated by the benchmark testing framework in `Plugins/UnrealCortex/MCP/tests/`:
+
+| Test File | Coverage |
+|-----------|----------|
+| `test_e2e.py` | DataTable CRUD, schema queries, row operations, GameplayTag validation, CurveTable/StringTable/DataAsset ops, batch queries, search |
+| `test_mcp_scenarios.py` | Data Pipeline (query + add + search + batch + delete), GameplayTag Workflow (register + validate + bulk), Localization Pipeline (get/set translations) |
+| `test_mcp_scenarios.py -k stress` | 100 rapid add/update/delete cycles, 20-command concurrent batch |
+
+Run to validate after modifying Data MCP tools or C++ command handlers.
 
 ## Common Pitfalls
 

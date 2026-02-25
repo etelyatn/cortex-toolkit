@@ -153,6 +153,8 @@ All Blueprint operations require the Cortex MCP server connected to a running Un
 
 **Structure:** `add_blueprint_variable`, `remove_blueprint_variable`, `add_blueprint_function`
 
+**Class Defaults (CDO):** `get_class_defaults`, `set_class_defaults`
+
 **Graph (logic):** `graph_list_graphs`, `graph_list_nodes`, `graph_get_node`, `graph_add_node`, `graph_remove_node`, `graph_connect`, `graph_disconnect`, `graph_set_pin_value`, `graph_auto_layout`
 
 **graph_add_node node types** (use short name or full `UK2Node_*` name):
@@ -171,7 +173,6 @@ All Blueprint operations require the Cortex MCP server connected to a running Un
 | `ForEachLoop` | Macro-based loop |
 
 **Asset editor tools (for saving/opening assets):** `save_asset`, `open_asset`, `close_asset`, `reload_asset`
-**Class Defaults (CDO):** `get_class_defaults`, `set_class_defaults`
 
 ### Creating Blueprints with Custom C++ Parents
 
@@ -315,6 +316,23 @@ Set both to `false` when making multiple batches of changes, then manually compi
    - Editor is running (`/cortex-status`)
    - Asset exists and path is correct
    - Operation is valid for the current Blueprint state
+
+## MCP Benchmark Tests
+
+Blueprint domain has benchmark coverage in `Plugins/UnrealCortex/MCP/tests/`:
+- **TCP E2E** (`test_e2e.py`): Blueprint CRUD, variable/function addition, compilation, graph node operations
+- **Scenarios** (`test_mcp_scenarios.py`): Blueprint Lifecycle scenario (create, add variable/function, wire graph, compile, verify, delete)
+- **Composites** (`test_blueprint_composites.py`): `create_blueprint_graph` composite tool workflows
+- **Class Defaults** (`test_class_defaults.py`): CDO get/set class defaults E2E
+
+Run Blueprint-specific benchmarks:
+```bash
+cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_e2e.py -v -k blueprint
+cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_mcp_scenarios.py -v -k blueprint_lifecycle
+cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_blueprint_composites.py -v
+```
+
+Reference these tests when extending Blueprint MCP tools or debugging integration issues.
 
 ## Best Practices
 

@@ -35,10 +35,12 @@ Built-in commands (no namespace): `get_status`, `get_capabilities`
 ## Available Domains and Tools
 
 ### Core (no namespace)
-- `get_status` — connection health, registered domains
+- `get_status` — connection health, registered domains, engine/plugin versions
 - `get_data_catalog` — unified project data overview (cached 10 min)
 - `refresh_cache` — clear all cached MCP responses
 - `batch` — execute multiple commands sequentially with $ref resolution
+- `generate_project_schema` — generate LLM-readable `.cortex/schema/` files from live editor data (requires running editor)
+- `schema_status` — check if `.cortex/schema/` exists, per-domain freshness and version (no editor required)
 
 #### Asset Editor Commands (`core.*`)
 
@@ -231,3 +233,28 @@ MCP tools implement intelligent caching:
 - Dynamic data: 2 min TTL
 - Write operations: auto-invalidate related caches
 - Manual: `refresh_cache` clears everything
+
+## MCP Benchmark Testing
+
+Three-layer integration testing validates the full pipeline from AI agent through MCP to Unreal Editor. All layers require a running editor.
+
+| Layer | File(s) | What It Tests |
+|-------|---------|---------------|
+| 1: TCP E2E | `test_e2e.py`, `test_level_e2e.py`, `test_editor_e2e.py`, `test_class_defaults.py`, `test_material_composites_e2e.py` | Direct TCP commands per domain (CRUD + error cases) |
+| 2: MCP Scenarios | `test_mcp_scenarios.py`, `test_blueprint_composites.py`, `test_material_composites.py`, `test_umg_composites.py` | Cross-domain workflows via FastMCP client |
+| 3: Claude Skill | `/mcp-benchmark` | AI-driven real-world validation with timing |
+
+Tests live in `Plugins/UnrealCortex/MCP/tests/`. Run with:
+
+```bash
+# Layer 1 — all TCP E2E tests
+cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_e2e.py tests/test_level_e2e.py tests/test_editor_e2e.py -v
+
+# Layer 2 — cross-domain scenarios
+cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_mcp_scenarios.py -v
+
+# Layer 3 — Claude Code skill
+/mcp-benchmark
+```
+
+See `cortex-toolkit/cortex-core/resources/testing-guide.md` for comprehensive test file map and pytest markers.
