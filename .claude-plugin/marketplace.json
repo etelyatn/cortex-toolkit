@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "AI-powered Unreal Engine development toolkit for Claude Code",
-    "version": "0.1.0"
+    "version": "0.1.1"
   },
   "plugins": [
     {
@@ -20,14 +20,14 @@
       "name": "cortex-data",
       "source": "./cortex-data",
       "description": "Data domain — DataTables, DataAssets, CurveTables, StringTables, GameplayTags.",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "strict": true
     },
     {
       "name": "cortex-blueprint",
       "source": "./cortex-blueprint",
       "description": "Blueprint domain — asset management, graph operations, C++ migration analysis.",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "strict": true
     },
     {

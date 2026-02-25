@@ -1,7 +1,7 @@
 {
   "name": "cortex-blueprint",
   "description": "Blueprint domain plugin for UnrealCortex — Blueprint asset management, graph operations, variable/function editing, and C++ migration analysis.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": {
     "name": "etelyatn"
   },
