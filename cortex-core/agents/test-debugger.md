@@ -41,6 +41,37 @@ Analyze test failures, identify root causes, and suggest fixes. You understand b
    - `AssertionError` → response doesn't match expected schema
 3. **Check fixtures** — are pytest fixtures providing correct state?
 
+### MCP Benchmark Tests (Layer 1-3)
+
+The benchmark testing framework in `Plugins/UnrealCortex/MCP/tests/` has three layers. All require a running Unreal Editor.
+
+1. **Layer 1: TCP E2E** (`test_e2e.py`, `test_level_e2e.py`, `test_editor_e2e.py`, etc.)
+   - Direct TCP commands per domain
+   - Common failures: `ConnectionError` (editor not running), response schema mismatches, asset path issues
+   - Check `conftest.py` for fixture setup (TCP connection, temp blueprint creation)
+
+2. **Layer 2: MCP Scenarios** (`test_mcp_scenarios.py`, `test_*_composites.py`)
+   - Cross-domain workflows via FastMCP test client
+   - Common failures: tool parameter validation, $ref resolution in batch steps, MCP server registration issues
+   - Scenarios assert intermediate state — failure pinpoints which step broke
+
+3. **Layer 3: `/mcp-benchmark` Skill**
+   - Claude Code calls real MCP tools in sequence
+   - Failures indicate end-to-end integration issues
+
+**Running benchmark tests:**
+```bash
+cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_e2e.py -v           # Layer 1
+cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_mcp_scenarios.py -v  # Layer 2
+cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_mcp_scenarios.py -v -k stress  # Stress only
+```
+
+**Benchmark-specific debugging patterns:**
+- `ConnectionError` on all tests → editor not running or `Saved/CortexPort.txt` missing
+- Scenario passes individually but fails in suite → test isolation issue (leftover assets from prior test)
+- Stress test timeout → check batch size limits (200 max) and TCP timeout scaling
+- `$ref resolution failed` → previous batch step failed or returned unexpected schema
+
 ### Flaky Tests
 
 1. Is there a timing dependency? (sleep, polling, async)

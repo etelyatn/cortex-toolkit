@@ -41,6 +41,21 @@ Design data schemas, create and populate DataTables/DataAssets/CurveTables, and 
 | Localized text | StringTable |
 | Categorization / filtering | GameplayTags |
 
+## MCP Benchmark Tests
+
+Data domain has extensive benchmark coverage in `Plugins/UnrealCortex/MCP/tests/`:
+- **TCP E2E** (`test_e2e.py`): DataTable CRUD, GameplayTag validation/registration, CurveTable ops, StringTable ops, DataAsset ops, search, batch queries
+- **Scenarios** (`test_mcp_scenarios.py`): Data Pipeline, GameplayTag Workflow, Localization Pipeline scenarios
+- **Stress** (`test_mcp_scenarios.py -k stress`): Rapid data operations (100 add/update/delete cycles), concurrent batch queries
+
+Run Data-specific benchmarks:
+```bash
+cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_e2e.py -v -k "data or datatable or tag or curve or string"
+cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_mcp_scenarios.py -v -k "data_pipeline or gameplay_tag or localization"
+```
+
+Reference these tests when extending Data MCP tools or debugging integration issues.
+
 ## Naming Conventions
 
 Follow project conventions from `.cortex/domains/data.md`, defaulting to:

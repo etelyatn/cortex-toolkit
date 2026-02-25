@@ -29,7 +29,8 @@ ProjectRoot/
 │       │   └── CortexUMG/
 │       └── MCP/
 │           ├── src/cortex_mcp/
-│           └── tools/{domain}/
+│           ├── tools/{domain}/
+│           └── tests/            ← MCP benchmark tests (E2E, scenarios, stress)
 ├── Saved/
 │   ├── CortexPort.txt          ← TCP port (auto-generated)
 │   └── Logs/

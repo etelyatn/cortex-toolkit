@@ -48,6 +48,22 @@ For each scenario step:
 - Persist findings as report artifacts whenever a scenario run completes.
 - Never run two `run_input_sequence` calls concurrently — sequences share a single callback slot (see ED-001 in cortex-editor-tech-debt.md).
 
+## MCP Benchmark Tests
+
+QA and Editor domains have benchmark coverage in `Plugins/UnrealCortex/MCP/tests/`:
+- **Editor E2E** (`test_editor_e2e.py`): PIE lifecycle (start, stop, pause, resume, restart), viewport info, screenshot capture, recent logs, console commands, editor state, time dilation
+- **Editor lifecycle** (`test_editor_lifecycle.py`): Editor startup/shutdown integration
+- **QA tools** (`test_qa_tools.py`): QA composite tools (move_player_to, interact_with, observe_game_state, wait_for_condition, assert_game_state)
+- **Scenarios** (`test_mcp_scenarios.py`): Editor Domain benchmark check (get_editor_state, capture_screenshot, start/stop PIE)
+
+Run QA/Editor-specific benchmarks:
+```bash
+cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_editor_e2e.py -v
+cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_qa_tools.py -v
+```
+
+Reference these tests when extending Editor/QA MCP tools or debugging PIE lifecycle issues.
+
 ## Deliverables
 
 For each run, produce:

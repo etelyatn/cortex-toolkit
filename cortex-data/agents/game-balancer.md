@@ -35,6 +35,14 @@ Analyze DataTables, CurveTables, and DataAssets for balance issues — stat curv
 - **Stat scaling:** compare player stats to enemy stats at each level tier
 - **Drop rates:** verify probability distributions sum correctly
 
+## MCP Benchmark Tests
+
+Data domain tools used by the game balancer are validated in `Plugins/UnrealCortex/MCP/tests/`:
+- **TCP E2E** (`test_e2e.py`): DataTable queries, CurveTable reads, batch_query operations
+- **Scenarios** (`test_mcp_scenarios.py`): Data Pipeline scenario (query + add + search + batch + delete)
+
+Run `cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_e2e.py -v -k "data or curve or batch"` to validate data query tools.
+
 ## Output Format
 
 1. Analysis summary (what was checked)
