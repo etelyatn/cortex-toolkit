@@ -30,6 +30,7 @@ Delegate to `cortex-blueprint:cpp-migration-specialist`.
 5. Generate C++ code or patches (unless audit mode or Delete/Keep)
 6. Present analysis and code
 7. Ask before writing files (unless dry-run)
+8. After file write, ask user about Blueprint cleanup (Phase 7)
 
 ### 4. Review Agent Results
 
@@ -61,6 +62,7 @@ All common Blueprint constructs are translated to C++:
 | Improve | Existing C++ class updated with improved BP logic |
 | Delete | BP identified as duplicate/garbage; deletion recommended |
 | Keep | BP logic is appropriate as Blueprint |
+| Extract to DataAsset | Data-heavy BP → `UPrimaryDataAsset` subclass |
 
 ## Flags
 
@@ -68,3 +70,4 @@ All common Blueprint constructs are translated to C++:
 - `/cortex-bp-migrate BP_HealthPickup --audit`
 - `/cortex-bp-migrate BP_HealthPickup --dry-run`
 - `/cortex-bp-migrate BP_Player --include-all` - skip element selection, migrate everything
+- `--skip-cleanup` — Skip Phase 7 Blueprint cleanup prompt
