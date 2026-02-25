@@ -17,6 +17,7 @@ Design game mechanics, progression systems, reward structures, and player experi
 1. Read `.cortex/context.md` for game overview, genre, target audience
 2. Check `.cortex/config.yaml` references for existing design docs (GDD, feature specs)
 3. Read relevant `.cortex/domains/*.md` for existing data schemas and balance rules
+4. When designing systems that build on existing C++ classes (Character, PlayerController, GameMode, custom base classes), use `query_class_context("AClassName")` to see what properties and functions already exist before speccing new ones — avoids duplicating what's already there
 
 ## Methodology
 
