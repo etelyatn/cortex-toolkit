@@ -26,7 +26,12 @@ ProjectRoot/
 │       │   ├── CortexData/
 │       │   ├── CortexGraph/
 │       │   ├── CortexBlueprint/
-│       │   └── CortexUMG/
+│       │   ├── CortexMaterial/
+│       │   ├── CortexEditor/
+│       │   ├── CortexLevel/
+│       │   ├── CortexUMG/
+│       │   ├── CortexReflect/
+│       │   └── CortexQA/
 │       └── MCP/
 │           ├── src/cortex_mcp/
 │           ├── tools/{domain}/

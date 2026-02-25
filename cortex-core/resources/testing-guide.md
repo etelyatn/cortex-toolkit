@@ -26,7 +26,11 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& { Set-Location 'cl
 - `Cortex.Data+` — CortexData domain
 - `Cortex.Graph+` — CortexGraph domain
 - `Cortex.Blueprint+` — CortexBlueprint domain
-- `Cortex.UI+` — CortexUI domain
+- `Cortex.UMG+` — CortexUMG domain
+- `Cortex.Level+` — CortexLevel domain (requires rendering, no `-NullRHI`)
+- `Cortex.Reflect+` — CortexReflect domain
+- `Cortex.Editor+` — CortexEditor shared infrastructure (requires rendering, no `-NullRHI`)
+- `Cortex.QA+` — CortexQA domain (requires rendering and test level content)
 
 Note: Use `+` wildcard, never `*`.
 

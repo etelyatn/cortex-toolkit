@@ -15,6 +15,7 @@ Install only what you need:
 | **cortex-material** | Materials, Instances, Parameter Collections | cortex-material-review, cortex-material-create | Material Designer |
 | **cortex-level** | Actors, Transforms, Components, Queries, Streaming | cortex-level-review, cortex-level-create | Level Designer |
 | **cortex-qa** | Gameplay QA, Scenarios, Assertions | cortex-qa-init, cortex-qa-run, cortex-qa-interactive | QA Engineer |
+| **cortex-reflect** | C++ & Blueprint class hierarchy, cross-references | cortex-reflect | Project Analyzer |
 
 ## Installation
 
@@ -32,6 +33,7 @@ Install only what you need:
 /plugin install cortex-material@cortex-toolkit
 /plugin install cortex-level@cortex-toolkit
 /plugin install cortex-qa@cortex-toolkit
+/plugin install cortex-reflect@cortex-toolkit
 ```
 
 ### Claude Code (Direct)
@@ -45,6 +47,7 @@ claude plugin add etelyatn/cortex-toolkit/cortex-ui
 claude plugin add etelyatn/cortex-toolkit/cortex-material
 claude plugin add etelyatn/cortex-toolkit/cortex-level
 claude plugin add etelyatn/cortex-toolkit/cortex-qa
+claude plugin add etelyatn/cortex-toolkit/cortex-reflect
 ```
 
 ### After Installation
@@ -78,6 +81,7 @@ Domain specialists with deep knowledge of specific Unreal Engine systems:
 - **Game Balancer** — tunes DataTables, validates balance rules, tracks progression curves
 - **Data Architect** — designs table schemas, manages GameplayTags, organizes DataAssets
 - **Level Designer** — spawns actors, manages transforms, constructs multi-actor scenes, organizes level content
+- **Project Analyzer** — queries C++ and Blueprint class hierarchies, finds overrides, tracks cross-class symbol references
 
 Agents read `.cortex/domains/*.md` to follow your project conventions automatically.
 

@@ -23,7 +23,7 @@ Unified dual-track test runner for Unreal C++ and Python MCP tests.
 
 Parse the argument:
 - No argument → run both tracks
-- Domain name (Data, Core, Graph, Blueprint, UI) → Unreal tests for that domain
+- Domain name (Data, Core, Graph, Blueprint, UMG, Level, Reflect, Editor, QA) → Unreal tests for that domain
 - `python` → Python unit tests
 - `e2e` → Python E2E tests
 - `benchmark` → MCP benchmark (Layer 1 E2E + Layer 2 scenarios)
