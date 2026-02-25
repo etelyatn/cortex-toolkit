@@ -262,6 +262,19 @@ Pin names are passed to C++ as strings — the C++ layer does name-to-index look
 - Do NOT ask after non-structural edits (`set_node_property`)
 - After completing all structural edits for the current user request, ask once. Do not ask again for the same request
 
+## CortexReflect Tools
+
+Use these for class analysis, dependency checks, and impact assessment:
+
+| Tool | Use when |
+|------|----------|
+| `query_class_context` | Understand a material-related class — parent, properties, children in one call |
+| `query_class_hierarchy` | Discover material function or expression subclasses |
+| `query_usages` | Where is a material property referenced in Blueprint graphs |
+| `get_dependencies` | What does this material or parameter collection import? |
+| `get_referencers` | What references this material/collection? Before renaming parameters or changing domain |
+| `impact_analysis` | Full blast radius before breaking changes to a widely-used shared material |
+
 ## MCP Benchmark Tests
 
 Material domain has benchmark coverage in `Plugins/UnrealCortex/MCP/tests/`:

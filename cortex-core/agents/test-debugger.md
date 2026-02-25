@@ -79,6 +79,18 @@ cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_mcp_scenarios.py -v -k s
 2. Does it depend on editor state? (asset loaded, widget visible)
 3. Does it create assets that persist between runs?
 
+## CortexReflect Tools
+
+Use these for class analysis, dependency checks, and impact assessment:
+
+| Tool | Use when |
+|------|----------|
+| `query_class_detail` | Verify a class has the properties/functions a test expects — catches drift between test and implementation |
+| `query_class_context` | Understand a class — parent, properties, children in one call |
+| `get_dependencies` | Trace what a test asset imports — useful when "Failed to find object" appears |
+| `get_referencers` | What references a test fixture? Before modifying shared test assets |
+| `query_usages` | Find all Blueprint usages of a symbol being tested |
+
 ## Output Format
 
 1. Error summary (one line)

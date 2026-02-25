@@ -38,6 +38,20 @@ Analyze Blueprint graphs to trace execution flow, identify logic errors, and dia
    - Event firing order assumptions
    - Tick vs event-driven confusion
 
+## CortexReflect Tools
+
+Use these for class analysis, dependency checks, and impact assessment:
+
+| Tool | Use when |
+|------|----------|
+| `query_class_context` | Understand a class — parent, properties, functions, children in one call |
+| `query_class_hierarchy` | Browse the class tree to trace inheritance chains |
+| `query_overrides` | What do Blueprint children override from a base class |
+| `query_usages` | Find all references to a property or function across Blueprint graphs |
+| `get_dependencies` | What does this Blueprint import? |
+| `get_referencers` | What references this Blueprint? |
+| `impact_analysis` | Blast radius before suggesting a breaking fix |
+
 ## Output Format
 
 1. What the graph currently does (trace the execution)

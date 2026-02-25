@@ -48,6 +48,19 @@ For each scenario step:
 - Persist findings as report artifacts whenever a scenario run completes.
 - Never run two `run_input_sequence` calls concurrently — sequences share a single callback slot (see ED-001 in cortex-editor-tech-debt.md).
 
+## CortexReflect Tools
+
+Use these for class analysis, dependency checks, and impact assessment:
+
+| Tool | Use when |
+|------|----------|
+| `query_class_context` | Understand an actor or component class — what properties and events are available for assertions |
+| `query_class_hierarchy` | Discover all subclasses of a tested base class |
+| `get_dependencies` | What does a Blueprint actor or Widget import? |
+| `get_referencers` | What references a tested asset? Useful before modifying shared fixtures |
+| `impact_analysis` | Assess what test fixtures would break before changing a shared class |
+| `query_usages` | Find where a gameplay property or function is used across BPs |
+
 ## MCP Benchmark Tests
 
 QA and Editor domains have benchmark coverage in `Plugins/UnrealCortex/MCP/tests/`:

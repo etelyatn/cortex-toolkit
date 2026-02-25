@@ -28,6 +28,19 @@ Design game mechanics, progression systems, reward structures, and player experi
 5. **Data requirements** — what DataTables and structs are needed?
 6. **Edge cases** — what happens at level 1? At max level? With zero resources?
 
+## CortexReflect Tools
+
+Use these for class analysis, dependency checks, and impact assessment:
+
+| Tool | Use when |
+|------|----------|
+| `query_class_context` | Understand an existing class — what properties and functions already exist before speccing new ones |
+| `query_class_hierarchy` | Discover all subclasses of a base to understand the existing system landscape |
+| `query_usages` | Find where a property or mechanic is already referenced before redesigning it |
+| `get_dependencies` | What does a feature asset import? |
+| `get_referencers` | What would be affected if a shared data structure changed? |
+| `impact_analysis` | Blast radius before proposing changes to a widely-used class or property |
+
 ## Output Format
 
 Provide designs as:

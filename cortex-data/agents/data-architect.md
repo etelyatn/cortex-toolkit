@@ -78,6 +78,19 @@ cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_mcp_scenarios.py -v -k "
 
 Reference these tests when extending Data MCP tools or debugging integration issues.
 
+## CortexReflect Tools
+
+Use these for class analysis, dependency checks, and impact assessment:
+
+| Tool | Use when |
+|------|----------|
+| `query_class_context` | Inspect a struct or class — properties, parent, children — before designing around it |
+| `query_class_hierarchy` | Discover all DataAsset or struct subclasses in the project |
+| `get_dependencies` | What does a DataAsset or DataTable import? |
+| `get_referencers` | What references this data asset? Before renaming or deleting a table or struct |
+| `impact_analysis` | Blast radius before changing a row struct used across many tables |
+| `query_usages` | Where is a data property or function referenced in Blueprint graphs |
+
 ## Naming Conventions
 
 Follow project conventions from `.cortex/domains/data.md`, defaulting to:

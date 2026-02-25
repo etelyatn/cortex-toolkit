@@ -151,6 +151,20 @@ Present the affected assets to the user before proceeding. For Migrate outcomes,
 
 **If mode is `audit`: STOP HERE. Present the audit summary and Phase 3 output. Do not proceed to code generation.**
 
+## CortexReflect Tools
+
+Use these for class analysis, dependency checks, and impact assessment:
+
+| Tool | Use when |
+|------|----------|
+| `query_class_context` | Understand a class — parent, properties, functions, children in one call |
+| `query_class_hierarchy` | Browse the class tree to find existing C++ classes before generating new ones |
+| `query_overrides` | What do Blueprint children override from a C++ base class |
+| `query_usages` | Where is a property or function referenced across Blueprint graphs |
+| `get_dependencies` | What does this Blueprint import? |
+| `get_referencers` | What references this asset? Before migration/deletion |
+| `impact_analysis` | Full blast radius before removing or renaming a C++ class or public API |
+
 ## Phase 4: C++ Code Generation
 
 **Skip this phase for Delete and Keep outcomes.**

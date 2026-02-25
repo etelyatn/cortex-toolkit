@@ -398,6 +398,19 @@ cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_blueprint_composites.py 
 
 Reference these tests when extending Blueprint MCP tools or debugging integration issues.
 
+## CortexReflect Tools
+
+Use these for class analysis, dependency checks, and impact assessment:
+
+| Tool | Use when |
+|------|----------|
+| `query_class_context` | Understand a Blueprint class — parent, properties, functions, children in one call |
+| `query_class_hierarchy` | Browse the class tree from any root (e.g., all AActor subclasses) |
+| `query_usages` | Where is a property or function referenced across Blueprint graphs |
+| `get_dependencies` | What does this Blueprint import? |
+| `get_referencers` | What references this Blueprint? Run before deleting or making breaking changes |
+| `impact_analysis` | Full blast radius before removing or renaming a public function/variable |
+
 ## Best Practices
 
 - Keep graphs under 50 nodes — split into functions for clarity

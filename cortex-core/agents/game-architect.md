@@ -34,6 +34,20 @@ Design game system architecture — module boundaries, class hierarchies, data f
 5. **Design the interface** — how do other systems talk to this one?
 6. **Plan the data model** — structs, tables, references between them
 
+## CortexReflect Tools
+
+Use these for class analysis, dependency checks, and impact assessment:
+
+| Tool | Use when |
+|------|----------|
+| `query_class_context` | Understand an existing class — parent, properties, functions, children in one call |
+| `query_class_hierarchy` | Map the existing class tree before designing new systems |
+| `query_overrides` | See how Blueprint children extend a C++ base class |
+| `query_usages` | Find where a property or function is used before changing its signature |
+| `get_dependencies` | What does this asset import? |
+| `get_referencers` | What references this asset? Before renaming or removing |
+| `impact_analysis` | Blast radius before proposing a breaking architectural change |
+
 ## Decision Framework: Blueprint vs C++
 
 | Factor | Blueprint | C++ |

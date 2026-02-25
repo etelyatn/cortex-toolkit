@@ -86,6 +86,19 @@ When creating a NEW Widget Blueprint from scratch, these tools are PROHIBITED (u
 
 These tools ARE allowed when modifying an existing Widget Blueprint.
 
+## CortexReflect Tools
+
+Use these for class analysis, dependency checks, and impact assessment:
+
+| Tool | Use when |
+|------|----------|
+| `query_class_context` | Understand a widget class — parent, properties, functions, children in one call |
+| `query_class_hierarchy` | Discover all widget subclasses in the project (more complete than `list_widget_classes`) |
+| `query_usages` | Where is a widget property or function referenced across Blueprint graphs |
+| `get_dependencies` | What does this Widget Blueprint import? |
+| `get_referencers` | What references this widget? Before deleting or restructuring shared widgets |
+| `impact_analysis` | Blast radius before renaming or removing a property/function on a shared base widget |
+
 ## MCP Benchmark Tests
 
 UMG domain has benchmark coverage in `Plugins/UnrealCortex/MCP/tests/`:
