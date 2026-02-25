@@ -28,6 +28,7 @@ Analyze test failures, identify root causes, and suggest fixes. You understand b
    - `SkipPackage` warning → missing `FindPackage`/`DoesPackageExist` guard before `LoadObject`
    - `Failed to find object` → asset path wrong or not saved
    - `nullptr` → object creation failed, check factory/class
+   - Unexpected class structure → use `query_class_detail` to verify the class has the properties/functions the test expects; the C++ or Blueprint may have changed since the test was written
 3. **Check cleanup** — is `MarkAsGarbage()` called? Is `SavePackage()` called for Blueprints?
 4. **Check threading** — does the test access UObjects on Game Thread?
 5. **Check test isolation** — does it depend on other tests running first?

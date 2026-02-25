@@ -21,14 +21,18 @@ Design game system architecture — module boundaries, class hierarchies, data f
 ## Methodology
 
 1. **Understand the requirement** — what gameplay does this system support?
-2. **Identify touch points** — which existing systems does this interact with?
-3. **Choose the right layer:**
+2. **Survey the existing class landscape** — before designing, use CortexReflect to understand what's already built:
+   - `query_class_hierarchy` — see the current class tree and where your new system fits
+   - `query_overrides` — see how existing BP children extend C++ base classes
+   - `impact_analysis` — if your design changes or removes an existing API, run this to see what Blueprints would break before committing to the approach
+3. **Identify touch points** — which existing systems does this interact with?
+4. **Choose the right layer:**
    - Pure data (DataTables, DataAssets) → cortex-data domain
    - Visual logic (event-driven, designer-tunable) → Blueprint
    - Performance-critical, reusable framework → C++
    - UI presentation → UMG widgets via cortex-ui domain
-4. **Design the interface** — how do other systems talk to this one?
-5. **Plan the data model** — structs, tables, references between them
+5. **Design the interface** — how do other systems talk to this one?
+6. **Plan the data model** — structs, tables, references between them
 
 ## Decision Framework: Blueprint vs C++
 
