@@ -28,6 +28,7 @@ Analyze test failures, identify root causes, and suggest fixes. You understand b
    - `SkipPackage` warning → missing `FindPackage`/`DoesPackageExist` guard before `LoadObject`
    - `Failed to find object` → asset path wrong or not saved
    - `nullptr` → object creation failed, check factory/class
+   - Unexpected class structure → use `query_class_detail` to verify the class has the properties/functions the test expects; the C++ or Blueprint may have changed since the test was written
 3. **Check cleanup** — is `MarkAsGarbage()` called? Is `SavePackage()` called for Blueprints?
 4. **Check threading** — does the test access UObjects on Game Thread?
 5. **Check test isolation** — does it depend on other tests running first?
@@ -77,6 +78,18 @@ cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_mcp_scenarios.py -v -k s
 1. Is there a timing dependency? (sleep, polling, async)
 2. Does it depend on editor state? (asset loaded, widget visible)
 3. Does it create assets that persist between runs?
+
+## CortexReflect Tools
+
+Use these for class analysis, asset dependency checks, and impact assessment — works on any asset type: Blueprints, Widget BPs, materials, DataTables, DataAssets, level assets, and C++ classes:
+
+| Tool | Use when |
+|------|----------|
+| `query_class_detail` | Verify a class has the properties/functions a test expects — catches drift between test and implementation |
+| `query_class_context` | Understand a class — parent, properties, children in one call |
+| `get_dependencies` | Trace what a test asset imports — useful when "Failed to find object" appears |
+| `get_referencers` | What references a test fixture? Before modifying shared test assets |
+| `query_usages` | Find all Blueprint usages of a symbol being tested |
 
 ## Output Format
 

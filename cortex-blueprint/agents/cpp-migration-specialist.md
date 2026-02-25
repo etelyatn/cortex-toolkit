@@ -127,9 +127,43 @@ BP Analysis Complete
 - Does the BP have variables that shadow C++ parent variables?
 - Is the BP referenced by other assets, or is it orphaned?
 
+**Dependency & impact check (required for Migrate/Delete outcomes):**
+
+Before finalizing a Migrate or Delete decision, call `get_referencers` to find all assets that reference this Blueprint:
+
+```python
+get_referencers(asset_path="/Game/Blueprints/BP_TargetActor")
+```
+
+- If `total == 0` → safe to delete or migrate without downstream breakage
+- If `total > 0` → run `impact_analysis` to identify which referencers will break and at what severity:
+
+```python
+impact_analysis(
+    target_class="BP_TargetActor",
+    change_type="deleted_class"
+)
+```
+
+Present the affected assets to the user before proceeding. For Migrate outcomes, this list also tells you which Blueprints will need to have their parent class or references updated after the C++ class exists.
+
 **Output of Phase 3:** A single outcome (Migrate/Merge/Improve/Delete/Keep) with detailed reasoning.
 
 **If mode is `audit`: STOP HERE. Present the audit summary and Phase 3 output. Do not proceed to code generation.**
+
+## CortexReflect Tools
+
+Use these for class analysis, asset dependency checks, and impact assessment — works on any asset type: Blueprints, Widget BPs, materials, DataTables, DataAssets, level assets, and C++ classes:
+
+| Tool | Use when |
+|------|----------|
+| `query_class_context` | Understand a class — parent, properties, functions, children in one call |
+| `query_class_hierarchy` | Browse the class tree to find existing C++ classes before generating new ones |
+| `query_overrides` | What do Blueprint children override from a C++ base class |
+| `query_usages` | Where is a property or function referenced across Blueprint graphs |
+| `get_dependencies` | What does this Blueprint import? |
+| `get_referencers` | What references this asset? Before migration/deletion |
+| `impact_analysis` | Full blast radius before removing or renaming a C++ class or public API |
 
 ## Phase 4: C++ Code Generation
 

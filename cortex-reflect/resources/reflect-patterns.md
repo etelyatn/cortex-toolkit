@@ -54,12 +54,33 @@ Saves 3 separate calls. Use this as the default for "tell me about class X".
 
 ### Before refactoring — check blast radius
 
+For a full risk assessment before breaking changes, use `impact_analysis`:
+
 ```python
-query_usages(symbol="Health", class_name="AMyCharacter")
-# Returns: every Blueprint that reads or writes Health
+impact_analysis(
+    target_class="AMyCharacter",
+    symbol="Health",
+    change_type="removed_function"  # removed_function | deleted_class | changed_property
+)
+# Returns: affected Blueprints grouped by severity (high/medium/low),
+# with exact node IDs, reference types, and unscanned count
 ```
 
-Essential before renaming, removing, or changing C++ member signatures.
+For a quick "is anything using this?" check (no graph scan, instant):
+
+```python
+get_referencers(asset_path="/Game/Blueprints/BP_MyCharacter")
+# Returns: all assets that reference this one via the Asset Registry
+```
+
+For forward dependencies ("what does this asset pull in?"):
+
+```python
+get_dependencies(asset_path="/Game/Blueprints/BP_MyCharacter")
+# Returns: parent classes, referenced meshes, materials, other Blueprints
+```
+
+Use `query_usages` directly only when you need graph-level detail for a specific symbol without the full risk scoring overhead.
 
 ### Find what Blueprint children override
 
@@ -120,6 +141,6 @@ Reflect domain workflows are validated by the benchmark testing framework in `Pl
 
 | Test File | Coverage |
 |-----------|----------|
-| `test_reflect_tools.py` | All reflect tools: cache_status, scan_project, query_class_hierarchy, query_class_detail, query_class_context, query_overrides, query_usages, rebuild_graph_cache |
+| `test_reflect_tools.py` | All reflect tools: cache_status, scan_project, query_class_hierarchy, query_class_detail, query_class_context, query_overrides, query_usages, get_dependencies, get_referencers, impact_analysis, rebuild_graph_cache |
 
 Run to validate after modifying Reflect MCP tools or C++ command handlers.

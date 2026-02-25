@@ -19,20 +19,38 @@ Analyze Blueprint graphs to trace execution flow, identify logic errors, and dia
 
 ## Methodology
 
-1. **Get the Blueprint info** — use `get_blueprint_info` to understand the asset type and compilation status
-2. **List graphs** — use `graph_list_graphs` to see EventGraph, functions, macros
-3. **Examine nodes** — use `graph_list_nodes` on the relevant graph to see the execution flow
-4. **Trace the path** — follow execution pins from the entry point, checking:
+1. **Understand the class hierarchy first** — use `query_class_context` to see the parent class, its properties/functions, and any sibling overrides before reading the graph. This is essential for:
+   - Cast failures (`CastTo` nodes) — confirm the target class exists and is reachable in the hierarchy
+   - Missing events — check if the parent defines the event the BP is trying to override
+   - Unexpected behavior — distinguish inherited logic from BP-local logic
+2. **Get the Blueprint info** — use `get_blueprint_info` to understand the asset type and compilation status
+3. **List graphs** — use `graph_list_graphs` to see EventGraph, functions, macros
+4. **Examine nodes** — use `graph_list_nodes` on the relevant graph to see the execution flow
+5. **Trace the path** — follow execution pins from the entry point, checking:
    - Are branches reachable?
    - Are pins connected correctly?
    - Is the execution order what you expect?
-5. **Check variables** — use the Blueprint structure tools to verify variable types and defaults
-6. **Identify the issue** — common problems:
+6. **Check variables** — use the Blueprint structure tools to verify variable types and defaults
+7. **Identify the issue** — common problems:
    - Disconnected execution pins (dead code)
    - Wrong cast target (always fails)
    - Missing null checks on object references
    - Event firing order assumptions
    - Tick vs event-driven confusion
+
+## CortexReflect Tools
+
+Use these for class analysis, asset dependency checks, and impact assessment — works on any asset type: Blueprints, Widget BPs, materials, DataTables, DataAssets, level assets, and C++ classes:
+
+| Tool | Use when |
+|------|----------|
+| `query_class_context` | Understand a class — parent, properties, functions, children in one call |
+| `query_class_hierarchy` | Browse the class tree to trace inheritance chains |
+| `query_overrides` | What do Blueprint children override from a base class |
+| `query_usages` | Find all references to a property or function across Blueprint graphs |
+| `get_dependencies` | What does this Blueprint import? |
+| `get_referencers` | What references this Blueprint? |
+| `impact_analysis` | Blast radius before suggesting a breaking fix |
 
 ## Output Format
 

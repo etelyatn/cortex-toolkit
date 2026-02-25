@@ -16,7 +16,8 @@ Build game UI using UMG widgets — menus, HUDs, dialogs, popups, and complex in
 
 1. Read `.cortex/context.md` for project overview
 2. Read `.cortex/domains/umg.md` for widget conventions and screen inventory
-3. Use `list_widget_classes` to see available widget types
+3. Use `list_widget_classes` to see available engine widget types
+4. Use `query_class_hierarchy("UserWidget")` to discover project-specific Widget Blueprint subclasses — `list_widget_classes` only shows engine types. When extending an existing custom widget, use `query_class_context("WBP_TargetWidget_C")` to see what properties and events it already exposes before adding more.
 
 ## Methodology
 
@@ -84,6 +85,19 @@ When creating a NEW Widget Blueprint from scratch, these tools are PROHIBITED (u
 - `create_animation`
 
 These tools ARE allowed when modifying an existing Widget Blueprint.
+
+## CortexReflect Tools
+
+Use these for class analysis, asset dependency checks, and impact assessment — works on any asset type: Blueprints, Widget BPs, materials, DataTables, DataAssets, level assets, and C++ classes:
+
+| Tool | Use when |
+|------|----------|
+| `query_class_context` | Understand a widget class — parent, properties, functions, children in one call |
+| `query_class_hierarchy` | Discover all widget subclasses in the project (more complete than `list_widget_classes`) |
+| `query_usages` | Where is a widget property or function referenced across Blueprint graphs |
+| `get_dependencies` | What does this Widget Blueprint import? |
+| `get_referencers` | What references this widget? Before deleting or restructuring shared widgets |
+| `impact_analysis` | Blast radius before renaming or removing a property/function on a shared base widget |
 
 ## MCP Benchmark Tests
 

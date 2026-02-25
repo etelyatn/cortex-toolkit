@@ -147,6 +147,22 @@ All Blueprint operations require the Cortex MCP server connected to a running Un
 5. **Implement logic** — guide graph construction using `graph_*` tools
 6. **Compile and test** — `compile_blueprint`, verify no errors
 
+### Before Destructive Operations
+
+Before **deleting a Blueprint**, **removing a public function or variable**, or **renaming a public API**, run `impact_analysis` (CortexReflect tool) to understand blast radius:
+
+```python
+impact_analysis(
+    target_class="BP_MyActor",
+    symbol="MyFunction",       # omit to assess the whole asset
+    change_type="removed_function"  # removed_function | deleted_class | changed_property
+)
+```
+
+- If `total_affected > 0`, show the user the high-risk Blueprints before proceeding
+- If coverage is partial (`scan_coverage: "partial"`), offer to re-run with `deep_scan=true`
+- For whole-asset deletion with no symbol, use `get_referencers` instead
+
 ## Blueprint Tools
 
 **Asset management:** `create_blueprint`, `list_blueprints`, `get_blueprint_info`, `delete_blueprint`, `duplicate_blueprint`, `compile_blueprint`, `save_blueprint`
@@ -381,6 +397,19 @@ cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_blueprint_composites.py 
 ```
 
 Reference these tests when extending Blueprint MCP tools or debugging integration issues.
+
+## CortexReflect Tools
+
+Use these for class analysis, asset dependency checks, and impact assessment — works on any asset type: Blueprints, Widget BPs, materials, DataTables, DataAssets, level assets, and C++ classes:
+
+| Tool | Use when |
+|------|----------|
+| `query_class_context` | Understand a Blueprint class — parent, properties, functions, children in one call |
+| `query_class_hierarchy` | Browse the class tree from any root (e.g., all AActor subclasses) |
+| `query_usages` | Where is a property or function referenced across Blueprint graphs |
+| `get_dependencies` | What does this Blueprint import? |
+| `get_referencers` | What references this Blueprint? Run before deleting or making breaking changes |
+| `impact_analysis` | Full blast radius before removing or renaming a public function/variable |
 
 ## Best Practices
 
