@@ -16,7 +16,8 @@ Analyze DataTables, CurveTables, and DataAssets for balance issues — stat curv
 
 1. Read `.cortex/context.md` for game overview
 2. Read `.cortex/domains/data.md` for table schemas, balance rules, and acceptable ranges
-3. Use `get_data_catalog` for a full project data overview
+3. Check `.cortex/schema/_catalog.md` for project data overview (fast, no editor needed)
+4. Use `get_data_catalog` for live data if schema files are missing or stale
 
 ## Methodology
 

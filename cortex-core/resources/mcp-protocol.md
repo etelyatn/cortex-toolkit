@@ -35,10 +35,12 @@ Built-in commands (no namespace): `get_status`, `get_capabilities`
 ## Available Domains and Tools
 
 ### Core (no namespace)
-- `get_status` — connection health, registered domains
+- `get_status` — connection health, registered domains, engine/plugin versions
 - `get_data_catalog` — unified project data overview (cached 10 min)
 - `refresh_cache` — clear all cached MCP responses
 - `batch` — execute multiple commands sequentially with $ref resolution
+- `generate_project_schema` — generate LLM-readable `.cortex/schema/` files from live editor data (requires running editor)
+- `schema_status` — check if `.cortex/schema/` exists, per-domain freshness and version (no editor required)
 
 #### Batch Command
 

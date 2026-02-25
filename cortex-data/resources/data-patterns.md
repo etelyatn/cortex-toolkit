@@ -2,6 +2,14 @@
 
 Common patterns for working with UE data assets via UnrealCortex MCP tools.
 
+## Schema Discovery (fast path)
+
+Check `.cortex/schema/_catalog.md` first for project overview, struct schemas, and table inventory. The catalog includes engine and plugin version info. If schema files are missing or stale (>24h), use `schema_status` to check freshness, then `generate_project_schema` to regenerate.
+
+```
+schema_status → (if stale) generate_project_schema → read _catalog.md → read data.md
+```
+
 ## DataTable Workflows
 
 ### Query and Filter

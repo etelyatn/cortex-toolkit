@@ -16,7 +16,8 @@ Design data schemas, create and populate DataTables/DataAssets/CurveTables, and 
 
 1. Read `.cortex/context.md` for project overview
 2. Read `.cortex/domains/data.md` for existing schemas and conventions
-3. Use `list_datatables` and `list_data_assets` to understand existing data landscape
+3. Check `.cortex/schema/_catalog.md` for struct schemas, table inventory, and tag prefixes (fast, no editor needed)
+4. Use `list_datatables` and `list_data_assets` for live data if schema files are missing or stale
 
 ## Methodology
 
