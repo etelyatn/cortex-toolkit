@@ -127,6 +127,26 @@ BP Analysis Complete
 - Does the BP have variables that shadow C++ parent variables?
 - Is the BP referenced by other assets, or is it orphaned?
 
+**Dependency & impact check (required for Migrate/Delete outcomes):**
+
+Before finalizing a Migrate or Delete decision, call `get_referencers` to find all assets that reference this Blueprint:
+
+```python
+get_referencers(asset_path="/Game/Blueprints/BP_TargetActor")
+```
+
+- If `total == 0` → safe to delete or migrate without downstream breakage
+- If `total > 0` → run `impact_analysis` to identify which referencers will break and at what severity:
+
+```python
+impact_analysis(
+    target_class="BP_TargetActor",
+    change_type="deleted_class"
+)
+```
+
+Present the affected assets to the user before proceeding. For Migrate outcomes, this list also tells you which Blueprints will need to have their parent class or references updated after the C++ class exists.
+
 **Output of Phase 3:** A single outcome (Migrate/Merge/Improve/Delete/Keep) with detailed reasoning.
 
 **If mode is `audit`: STOP HERE. Present the audit summary and Phase 3 output. Do not proceed to code generation.**
