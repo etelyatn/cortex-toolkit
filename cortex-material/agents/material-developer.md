@@ -82,11 +82,11 @@ Use `get_material_node_pins(asset_path, node_id)` to query actual pin names on a
 
 **Composite (REQUIRED for new materials):** `create_material_graph` — builds entire material graph atomically
 
-**Assets:** `list_materials`, `get_material`, `create_material`, `delete_material`, `list_instances`, `get_instance`, `create_instance`, `delete_instance`
+**Assets:** `list_materials`, `get_material`, `create_material`, `delete_material`, `list_instances`, `get_instance`, `create_instance`, `delete_instance`, `set_material_property`
 
 **Parameters:** `list_parameters`, `get_parameter`, `set_parameter`, `set_parameters`, `reset_parameter`
 
-**Graph (modify existing only):** `list_nodes`, `get_node`, `get_node_pins`, `add_node`, `remove_node`, `list_connections`, `connect`, `disconnect`, `set_node_property`, `auto_layout`
+**Graph (modify existing only):** `list_nodes`, `get_node`, `get_node_pins`, `add_node`, `remove_node`, `list_connections`, `connect`, `disconnect`, `set_node_property`, `set_material_node_property`, `auto_layout`
 
 **Collections:** `list_collections`, `get_collection`, `create_collection`, `delete_collection`, `add_collection_parameter`, `remove_collection_parameter`, `set_collection_parameter`
 
@@ -111,6 +111,52 @@ Use `get_material_node_pins(asset_path, node_id)` to query actual pin names on a
 | Vector | RGBA array | `[1.0, 0.0, 0.0, 1.0]` |
 | Texture | asset path | `"/Game/Textures/T_Brick"` |
 | Static switch | bool | `true` (triggers recompilation) |
+
+## Material-Level Properties
+
+Use `set_material_property` to configure material-level settings after creation (or in `create_material_graph` post-steps). This sets UProperty values directly on the UMaterial asset.
+
+### Common Properties
+
+| Property | Type | Values |
+|----------|------|--------|
+| `MaterialDomain` | Enum | `"Surface"`, `"DeferredDecal"`, `"LightFunction"`, `"PostProcess"`, `"UI"` |
+| `BlendMode` | Enum | `"Opaque"`, `"Masked"`, `"Translucent"`, `"Additive"`, `"Modulate"` |
+| `ShadingModel` | Enum | `"Unlit"`, `"DefaultLit"`, `"Subsurface"`, `"ClearCoat"` |
+| `TwoSided` | Bool | `true` / `false` |
+
+### Enum Alias Support
+
+The Python MCP layer accepts both pretty names and UE reflection names. Use the pretty names for readability:
+
+```python
+# Pretty names (recommended)
+set_material_property("/Game/Materials/M_Decal", "MaterialDomain", "DeferredDecal")
+set_material_property("/Game/Materials/M_Glass", "BlendMode", "Translucent")
+
+# UE reflection names also work
+set_material_property("/Game/Materials/M_Decal", "MaterialDomain", "MD_DeferredDecal")
+set_material_property("/Game/Materials/M_Glass", "BlendMode", "BLEND_Translucent")
+```
+
+### set_material_property vs set_node_property
+
+| Tool | Target | Example Properties |
+|------|--------|--------------------|
+| `set_material_property` | UMaterial asset itself | MaterialDomain, BlendMode, ShadingModel, TwoSided |
+| `set_material_node_property` | Expression node in graph | ParameterName, DefaultValue, Texture, SceneTextureId, SamplerType |
+
+### Node Enum/Byte Properties
+
+`set_material_node_property` supports FByteProperty and FEnumProperty on expression nodes. Pass the UE enum string or integer value:
+
+```python
+# SceneTexture post-process input
+set_material_node_property("/Game/Materials/M_PP", "Expr_0", "SceneTextureId", "PPI_PostProcessInput0")
+
+# Sampler type
+set_material_node_property("/Game/Materials/M_Mat", "Expr_1", "SamplerType", "SAMPLERTYPE_Color")
+```
 
 ## Instance Hierarchy Guidelines
 

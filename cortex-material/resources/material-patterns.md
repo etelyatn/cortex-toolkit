@@ -395,6 +395,43 @@ Executes all steps regardless of failures:
 
 **Optimization:** Batch-aware operations defer `PostEditChange`/`RebuildGraph` until batch end, preventing 5-30s editor freeze on large batches.
 
+### Set Material-Level Properties
+```
+get_material (asset_path) → check current settings
+→ set_material_property (asset_path, property_name, value) ×N
+```
+
+**Example: Configure Post-Process Material**
+```python
+# Set domain, blend mode, and shading model
+set_material_property("/Game/Materials/M_Outline", "MaterialDomain", "PostProcess")
+set_material_property("/Game/Materials/M_Outline", "ShadingModel", "Unlit")
+set_material_property("/Game/Materials/M_Outline", "BlendMode", "Translucent")
+```
+
+**Example: Make Foliage Material Two-Sided and Masked**
+```python
+set_material_property("/Game/Materials/M_Leaves", "TwoSided", true)
+set_material_property("/Game/Materials/M_Leaves", "BlendMode", "Masked")
+```
+
+**Enum aliases:** Use pretty names (`"Opaque"`, `"PostProcess"`, `"Unlit"`) or UE reflection names (`"BLEND_Opaque"`, `"MD_PostProcess"`, `"MSM_Unlit"`). The Python layer normalizes automatically.
+
+### Set Expression Node Enum Properties
+```
+set_material_node_property (asset_path, node_id, property_name, value)
+```
+
+Now supports FByteProperty and FEnumProperty (SceneTextureId, SamplerType, etc.):
+
+```python
+# Configure SceneTexture for post-process input
+set_material_node_property("/Game/Materials/M_PP", "Expr_0", "SceneTextureId", "PPI_PostProcessInput0")
+
+# Set sampler type
+set_material_node_property("/Game/Materials/M_Mat", "Expr_1", "SamplerType", "SAMPLERTYPE_Color")
+```
+
 ### Individual Tool Usage (Legacy, Not Recommended)
 
 ⚠️ Only use individual tools when modifying existing materials and a batch is unnecessary.
@@ -463,14 +500,17 @@ delete_instance (asset_path)
 → Cleanup is reliable — no orphaned files after deletion
 ```
 
-### Set Node Properties (Improved: Struct Property Support)
+### Set Node Properties (Improved: Struct + Enum Property Support)
 ```
 set_node_property (asset_path, node_id, property_name, value)
-→ Now supports FLinearColor properties (e.g., VectorParameter.DefaultValue)
-→ Now supports FVector properties
+→ Supports FLinearColor properties (e.g., VectorParameter.DefaultValue)
+→ Supports FVector properties
+→ Supports FByteProperty / FEnumProperty (e.g., SceneTextureId, SamplerType)
 → Format for FLinearColor: [R, G, B, A] as array of floats
+→ Format for Enum: UE enum string ("PPI_PostProcessInput0") or integer value
 → Example: set_node_property(..., "DefaultValue", [1.0, 0.0, 0.0, 1.0])
-→ Previously only supported scalar/string properties
+→ Example: set_node_property(..., "SceneTextureId", "PPI_PostProcessInput0")
+→ Delegates to FCortexSerializer::JsonToProperty for all type resolution
 ```
 
 ## Pin Naming Reference
