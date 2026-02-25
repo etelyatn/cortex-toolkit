@@ -171,6 +171,37 @@ void UMyWidget::HandleConfirmClicked()
 - Bind delegates in `NativeConstruct()` with null checks
 - After migration, reparent the Widget BP to the new C++ class
 
+### Pattern 4a: Widget Blueprint - Advanced Patterns
+
+- Always pair dynamic delegate binding with unbind in `NativeDestruct()`
+- Keep `BindWidget` for required controls and `BindWidgetOptional` for optional controls
+- Use `BindWidgetAnim` only on transient `UWidgetAnimation*` fields
+- Promote frequently observed UI state to `FieldNotify` properties where supported
+- For ListView entry widgets, implement `IUserObjectListEntry` and keep entry object binding logic in C++
+- Keep named slot content ownership in BP, but expose C++ helpers for slot-safe updates
+
+### Widget Delegate Quick Reference
+
+| Widget Type | Delegate | Notes |
+|------------|----------|-------|
+| UButton | `OnClicked` | Most common action event |
+| UCheckBox | `OnCheckStateChanged` | Bool payload |
+| USlider | `OnValueChanged` | Float payload |
+| UComboBoxString | `OnSelectionChanged` | Selected option payload |
+| UEditableText | `OnTextCommitted` | Commit method aware |
+| UEditableTextBox | `OnTextChanged` | Live edit updates |
+| USpinBox | `OnValueChanged` | Numeric input |
+| UListView | `OnItemClicked` | Item-driven list behavior |
+
+### Widget Migration Decision Override
+
+| Condition | Override Decision |
+|----------|-------------------|
+| Widget is layout-only with style tweaks | Keep BP |
+| Widget has heavy logic in EventGraph | Migrate logic to C++ |
+| Widget binds many delegates but little logic | Hybrid (C++ wiring + BP visuals) |
+| Widget uses complex animation choreography | Keep animation orchestration in BP |
+
 ## Function Classification
 
 | BP Pattern | C++ Specifier | When |

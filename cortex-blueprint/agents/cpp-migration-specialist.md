@@ -24,11 +24,16 @@ Read a Blueprint's full structure via MCP tools, scan the project's existing C++
 
 This agent supports three modes passed via the skill:
 
-- **full** (default): Run all 6 phases — analyze, scan C++, decide, generate, present, write
+- **full** (default): Run all 7 phases — analyze, scan C++, decide, generate, present, write, widget cleanup
 - **audit**: Run Phases 1-3 only — analyze and report findings, do not generate code
 - **dry-run**: Run Phases 1-5 — generate code and present, but do not offer to write files
 
 ## Phase 1: Blueprint Analysis
+
+Widget Blueprint analysis requirements:
+- Read V4 typed arrays including `scs_components`, `dynamic_components`, `widgets`, `widget_animations`, `widget_bindings`, and `entity_summary`
+- Use `graph_logic_node_count` as a migration complexity signal in addition to total node count
+- Identify BindWidget candidates, animation usage, property bindings, named slots, and ListView entry widget metadata
 
 Gather complete information about the target Blueprint:
 
@@ -163,6 +168,9 @@ Generate complete, compilable C++ files:
   ```
 - All function implementations
 - Delegate bindings in `BeginPlay()` (Actors) or `NativeConstruct()` (Widgets)
+- Widget code generation must use `BindWidget` / `BindWidgetOptional` / `BindWidgetAnim` patterns with null safety
+- Add `NativeDestruct()` cleanup for every dynamic widget delegate binding
+- Prefer `FieldNotify` for high-churn UI state replicated to bindings
 - TODO comments where unsupported constructs were skipped
 - Use the node translation table from `cpp-migration.md` for BP node → C++ mapping
 
@@ -299,3 +307,9 @@ Report what was written/modified and remind about:
 - **MCP connection issues:** Suggest running `/cortex-status` to verify editor connectivity
 - **Unsupported BP type:** Report which types are supported (Actor, Widget) and which aren't yet (AnimBP, Interface, FunctionLibrary)
 - **BP inherits from another BP:** Warn that parent should be migrated first, suggest running the tool on the parent
+## Phase 7: Widget Cleanup (when target is a Widget Blueprint)
+
+1. Reparent only within widget type family (`Widget->Widget`)
+2. Remove only migrated logic variables and function graphs
+3. Preserve widget tree, animations, and bind-widget variables
+4. Re-run analysis to confirm widget arrays and `entity_summary` remain valid
