@@ -199,6 +199,39 @@ save_blueprint(asset_path="/Game/Blueprints/BP_HelloWorld")
 
 **Result:** Fully functional Blueprint that prints "Hello World" 5 seconds after BeginPlay — no manual editing required!
 
+### Configure Class Defaults (CDO)
+```
+get_class_defaults (blueprint_path)                 ← discover all settable properties
+→ set_class_defaults (blueprint_path, properties)   ← set defaults with auto-compile + auto-save
+```
+
+**Example: Configure a Character Blueprint**
+```python
+# 1. Discover available properties
+get_class_defaults(blueprint_path="/Game/Blueprints/BP_Enemy")
+
+# 2. Set multiple defaults in one call
+set_class_defaults(
+    blueprint_path="/Game/Blueprints/BP_Enemy",
+    properties={
+        "MaxHealth": 100.0,
+        "MovementSpeed": 400.0,
+        "AttackDamage": 25.0,
+        "DefaultInputAction": "/Game/Input/IA_EnemyAI"
+    }
+)
+# Returns per-property results: type, previous_value, new_value, success
+# Auto-compiles and auto-saves by default
+```
+
+**Example: Read specific defaults**
+```python
+get_class_defaults(
+    blueprint_path="/Game/Blueprints/BP_Enemy",
+    properties=["MaxHealth", "MovementSpeed"]
+)
+```
+
 ### Review Blueprint
 ```
 get_blueprint_info → graph_list_graphs → graph_list_nodes (per graph) → assess complexity

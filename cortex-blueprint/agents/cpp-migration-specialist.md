@@ -30,6 +30,12 @@ variables with usage counts, functions with latent detection and purity, timelin
 event dispatchers with params, implemented interfaces, components, graph/event breakdown, latent chains,
 and complexity metrics. Skip to Phase 2 with this data.
 
+V3 enrichments: UPROPERTY specifiers (EditDefaultsOnly/EditAnywhere/etc.), blueprint_access (ReadOnly/ReadWrite),
+reference_type (Hard/Soft/Weak/Interface), replication details (condition, notify_func), is_gameplay_tag,
+is_save_game, is_transient per variable. Override detection (is_override, parent_function_type) and
+RPC type (rpc_type, is_reliable) per function. construction_script analysis, input_bindings,
+improved confidence scoring with macro_instance_count, parent_is_blueprint, user_defined_type_count.
+
 **Standard path (if analyze tool not available):**
 1. Call `get_blueprint_info`.
 2. Call `graph_list_graphs`.
@@ -52,9 +58,20 @@ Report: `This Blueprint contains [construct list]. These will be translated to C
 - Search for likely counterpart classes.
 - Map overlap and divergence.
 
+**V3 Merge path enhancement:**
+When parent is a project C++ class, use reflect tools for deep comparison:
+1. `query_class_detail(ParentClass, "full")` — get parent properties/functions
+2. `query_class_hierarchy(ParentClass, 1)` — see immediate children
+3. Compare: identify shadowing variables, no-op overrides, candidates to move UP
+4. Generate structured diff plan: "Move UP" / "Remove from BP" / "Keep in BP"
+5. For Merge/Improve: generate C++ patch (additions to existing `.h`/`.cpp`)
+
 ## Phase 3: Migration Decision
 
-Classify outcome: `Migrate`, `Merge`, `Improve`, `Delete`, or `Keep`.
+Classify outcome: `Migrate`, `Merge`, `Improve`, `Delete`, `Keep`, or `Extract to DataAsset`.
+
+**Extract to DataAsset criteria:** High ratio of editable variables to node count, minimal BeginPlay/Tick,
+variables primarily reference assets. Generate `UPrimaryDataAsset` subclass.
 
 If mode is `audit`, stop here and present findings.
 
@@ -108,6 +125,16 @@ When a sub-pattern cannot be fully translated, generate best approximation with 
 
 Aggregate TODOs in Phase 5 audit summary.
 
+**V3 code quality rules:**
+- Use `TObjectPtr<T>` for all UPROPERTY member pointers, `TArray<TObjectPtr<T>>` for containers
+- Forward-declare pointer types in `.h`, full include in `.cpp`
+- Organize headers: public interface → public properties → public functions → protected components → protected lifecycle → private state
+- Use analysis `uproperty_specifier` and `blueprint_access` directly in generated UPROPERTY macros
+- Use analysis `reference_type` to choose `TObjectPtr`/`TSoftObjectPtr`/`TWeakObjectPtr`/`TScriptInterface`
+- Use lifecycle placement heuristic from migration resource
+- Auto-generate `GetLifetimeReplicatedProps` when any variable has `replication.is_replicated == true`
+- Auto-generate `SetupPlayerInputComponent` when `input_bindings` is non-empty
+
 ## Phase 5: Present And Confirm
 
 Present:
@@ -126,6 +153,24 @@ If mode is `dry-run`, stop after presentation.
 - Migrate: create files in target module.
 - Merge/Improve: patch existing files.
 - Delete: recommend safe manual deletion workflow; do not auto-delete.
+
+## Phase 7: Blueprint Cleanup (Interactive)
+
+After files are written successfully:
+
+1. Ask user: `"Remove migrated elements from Blueprint, or clean up manually?"`
+   - Option 1: "Auto-cleanup" — call `cleanup_blueprint_migration`
+   - Option 2: "Manual cleanup" — provide step-by-step instructions
+   - Option 3: "Skip cleanup" — leave Blueprint as-is
+
+2. If auto-cleanup chosen, call `cleanup_blueprint_migration` with:
+   - `asset_path`: the source Blueprint
+   - `new_parent_class`: the generated C++ class path
+   - `remove_variables`: list of migrated variable names from the migration spec
+   - `remove_functions`: list of migrated function names from the migration spec
+   - `compile`: true
+
+3. Report cleanup results including any warnings (e.g., SCS conflicts).
 
 ## Error Handling
 

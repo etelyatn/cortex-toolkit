@@ -93,6 +93,21 @@ Decision framework and concrete translation patterns for migrating Blueprint log
 | FOnTimelineEvent | `Components/TimelineComponent.h` |
 | FOnTimelineFloat | `Components/TimelineComponent.h` |
 
+### Include & Forward Declaration Table
+
+| Type | `.h` Forward Declaration | `.cpp` Include |
+|------|--------------------------|----------------|
+| AActor | — (base class, include in .h) | `GameFramework/Actor.h` |
+| APawn | — (base class, include in .h) | `GameFramework/Pawn.h` |
+| ACharacter | — (base class, include in .h) | `GameFramework/Character.h` |
+| UStaticMeshComponent | `class UStaticMeshComponent;` | `Components/StaticMeshComponent.h` |
+| USkeletalMeshComponent | `class USkeletalMeshComponent;` | `Components/SkeletalMeshComponent.h` |
+| UCapsuleComponent | `class UCapsuleComponent;` | `Components/CapsuleComponent.h` |
+| UTimelineComponent | `class UTimelineComponent;` | `Components/TimelineComponent.h` |
+| UCurveFloat | `class UCurveFloat;` | `Curves/CurveFloat.h` |
+| UInputAction | `class UInputAction;` | `InputAction.h` |
+| UEnhancedInputComponent | `class UEnhancedInputComponent;` | `EnhancedInputComponent.h` |
+
 ### Module Dependency Table
 
 | Construct | Typical Build.cs Dependencies |
@@ -105,6 +120,42 @@ Decision framework and concrete translation patterns for migrating Blueprint log
 | AI latent actions | `AIModule`, `NavigationSystem` |
 | Interfaces | `CoreUObject`, `Engine` |
 | Enhanced Input | `EnhancedInput` |
+
+### Pointer Type Rules
+
+| Context | Pattern |
+|---------|---------|
+| Owning UPROPERTY member | `TObjectPtr<UStaticMeshComponent>` |
+| Owning UPROPERTY in container | `TArray<TObjectPtr<AActor>>` |
+| Non-owning/observing | `TWeakObjectPtr<AActor>` |
+| Deferred-load asset | `TSoftObjectPtr<UTexture2D>` |
+| Soft class reference | `TSoftClassPtr<AActor>` |
+| Interface variable | `TScriptInterface<IMyInterface>` |
+| Local / function parameter | Raw `T*` |
+
+### Header Organization Order
+
+Generated headers follow Epic's convention:
+
+1. **Public interface** — delegates, `BlueprintAssignable` events
+2. **Public editable properties** — `EditDefaultsOnly`, `EditAnywhere`
+3. **Public functions** — `BlueprintCallable` methods
+4. **Protected components** — `VisibleAnywhere` component pointers
+5. **Protected lifecycle** — `BeginPlay()`, `Tick()`, `OnConstruction()` overrides
+6. **Private state** — `Transient` vars, timer handles, internal counters
+
+### Lifecycle Placement Heuristic
+
+| Analysis Signal | Target Hook |
+|-----------------|-------------|
+| Component creation (SCS) | **Constructor** — `CreateDefaultSubobject<T>()` |
+| Default property values | **Constructor** — member initializers |
+| Construction Script (pure defaults) | **Constructor** |
+| Construction Script (property-dependent) | **`OnConstruction(const FTransform&)`** |
+| Component cross-wiring | **`PostInitializeComponents()`** |
+| Event setup, timers, world queries | **`BeginPlay()`** |
+| Timeline/Input wiring | **`BeginPlay()`** |
+| Per-frame work | **`Tick(float DeltaTime)`** |
 
 ### Function Classification Table
 
@@ -135,6 +186,7 @@ Decision framework and concrete translation patterns for migrating Blueprint log
 | Improve | Replace weaker C++ logic with BP logic |
 | Delete | Recommend deletion with evidence |
 | Keep | Explain why BP should remain BP |
+| Extract to DataAsset | Generate `UPrimaryDataAsset` subclass + optional thin Actor wrapper |
 
 ### BP Audit Patterns
 
@@ -194,6 +246,23 @@ Decision framework and concrete translation patterns for migrating Blueprint log
 - 3+ sequential latent steps: explicit state machine.
 - Always emit `TODO(VERIFY)` for latent approximations.
 
+### Replication Template
+
+When analysis shows replicated variables, auto-generate:
+
+```cpp
+// .h
+virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+// .cpp — MUST include:
+#include "Net/UnrealNetwork.h"
+
+// COND_None → DOREPLIFETIME (always replicate)
+DOREPLIFETIME(AMyClass, Score);
+// Any other condition → DOREPLIFETIME_CONDITION
+DOREPLIFETIME_CONDITION(AMyClass, Health, COND_OwnerOnly);
+```
+
 ### Blueprint Interfaces -> UInterface + Execute_*
 
 - Generate interface pair and implementation stubs where needed.
@@ -233,6 +302,17 @@ Example format:
 // TODO(VERIFY): Delay chain translated to timer callbacks; validate ordering and cancellation behavior.
 // TODO(OPTIMIZE): Dispatcher broadcast currently per-tick; consider throttling.
 ```
+
+## Blueprint Cleanup After Migration
+
+After C++ files are written and compiled, use `cleanup_blueprint_migration` to clean up the Blueprint:
+
+1. **Reparent** — change BP parent to the new C++ class
+2. **Remove migrated variables** — removes getter/setter nodes automatically
+3. **Remove migrated functions** — removes function graphs
+4. **Compile** — recompile the cleaned-up Blueprint
+
+The agent asks the user: "Remove migrated elements from Blueprint, or clean up manually?"
 
 ## Known Limitations
 

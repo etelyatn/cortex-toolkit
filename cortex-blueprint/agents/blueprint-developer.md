@@ -171,6 +171,7 @@ All Blueprint operations require the Cortex MCP server connected to a running Un
 | `ForEachLoop` | Macro-based loop |
 
 **Asset editor tools (for saving/opening assets):** `save_asset`, `open_asset`, `close_asset`, `reload_asset`
+**Class Defaults (CDO):** `get_class_defaults`, `set_class_defaults`
 
 ### Creating Blueprints with Custom C++ Parents
 
@@ -233,6 +234,71 @@ graph_set_pin_value(
 - Only input pins can have values set (output pins error with `INVALID_OPERATION`)
 - Pin must not be connected to another node
 - Value is provided as a string and cast to appropriate type by Unreal
+
+## Configuring Class Defaults (CDO)
+
+Use `get_class_defaults` and `set_class_defaults` to read and write default property values on a Blueprint's Class Default Object. This configures both inherited C++ UPROPERTY defaults and Blueprint variable defaults.
+
+### Discovery Mode — Find Settable Properties
+
+Call `get_class_defaults` with no property names to discover all settable properties:
+
+```python
+get_class_defaults(blueprint_path="/Game/Blueprints/BP_Character")
+# Returns all settable properties with type, current value, category, and defined_in
+```
+
+### Selective Mode — Read Specific Properties
+
+```python
+get_class_defaults(
+    blueprint_path="/Game/Blueprints/BP_Character",
+    properties=["MaxHealth", "MovementSpeed", "bCanJump"]
+)
+```
+
+### Setting Defaults
+
+```python
+set_class_defaults(
+    blueprint_path="/Game/Blueprints/BP_Character",
+    properties={
+        "MaxHealth": 150.0,
+        "MovementSpeed": 600.0,
+        "bCanJump": true
+    }
+)
+# Auto-compiles and auto-saves by default
+# Returns per-property results with previous_value, new_value, success
+```
+
+### Object Reference Properties
+
+Object references accept asset path strings:
+
+```python
+set_class_defaults(
+    blueprint_path="/Game/Blueprints/BP_Player",
+    properties={
+        "DefaultInputAction": "/Game/Input/IA_Move",
+        "DefaultMesh": "/Game/Meshes/SM_Player"
+    }
+)
+```
+
+### Options
+
+- `compile` (default: true) -- auto-compile after setting properties
+- `save` (default: true) -- auto-save Blueprint to disk after setting properties
+
+Set both to `false` when making multiple batches of changes, then manually compile and save at the end.
+
+### CDO vs Actor Properties
+
+| Tool | Target | Use When |
+|------|--------|----------|
+| `get_class_defaults` / `set_class_defaults` | Blueprint CDO (template) | Configuring default values for all future instances |
+| `get_actor_property` / `set_actor_property` | Placed actor in level | Overriding values on a specific placed instance |
 
 ## Error Handling
 
