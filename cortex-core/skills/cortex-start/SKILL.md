@@ -102,9 +102,9 @@ If this was a reference-card-only re-run (from Re-run Detection), stop here. Do 
 
 ### 3.1 Detect Available Content
 
-Check for existing project content by looking for `.uasset` files:
-- `Content/Data/*.uasset` — DataTables and data assets
-- `Content/Blueprints/*.uasset` — Blueprint assets
+Check for existing project content by looking for `.uasset` files (recursively):
+- `Content/Data/` — DataTables and data assets
+- `Content/Blueprints/` — Blueprint assets
 
 Note the counts for each.
 

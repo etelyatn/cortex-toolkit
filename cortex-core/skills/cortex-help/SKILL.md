@@ -14,6 +14,7 @@ Check the arguments passed to this skill:
 - `all` → **Catalog Mode**
 - `agents` → **Agent Catalog Mode**
 - Domain keyword → **Domain Mode** (see domain mapping below)
+- Unrecognized argument → Fall back to **Advisor Mode** and mention: "No domain called '{arg}'. Run /cortex-help all to see all commands."
 
 **Domain mapping (accept aliases):**
 
@@ -91,7 +92,7 @@ All commands: /cortex-help all | Domain help: /cortex-help <domain>
 **Rules:**
 - Never show more than 3 suggestions
 - Every suggestion must trace to a detected signal — never fabricate
-- Use plain language, no jargon ("data definitions" not "schema")
+- Use plain language in suggestions ("data definitions" not "schema"), though "Schema" is acceptable in the status line
 - Include specific numbers when available ("12 Blueprints" not "some Blueprints")
 
 ---
@@ -196,6 +197,7 @@ For the requested domain, gather:
 **setup (infra):**
 - Skills: `/cortex-init`, `/cortex-editor`, `/cortex-build`, `/cortex-status`, `/cortex-reconnect`, `/cortex-restart`, `/cortex-schema-refresh`
 - Agents: Project Setup, Project Analyzer
+- Note: No content path or schema. "Your Project" section should show infrastructure status instead: config exists/missing, editor connected/not, schema freshness.
 
 ### Output Format
 
