@@ -1,5 +1,5 @@
 ---
-name: material-developer
+name: material-designer
 description: Use when creating, modifying, or debugging materials, material instances, parameter collections, or material expression graphs
 model: inherit
 ---

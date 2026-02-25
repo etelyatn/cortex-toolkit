@@ -1,11 +1,11 @@
 {
   "name": "cortex-data",
-  "description": "Data domain plugin for UnrealCortex — DataTables, DataAssets, CurveTables, StringTables, GameplayTags. Provides review, creation, and balance analysis workflows.",
+  "description": "Data domain plugin for UnrealCortex — DataTables, DataAssets, CurveTables, StringTables, GameplayTags. Provides review and creation workflows.",
   "version": "0.1.1",
   "author": {
     "name": "etelyatn"
   },
   "repository": "https://github.com/etelyatn/cortex-toolkit",
   "license": "MIT",
-  "keywords": ["unreal-engine", "data", "datatables", "game-balance"]
+  "keywords": ["unreal-engine", "data", "datatables", "data-assets", "gameplay-tags"]
 }
