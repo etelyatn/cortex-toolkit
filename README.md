@@ -110,10 +110,20 @@ The `.cortex/` directory stores project-specific knowledge that agents read auto
 
 Fill these files with your game's specifics. Agents use this context to work without repeated questions.
 
+## Known Limitations
+
+These are documented limitations in the current beta:
+
+- **Widget animation keyframing** — Named animations can be created and listed, but property track binding and keyframe creation are not yet available via MCP tools
+- **Blueprint compile diagnostics** — `bp.compile` returns success/failure but error details are unstructured text; agents cannot pinpoint specific nodes or graphs causing errors
+- **Reflect coverage** — Class hierarchy and usage queries only see Blueprint classes currently loaded in memory; agents should recommend opening relevant Blueprints before scanning
+- **Concurrent input sequences** — `run_input_sequence` is designed for single-agent use; multiple agents injecting input simultaneously may produce incorrect results
+- **Batch rollback** — If a step in `batch_query` fails, previously completed steps are not rolled back
+
 ## Requirements
 
 - [UnrealCortex](https://github.com/etelyatn/UnrealCortex) plugin installed in your UE project
-- Unreal Engine 5.x
+- Unreal Engine 5.6+
 - Python 3.10+ with `uv` (for MCP server)
 
 ## License

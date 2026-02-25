@@ -33,7 +33,13 @@ Read `Plugins/UnrealCortex/UnrealCortex.uplugin` and extract module names.
 Map modules to domains:
 - `CortexData` → `data`
 - `CortexBlueprint` + `CortexGraph` → `blueprint`
+- `CortexMaterial` → `material`
 - `CortexUMG` → `umg`
+- `CortexLevel` → `level`
+- `CortexQA` → `qa`
+- `CortexReflect` → `reflect`
+- `CortexCore` → (foundation, no domain file needed)
+- `CortexEditor` → (shared infrastructure, no domain file needed)
 
 ### 4. Create .cortex/ Directory
 
@@ -67,9 +73,13 @@ references:
 ```
 
 Create `.cortex/domains/` with a template for each detected domain:
-- `data.md`: tables, balance rules, struct descriptions
-- `blueprints.md`: BP conventions, key blueprints, class hierarchy
-- `umg.md`: widget conventions, screen list, UI patterns
+- `data.md`: DataTable schemas, balance rules, struct descriptions, GameplayTag conventions
+- `blueprints.md`: Blueprint conventions, key Blueprints, class hierarchy, graph patterns
+- `material.md`: material conventions, instance hierarchies, parameter collection usage
+- `umg.md`: widget conventions, screen inventory, UI style guide
+- `level.md`: actor conventions, level structure, streaming setup, organization rules
+- `qa.md`: test scenarios, assertion patterns, gameplay test conventions
+- `reflect.md`: class hierarchy notes, cross-reference patterns, scan conventions
 
 ### 5. Configure MCP
 
