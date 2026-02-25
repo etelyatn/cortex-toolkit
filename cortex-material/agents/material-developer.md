@@ -264,7 +264,7 @@ Pin names are passed to C++ as strings — the C++ layer does name-to-index look
 
 ## CortexReflect Tools
 
-Use these for class analysis, dependency checks, and impact assessment:
+Use these for class analysis, asset dependency checks, and impact assessment — works on any asset type: Blueprints, Widget BPs, materials, DataTables, DataAssets, level assets, and C++ classes:
 
 | Tool | Use when |
 |------|----------|
