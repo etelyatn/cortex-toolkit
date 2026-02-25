@@ -53,11 +53,10 @@ claude plugin add etelyatn/cortex-toolkit/cortex-reflect
 ### After Installation
 
 ```
-/cortex-init       # Setup .cortex/ directory, detect engine, configure MCP
-/cortex-start      # Guided onboarding — verifies connection and walks you through your first task
+/cortex-start      # Guided onboarding — checks setup, verifies connection, walks you through your first task
 ```
 
-`/cortex-init` sets up `.cortex/` project memory, configures MCP, and detects your Unreal Engine installation. Then `/cortex-start` verifies everything is connected and offers a guided first task to get you productive immediately.
+`/cortex-start` handles everything: if your project isn't configured yet, it guides you through setup first. Then it verifies your editor connection and offers a guided first task to get you productive immediately.
 
 Run `/cortex-help` anytime to discover available commands or get contextual suggestions.
 
