@@ -120,3 +120,91 @@ Material update partially completed: /Game/Materials/M_PulsatingGradient
 ```
 
 This is why `stop_on_error: true` is critical for updates — continuing after a failed disconnect+connect could leave the graph in an even worse state.
+
+## Pattern: Set Material-Level Properties
+
+Use `set_material_property` to configure material-level settings like domain, blend mode, shading model, and two-sided rendering. This is separate from expression node properties.
+
+### Workflow
+
+```
+1. AI calls get_material                       ← read current settings
+2. AI calls set_material_property (×N)         ← change material-level properties
+```
+
+### Enum Alias Map
+
+The Python MCP layer normalizes pretty names to UE reflection names automatically:
+
+| Property | Pretty Name | UE Reflection Name |
+|----------|-------------|-------------------|
+| `BlendMode` | `"Opaque"` | `"BLEND_Opaque"` |
+| `BlendMode` | `"Masked"` | `"BLEND_Masked"` |
+| `BlendMode` | `"Translucent"` | `"BLEND_Translucent"` |
+| `BlendMode` | `"Additive"` | `"BLEND_Additive"` |
+| `BlendMode` | `"Modulate"` | `"BLEND_Modulate"` |
+| `MaterialDomain` | `"Surface"` | `"MD_Surface"` |
+| `MaterialDomain` | `"DeferredDecal"` | `"MD_DeferredDecal"` |
+| `MaterialDomain` | `"LightFunction"` | `"MD_LightFunction"` |
+| `MaterialDomain` | `"PostProcess"` | `"MD_PostProcess"` |
+| `MaterialDomain` | `"UI"` | `"MD_UI"` |
+| `ShadingModel` | `"Unlit"` | `"MSM_Unlit"` |
+| `ShadingModel` | `"DefaultLit"` | `"MSM_DefaultLit"` |
+| `ShadingModel` | `"Subsurface"` | `"MSM_Subsurface"` |
+| `ShadingModel` | `"ClearCoat"` | `"MSM_ClearCoat"` |
+
+Both formats are accepted. Use pretty names for readability.
+
+### Example: Convert Material to Post-Process
+
+```python
+# 1. Check current material state
+get_material("/Game/Materials/M_Outline")
+
+# 2. Change domain to PostProcess and shading to Unlit
+set_material_property("/Game/Materials/M_Outline", "MaterialDomain", "PostProcess")
+set_material_property("/Game/Materials/M_Outline", "ShadingModel", "Unlit")
+set_material_property("/Game/Materials/M_Outline", "BlendMode", "Translucent")
+```
+
+### Example: Make Material Two-Sided for Foliage
+
+```python
+set_material_property("/Game/Materials/M_Leaves", "TwoSided", true)
+set_material_property("/Game/Materials/M_Leaves", "BlendMode", "Masked")
+```
+
+### Combining with Graph Updates
+
+Material property changes can be included in the same batch as graph modifications. Place `set_material_property` commands after `add_node` but before `connect`:
+
+```json
+{"command": "batch", "params": {"stop_on_error": true, "commands": [
+  {"command": "material.set_material_property", "params": {"asset_path": "/Game/Materials/M_Glass", "property_name": "BlendMode", "value": "BLEND_Translucent"}},
+  {"command": "material.set_material_property", "params": {"asset_path": "/Game/Materials/M_Glass", "property_name": "TwoSided", "value": true}},
+  {"command": "material.add_node", "params": {"asset_path": "/Game/Materials/M_Glass", "expression_class": "MaterialExpressionScalarParameter"}},
+  {"command": "material.set_node_property", "params": {"asset_path": "/Game/Materials/M_Glass", "node_id": "$steps[2].data.node_id", "property_name": "ParameterName", "value": "Opacity"}},
+  {"command": "material.set_node_property", "params": {"asset_path": "/Game/Materials/M_Glass", "node_id": "$steps[2].data.node_id", "property_name": "DefaultValue", "value": 0.5}},
+  {"command": "material.connect", "params": {"asset_path": "/Game/Materials/M_Glass", "source_node": "$steps[2].data.node_id", "source_output": "0", "target_node": "MaterialResult", "target_input": "Opacity"}},
+  {"command": "material.auto_layout", "params": {"asset_path": "/Game/Materials/M_Glass"}}
+]}}
+```
+
+## Pattern: Set Expression Node Enum Properties
+
+The `set_material_node_property` tool (refactored) now supports FByteProperty and FEnumProperty via FCortexSerializer::JsonToProperty. This enables setting enum values like SceneTextureId and SamplerType on expression nodes.
+
+### Example: Configure SceneTexture Node for Post-Process
+
+```python
+# Add a SceneTexture node and configure it for post-process input
+add_material_node("/Game/Materials/M_PP", "MaterialExpressionSceneTexture")
+# Set SceneTextureId to PostProcessInput0
+set_material_node_property("/Game/Materials/M_PP", "Expr_0", "SceneTextureId", "PPI_PostProcessInput0")
+```
+
+### Example: Configure Texture Sampler Type
+
+```python
+set_material_node_property("/Game/Materials/M_Mat", "Expr_1", "SamplerType", "SAMPLERTYPE_Color")
+```

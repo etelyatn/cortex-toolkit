@@ -30,8 +30,23 @@ _find_project_dir() {
 }
 
 PROJECT_DIR=$(_find_project_dir) || PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
-PORT_FILE="$PROJECT_DIR/Saved/CortexPort.txt"
 RESTART_LOCK="$PROJECT_DIR/Saved/CortexRestarting.lock"
+
+# Find the best available port file.
+# Priority: CORTEX_EDITOR_PID pin → any per-PID file (most recent) → legacy CortexPort.txt
+_find_port_file() {
+    local saved="$PROJECT_DIR/Saved"
+    if [ -n "${CORTEX_EDITOR_PID:-}" ] && [ -f "$saved/CortexPort-${CORTEX_EDITOR_PID}.txt" ]; then
+        echo "$saved/CortexPort-${CORTEX_EDITOR_PID}.txt"; return 0
+    fi
+    local pid_file
+    pid_file=$(ls -t "$saved"/CortexPort-*.txt 2>/dev/null | head -1)
+    if [ -n "$pid_file" ]; then
+        echo "$pid_file"; return 0
+    fi
+    [ -f "$saved/CortexPort.txt" ] && echo "$saved/CortexPort.txt" && return 0
+    return 1
+}
 
 # ── Restart lock guard ────────────────────────────────────────────────────
 # If another process is restarting the editor, wait instead of launching a duplicate.
@@ -66,9 +81,10 @@ fi
 
 # Validate port file and check TCP using bash built-in /dev/tcp (no external tools needed)
 is_editor_ready() {
-    [ -f "$PORT_FILE" ] || return 1
+    local port_file
+    port_file=$(_find_port_file) || return 1
     local raw port
-    raw=$(tr -d '[:space:]' < "$PORT_FILE")
+    raw=$(tr -d '[:space:]' < "$port_file")
     # Support both plain-number and JSON {"port":N,...} formats
     if [[ "$raw" =~ ^[0-9]+$ ]]; then
         port="$raw"
@@ -150,8 +166,8 @@ if [ -z "$UPROJECT" ]; then
     echo "No .uproject file found in $PROJECT_DIR" >&2; exit 2
 fi
 
-# Remove stale port file (from a previous crash, Stop() never ran)
-rm -f "$PORT_FILE"
+# Remove stale port files (from a previous crash, Stop() never ran)
+rm -f "$PROJECT_DIR/Saved/CortexPort.txt" "$PROJECT_DIR/Saved/CortexPort-"*.txt 2>/dev/null || true
 
 # ── Launch editor ──────────────────────────────────────────────────────────
 "$ENGINE_PATH/Engine/Binaries/Win64/UnrealEditor.exe" \
@@ -167,7 +183,7 @@ disown $EDITOR_PID
 #
 # We track the PID we launched — not process names from tasklist, which
 # could match another editor instance from a different project.
-# The port file ($PROJECT_DIR/Saved/CortexPort.txt) is project-specific,
+# The port file (CortexPort-{PID}.txt or CortexPort.txt) is project-specific,
 # so port file + TCP response = proof that OUR editor is ready.
 
 ELAPSED=0
