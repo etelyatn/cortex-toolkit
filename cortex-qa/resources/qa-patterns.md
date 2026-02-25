@@ -45,6 +45,18 @@ run_input_sequence: [
 
 **Known limitation:** Direct input tools (`press_key`, `run_input_sequence`) only confirm Slate dispatch, not game receipt. Always verify effects with `observe_game_state` or `wait_for_condition` after injecting input.
 
+## Benchmark Tests
+
+QA and Editor tool coverage in `Plugins/UnrealCortex/MCP/tests/`:
+
+| Test File | Coverage |
+|-----------|----------|
+| `test_editor_e2e.py` | PIE lifecycle, viewport, screenshots, logs, console commands, time dilation |
+| `test_editor_lifecycle.py` | Editor startup/shutdown integration |
+| `test_qa_tools.py` | QA composites (move_player_to, interact_with, observe_game_state, wait_for_condition, assert_game_state) |
+
+Run to validate after modifying Editor/QA MCP tools or C++ command handlers.
+
 ## Reporting
 
 Each finding should include:

@@ -268,6 +268,22 @@ If a label matches multiple actors, tools return `AmbiguousActor` with a `matche
 | `LabelAlreadyExists` / `InvalidOperation` | Call `find_actors`/`get_info` to assess state, then construct minimal corrective batch |
 | Spawn succeeded, subsequent step failed | Use `spawned_actors` from response to target fix batch - do not re-spawn |
 
+## MCP Benchmark Tests
+
+Level domain has extensive benchmark coverage in `Plugins/UnrealCortex/MCP/tests/`:
+- **TCP E2E** (`test_level_e2e.py`): Actor lifecycle (spawn, delete, duplicate, rename), transforms, components (add, remove, properties), queries (list, find, bounds, selection), streaming (sublevels, data layers)
+- **Batch API** (`test_level_batch.py`): `level_batch` operations (spawn, modify, delete, duplicate, attach/detach), `$ops[]` references, stop-on-error, property setting
+- **Level tools** (`test_level_tools.py`): MCP tool wrappers for level operations
+- **Scenarios** (`test_mcp_scenarios.py`): Level Operations benchmark check (spawn, set_transform, attach, find_actors)
+
+Run Level-specific benchmarks:
+```bash
+cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_level_e2e.py tests/test_level_batch.py -v
+cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_level_tools.py -v
+```
+
+Reference these tests when extending Level MCP tools or debugging integration issues.
+
 ## Best Practices
 
 - Use descriptive actor labels for easy identification

@@ -348,6 +348,18 @@ Note: Boolean fields are `is_loaded` and `is_visible` (with `is_` prefix).
 
 Note: Includes `sublevels` count and `world_settings` object with game mode and kill Z.
 
+## Benchmark Tests
+
+Level domain workflows are validated by the benchmark testing framework in `Plugins/UnrealCortex/MCP/tests/`:
+
+| Test File | Coverage |
+|-----------|----------|
+| `test_level_e2e.py` | Actor lifecycle, transforms, components, queries (list, find, bounds, selection), streaming (sublevels, data layers) |
+| `test_level_batch.py` | `level_batch` with spawn/modify/delete/duplicate/attach/detach, `$ops[]` refs, stop-on-error |
+| `test_level_tools.py` | MCP tool wrappers for level operations |
+
+Run to validate after modifying Level MCP tools or C++ command handlers.
+
 ## Common Pitfalls
 
 - **Actor labels are not unique** -- if multiple actors share a label, use the full path from the `AmbiguousActor` error's `matches` array

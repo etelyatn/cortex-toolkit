@@ -16,7 +16,8 @@ Analyze DataTables, CurveTables, and DataAssets for balance issues — stat curv
 
 1. Read `.cortex/context.md` for game overview
 2. Read `.cortex/domains/data.md` for table schemas, balance rules, and acceptable ranges
-3. Use `get_data_catalog` for a full project data overview
+3. Check `.cortex/schema/_catalog.md` for project data overview (fast, no editor needed)
+4. Use `get_data_catalog` for live data if schema files are missing or stale
 
 ## Methodology
 
@@ -33,6 +34,14 @@ Analyze DataTables, CurveTables, and DataAssets for balance issues — stat curv
 - **Economy check:** sum all income sources vs all sinks per level bracket
 - **Stat scaling:** compare player stats to enemy stats at each level tier
 - **Drop rates:** verify probability distributions sum correctly
+
+## MCP Benchmark Tests
+
+Data domain tools used by the game balancer are validated in `Plugins/UnrealCortex/MCP/tests/`:
+- **TCP E2E** (`test_e2e.py`): DataTable queries, CurveTable reads, batch_query operations
+- **Scenarios** (`test_mcp_scenarios.py`): Data Pipeline scenario (query + add + search + batch + delete)
+
+Run `cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_e2e.py -v -k "data or curve or batch"` to validate data query tools.
 
 ## Output Format
 

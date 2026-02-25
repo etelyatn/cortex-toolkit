@@ -93,3 +93,15 @@ get_tree → identify target widgets → set_property / add_widget / remove_widg
 ```
 duplicate_widget → set_text / set_color (customize copy)
 ```
+
+## Benchmark Tests
+
+UMG domain workflows are validated by the benchmark testing framework in `Plugins/UnrealCortex/MCP/tests/`:
+
+| Test File | Coverage |
+|-----------|----------|
+| `test_e2e.py` | Widget class listing, tree CRUD, property setters, schema queries |
+| `test_umg_composites.py` | `create_widget_screen` composite end-to-end |
+| `test_mcp_scenarios.py` | Widget Builder scenario (create + hierarchy + styling + verify) |
+
+Run to validate after modifying UMG MCP tools or C++ command handlers.

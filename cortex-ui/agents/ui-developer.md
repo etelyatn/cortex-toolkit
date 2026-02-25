@@ -84,3 +84,20 @@ When creating a NEW Widget Blueprint from scratch, these tools are PROHIBITED (u
 - `create_animation`
 
 These tools ARE allowed when modifying an existing Widget Blueprint.
+
+## MCP Benchmark Tests
+
+UMG domain has benchmark coverage in `Plugins/UnrealCortex/MCP/tests/`:
+- **TCP E2E** (`test_e2e.py`): Widget class listing, widget tree CRUD, property setters (text, color, visibility, anchor), schema queries
+- **Composites** (`test_umg_composites.py`): `create_widget_screen` composite workflows
+- **Scenarios** (`test_mcp_scenarios.py`): Widget Builder scenario (create widget BP, add panel hierarchy, set text/color/anchor, get tree, duplicate)
+- **Stress** (`test_mcp_scenarios.py -k stress`): Large widget tree (50+ widgets), hierarchy verification
+
+Run UMG-specific benchmarks:
+```bash
+cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_e2e.py -v -k umg
+cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_umg_composites.py -v
+cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_mcp_scenarios.py -v -k widget
+```
+
+Reference these tests when extending UMG MCP tools or debugging integration issues.

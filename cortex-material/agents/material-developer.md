@@ -251,6 +251,22 @@ Pin names are passed to C++ as strings — the C++ layer does name-to-index look
 - Do NOT ask after non-structural edits (`set_node_property`)
 - After completing all structural edits for the current user request, ask once. Do not ask again for the same request
 
+## MCP Benchmark Tests
+
+Material domain has benchmark coverage in `Plugins/UnrealCortex/MCP/tests/`:
+- **TCP E2E** (`test_material_composites_e2e.py`): Material property setters (`set_material_property`), enum alias support, `set_material_node_property` for byte/enum properties
+- **Composites** (`test_material_composites.py`): `create_material_graph` composite workflows, node/connection validation, failure recovery, auto-cleanup
+- **Scenarios** (`test_mcp_scenarios.py`): Material Create benchmark check (create graph, create instance, set parameter)
+- **Enum aliases** (`test_material_enum_aliases.py`): Pretty name to UE reflection name mapping
+
+Run Material-specific benchmarks:
+```bash
+cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_material_composites.py tests/test_material_composites_e2e.py -v
+cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_material_enum_aliases.py -v
+```
+
+Reference these tests when extending Material MCP tools or debugging integration issues.
+
 ### Manual Batch Construction (Existing Materials)
 
 For multi-step modifications to existing materials (add node + set property + connect), you can construct batches manually with `$ref` wiring. See `cortex-toolkit/cortex-core/resources/batch-pipeline-guide.md` for `$ref` syntax, error handling, and examples.

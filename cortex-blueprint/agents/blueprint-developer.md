@@ -317,6 +317,23 @@ Set both to `false` when making multiple batches of changes, then manually compi
    - Asset exists and path is correct
    - Operation is valid for the current Blueprint state
 
+## MCP Benchmark Tests
+
+Blueprint domain has benchmark coverage in `Plugins/UnrealCortex/MCP/tests/`:
+- **TCP E2E** (`test_e2e.py`): Blueprint CRUD, variable/function addition, compilation, graph node operations
+- **Scenarios** (`test_mcp_scenarios.py`): Blueprint Lifecycle scenario (create, add variable/function, wire graph, compile, verify, delete)
+- **Composites** (`test_blueprint_composites.py`): `create_blueprint_graph` composite tool workflows
+- **Class Defaults** (`test_class_defaults.py`): CDO get/set class defaults E2E
+
+Run Blueprint-specific benchmarks:
+```bash
+cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_e2e.py -v -k blueprint
+cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_mcp_scenarios.py -v -k blueprint_lifecycle
+cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_blueprint_composites.py -v
+```
+
+Reference these tests when extending Blueprint MCP tools or debugging integration issues.
+
 ## Best Practices
 
 - Keep graphs under 50 nodes — split into functions for clarity

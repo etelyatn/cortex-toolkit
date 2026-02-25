@@ -241,3 +241,16 @@ get_blueprint_info → graph_list_graphs → graph_list_nodes (per graph) → as
 ```
 get_blueprint_info → add/remove variables/functions → compile_blueprint → save_blueprint
 ```
+
+## Benchmark Tests
+
+Blueprint MCP workflows are validated by the benchmark testing framework in `Plugins/UnrealCortex/MCP/tests/`:
+
+| Test File | Coverage |
+|-----------|----------|
+| `test_e2e.py` | Blueprint CRUD lifecycle, variable/function ops, compilation, error cases |
+| `test_mcp_scenarios.py` | Blueprint Lifecycle scenario (create + structure + graph wiring + compile) |
+| `test_blueprint_composites.py` | `create_blueprint_graph` composite tool end-to-end |
+| `test_class_defaults.py` | CDO get/set with auto-compile and auto-save |
+
+Run to validate after modifying Blueprint MCP tools or C++ command handlers.

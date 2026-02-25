@@ -113,3 +113,13 @@ rebuild_graph_cache()
 scan_project(root="UObject")  # Everything
 scan_project(root="AActor")   # Actors only (faster, default)
 ```
+
+## Benchmark Tests
+
+Reflect domain workflows are validated by the benchmark testing framework in `Plugins/UnrealCortex/MCP/tests/`:
+
+| Test File | Coverage |
+|-----------|----------|
+| `test_reflect_tools.py` | All reflect tools: cache_status, scan_project, query_class_hierarchy, query_class_detail, query_class_context, query_overrides, query_usages, rebuild_graph_cache |
+
+Run to validate after modifying Reflect MCP tools or C++ command handlers.
