@@ -232,6 +232,52 @@ get_class_defaults(
 )
 ```
 
+### Configure Timeline
+```
+create_blueprint_graph (with Timeline node) → configure_timeline (tracks + keyframes) → compile_blueprint
+```
+
+**Example: Float track for door open animation**
+```python
+configure_timeline(
+    asset_path="/Game/Blueprints/BP_Door",
+    timeline_name="OpenTimeline",
+    length=1.5,
+    loop=False,
+    tracks=[
+        {
+            "type": "float",
+            "name": "OpenAmount",
+            "keys": [
+                {"time": 0.0, "value": 0.0},
+                {"time": 0.75, "value": 0.8},
+                {"time": 1.5, "value": 1.0}
+            ]
+        }
+    ]
+)
+```
+
+### Configure Component Defaults
+```
+create_blueprint (with parent that has components) → set_component_defaults → compile_blueprint
+```
+
+**Example: Set mesh and material on a StaticMeshActor Blueprint**
+```python
+set_component_defaults(
+    asset_path="/Game/Blueprints/BP_Barrel",
+    component_name="StaticMeshComponent0",
+    properties={
+        "StaticMesh": "/Game/Meshes/SM_Barrel",
+        "OverrideMaterials[0]": "/Game/Materials/MI_Barrel_Rusty"
+    }
+)
+# Returns: {"component_name": "StaticMeshComponent0", "properties_set": 2, "errors": []}
+```
+
+**Array property syntax:** `PropertyName[N]` for indexed array slots (e.g., `OverrideMaterials[0]`).
+
 ### Review Blueprint
 ```
 get_blueprint_info → graph_list_graphs → graph_list_nodes (per graph) → assess complexity

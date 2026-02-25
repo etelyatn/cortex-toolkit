@@ -151,7 +151,7 @@ All Blueprint operations require the Cortex MCP server connected to a running Un
 
 **Asset management:** `create_blueprint`, `list_blueprints`, `get_blueprint_info`, `delete_blueprint`, `duplicate_blueprint`, `compile_blueprint`, `save_blueprint`
 
-**Structure:** `add_blueprint_variable`, `remove_blueprint_variable`, `add_blueprint_function`
+**Structure:** `add_blueprint_variable`, `remove_blueprint_variable`, `add_blueprint_function`, `configure_timeline`, `set_component_defaults`
 
 **Class Defaults (CDO):** `get_class_defaults`, `set_class_defaults`
 
@@ -300,6 +300,54 @@ Set both to `false` when making multiple batches of changes, then manually compi
 |------|--------|----------|
 | `get_class_defaults` / `set_class_defaults` | Blueprint CDO (template) | Configuring default values for all future instances |
 | `get_actor_property` / `set_actor_property` | Placed actor in level | Overriding values on a specific placed instance |
+
+## Configuring Timelines
+
+Use `configure_timeline` to set up Timeline tracks and keyframes programmatically after a Timeline node has been added to a Blueprint graph.
+
+```python
+configure_timeline(
+    asset_path="/Game/Blueprints/BP_Door",
+    timeline_name="OpenTimeline",
+    length=1.5,
+    loop=False,
+    tracks=[
+        {
+            "type": "float",
+            "name": "OpenAmount",
+            "keys": [
+                {"time": 0.0, "value": 0.0},
+                {"time": 1.5, "value": 1.0}
+            ]
+        }
+    ]
+)
+```
+
+**Track types:** `float`, `vector`
+
+**Returns:** `timeline_name`, `track_count`, `length`, `loop`
+
+## Configuring Component Defaults
+
+Use `set_component_defaults` to set object-reference defaults on a Blueprint's component templates (the SCS — Simple Construction Script). This configures values like `StaticMesh`, `OverrideMaterials`, or other asset references on components in the Blueprint's Components panel.
+
+```python
+set_component_defaults(
+    asset_path="/Game/Blueprints/BP_Prop",
+    component_name="StaticMeshComponent0",
+    properties={
+        "StaticMesh": "/Game/Meshes/SM_Rock",
+        "OverrideMaterials[0]": "/Game/Materials/MI_Rock_Wet"
+    }
+)
+```
+
+**Array element syntax:** Use `PropertyName[N]` for indexed array elements (e.g., `OverrideMaterials[0]`).
+
+**Returns:** `component_name`, `properties_set` (count), `errors` (per-property failures if any)
+
+**Note:** This sets defaults on the Blueprint class template, affecting all future instances. To override properties on a specific placed actor, use `set_actor_property` instead.
 
 ## Error Handling
 

@@ -27,9 +27,31 @@ Design data schemas, create and populate DataTables/DataAssets/CurveTables, and 
    - Define struct fields with appropriate types
    - Plan references between tables (FName keys, soft references)
    - Include GameplayTags for categorization where appropriate
-3. **Create assets** — guide creation in editor or via MCP tools
+3. **Create assets** — use `create_datatable` to create new DataTables via MCP, or guide creation in editor
 4. **Populate data** — use `add_datatable_row`, `import_datatable_json`, `set_translation`
 5. **Validate** — verify data integrity, reference resolution, tag validity
+
+## Creating DataTables via MCP
+
+Use `create_datatable` to create a new DataTable asset programmatically:
+
+```python
+create_datatable(
+    table_path="/Game/Data/DT_Weapons",
+    row_struct="WeaponDefinition"  # Short name of FTableRowBase-derived struct
+)
+# Returns: {"table_path": "/Game/Data/DT_Weapons.DT_Weapons", "row_struct": "WeaponDefinition", "created": true}
+```
+
+**Requirements:**
+- The struct must be compiled into the project or a plugin (C++ or Blueprint struct)
+- The struct must derive from `FTableRowBase`
+- Both package path (`/Game/Data/DT_Weapons`) and full object path formats are accepted
+
+**Typical DataTable creation workflow:**
+```
+create_datatable → add_datatable_row (×N) OR import_datatable_json → query_datatable (verify)
+```
 
 ## Data Type Decision Framework
 

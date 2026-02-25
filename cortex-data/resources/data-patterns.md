@@ -12,6 +12,27 @@ schema_status → (if stale) generate_project_schema → read _catalog.md → re
 
 ## DataTable Workflows
 
+### Create New DataTable
+```
+create_datatable (table_path, row_struct) → add_datatable_row (×N) OR import_datatable_json → query_datatable (verify)
+```
+
+**Example:**
+```python
+create_datatable(
+    table_path="/Game/Data/DT_Enemies",
+    row_struct="EnemyDefinition"  # Must be compiled FTableRowBase subclass
+)
+# Then populate:
+import_datatable_json(
+    table_path="/Game/Data/DT_Enemies",
+    json_data=[
+        {"name": "Goblin", "health": 50, "damage": 10},
+        {"name": "Orc", "health": 150, "damage": 25}
+    ]
+)
+```
+
 ### Query and Filter
 ```
 list_datatables → get_datatable_schema → query_datatable (with filters)
