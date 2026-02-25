@@ -8,7 +8,7 @@ Install only what you need:
 
 | Plugin | Domain | Skills | Agents |
 |--------|--------|--------|--------|
-| **cortex-core** | Foundation | cortex-init, cortex-build, cortex-test, cortex-status, cortex-editor | Game Architect, Game Designer, Blueprint Debugger, Test Debugger, Project Setup |
+| **cortex-core** | Foundation | cortex-init, cortex-start, cortex-help, cortex-build, cortex-test, cortex-status, cortex-editor, cortex-reconnect, cortex-restart, cortex-schema-refresh | Game Architect, Game Designer, Blueprint Debugger, Test Debugger, Project Setup |
 | **cortex-data** | DataTables, DataAssets, CurveTables, GameplayTags | cortex-data-review, cortex-data-create | Game Balancer, Data Architect |
 | **cortex-blueprint** | Blueprints, Graphs | cortex-bp-review, cortex-bp-create | Blueprint Developer, C++ Migration Specialist |
 | **cortex-ui** | UMG Widgets | cortex-ui-review, cortex-ui-create | UI Developer |
@@ -53,10 +53,13 @@ claude plugin add etelyatn/cortex-toolkit/cortex-reflect
 ### After Installation
 
 ```
-/cortex-init
+/cortex-init       # Setup .cortex/ directory, detect engine, configure MCP
+/cortex-start      # Guided onboarding — verifies connection and walks you through your first task
 ```
 
-This sets up `.cortex/` project memory, configures MCP, and detects your Unreal Engine installation.
+`/cortex-init` sets up `.cortex/` project memory, configures MCP, and detects your Unreal Engine installation. Then `/cortex-start` verifies everything is connected and offers a guided first task to get you productive immediately.
+
+Run `/cortex-help` anytime to discover available commands or get contextual suggestions.
 
 ## How It Works
 
