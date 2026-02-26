@@ -57,6 +57,8 @@ For project C++ parent:
 
 ## Gate 1: Scope Selection
 
+Note: If a `--level` value (minimal/medium/maximal) was pre-selected by the skill invocation, skip this gate — use the provided level directly and proceed to Phase 2 with that scope.
+
 **STOP. Present options and wait for user response before proceeding.**
 
 ### Engine Base Class Path: 3-Level Selection
