@@ -36,7 +36,7 @@ Capture all returned fields — variables (with usage_count, type, replication, 
 2. If total referencers > 0: call `impact_analysis` with the target class name and `change_type: "reparented_class"`
 3. Call `query_class_hierarchy` with the Blueprint class name and `depth: 1` to find direct children
 
-If children exist AND they override any functions in the Blueprint: call `query_usages` per overridden function to determine API contract requirements (functions overridden by children MUST be generated as `BlueprintNativeEvent`).
+If children exist AND they override functions that will be migrated: call `query_usages` per overridden function to determine API contract requirements (functions overridden by children MUST be generated as `BlueprintNativeEvent`).
 
 Synthesize a dependency summary:
 - Direct children count and which functions they override
@@ -209,11 +209,7 @@ If "Cancel": stop. Present what was learned (analysis summary) and exit.
 
 ### Execution
 
-Before writing any files, create a git checkpoint:
-
-```bash
-git stash push -m "pre-migration-{BlueprintName}" -- <files-that-will-change>
-```
+Before writing any files, note which files will be created or modified so rollback commands can be constructed later.
 
 Then execute the migration:
 
@@ -271,7 +267,7 @@ Use `AskUserQuestion` with:
 
 **Rollback execution:**
 
-<!-- Rollback restores from the local HEAD (the state before migration files were written, since files are written but not committed during the migration workflow). -->
+Rollback restores from the local HEAD (files are written but not committed during the migration workflow).
 
 Rollback everything:
 ```bash
