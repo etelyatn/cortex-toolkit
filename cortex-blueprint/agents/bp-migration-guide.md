@@ -36,7 +36,7 @@ Capture all returned fields — variables (with usage_count, type, replication, 
 2. If total referencers > 0: call `impact_analysis` with the target class name and `change_type: "reparented_class"`
 3. Call `query_class_hierarchy` with the Blueprint class name and `depth: 1` to find direct children
 
-If children exist AND override functions that will be migrated: call `query_usages` per overridden function to determine API contract requirements (functions overridden by children MUST be generated as `BlueprintNativeEvent`).
+If children exist AND they override any functions in the Blueprint: call `query_usages` per overridden function to determine API contract requirements (functions overridden by children MUST be generated as `BlueprintNativeEvent`).
 
 Synthesize a dependency summary:
 - Direct children count and which functions they override
@@ -57,9 +57,9 @@ For project C++ parent:
 
 ## Gate 1: Scope Selection
 
-**If a pre-selected level was passed by the skill** (e.g., `--level medium`): skip the level selection question and proceed directly to Phase 2 using that level. Apply the corresponding classification heuristics automatically.
+**If a pre-selected level was passed** (e.g., `--level medium`): skip this gate entirely. Apply the corresponding classification heuristics automatically and proceed to Phase 2.
 
-**STOP. Present options and wait for user response before proceeding.**
+**Otherwise, STOP. Present options and wait for user response before proceeding.**
 
 ### Engine Base Class Path: 3-Level Selection
 
@@ -270,6 +270,8 @@ Use `AskUserQuestion` with:
 - **options:** `["Keep as-is — migration complete", "Rollback Blueprint only — keep C++ files", "Rollback everything — restore original state"]`
 
 **Rollback execution:**
+
+<!-- Rollback restores from the local HEAD (the state before migration files were written, since files are written but not committed during the migration workflow). -->
 
 Rollback everything:
 ```bash
