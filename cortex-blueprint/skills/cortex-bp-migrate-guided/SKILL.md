@@ -25,7 +25,24 @@ Pass:
 
 ### 3. Agent Workflow (interactive — pauses at each gate)
 
-The agent runs interactively through three phases (Analysis → Preview & Execute → Result & Recovery), pausing at each gate for user input. It will not proceed without explicit confirmation at each decision point.
+**Phase 1: Analysis**
+1. Analyze Blueprint structure via `analyze_blueprint_for_migration`
+2. Scan downstream dependencies via CortexReflect tools
+3. If parent is project C++ class: read existing C++ implementation
+
+**Gate 1: Scope Selection**
+- If engine base class parent: present Minimal / Medium / Maximal levels
+- If project C++ parent: present per-element merge plan
+- User selects scope or picks custom elements
+
+**Phase 2: Preview & Execute**
+4. Present structured preview with downstream impact
+5. User picks execution mode: Auto / Step-by-step / Cancel
+6. Generate C++ code, build, run Blueprint cleanup
+
+**Phase 3: Result & Recovery**
+7. Present completion status and manual steps
+8. User picks: Keep as-is / Rollback Blueprint only / Rollback everything
 
 ### 4. Review Results
 
