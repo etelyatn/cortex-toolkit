@@ -56,14 +56,14 @@ Gather complete information about the target Blueprint:
 - For `SwitchOnInt` / `SwitchOnString` / `SwitchOnEnum` → generate `switch` or `if/else if` chains
 - If execution flow is too complex to represent linearly, flag it for user review
 
-**Unsupported construct detection:**
-Scan all nodes for these types and warn the user immediately if found:
-- **Timelines** — no direct C++ equivalent in PoC (requires UTimelineComponent)
-- **Latent Actions** (Delay, MoveTo, AI nodes) — require async patterns
-- **Blueprint Interfaces** — require multiple inheritance
-- **Event Dispatchers** — require DECLARE_DYNAMIC_MULTICAST_DELEGATE
+**Complex construct detection:**
+Scan all nodes for these types and flag them — they require specific C++ patterns:
+- **Timelines** — translate to `UTimelineComponent*` + `UCurveFloat*` UPROPERTY references
+- **Latent Actions** (Delay, MoveTo, AI nodes) — translate to `FTimerHandle` callbacks (1-2 latent) or state machine (3+)
+- **Blueprint Interfaces** — translate to `UInterface` + `IInterface` pair with `Execute_*` calls
+- **Event Dispatchers** — translate to `DECLARE_DYNAMIC_MULTICAST_DELEGATE` + `UPROPERTY(BlueprintAssignable)`
 
-Report: "This Blueprint contains [N] unsupported constructs: [list]. These will be skipped during migration. The generated C++ will have TODO comments where these constructs were."
+Report: "This Blueprint contains [N] complex constructs: [list]. These will be translated using the patterns in cpp-migration.md."
 
 **Output of Phase 1:** A complete map of what the Blueprint does — every variable, function, event, connection, and any unsupported constructs.
 

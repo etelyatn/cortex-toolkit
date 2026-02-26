@@ -233,9 +233,9 @@ void UMyWidget::HandleConfirmClicked()
 | **Get Player Controller** | `UGameplayStatics::GetPlayerController(this, 0)` | |
 | **Create Widget** | `CreateWidget<UMyWidget>(GetOwningPlayer());` | |
 | **Add to Viewport** | `Widget->AddToViewport();` | |
-| **Delay** | **Unsupported in PoC** | Requires `FTimerHandle` + `SetTimer` |
-| **Timeline** | **Unsupported in PoC** | Requires `UTimelineComponent` + `UCurveFloat` |
-| **Event Dispatcher** | **Unsupported in PoC** | Requires `DECLARE_DYNAMIC_MULTICAST_DELEGATE` |
+| **Delay** | `FTimerHandle` + `GetWorldTimerManager().SetTimer(...)` | Callback-based; chain multiple for sequential delays |
+| **Timeline** | `UTimelineComponent*` + `UCurveFloat*`/`UCurveVector*`/`UCurveLinearColor*` | Declare component as UPROPERTY, bind delegates in BeginPlay |
+| **Event Dispatcher** | `DECLARE_DYNAMIC_MULTICAST_DELEGATE(...)` + `UPROPERTY(BlueprintAssignable)` | 0-9 param variants available |
 
 ## Common Include Paths
 
@@ -273,16 +273,13 @@ When analyzing a Blueprint against existing C++ code, check for:
 - **Variable shadowing:** BP variable with same name as a parent C++ variable
 - **Orphaned BP:** No other assets reference this Blueprint (check with `search_assets`)
 
-## Known Limitations (PoC)
+## Known Limitations
 
-| Limitation | Impact | Future Work |
-|-----------|--------|-------------|
-| Timelines not supported | Agent warns and skips timeline nodes | Requires UTimelineComponent + UCurveFloat pattern |
-| Latent actions not supported | Delay, MoveTo etc. skipped with warning | Requires FTimerHandle / async patterns |
-| BP Interfaces not supported | Agent warns if BP implements interfaces | Requires multiple inheritance pattern |
-| Event dispatchers not supported | Agent warns and skips | Requires DECLARE_DYNAMIC_MULTICAST_DELEGATE |
+| Limitation | Impact | Workaround |
+|-----------|--------|------------|
 | Complex graph flow | May produce approximate translations | Flag for user review |
-| No compilation validation | Generated code is not compiled/verified | Future: integrate with build system |
+| Latent action chains (3+) | Sequential delays/MoveTo require state machine pattern | Agent generates state enum + switch for 3+ latent chains |
+| Blueprint-only parent chain | Cannot reparent to C++ if parent is also a Blueprint | Migrate parent first, then children |
 
 ## UE Coding Standards for Migration
 
@@ -298,3 +295,16 @@ When analyzing a Blueprint against existing C++ code, check for:
 - Forward declare in .h where possible, full includes in .cpp only
 - `#pragma once` header guard
 - Correct parent class from BP analysis (never hardcode AActor)
+
+## Deprecated API Patterns
+
+Cross-reference these against Blueprint analysis results during migration. Flag matches in the preview before generating C++ code. Use the modern replacement API in all generated code.
+
+| Pattern | Deprecated Since | Replacement | Detection Signal |
+|---------|-----------------|-------------|-----------------|
+| SetNiagaraVariableLinearColor(FString) | UE 5.3 | SetNiagaraVariableLinearColor(FName) | Niagara variable setter nodes using FString parameter |
+| TAssetPtr | UE 4.18 | TSoftObjectPtr | Variable type contains "TAssetPtr" |
+| UProperty | UE 4.25 | FProperty | Reflect metadata referencing UProperty |
+| BindAction (legacy input) | UE 5.1 | Enhanced Input system (UInputAction + UInputMappingContext) | Input binding nodes without Enhanced Input |
+
+This table grows over time. Add entries when deprecated APIs are encountered during migrations.
