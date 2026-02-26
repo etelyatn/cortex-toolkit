@@ -298,3 +298,17 @@ When analyzing a Blueprint against existing C++ code, check for:
 - Forward declare in .h where possible, full includes in .cpp only
 - `#pragma once` header guard
 - Correct parent class from BP analysis (never hardcode AActor)
+
+## Deprecated API Patterns
+
+Cross-reference these against Blueprint analysis results during migration. Flag matches in the preview before generating C++ code. Use the modern replacement API in all generated code.
+
+| Pattern | Deprecated Since | Replacement | Detection Signal |
+|---------|-----------------|-------------|-----------------|
+| SetNiagaraVariableLinearColor(FString) | UE 5.3 | SetNiagaraVariableLinearColor(FName) | Niagara variable setter nodes using FString parameter |
+| TAssetPtr | UE 4.18 | TSoftObjectPtr | Variable type contains "TAssetPtr" |
+| UProperty | UE 4.25 | FProperty | Reflect metadata referencing UProperty |
+| BindAction (legacy input) | UE 5.1 | Enhanced Input system (UInputAction + UInputMappingContext) | Input binding nodes without Enhanced Input |
+| SpawnActorDeferred | UE 5.0 | SpawnActorAbsolute or standard SpawnActor with deferred pattern | SpawnActor nodes with deferred flag |
+
+This table grows over time. Add entries when deprecated APIs are encountered during migrations.
