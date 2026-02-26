@@ -45,6 +45,29 @@ run_input_sequence: [
 
 **Known limitation:** Direct input tools (`press_key`, `run_input_sequence`) only confirm Slate dispatch, not game receipt. Always verify effects with `observe_game_state` or `wait_for_condition` after injecting input.
 
+## Stuck Recovery Procedure
+
+When `check_stuck` returns `is_stuck: true`:
+
+1. Release all movement keys:
+```
+run_input_sequence: [
+  {at_ms: 0, kind: "key", key: "W", action: "release"}
+]
+```
+2. Back up:
+```
+run_input_sequence: [
+  {at_ms: 0, kind: "key", key: "S", action: "press"},
+  {at_ms: 500, kind: "key", key: "S", action: "release"}
+]
+```
+3. Query surroundings: `get_visible_actors(require_los=false)`
+4. Find the most open direction (furthest visible space / lowest nearby clutter).
+5. Face open direction: `look_to(yaw=<target_yaw>)`
+6. Retry forward movement.
+7. If still stuck after 3 attempts, teleport to a last known good location and report.
+
 ## Benchmark Tests
 
 QA and Editor tool coverage in `Plugins/UnrealCortex/MCP/tests/`:
