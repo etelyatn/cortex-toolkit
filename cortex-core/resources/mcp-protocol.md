@@ -135,6 +135,7 @@ See `cortex-toolkit/cortex-core/resources/batch-pipeline-guide.md` for comprehen
 ### Blueprint (`bp.*`)
 - Assets: `create_blueprint`, `list_blueprints`, `get_blueprint_info`, `delete_blueprint`, `duplicate_blueprint`, `compile_blueprint`, `save_blueprint`
 - Structure: `add_blueprint_variable`, `remove_blueprint_variable`, `add_blueprint_function`
+- Level Blueprint: `get_level_blueprint(map_path)` — returns synthetic `__level_bp__:/Game/Maps/MapName` path for use with all `graph_*` and `bp.*` commands. Save Level Blueprint changes with `save_level`, not `save_blueprint` (returns `LevelBlueprintSaveError`).
 
 ### Graph (`graph.*`)
 - `graph_list_graphs`, `graph_list_nodes`, `graph_get_node`, `graph_add_node`, `graph_remove_node`, `graph_connect`, `graph_disconnect`, `graph_set_pin_value`, `graph_auto_layout`
@@ -147,14 +148,23 @@ Explicit class map (use short name or full `UK2Node_*` name):
 |-----------|-----------|-------|
 | `Event` | `UK2Node_Event` | Requires `params: {"function_name": "ClassName.FunctionName"}` |
 | `CustomEvent` | `UK2Node_CustomEvent` | |
+| `Self` | `UK2Node_Self` | |
+| `Knot` | `UK2Node_Knot` | Reroute node |
+| `MakeArray` | `UK2Node_MakeArray` | |
 | `CallFunction` | `UK2Node_CallFunction` | Requires `params: {"function_name": "ClassName.FunctionName"}` |
 | `Branch` | `UK2Node_IfThenElse` | |
 | `Sequence` | `UK2Node_ExecutionSequence` | Outputs: "then 0", "then 1", etc. |
 | `VariableGet` | `UK2Node_VariableGet` | Params: `variable_name`, optional `variable_class` |
 | `VariableSet` | `UK2Node_VariableSet` | Params: `variable_name`, optional `variable_class` |
+| `Timeline` | `UK2Node_Timeline` | Requires `params: {"timeline_name": "Name"}` — error `TimelineNameRequired` if missing |
 | `SpawnActor` | `UK2Node_SpawnActorFromClass` | |
 | `CastTo` | `UK2Node_DynamicCast` | |
-| `ForEachLoop` | `UK2Node_MacroInstance` | |
+| `MacroInstance` | `UK2Node_MacroInstance` | Requires `params: {"macro_path": "/Game/Path/Lib.Name"}` — error `MacroPathRequired` if missing |
+| `SwitchEnum` | `UK2Node_SwitchEnum` | |
+| `SwitchString` | `UK2Node_SwitchString` | |
+| `SwitchInteger` | `UK2Node_SwitchInteger` | |
+
+**Removed short names:** `FunctionEntry`, `FunctionResult`, `ForEachLoop` — no longer accepted. For ForEach use `CallFunction` with `function_name: "KismetArrayLibrary.Array_ForEach"`. Unknown short names return an explicit error listing all valid names (no silent fallback).
 
 For `UK2Node_Event`: `function_name` must use `"ClassName.FunctionName"` format. The class must exist and the function must be defined on it. Example: `{"function_name": "Actor.ReceiveBeginPlay"}`.
 
@@ -201,10 +211,14 @@ Example — walk and jump:
 
 **Constraint:** Only one `run_input_sequence` should run at a time — concurrent sequences share a single callback slot (see ED-001 in `docs/tech-debt/cortex-editor-tech-debt.md`).
 
+**Reliability (ED-002b):** When the MCP TCP client disconnects unexpectedly, orphaned input tickers are automatically cancelled. `inject_input_sequence` correctly terminates on client disconnect — no manual cleanup required.
+
 ### UMG (`umg.*`)
 - Tree: `add_widget`, `remove_widget`, `reparent`, `get_tree`, `get_widget`, `list_widget_classes`, `duplicate_widget`
 - Properties: `set_color`, `set_text`, `set_font`, `set_brush`, `set_padding`, `set_anchor`, `set_alignment`, `set_size`, `set_visibility`, `set_property`, `get_property`, `get_schema`
 - Animations: `create_animation`, `list_animations`, `remove_animation`
+
+`get_widget` returns `render_transform` (translation/scale/shear/angle/pivot), `slot_type` (e.g. `"CanvasPanelSlot"`, `null` for root), and `slot` (layout details: CanvasPanelSlot includes anchors/offsets/alignment/z_order/auto_size; HorizontalBoxSlot/VerticalBoxSlot/OverlaySlot include padding; others return `null`).
 
 ## Connection Guard (PreToolUse Hook)
 
