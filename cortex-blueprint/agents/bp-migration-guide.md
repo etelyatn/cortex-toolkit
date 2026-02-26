@@ -57,6 +57,8 @@ For project C++ parent:
 
 ## Gate 1: Scope Selection
 
+**If a pre-selected level was passed by the skill** (e.g., `--level medium`): skip the level selection question and proceed directly to Phase 2 using that level. Apply the corresponding classification heuristics automatically.
+
 **STOP. Present options and wait for user response before proceeding.**
 
 ### Engine Base Class Path: 3-Level Selection
@@ -234,7 +236,7 @@ If "Rollback" at any step: execute rollback immediately (see Phase 3).
 4. For each migrated element, generate idiomatic UE5 C++:
    - UPROPERTY with matching specifiers from analysis data (EditAnywhere, BlueprintReadWrite, etc.)
    - UFUNCTION with correct specifier (BlueprintNativeEvent for functions overridden by children, BlueprintCallable otherwise)
-   - FTimeline for migrated Timelines
+   - `UTimelineComponent*` for migrated Timelines — declare as UPROPERTY, bind delegates in BeginPlay
    - Component creation in constructor with CreateDefaultSubobject
    - Constructor with default values from CDO overrides
 5. Place files in `Source/{ModuleName}/Public/` and `Private/` following existing directory structure
