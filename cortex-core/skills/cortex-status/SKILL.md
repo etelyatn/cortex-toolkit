@@ -22,6 +22,7 @@ If not running → report "Editor not running" and suggest `/cortex-editor`.
 
 List `Saved/CortexPort-*.txt`. CortexCore writes one file per editor instance named `CortexPort-{PID}.txt`.
 
+Run from the project root (directory containing `*.uproject`):
 ```bash
 ls Saved/CortexPort-*.txt 2>/dev/null || echo "No port files found"
 ```
