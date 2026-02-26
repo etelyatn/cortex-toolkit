@@ -20,9 +20,14 @@ If not running → report "Editor not running" and suggest `/cortex-editor`.
 
 ### 2. Check Port File
 
-Read `Saved/CortexPort.txt`. This file is written by CortexCore on editor startup.
+List `Saved/CortexPort-*.txt`. CortexCore writes one file per editor instance named `CortexPort-{PID}.txt`.
 
-If missing → editor may be starting up or CortexCore plugin is not loaded.
+```bash
+ls Saved/CortexPort-*.txt 2>/dev/null || echo "No port files found"
+```
+
+If none found → editor may be starting up or CortexCore plugin is not loaded.
+If multiple found → multiple editors are running; MCP will select the most recently started one.
 
 ### 3. Verify MCP Connection
 
