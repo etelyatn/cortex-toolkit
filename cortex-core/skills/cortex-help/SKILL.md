@@ -136,7 +136,8 @@ Test & QA
 
 Learn
   /cortex-start             Guided onboarding with a real task
-  /cortex-bp-migrate        Migrate Blueprints to C++ with analysis
+  /cortex-bp-migrate        Migrate Blueprints to C++ autonomously (analysis + generation in one shot)
+  /cortex-bp-migrate-guided Migrate Blueprints to C++ interactively — choose scope, preview changes, rollback at each gate
 
 ---
 Domain help: /cortex-help <domain> (data, bp, mat, ui, level, qa, setup)
@@ -165,11 +166,11 @@ For the requested domain, gather:
 - Agents: Data Architect, Game Balancer
 
 **blueprint (bp):**
-- Skills: `/cortex-bp-create`, `/cortex-bp-review`, `/cortex-bp-migrate`, `/cortex-reflect`
+- Skills: `/cortex-bp-create`, `/cortex-bp-review`, `/cortex-bp-migrate`, `/cortex-bp-migrate-guided`, `/cortex-reflect`
 - Content path: `Content/Blueprints/`
 - Schema files: `.cortex/schema/blueprints.md`
 - Domain context: `.cortex/domains/blueprints.md`
-- Agents: Blueprint Developer, Blueprint Debugger, C++ Migration Specialist
+- Agents: Blueprint Developer, Blueprint Debugger, C++ Migration Specialist, BP Migration Guide
 
 **material (mat):**
 - Skills: `/cortex-material-create`, `/cortex-material-review`
@@ -239,8 +240,9 @@ Core
   Test Debugger        — Test failure analysis, error patterns, flaky tests
 
 Blueprint
-  Blueprint Developer  — Blueprint creation, modification, graph wiring
-  C++ Migration Specialist — Blueprint-to-C++ translation and optimization
+  Blueprint Developer      — Blueprint creation, modification, graph wiring
+  C++ Migration Specialist — Blueprint-to-C++ autonomous translation (used by /cortex-bp-migrate)
+  BP Migration Guide       — Interactive guided migration: level selection, preview, rollback (used by /cortex-bp-migrate-guided)
 
 Data
   Data Architect       — DataTable creation, schema design, bulk data import
