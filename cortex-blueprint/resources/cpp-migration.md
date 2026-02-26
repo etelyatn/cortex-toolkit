@@ -339,10 +339,10 @@ Cross-reference these against Blueprint analysis results during migration. Flag 
 
 | Pattern | Deprecated Since | Replacement | Detection Signal |
 |---------|-----------------|-------------|-----------------|
-| SetNiagaraVariableLinearColor(FString) | UE 5.3 | SetNiagaraVariableLinearColor(FName) | Niagara variable setter nodes using FString parameter |
+| SetNiagaraVariableLinearColor(FString) | UE 5.1 | SetNiagaraVariableLinearColor(FName) | Niagara variable setter nodes using FString parameter |
 | TAssetPtr | UE 4.18 | TSoftObjectPtr | Variable type contains "TAssetPtr" |
 | UProperty | UE 4.25 | FProperty | Reflect metadata referencing UProperty |
 | BindAction (legacy input) | UE 5.1 | Enhanced Input system (UInputAction + UInputMappingContext) | Input binding nodes without Enhanced Input |
-| SpawnActorDeferred | UE 5.0 | SpawnActorAbsolute or standard SpawnActor with deferred pattern | SpawnActor nodes with deferred flag |
+| FHitResult::Actor | UE 5.0 | FHitResult::GetActor() | Direct access to FHitResult.Actor weak pointer field |
 
 This table grows over time. Add entries when deprecated APIs are encountered during migrations.
