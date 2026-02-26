@@ -36,7 +36,7 @@ Capture all returned fields — variables (with usage_count, type, replication, 
 2. If total referencers > 0: call `impact_analysis` with the target class name and `change_type: "reparented_class"`
 3. Call `query_class_hierarchy` with the Blueprint class name and `depth: 1` to find direct children
 
-If children exist AND they override functions that will be migrated: call `query_usages` per overridden function to determine API contract requirements (functions overridden by children MUST be generated as `BlueprintNativeEvent`).
+If children exist AND override functions that will be migrated: call `query_usages` per overridden function to determine API contract requirements (functions overridden by children MUST be generated as `BlueprintNativeEvent`).
 
 Synthesize a dependency summary:
 - Direct children count and which functions they override
@@ -57,9 +57,9 @@ For project C++ parent:
 
 ## Gate 1: Scope Selection
 
-**If a pre-selected level was passed** (e.g., `--level medium`): skip this gate entirely. Apply the corresponding classification heuristics automatically and proceed to Phase 2.
+If a `--level` value (minimal/medium/maximal) was pre-selected by the skill invocation, skip this gate — use the provided level directly and proceed to Phase 2 with that scope.
 
-**Otherwise, STOP. Present options and wait for user response before proceeding.**
+**If no level was pre-selected: STOP. Present options and wait for user response before proceeding.**
 
 ### Engine Base Class Path: 3-Level Selection
 
@@ -209,14 +209,12 @@ If "Cancel": stop. Present what was learned (analysis summary) and exit.
 
 ### Execution
 
-Before writing any files, note which files will be created or modified so rollback commands can be constructed later.
-
 Then execute the migration:
 
 1. **Generate C++ files** — header (.h) and source (.cpp) following `cpp-migration.md` patterns and `docs/unreal-coding-standards.md`. For merge/improve: generate diffs to existing files.
 2. **Update Build.cs** — add module dependencies if the migrated code requires new modules (Niagara, EnhancedInput, etc.)
 3. **Build** — run the project build command and verify zero errors
-4. **Blueprint cleanup** — call `cleanup_blueprint_migration` to reparent and remove migrated variables and functions; then for each component migrated to C++ `CreateDefaultSubobject`, call `remove_scs_component` to delete the now-redundant SCS node
+4. **Blueprint cleanup** — call `cleanup_blueprint_migration` to reparent and remove migrated members; then for each SCS component that was migrated to C++, call `remove_scs_component` to delete the now-redundant Blueprint SCS node; finally call `compile_blueprint` to verify a clean compile
 
 If step-by-step mode: after each major step above, use `AskUserQuestion` with:
 - **question:** "Step complete: {description}. Continue?"
@@ -266,8 +264,6 @@ Use `AskUserQuestion` with:
 - **options:** `["Keep as-is — migration complete", "Rollback Blueprint only — keep C++ files", "Rollback everything — restore original state"]`
 
 **Rollback execution:**
-
-Rollback restores from the local HEAD (files are written but not committed during the migration workflow).
 
 Rollback everything:
 ```bash
