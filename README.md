@@ -10,7 +10,7 @@ Install only what you need:
 |--------|--------|--------|--------|
 | **cortex-core** | Foundation | cortex-init, cortex-start, cortex-help, cortex-build, cortex-test, cortex-status, cortex-editor, cortex-reconnect, cortex-restart, cortex-schema-refresh | Game Architect, Game Designer, Blueprint Debugger, Test Debugger, Project Setup |
 | **cortex-data** | DataTables, DataAssets, CurveTables, GameplayTags | cortex-data-review, cortex-data-create | Game Balancer, Data Architect |
-| **cortex-blueprint** | Blueprints, Graphs | cortex-bp-review, cortex-bp-create | Blueprint Developer, C++ Migration Specialist |
+| **cortex-blueprint** | Blueprints, Graphs | cortex-bp-review, cortex-bp-create, cortex-bp-migrate, cortex-bp-migrate-guided | Blueprint Developer, C++ Migration Specialist, BP Migration Guide |
 | **cortex-ui** | UMG Widgets | cortex-ui-review, cortex-ui-create | UI Developer |
 | **cortex-material** | Materials, Instances, Parameter Collections | cortex-material-review, cortex-material-create | Material Designer |
 | **cortex-level** | Actors, Transforms, Components, Queries, Streaming | cortex-level-review, cortex-level-create | Level Designer |
@@ -80,6 +80,7 @@ Domain specialists with deep knowledge of specific Unreal Engine systems:
 - **Material Designer** — creates materials, modifies expression graphs, manages parameter collections
 - **UI Developer** — builds UMG hierarchies, sets properties, creates animations
 - **Blueprint Developer** — manages Blueprint assets, modifies graphs, analyzes C++ migration
+- **BP Migration Guide** — interactive guided migration with level selection, preview, and rollback at each decision gate
 - **Game Balancer** — tunes DataTables, validates balance rules, tracks progression curves
 - **Data Architect** — designs table schemas, manages GameplayTags, organizes DataAssets
 - **Level Designer** — spawns actors, manages transforms, constructs multi-actor scenes, organizes level content
