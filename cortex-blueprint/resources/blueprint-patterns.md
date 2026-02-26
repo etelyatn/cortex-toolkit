@@ -128,14 +128,25 @@ When calling `graph_add_node` or specifying nodes in `create_blueprint_graph`, u
 |-----------|--------------|-----------------|
 | `Event` | `UK2Node_Event` | `{"function_name": "ClassName.FunctionName"}` e.g. `"Actor.ReceiveBeginPlay"` |
 | `CustomEvent` | `UK2Node_CustomEvent` | none |
+| `Self` | `UK2Node_Self` | none |
+| `Knot` | `UK2Node_Knot` | none |
+| `MakeArray` | `UK2Node_MakeArray` | none |
 | `CallFunction` | `UK2Node_CallFunction` | `{"function_name": "ClassName.FunctionName"}` |
 | `Branch` | `UK2Node_IfThenElse` | none — outputs: `True`, `False` |
 | `Sequence` | `UK2Node_ExecutionSequence` | none — outputs: `then 0`, `then 1`, etc. |
 | `VariableGet` | `UK2Node_VariableGet` | `{"variable_name": "X"}`, `variable_class` optional |
 | `VariableSet` | `UK2Node_VariableSet` | `{"variable_name": "X"}`, `variable_class` optional |
-| `SpawnActor` | `UK2Node_SpawnActorFromClass` | |
-| `CastTo` | `UK2Node_DynamicCast` | |
-| `ForEachLoop` | `UK2Node_MacroInstance` | |
+| `Timeline` | `UK2Node_Timeline` | `{"timeline_name": "MyTimeline"}` — required, returns `TimelineNameRequired` if missing |
+| `SpawnActor` | `UK2Node_SpawnActorFromClass` | none |
+| `CastTo` | `UK2Node_DynamicCast` | none |
+| `MacroInstance` | `UK2Node_MacroInstance` | `{"macro_path": "/Game/Path/MacroLibrary.MacroName"}` — required, returns `MacroPathRequired` if missing |
+| `SwitchEnum` | `UK2Node_SwitchEnum` | none |
+| `SwitchString` | `UK2Node_SwitchString` | none |
+| `SwitchInteger` | `UK2Node_SwitchInteger` | none |
+
+**Removed short names** — no longer accepted: `FunctionEntry`, `FunctionResult`, `ForEachLoop`. For ForEach loops use `CallFunction` with `function_name: "KismetArrayLibrary.Array_ForEach"`.
+
+**Unknown short names** return an explicit error listing all valid names — there is no silent fallback to `StaticLoadClass`.
 
 **UK2Node_Event parameter format:** `"function_name"` must be `"ClassName.FunctionName"`. The class must exist in the engine and the function must be defined on it. Invalid class or function name returns `InvalidField` error.
 
@@ -277,6 +288,39 @@ set_component_defaults(
 ```
 
 **Array property syntax:** `PropertyName[N]` for indexed array slots (e.g., `OverrideMaterials[0]`).
+
+### Edit Level Script Blueprint
+
+Level Script Blueprints live inside map packages. Use `get_level_blueprint` to obtain a synthetic path, then use it with all graph and bp commands:
+
+```python
+# 1. Get synthetic asset path
+result = get_level_blueprint(map_path="/Game/Maps/TestMap")
+# result["asset_path"] == "__level_bp__:/Game/Maps/TestMap"
+# result["save_warning"] — reminder to use save_level, not bp.save
+
+# 2. List graphs in the Level Blueprint
+graph_list_graphs(asset_path="__level_bp__:/Game/Maps/TestMap")
+
+# 3. Add a node to EventGraph
+graph_add_node(
+    asset_path="__level_bp__:/Game/Maps/TestMap",
+    node_class="CustomEvent",
+    graph_name="EventGraph",
+    position='{"x": 200, "y": 0}'
+)
+
+# 4. Compile the Level Blueprint
+compile_blueprint(asset_path="__level_bp__:/Game/Maps/TestMap")
+
+# 5. Save — must use save_level, NOT save_blueprint
+save_level(map_path="/Game/Maps/TestMap")
+```
+
+**Supported commands with `__level_bp__:` paths:**
+All `graph_*` commands, `compile_blueprint`, and other `bp.*` commands.
+
+**Not supported:** `save_blueprint` / `bp.save` — returns `LevelBlueprintSaveError`. Use `save_level` instead.
 
 ### Review Blueprint
 ```

@@ -183,10 +183,21 @@ impact_analysis(
 | `Sequence` | Execution sequence — outputs: `then 0`, `then 1`, ... |
 | `VariableGet` | Read variable — params: `variable_name`, optional `variable_class` |
 | `VariableSet` | Write variable — params: `variable_name`, optional `variable_class` |
-| `CustomEvent` | Custom event node |
-| `SpawnActor` | Spawn actor from class |
-| `CastTo` | Dynamic cast |
-| `ForEachLoop` | Macro-based loop |
+| `CustomEvent` | Custom event node — no params required |
+| `Self` | Self reference node — no params required |
+| `Knot` | Reroute node — no params required |
+| `MakeArray` | Create array — no params required |
+| `Timeline` | Timeline node — requires `params: {"timeline_name": "MyTimeline"}` — error `TimelineNameRequired` if missing |
+| `SpawnActor` | Spawn actor from class (`UK2Node_SpawnActorFromClass`) |
+| `CastTo` | Dynamic cast (`UK2Node_DynamicCast`) |
+| `MacroInstance` | Macro instance — requires `params: {"macro_path": "/Game/Path/MacroLibrary.MacroName"}` — error `MacroPathRequired` if missing |
+| `SwitchEnum` | Switch on enum — no params required |
+| `SwitchString` | Switch on string — no params required |
+| `SwitchInteger` | Switch on integer — no params required |
+
+**Removed short names** — no longer accepted: `FunctionEntry`, `FunctionResult`, `ForEachLoop`. Use `CallFunction` with `function_name: "KismetArrayLibrary.Array_ForEach"` for ForEach loops.
+
+**Unknown short names** return an explicit error listing all valid names — no silent fallback.
 
 **Asset editor tools (for saving/opening assets):** `save_asset`, `open_asset`, `close_asset`, `reload_asset`
 
@@ -380,6 +391,35 @@ set_component_defaults(
    - Editor is running (`/cortex-status`)
    - Asset exists and path is correct
    - Operation is valid for the current Blueprint state
+
+## Level Blueprint Editing
+
+Level Script Blueprints live inside map packages — they are not standalone `.uasset` files and cannot be loaded directly by path. Use `get_level_blueprint` to get a synthetic asset path that works with all graph and bp commands.
+
+### Workflow
+
+```python
+# 1. Get synthetic path for the Level Blueprint
+result = get_level_blueprint(map_path="/Game/Maps/TestMap")
+level_bp_path = result["asset_path"]  # "__level_bp__:/Game/Maps/TestMap"
+
+# 2. Use it with any graph_* or bp.* command
+graph_list_graphs(asset_path=level_bp_path)
+graph_add_node(asset_path=level_bp_path, node_class="CustomEvent", ...)
+compile_blueprint(asset_path=level_bp_path)
+
+# 3. Persist changes — use save_level, NOT save_blueprint or bp.save
+save_level(map_path="/Game/Maps/TestMap")
+```
+
+**Supported commands with `__level_bp__:` paths:**
+- `graph_list_graphs`, `graph_list_nodes`, `graph_get_node`
+- `graph_add_node`, `graph_remove_node`
+- `graph_connect`, `graph_disconnect`, `graph_set_pin_value`
+- `graph_auto_layout`
+- `compile_blueprint`, and all other `bp.*` commands
+
+**bp.save / save_blueprint on a Level Blueprint path returns `LevelBlueprintSaveError`** — always use `save_level` instead.
 
 ## MCP Benchmark Tests
 

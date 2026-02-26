@@ -89,6 +89,45 @@ get_tree → identify target widgets → set_property / add_widget / remove_widg
 → get_tree (verify)
 ```
 
+### Inspect Widget Layout (get_widget)
+
+`get_widget` returns full widget state. Key fields added in Group A:
+
+```python
+result = get_widget(asset_path="/Game/UI/WBP_HUD", widget_name="TxtScore")
+
+# render_transform — always present
+result["render_transform"]
+# {
+#   "translation": {"x": 0.0, "y": 0.0},
+#   "scale":       {"x": 1.0, "y": 1.0},
+#   "shear":       {"x": 0.0, "y": 0.0},
+#   "angle":       0.0,
+#   "pivot":       {"x": 0.5, "y": 0.5}
+# }
+
+# slot_type — always present, null for root widget
+result["slot_type"]  # e.g. "CanvasPanelSlot", "HorizontalBoxSlot", null
+
+# slot — layout details, depends on slot_type
+result["slot"]
+# CanvasPanelSlot example:
+# {
+#   "anchors":   {"min": {"x": 1.0, "y": 0.0}, "max": {"x": 1.0, "y": 0.0}},
+#   "offsets":   {"left": -200.0, "top": 20.0, "right": 200.0, "bottom": 40.0},
+#   "alignment": {"x": 1.0, "y": 0.0},
+#   "z_order":   0,
+#   "auto_size": false
+# }
+# HorizontalBoxSlot / VerticalBoxSlot / OverlaySlot example:
+# {
+#   "padding": {"left": 8.0, "top": 4.0, "right": 8.0, "bottom": 4.0}
+# }
+# null — root widget or unrecognized slot type
+```
+
+**Tip:** Check `slot_type` before reading `slot` to know which fields to expect.
+
 ### Duplicate and Customize
 ```
 duplicate_widget → set_text / set_color (customize copy)

@@ -36,6 +36,26 @@ Build game UI using UMG widgets — menus, HUDs, dialogs, popups, and complex in
 
 **Animations:** `create_animation`, `list_animations`, `remove_animation`
 
+### get_widget — Full Response Fields
+
+`get_widget` returns complete widget state including render transform and slot details:
+
+- **`render_transform`** — always present, contains:
+  - `translation`: `{x, y}` — pixel offset applied after layout
+  - `scale`: `{x, y}` — per-axis scale factor
+  - `shear`: `{x, y}` — skew in degrees
+  - `angle` — rotation in degrees
+  - `pivot`: `{x, y}` — transform pivot (0–1 range, default center `{0.5, 0.5}`)
+
+- **`slot_type`** — always present: `"CanvasPanelSlot"`, `"HorizontalBoxSlot"`, `"VerticalBoxSlot"`, `"OverlaySlot"`, or `null` for root widgets
+
+- **`slot`** — slot layout details (depends on `slot_type`):
+  - **CanvasPanelSlot**: `anchors` (`min`/`max` x/y), `offsets` (`left`/`top`/`right`/`bottom`), `alignment` (`x`/`y`), `z_order`, `auto_size`
+  - **HorizontalBoxSlot / VerticalBoxSlot / OverlaySlot**: `padding` (`left`/`top`/`right`/`bottom`)
+  - All other slot types / root widgets: `null`
+
+Use `slot_type` to determine how to interpret `slot` before reading layout values.
+
 ## Layout Patterns
 
 | Pattern | Panel | Use When |
