@@ -322,6 +322,36 @@ All `graph_*` commands, `compile_blueprint`, and other `bp.*` commands.
 
 **Not supported:** `save_blueprint` / `bp.save` — returns `LevelBlueprintSaveError`. Use `save_level` instead.
 
+### Remove an SCS Component
+
+Use `remove_scs_component` to delete a component from a Blueprint's Components panel (SCS). Typical use: after migrating a Blueprint-layer component to a C++ `CreateDefaultSubobject` declaration.
+
+```python
+# Remove a component by its variable name
+remove_scs_component(
+    asset_path="/Game/Blueprints/BP_JumpPad",
+    component_name="StaticMeshComponent0",
+    compile=True
+)
+# Returns: {"removed_component": "StaticMeshComponent0", "compiled": true, "compile_status": "UpToDate"}
+```
+
+**Child promotion:** Children of the removed node are automatically re-parented to its parent — no children are lost.
+
+**Validation:**
+- Only valid on Actor-based Blueprints (those with a SimpleConstructionScript). Component and Widget Blueprints have no SCS and return `InvalidField`.
+- If `component_name` is not found in the SCS, returns `ComponentNotFound`.
+
+**Typical post-migration workflow:**
+
+```
+compile_new_cpp_class
+  → rebuild_project
+  → cleanup_migration (reparent BP to new C++ class, remove migrated variables/functions)
+  → remove_scs_component (for each component now declared in C++ constructor)
+  → compile_blueprint
+```
+
 ### Review Blueprint
 ```
 get_blueprint_info → graph_list_graphs → graph_list_nodes (per graph) → assess complexity

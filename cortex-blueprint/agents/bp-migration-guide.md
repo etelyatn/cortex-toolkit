@@ -216,7 +216,7 @@ Then execute the migration:
 1. **Generate C++ files** — header (.h) and source (.cpp) following `cpp-migration.md` patterns and `docs/unreal-coding-standards.md`. For merge/improve: generate diffs to existing files.
 2. **Update Build.cs** — add module dependencies if the migrated code requires new modules (Niagara, EnhancedInput, etc.)
 3. **Build** — run the project build command and verify zero errors
-4. **Blueprint cleanup** — call `cleanup_blueprint_migration` to reparent and remove migrated members
+4. **Blueprint cleanup** — call `cleanup_blueprint_migration` to reparent and remove migrated variables and functions; then for each component migrated to C++ `CreateDefaultSubobject`, call `remove_scs_component` to delete the now-redundant SCS node
 
 If step-by-step mode: after each major step above, use `AskUserQuestion` with:
 - **question:** "Step complete: {description}. Continue?"

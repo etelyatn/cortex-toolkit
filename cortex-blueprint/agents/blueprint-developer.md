@@ -167,7 +167,7 @@ impact_analysis(
 
 **Asset management:** `create_blueprint`, `list_blueprints`, `get_blueprint_info`, `delete_blueprint`, `duplicate_blueprint`, `compile_blueprint`, `save_blueprint`
 
-**Structure:** `add_blueprint_variable`, `remove_blueprint_variable`, `add_blueprint_function`, `configure_timeline`, `set_component_defaults`
+**Structure:** `add_blueprint_variable`, `remove_blueprint_variable`, `add_blueprint_function`, `configure_timeline`, `set_component_defaults`, `remove_scs_component`
 
 **Class Defaults (CDO):** `get_class_defaults`, `set_class_defaults`
 
@@ -375,6 +375,30 @@ set_component_defaults(
 **Returns:** `component_name`, `properties_set` (count), `errors` (per-property failures if any)
 
 **Note:** This sets defaults on the Blueprint class template, affecting all future instances. To override properties on a specific placed actor, use `set_actor_property` instead.
+
+## Removing SCS Components
+
+Use `remove_scs_component` to delete a component node from a Blueprint's Simple Construction Script (Components panel). This is the inverse of `add_component` / `set_component_defaults` and is typically used after migrating a Blueprint-layer component to a C++ `UPROPERTY` member.
+
+```python
+remove_scs_component(
+    asset_path="/Game/Blueprints/BP_JumpPad",
+    component_name="StaticMeshComponent0",
+    compile=True
+)
+# Returns: {"removed_component": "StaticMeshComponent0", "compiled": true, "compile_status": "UpToDate"}
+```
+
+**Parameters:**
+- `asset_path`: Blueprint asset path
+- `component_name`: Variable name of the SCS node (as shown in the Components panel)
+- `compile` (optional, default `true`): Compile the Blueprint after removal
+
+**Child promotion:** When removing a component that has child components attached, the children are automatically re-parented to the removed component's parent. No children are lost.
+
+**Validation:**
+- Only Actor-based Blueprints have an SCS. Calling on a component or widget Blueprint returns `InvalidField`.
+- If the component name is not found, returns `ComponentNotFound`.
 
 ## Error Handling
 

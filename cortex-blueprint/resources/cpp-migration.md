@@ -263,6 +263,43 @@ void UMyWidget::HandleConfirmClicked()
 | UKismetMathLibrary | `Kismet/KismetMathLibrary.h` |
 | FTimerHandle | `TimerManager.h` |
 
+## SCS Component Migration
+
+When migrating Blueprint SCS components (Components panel) to C++ `CreateDefaultSubobject` declarations, the Blueprint's SCS entry must be removed after the C++ class is created. Use `remove_scs_component` for this step.
+
+### Workflow: Migrate a Blueprint Component to C++
+
+```
+1. Generate C++ class with CreateDefaultSubobject in constructor
+2. Build project
+3. cleanup_migration — reparent Blueprint to new C++ class
+4. remove_scs_component — delete the now-redundant SCS node
+5. compile_blueprint — verify clean compile
+```
+
+**Example:**
+
+```python
+# After C++ class is built and Blueprint is reparented:
+remove_scs_component(
+    asset_path="/Game/Blueprints/BP_JumpPad",
+    component_name="StaticMeshComponent0",
+    compile=True
+)
+# Returns: {"removed_component": "StaticMeshComponent0", "compiled": true, "compile_status": "UpToDate"}
+```
+
+**Parameters:**
+- `asset_path`: Blueprint asset path
+- `component_name`: Variable name shown in the Components panel (matches the SCS node's variable name)
+- `compile` (default `true`): Compile after removal
+
+**Error cases:**
+- `ComponentNotFound`: The component name was not found in the SCS — check the exact variable name via `get_blueprint_info`
+- `InvalidField` (code): Blueprint has no SCS — only Actor-based Blueprints have SCS; component and widget Blueprints do not
+
+**Child component handling:** If the removed component has children in the hierarchy, they are automatically re-parented to the removed node's parent. No manual child re-wiring is needed.
+
 ## BP Audit Patterns
 
 When analyzing a Blueprint against existing C++ code, check for:
