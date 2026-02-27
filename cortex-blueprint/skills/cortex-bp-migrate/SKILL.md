@@ -5,7 +5,9 @@ description: Blueprint-to-C++ migration pipeline with conversational analysis, p
 
 # Blueprint to C++ Migration Pipeline
 
-Migrate a Blueprint to C++ using a 4-stage pipeline: ANALYZE → PLAN → EXECUTE → COMPLETE. Each stage has a hard gate requiring user approval before proceeding.
+Migrate a Blueprint to C++ using either:
+- Full mode (default): 4-stage pipeline, ANALYZE → PLAN → EXECUTE → COMPLETE, with hard gates
+- Fast mode (`--fast`): 3-stage streamlined flow with a single approval gate for eligible simple migrations
 
 ## Entry Point
 
@@ -197,7 +199,7 @@ Do NOT write legacy artifacts:
 - No goal questions (auto-select "Reusability / base class")
 - No separate design approval gate
 - Inline verification only (no verifier agent dispatch)
-- Auto-delete backup after successful swap
+- Auto-archive backup after successful swap
 - 2 agent dispatches total (executor + finalizer)
 
 **Fast mode flow:**
