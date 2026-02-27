@@ -13,8 +13,8 @@ Migrate a Blueprint to C++ using either:
 
 Parse user input for:
 - **Blueprint path** (required) — e.g., `BP_JumpPad` or `/Game/Blueprints/BP_JumpPad`
-- **`--audit`** — run ANALYZE stage only, present design without executing
-- **`--resume`** — detect and resume from saved migration state
+- **`--audit`** — run ANALYZE stage only, present design without executing. If combined with `--fast`, run analysis with auto-defaults and report fast mode eligibility, but stop after presenting the design (do not execute).
+- **`--resume`** — detect and resume from saved migration state. If the plan's frontmatter contains `mode: fast`, resume within the Fast Mode Pipeline (route to Stage A/B/C based on `phase` and `current_task`).
 - **`--fast`** — streamlined mode for simple migrations (1 gate instead of 4, fewer agent dispatches). Auto-detected eligibility; falls back to full pipeline if criteria not met.
 
 ## Fast Mode Eligibility
@@ -33,7 +33,7 @@ When `--fast` is specified, the pipeline checks eligibility AFTER the technical 
 | No interfaces | `interfaces_implemented` array is empty | `analyze_blueprint_for_migration` |
 | C++ parent class | Parent class path starts with `/Script/` (not `/Game/`) | `analyze_blueprint_for_migration` |
 | No structural ConstructionScript | UserConstructionScript contains only visual-sync nodes (no structural logic) | `analyze_blueprint_for_migration` + graph inspection |
-| Single pass | `total_planned_passes` = 1 in frontmatter (all functional groups migrate in one pass) | Design synthesis (machine-checkable) |
+| Single pass | All functional groups migrate in one pass (no HIGH-risk items requiring deferral) | Derived from functional group analysis |
 
 **If eligible:** Proceed with fast mode flow (see Fast Mode Pipeline below).
 
@@ -52,14 +52,15 @@ The full pipeline continues from where fast mode left off — the analysis data 
 If `--resume` flag OR `docs/migration/blueprint-to-cpp/{BP_Name}/migration-plan.md` exists:
 
 1. Read `migration-plan.md` YAML frontmatter
-2. Parse: `status`, `current_task`, `failed_task`, `phase`, `blueprint_hash`
-3. Verify workspace state:
+2. Parse: `status`, `current_task`, `failed_task`, `phase`, `blueprint_hash`, `mode`
+3. **Route by mode:** If frontmatter contains `mode: fast`, resume within the Fast Mode Pipeline. Route to Stage A (if `phase: analyze` or `phase: plan`), Stage B (if `phase: execute`), or Stage C (if `phase: swap`) based on `phase` and `current_task`. If `mode` is absent or not `fast`, resume in the full pipeline.
+4. Verify workspace state:
    - Do files in `files_created` actually exist on disk?
    - Does `BP_Name_Migration` copy exist in the editor?
    - Does the C++ class exist and compile?
    - Does `blueprint_hash` match current Blueprint? (staleness check)
-4. Present resume point to user with options: [resume / rewind / restart]
-5. On resume: create TaskCreate entries for remaining tasks, continue from saved phase
+5. Present resume point to user with options: [resume / rewind / restart]
+6. On resume: create TaskCreate entries for remaining tasks, continue from saved phase
 
 ## Pre-Flight Check (Task 0)
 
@@ -234,11 +235,11 @@ If not eligible -> fall back to full pipeline at ANALYZE Step 3.
 
 **Step A4: Graph Node Inspection**
 Call `graph_list_nodes` on each migrating graph, then `graph_get_node` on every node to capture pin values, connections, and logic. Build the Ground Truth Table mapping each BP node to its C++ equivalent. This step is NOT skipped in fast mode because it's critical for code accuracy.
-(Full protocol: see PLAN Step 1.)
+(Full protocol: see PLAN Step 1. Key sub-steps: list all nodes per graph, inspect each node's pins/connections/defaults, build BP-node-to-C++-equivalent mapping table.)
 
 **Step A5: Generate C++ Code**
 Generate the C++ header and source files using the analysis results and Ground Truth Table. Apply all code generation rules (naming, includes, UPROPERTY/UFUNCTION macros, component initialization). Cross-reference every generated line against the Ground Truth Table.
-(Full protocol: see PLAN Step 2 and Step 2.5.)
+(Full protocol: see PLAN Step 2 and Step 2.5. Key sub-steps: generate header with UPROPERTY/UFUNCTION declarations, generate source with component creation and function bodies, cross-reference every line against Ground Truth Table.)
 
 **Checkpoint after A5:** At this point you have: analysis results, eligibility confirmed, Ground Truth Table, and generated C++ code. If your context is getting large, write `migration-plan.md` NOW (partial — snapshot + scope + ground truth + code) before generating the task list in A6. Complete the remaining sections in A7.
 
@@ -288,6 +289,8 @@ Fast-9: Disconnect events + delete orphans
 Fast-10: Remove migrated functions
 Fast-11: Remove migrated variables
 Fast-12: Remove migrated SCS components
+
+── VERIFY (orchestrator, not executor) ─────
 Fast-13: Inline verification (compile + parent + components)
 
 ── SWAP ─────────────────────────────────────
@@ -343,7 +346,7 @@ Fast Migration: {BP_Name} → {ClassName}
 Handle Fast-1 through Fast-6 directly. Same as full pipeline PREPARE but:
 - Fast-1 (Build.cs): auto-add modules, don't pause for approval. If modules need adding, add them and log it.
 - Fast-6 (restart): automated via `/cortex-restart` (same as Phase 2)
-- Update frontmatter after each task (same as Phase 2 Task 4)
+- Update frontmatter after each task (same as Phase 2 Task 4). Use numeric IDs (1-14) in `current_task` regardless of mode — the `mode: fast` field distinguishes fast from full pipeline.
 
 **Step B2: Pre-dispatch** Run Pre-Dispatch Protocol.
 
