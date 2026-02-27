@@ -33,6 +33,25 @@ Use `rename_blueprint` to batch both renames in a single call:
 
 UE handles redirector-at-destination and `_C` suffix (GeneratedClass) automatically.
 
+**Step 2b: Verify backup exists on disk**
+
+After rename swap completes:
+1. Verify backup asset on disk (or via MCP `get_info` on backup path):
+   ```bash
+   ls Content/**/BP_{Name}_Backup.uasset 2>/dev/null
+   ```
+2. If backup exists: record in `05-rollback.json`:
+   - `"backup_verified": true`
+   - `"backup_path": "/Game/.../BP_Name_Backup"`
+3. If backup does NOT exist:
+   - Set `"backup_verified": false` in `05-rollback.json`
+   - Report WARNING to orchestrator: "Backup asset not found on disk after rename swap. The original Blueprint may have been consumed by redirector resolution."
+   - Orchestrator must inform the user before proceeding to COMPLETE.
+
+**Impact on backup handling menu:**
+- If `backup_verified: false`: skip backup handling menu entirely and report "No backup created — original was replaced directly via redirector chain."
+- If `backup_verified: true`: show backup handling menu via `AskUserQuestion`.
+
 **Rollback tracking (record in 05-rollback.json):**
 - If first rename succeeded but second failed: reverse first rename
 - If both renames succeeded but save failed: reverse both renames, save
@@ -72,6 +91,39 @@ Migration Complete: {BP_Name} → {ClassName}
   C++ class: {ClassName}
   Report: docs/migration/blueprint-to-cpp/{BP_Name}/report.json
 ```
+
+**Backup Handling (only if `backup_verified: true`):**
+
+Use `AskUserQuestion` with these options:
+- [1] Keep — stays in place as a safety net
+- [2] Archive — move to `/Game/Migration/Backups/`
+- [3] Delete — remove it (migration confirmed clean)
+
+## Crash Detection Protocol
+
+Before every MCP tool call, and after any MCP error:
+
+**Detection:**
+- If MCP tool returns ConnectionError, ConnectionReset, or ConnectionRefused: **STOP IMMEDIATELY**. Do not retry. Do not work around.
+- If MCP tool does not respond within 30 seconds: check whether editor PID is alive. If PID is dead, treat as crash.
+
+**Response:**
+Return to orchestrator with structured crash report:
+```json
+{
+  "status": "editor_crashed",
+  "failed_task": <task_number>,
+  "last_successful_task": <task_number>,
+  "error": "<connection error message>",
+  "recovery_hint": "restart_editor_and_resume"
+}
+```
+
+**NEVER:**
+- Retry MCP calls after connection loss
+- Attempt to restart the editor yourself
+- Skip the failing task and continue
+- Use alternative tools to work around the crash
 
 ## Recovery
 

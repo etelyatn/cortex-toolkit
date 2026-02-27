@@ -44,10 +44,37 @@ When executing Blueprint cleanup tasks, follow this exact sequence:
 
 1. Validate component name collisions (before reparent)
 2. Reparent to C++ class → verify compile
-3. Disconnect migrated event graph nodes — use `graph_disconnect` to break the exec output pin on each event entry node (source_pin="then"). Leave orphaned nodes in the graph. NEVER call `graph.remove_node`. Node removal is Phase 6 only. Disconnecting the exec pin prevents double execution (C++ overrides that call Super still trigger the BP event node).
+3. Disconnect event entry exec pins — use `graph_disconnect` to break `PN_Then` on migrated event nodes.
+3b. Delete orphaned nodes — call `delete_orphaned_nodes` on each graph that had events disconnected. This removes dead node chains left after step 3. Event entry nodes are preserved (`UK2Node_Event` is skipped).
 4. Remove migrated functions → verify compile after each (leaf-first order from plan)
 5. Remove migrated variables → verify compile after each
 6. Remove migrated SCS components → verify compile after each
+
+## Crash Detection Protocol
+
+Before every MCP tool call, and after any MCP error:
+
+**Detection:**
+- If MCP tool returns ConnectionError, ConnectionReset, or ConnectionRefused: **STOP IMMEDIATELY**. Do not retry. Do not work around.
+- If MCP tool does not respond within 30 seconds: check whether editor PID is alive. If PID is dead, treat as crash.
+
+**Response:**
+Return to orchestrator with structured crash report:
+```json
+{
+  "status": "editor_crashed",
+  "failed_task": <task_number>,
+  "last_successful_task": <task_number>,
+  "error": "<connection error message>",
+  "recovery_hint": "restart_editor_and_resume"
+}
+```
+
+**NEVER:**
+- Retry MCP calls after connection loss
+- Attempt to restart the editor yourself
+- Skip the failing task and continue
+- Use alternative tools to work around the crash
 
 ## Recovery
 
@@ -69,5 +96,6 @@ Write to `docs/migration/blueprint-to-cpp/{BP_Name}/03-node-mapping.json`:
 - `compile_blueprint`
 - `cleanup_blueprint_migration`
 - `graph_disconnect`
+- `delete_orphaned_nodes`
 - `remove_scs_component`
 - `save_blueprint`

@@ -30,6 +30,14 @@ Build these comparison tables:
 4. **Asset references** — meshes, materials, VFX, sounds all match
 5. **Attachment hierarchy** — preserved correctly
 
+**6. Orphaned Node Check**
+For each event graph that was part of the migration:
+- Count nodes that are NOT event entry nodes and NOT reachable from any event exec chain
+- If count > 0: report WARNING — "N orphaned nodes remain in {graph_name}"
+- If count == 0: report PASS — "No orphaned nodes in {graph_name}"
+
+Use the node list from `analyze_blueprint_for_migration` or `get_blueprint_graph_nodes` to count remaining non-event nodes after migration.
+
 ### Task: Dependency Impact Check
 
 For each public member of the original Blueprint:
@@ -42,9 +50,38 @@ For each public member of the original Blueprint:
 
 Call `analyze_blueprint_for_migration` on the migrated copy for post-migration sanity check.
 
+**UNSAFE TOOLS — Do NOT call during mid-migration verification:**
+- `compare_blueprints` — known crash vector on recently-reparented Blueprints with stale object references (Issue 99). Use individual tool calls instead (`analyze_blueprint_for_migration`, `get_class_defaults`) until Issue 99 fix is confirmed deployed.
+
 ### Visual Comparison (If Applicable)
 
 For Blueprints with visual components, capture viewport screenshots of both original and migrated copy using `capture_screenshot`. Skip for non-visual BPs.
+
+## Crash Detection Protocol
+
+Before every MCP tool call, and after any MCP error:
+
+**Detection:**
+- If MCP tool returns ConnectionError, ConnectionReset, or ConnectionRefused: **STOP IMMEDIATELY**. Do not retry. Do not work around.
+- If MCP tool does not respond within 30 seconds: check whether editor PID is alive. If PID is dead, treat as crash.
+
+**Response:**
+Return to orchestrator with structured crash report:
+```json
+{
+  "status": "editor_crashed",
+  "failed_task": <task_number>,
+  "last_successful_task": <task_number>,
+  "error": "<connection error message>",
+  "recovery_hint": "restart_editor_and_resume"
+}
+```
+
+**NEVER:**
+- Retry MCP calls after connection loss
+- Attempt to restart the editor yourself
+- Skip the failing task and continue
+- Use alternative tools to work around the crash
 
 ## Output Format
 

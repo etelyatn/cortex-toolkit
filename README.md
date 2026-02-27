@@ -2,6 +2,16 @@
 
 Skills, agents, and domain knowledge for AI coding assistants working with Unreal Engine projects powered by [UnrealCortex](https://github.com/etelyatn/UnrealCortex).
 
+## Assistant Support
+
+| Assistant | Status | Install |
+|-----------|--------|---------|
+| Claude Code | Supported | See sections below |
+| Codex | Supported | Tell Codex: `Fetch and follow instructions from https://raw.githubusercontent.com/etelyatn/cortex-toolkit/refs/heads/main/.codex/INSTALL.md` |
+| Cursor | Planned | Not yet available |
+| OpenCode | Planned | Not yet available |
+| GitHub Copilot | Planned | Not yet available |
+
 ## Plugins
 
 Install only what you need:
@@ -13,11 +23,21 @@ Install only what you need:
 | **cortex-blueprint** | Blueprints, Graphs | cortex-bp-review, cortex-bp-create, cortex-bp-migrate | Blueprint Developer, C++ Migration Specialist |
 | **cortex-ui** | UMG Widgets | cortex-ui-review, cortex-ui-create | UI Developer |
 | **cortex-material** | Materials, Instances, Parameter Collections | cortex-material-review, cortex-material-create | Material Designer |
-| **cortex-level** | Actors, Transforms, Components, Queries, Streaming | cortex-level-review, cortex-level-create | Level Designer |
+| **cortex-level** | Actors, Transforms, Components, Queries, Streaming | cortex-level-review, cortex-level-edit | Level Designer |
 | **cortex-qa** | Gameplay QA, Scenarios, Assertions | cortex-qa-init, cortex-qa-run, cortex-qa-interactive | QA Engineer |
-| **cortex-reflect** | C++ & Blueprint class hierarchy, cross-references | cortex-reflect | Project Analyzer |
+| **cortex-reflect** | C++ & Blueprint class hierarchy, cross-references | cortex-reflect, cortex-impact | Project Analyzer |
 
 ## Installation
+
+### Codex
+
+Quick install prompt:
+
+```text
+Fetch and follow instructions from https://raw.githubusercontent.com/etelyatn/cortex-toolkit/refs/heads/main/.codex/INSTALL.md
+```
+
+Detailed guide: `docs/README.codex.md`
 
 ### Claude Code (Marketplace)
 
@@ -63,10 +83,14 @@ Run `/cortex-help` anytime to discover available commands or get contextual sugg
 ## How It Works
 
 ### Skills
-Skills are slash commands that launch specialized agents to handle complex workflows. For example:
-- `/cortex-material-create` → launches Material Designer agent to build materials/instances from specs
-- `/cortex-ui-create` → launches UI Developer agent to build UMG widget hierarchies
-- `/cortex-bp-review` → launches Blueprint Developer agent to review graph structure
+Skills launch specialized agents to handle complex workflows. For example:
+- `cortex-material-create` → launches Material Designer agent to build materials/instances from specs
+- `cortex-ui-create` → launches UI Developer agent to build UMG widget hierarchies
+- `cortex-bp-review` → launches Blueprint Developer agent to review graph structure
+
+Invocation style depends on assistant:
+- Claude Code: slash command form is available (for example `/cortex-start`)
+- Codex: mention the skill name and intent in your request (for example "use cortex-start to set up this project")
 
 Skills keep your conversation clean by running MCP tool sequences in the background. Use Ctrl+O to expand agent output if needed.
 
