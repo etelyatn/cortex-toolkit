@@ -285,15 +285,87 @@ Simple migrations (like BP_JumpPad: high confidence, 0 referencers, no timelines
 
 **Goal:** Generate complete C++ code and a granular task list. All hard thinking happens here — EXECUTE is mechanical.
 
-### Step 1: Generate C++ Code
+### Step 1: Inspect Migrating Graph Nodes (Ground Truth)
 
-Using the approved design and the `cpp-migration-specialist` agent patterns (see `cortex-blueprint/resources/cpp-migration.md`):
+Before generating any C++ code, inspect the actual Blueprint graph nodes to understand exactly what functions are called, what casts are performed, and what properties are accessed.
+
+Scope limitation: `graph_list_nodes` and `graph_get_node` query `UbergraphPages` and `FunctionGraphs` only. They do NOT reach macro graphs, delegate signature graphs, or collapsed subgraphs. If the pre-migration snapshot shows macro instances or collapsed graphs, flag them as requiring manual review.
+
+For each graph listed as "migrating" in the approved design:
+
+1. Call `graph_list_nodes` with the Blueprint path and graph name
+   - This returns: node_id, class, display_name, position, pin_count for every node
+2. For each node that is or inherits from `K2Node_CallFunction` (including `K2Node_CallParentFunction`, `K2Node_CallArrayFunction`):
+   - Call `graph_get_node` to get full pin details
+   - Extract the target function name from `display_name`
+   - IMPORTANT: The display name is human-readable (for example, "Launch Character"), not the C++ function name. The actual C++ function may have a `K2_` prefix (for example, `K2_SetActorLocation` not `SetActorLocation`). Cross-reference with UE documentation or `reflect.class_detail` to get the exact C++ function signature when in doubt.
+   - Record: `{node_id, display_name, inferred_function_name, target_class, parameters}`
+3. For each `K2Node_DynamicCast`:
+   - Record the target class being cast to
+4. For each `K2Node_VariableGet` or `K2Node_VariableSet`:
+   - Record the variable name and whether it is a get or set
+5. For each `K2Node_ComponentBoundEvent`:
+   - Record the component name and event name (for example, OnComponentBeginOverlap)
+   - These require `AddDynamic` delegate binding in C++ — do not confuse with direct function calls
+6. For each `K2Node_CallDelegate` or `K2Node_AssignDelegate`:
+   - Record the delegate name and binding pattern
+7. For latent function calls (`K2Node_CallFunction` where the function is latent — look for "Latent" in display name or node class):
+   - Flag as requiring special C++ treatment (FTimerHandle, async patterns, or UE5 subsystem async)
+
+Build a "Ground Truth Table" and append to migration-plan.md after the Migration Scope section:
+
+~~~markdown
+## Ground Truth Table
+
+| Node ID | Type | Function/Property | Target | Parameters | Notes |
+|---------|------|-------------------|--------|------------|-------|
+| N_123 | CallFunction | LaunchCharacter | ACharacter | FVector, bool, bool | |
+| N_456 | VariableGet | Velocity | Self | -- | |
+| N_789 | Cast | ACharacter | OtherActor | -- | |
+| N_012 | ComponentBoundEvent | OnComponentBeginOverlap | CollisionComp | -- | Needs AddDynamic |
+| N_345 | CallDelegate | OnJumpComplete | Self | -- | DECLARE_DYNAMIC_MULTICAST_DELEGATE |
+~~~
+
+Flag unmappable nodes as WARNING:
+`WARNING: Node N_999 (UK2Node_MacroInstance: "ForEachLoop") has no direct C++ equivalent. Recommend: Replace with standard for-loop in C++ implementation.`
+
+Feed this table into code generation. The generated C++ must use exactly the functions found in the graph — not assumed equivalents.
+
+### Step 2: Generate C++ Code
+
+Using the approved design, Ground Truth Table, and the `cpp-migration-specialist` agent patterns (see `cortex-blueprint/resources/cpp-migration.md`):
 
 1. Generate complete C++ header file
 2. Generate complete C++ source file
 3. Generate Build.cs patch (if module dependencies needed)
 
-Append generated C++ code inline to `migration-plan.md` under a new section. Use the Edit tool to insert after the `## Migration Scope` section:
+Code generation rules (from cpp-migration.md resource):
+- Read all defaults from pre-migration snapshot — never hallucinate values
+- Component names must match SCS variable names exactly (for hierarchy walking)
+- Always include `Super::BeginPlay()`, `Super::Tick()`, `Super::OnConstruction()` where applicable
+- Construction script → `OnConstruction()` override (NOT constructor), unless only visual-sync nodes
+- Timelines → `UTimelineComponent` + curve setup in BeginPlay
+- Event dispatchers → `DECLARE_DYNAMIC_MULTICAST_DELEGATE`
+- Follow `docs/unreal-coding-standards.md` (Epic standard)
+
+### Step 2.5: Cross-Reference Generated Code Against Graph Nodes
+
+After generating C++ code but before writing it to the plan document:
+
+1. For each row in the Ground Truth Table, search the generated `.cpp` for the function/property name
+   - If the function name appears in a method call context -> PASS
+   - If the function name appears but with different parameters -> WARNING: `Parameter mismatch for {function}`
+   - If the function name is not found anywhere in generated code -> ERROR: `Missing C++ equivalent for BP node {node_id}: {function}`
+2. If any ERRORs found:
+   - Do NOT proceed to the hard gate
+   - Present the mismatches to the user
+   - Revise the generated code to match the actual graph nodes
+   - Re-run the cross-reference check
+3. If only WARNINGs:
+   - Include them in the plan document as a "Code Generation Notes" subsection under Generated C++ Code
+   - Proceed to the hard gate (user can review)
+
+Append generated C++ code inline to `migration-plan.md` under a new section. Use the Edit tool to insert after the `## Ground Truth Table` section (or after `## Migration Scope` if Ground Truth Table was not created):
 
 ~~~markdown
 ## Generated C++ Code
@@ -320,15 +392,6 @@ Append generated C++ code inline to `migration-plan.md` under a new section. Use
 Do NOT create a `generated/` directory or separate `.h`/`.cpp` files. The code lives in the plan document until Tasks 5-6 copy it to the actual source paths.
 
 Note for Tasks 5-6 (PREPARE phase): When writing C++ files to disk, extract the code from the fenced code blocks in `migration-plan.md`. Identify the correct block by its heading name (`### Header ({ClassName}.h)` or `### Source ({ClassName}.cpp)`), not by searching for arbitrary `cpp` blocks.
-
-Code generation rules (from cpp-migration.md resource):
-- Read all defaults from pre-migration snapshot — never hallucinate values
-- Component names must match SCS variable names exactly (for hierarchy walking)
-- Always include `Super::BeginPlay()`, `Super::Tick()`, `Super::OnConstruction()` where applicable
-- Construction script → `OnConstruction()` override (NOT constructor), unless only visual-sync nodes
-- Timelines → `UTimelineComponent` + curve setup in BeginPlay
-- Event dispatchers → `DECLARE_DYNAMIC_MULTICAST_DELEGATE`
-- Follow `docs/unreal-coding-standards.md` (Epic standard)
 
 ### Step 2: Generate Task List
 
