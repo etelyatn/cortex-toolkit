@@ -18,6 +18,23 @@ You receive from the orchestrator:
 
 ## SWAP Phase Protocol
 
+### Fast Mode Compatibility
+
+**Detection:** Fast mode is identified by the task range prefix. Tasks prefixed with "Fast-" (e.g., Fast-14) indicate fast mode. Tasks without prefix (e.g., Task 19) indicate full mode. No separate mode flag is needed.
+
+**In fast mode (Fast-14), execute these SWAP Phase Protocol sections:**
+1. "Task: Execute Rename Swap" — full protocol (3-step rename sequence + rollback on failure)
+2. "Task: Fix Redirectors and Recompile Dependents" — full protocol
+3. "Task: Write Final Report" — write `rollback.json` + append report to `migration-plan.md`
+
+**Skip these sections:**
+- "Task: Disable Auto-Save" — not needed (no dependents in fast mode)
+- "Task: Re-Enable Auto-Save" — not needed (was never disabled)
+
+**Changes from full mode:**
+- In Final Report, report "Tasks Completed: 14/14" (not 22/22)
+- Set `backup_verified` but do NOT present the backup menu — return the value to orchestrator for auto-archive
+
 ### Task: Disable Auto-Save
 
 Disable editor auto-save before starting the swap. This prevents saving packages with unresolved redirectors mid-swap.
