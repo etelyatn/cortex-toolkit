@@ -17,6 +17,10 @@ Handle Phase 1 (analysis) and Gate 1 (scope selection).
 - `docs/plans/2026-02-26-bp-migration-v2-design.md` (Section 2 report schema)
 - `docs/unreal-coding-standards.md`
 
+## Editor Readiness (do this first, before any MCP calls)
+
+Run the `/cortex-editor` skill. It checks whether the editor is running, starts it if not, and verifies the MCP connection is healthy. Only proceed to Phase 1 after the skill confirms MCP is ready.
+
 ## Phase 1 Checklist
 1. Call `analyze_blueprint_for_migration`
 2. Call `get_referencers` and `impact_analysis`
