@@ -33,51 +33,35 @@ If `--resume` flag OR `docs/migration/blueprint-to-cpp/{BP_Name}/migration-plan.
 Before entering any stage, verify the editor is alive and MCP is healthy.
 
 **Steps:**
-1. Glob for `Saved/CortexPort-*.txt`
-   - If no port file found: invoke `cortex-editor` skill to start editor and wait for ready
-   - If a port file exists: validate PID is alive with `tasklist /FI "PID eq {pid}" /NH`
-     - If PID is not found: delete stale port file, then invoke `cortex-editor`
-2. Call `get_status` MCP tool to verify the full chain
-   - If it fails: invoke `cortex-editor` skill
-3. Proceed only when `get_status` returns success
+1. Use the Skill tool: `skill: "cortex-status"` — checks the full diagnostic chain (editor process, port file, MCP connection, domains)
+   - If all checks pass AND `blueprint` domain is registered -> proceed to ANALYZE
+   - If editor not running OR port file stale -> go to step 2
+   - If MCP connection fails but editor is running -> go to step 3
+   - If `blueprint` domain is missing -> editor may need full restart (not just reconnect). Go to step 2 with `/cortex-restart`
 
-**Run this check:**
+2. **Editor not running:** Use the Skill tool: `skill: "cortex-editor"` to start the editor
+   - The skill handles: engine path lookup, background launch with `-AutoDeclinePackageRecovery`, port file polling (120s timeout), MCP verification
+   - After skill completes -> re-run `/cortex-status` to confirm `blueprint` domain is registered
+
+3. **MCP connection failed (editor running):** Use the Skill tool: `skill: "cortex-reconnect"`
+   - `/cortex-reconnect` retries `get_status` up to 4 times over ~55 seconds. It is for when the editor process is healthy but the MCP client lost its connection. Prefer this over a full restart when the editor is still running.
+   - If reconnect fails -> use `/cortex-restart` (full restart cycle)
+
+**This check runs:**
 - At pipeline start (before ANALYZE)
 - Before each phase agent dispatch (before EXECUTE, VERIFY, SWAP)
 - After any editor crash recovery
 
-**On failure after 2 retries:** present:
+**On failure after 2 retries (respecting pipeline-wide restart cap of 3):** Present to user via AskUserQuestion:
 ```
 Editor could not be started. Options:
 [1] Retry — try starting editor again
 [2] Manual — I'll start it myself, then continue
 [3] Stop — abort migration
 ```
+If user picks [2] Manual: wait for user to confirm editor is ready, then run `/cortex-status` to verify MCP connection and `blueprint` domain before proceeding.
 
-### Editor Health Check (Reusable)
-
-```bash
-# 1. Find port file
-PORT_FILE=$(ls Saved/CortexPort-*.txt 2>/dev/null | head -1)
-if [ -z "$PORT_FILE" ]; then
-  echo "NO_PORT_FILE"
-  exit 0
-fi
-
-# 2. Extract PID from filename
-PID=$(echo "$PORT_FILE" | grep -oP 'CortexPort-\K\d+')
-
-# 3. Check if PID is alive
-if ! tasklist /FI "PID eq $PID" /NH 2>/dev/null | grep -q "$PID"; then
-  echo "STALE_PORT_FILE"
-  rm "$PORT_FILE"
-  exit 0
-fi
-
-# 4. Read port number
-PORT=$(cat "$PORT_FILE")
-echo "ALIVE:$PORT"
-```
+**Note:** Do NOT use inline bash commands (`tasklist`, `grep`, port file globbing) for editor lifecycle operations. Always delegate to the Cortex core skills which handle edge cases (stale port files, PID validation, multiple editor instances) consistently.
 
 ## Stage 1: ANALYZE
 
@@ -310,21 +294,27 @@ The executor returns:
 
 When a phase agent returns `status: editor_crashed`:
 
-1. Run the Editor Health Check (from Task 0)
-2. If editor is dead:
-   a. Delete stale port file
-   b. Invoke `cortex-restart` skill (`build=no`, `save=no`)
-   c. Wait for MCP connection
-   d. Verify class registration via `reflect.class_detail` (if post-build)
-3. Resume from `failed_task` by re-dispatching the phase agent with updated task range
-4. Update frontmatter: refresh `last_updated`, keep `status: executing`
-5. If restart fails after 2 attempts, present:
-```
-Editor crashed and could not be restarted. Options:
-[1] Retry restart
-[2] I'll restart manually, then continue
-[3] Stop and save progress (resume later with --resume)
-```
+1. Use the Skill tool: `skill: "cortex-status"` to diagnose the state
+2. If editor is dead (status shows "Editor not running" or stale port):
+   a. Use the Skill tool: `skill: "cortex-restart", args: "save=no build=no"` (editor crashed, nothing to save)
+      - The skill handles stale port file cleanup, process verification, and MCP reconnection
+   b. Verify `reflect` and `blueprint` domains are registered in the restart response
+   c. Verify class registration via `reflect.class_detail` (if post-build)
+   d. Increment `editor_restarts` in frontmatter. If >= 3, hard stop (see Pipeline-Wide Restart Limit)
+3. **Re-verify asset state before resuming** (critical for mid-EXECUTE/SWAP crashes):
+   - If crash during EXECUTE: verify the duplicate Blueprint exists and is not corrupted (`get_blueprint_details`)
+   - If crash during SWAP: verify which referencers have already been updated (`get_referencers`). Do NOT blindly re-run from `failed_task` — some referencers may already point to the new asset
+   - The frontmatter `failed_task` indicates where to resume, but the orchestrator must confirm preconditions of that task still hold
+4. Resume from `failed_task` by re-dispatching the phase agent with updated task range
+5. Update frontmatter: refresh `last_updated`, keep `status: executing`
+6. If restart fails after 2 attempts, present via AskUserQuestion:
+   ```
+   Editor crashed and could not be restarted. Options:
+   [1] Retry restart
+   [2] Manual — I'll restart the editor myself, tell me when ready
+   [3] Stop — save progress, resume later with --resume
+   ```
+   If user picks [2] Manual: wait for user confirmation, then run `/cortex-status` to verify before proceeding.
 
 ### VERIFY Phase (Tasks 16-17) — Dispatch Verifier Agent
 
