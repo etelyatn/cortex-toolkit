@@ -23,7 +23,7 @@ tasklist | grep -i UnrealEditor
 
 Check port file:
 ```bash
-cat Saved/CortexPort.txt
+cat Saved/CortexPort-*.txt
 ```
 
 If not running, ask user if they just want to start (redirect to `cortex-editor`).

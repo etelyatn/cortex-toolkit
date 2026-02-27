@@ -37,7 +37,7 @@ ProjectRoot/
 │           ├── tools/{domain}/
 │           └── tests/            ← MCP benchmark tests (E2E, scenarios, stress)
 ├── Saved/
-│   ├── CortexPort.txt          ← TCP port (auto-generated)
+│   ├── CortexPort-{PID}.txt    ← TCP port (auto-generated, per editor instance)
 │   └── Logs/
 ├── ProjectName.uproject
 └── CLAUDE.md                   ← project instructions
@@ -50,7 +50,7 @@ ProjectRoot/
 | `.cortex/config.yaml` | Engine path, active domains, doc references |
 | `.cortex/context.md` | Shared project knowledge for all agents |
 | `.mcp.json` | MCP server connection config |
-| `Saved/CortexPort.txt` | TCP port for MCP ↔ editor communication |
+| `Saved/CortexPort-{PID}.txt` | TCP port for MCP ↔ editor communication (one per editor instance) |
 | `Plugins/UnrealCortex/UnrealCortex.uplugin` | Plugin module list |
 | `cortex-toolkit/cortex-core/hooks/check-ue-editor.sh` | PreToolUse guard — auto-verifies/starts editor before MCP calls |
 | `cortex-toolkit/cortex-core/hooks/hooks.json` | Hook configuration (PreToolUse + SessionStart) |

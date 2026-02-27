@@ -40,7 +40,7 @@ Gather these signals via file reads only — no MCP calls:
 ### Signal Gathering
 
 1. **Project initialized?** Check if `.cortex/config.yaml` exists
-2. **Editor running?** Check if `Saved/CortexPort.txt` exists. If yes, read the port number.
+2. **Editor running?** Check if a `Saved/CortexPort-*.txt` port file exists. If yes, read the port number.
 3. **Schema freshness?** Check if `.cortex/schema/` exists. If yes, check modification time of files inside it.
 4. **Content inventory?** Check which `Content/` subdirectories exist:
    - `Content/Data/` → count `.uasset` files
@@ -56,7 +56,7 @@ Generate 2-3 suggestions in this priority order:
 
 1. **Broken infrastructure** → fix first
    - No `.cortex/config.yaml` → suggest `cortex-init`
-   - No `Saved/CortexPort.txt` → suggest `cortex-editor`
+   - No `Saved/CortexPort-*.txt` → suggest `cortex-editor`
 2. **Missing setup** → suggest setup
    - No `.cortex/schema/` or schema older than 7 days → suggest `cortex-schema-refresh`
    - Empty `.cortex/context.md` (still has template comments) → suggest filling it in

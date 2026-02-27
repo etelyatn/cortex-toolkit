@@ -37,7 +37,7 @@ Analyze test failures, identify root causes, and suggest fixes. You understand b
 
 1. **Read the test file** — understand the assertion
 2. **Check the error** — common patterns:
-   - `ConnectionError` → editor not running, no `CortexPort.txt`
+   - `ConnectionError` → editor not running, no `CortexPort-*.txt`
    - `TimeoutError` → TCP command didn't respond
    - `AssertionError` → response doesn't match expected schema
 3. **Check fixtures** — are pytest fixtures providing correct state?
@@ -68,7 +68,7 @@ cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_mcp_scenarios.py -v -k s
 ```
 
 **Benchmark-specific debugging patterns:**
-- `ConnectionError` on all tests → editor not running or `Saved/CortexPort.txt` missing
+- `ConnectionError` on all tests → editor not running or `Saved/CortexPort-*.txt` missing
 - Scenario passes individually but fails in suite → test isolation issue (leftover assets from prior test)
 - Stress test timeout → check batch size limits (200 max) and TCP timeout scaling
 - `$ref resolution failed` → previous batch step failed or returned unexpected schema

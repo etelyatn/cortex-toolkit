@@ -12,7 +12,7 @@ Use skill names directly in instructions (for example `cortex-status`).
 
 ## When to Use
 
-> **Note:** Most reconnection scenarios are now handled automatically. The PreToolUse hook verifies editor connectivity before every MCP call, and the TCP client re-reads `CortexPort.txt` on reconnect to pick up port changes. Use this skill only when automatic recovery has failed.
+> **Note:** Most reconnection scenarios are now handled automatically. The PreToolUse hook verifies editor connectivity before every MCP call, and the TCP client re-reads `CortexPort-*.txt` on reconnect to pick up port changes. Use this skill only when automatic recovery has failed.
 
 - MCP tools are failing with connection errors **after** the PreToolUse hook passed
 - When `cortex-status` reports MCP unavailable but editor is running
@@ -36,9 +36,9 @@ tasklist | grep -i UnrealEditor
 
 ### 2. Check Port File
 
-Verify `Saved/CortexPort.txt` exists (written by CortexCore on startup):
+Verify a `Saved/CortexPort-*.txt` port file exists (written by CortexCore on startup):
 ```bash
-cat Saved/CortexPort.txt
+cat Saved/CortexPort-*.txt
 ```
 
 **If missing:**
@@ -125,4 +125,4 @@ Troubleshooting:
 
 - `get_status` MCP tool returns successful response
 - Registered domains are listed
-- Port number matches `Saved/CortexPort.txt`
+- Port number matches `Saved/CortexPort-*.txt`

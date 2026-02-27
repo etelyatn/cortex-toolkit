@@ -58,7 +58,7 @@ First run: `uv add --dev pytest pytest-cov`
 
 ### E2E Tests
 
-Require running UE editor (`Saved/CortexPort.txt` must exist):
+Require running UE editor (`Saved/CortexPort-*.txt` must exist):
 ```bash
 uv run pytest tests/test_e2e.py -v
 ```

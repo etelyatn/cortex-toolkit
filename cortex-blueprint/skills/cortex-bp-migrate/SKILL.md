@@ -257,6 +257,7 @@ Write `docs/migration/blueprint-to-cpp/{BP_Name}/migration-plan.md` with:
    tasks:
      - { id: 1, status: pending }
      # ... all tasks
+   editor_restarts: 0
    files_created: []
    files_modified: []
    ---
@@ -381,6 +382,7 @@ When a phase agent returns `status: editor_crashed`:
    d. Increment `editor_restarts` in frontmatter. If >= 3, hard stop (see Pipeline-Wide Restart Limit)
 3. **Re-verify asset state before resuming** (critical for mid-EXECUTE/SWAP crashes):
    - If crash during EXECUTE: verify the duplicate Blueprint exists and is not corrupted (`get_blueprint_details`)
+   - If crash during VERIFY: VERIFY is read-only — safe to retry from `failed_task` without re-verification of asset state
    - If crash during SWAP: verify which referencers have already been updated (`get_referencers`). Do NOT blindly re-run from `failed_task` — some referencers may already point to the new asset
    - The frontmatter `failed_task` indicates where to resume, but the orchestrator must confirm preconditions of that task still hold
 4. Resume from `failed_task` by re-dispatching the phase agent with updated task range
