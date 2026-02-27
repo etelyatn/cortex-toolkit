@@ -169,7 +169,7 @@ Task 4: Duplicate Blueprint
 Task 5: Write C++ header
 Task 6: Write C++ source
 Task 7: Build project (outside editor)
-Task 8: Restart editor, verify class registered
+Task 8: Restart editor (automated via cortex-restart), verify class registered
 
 ── EXECUTE (on BP_Name_Migration) ───────────────────────
 Task 9: Validate component name collisions
@@ -275,7 +275,23 @@ These are simple operations the orchestrator runs directly (no agent dispatch):
 - **Task 4:** Call `duplicate_blueprint`
 - **Tasks 5-6:** Write generated code from `generated/` directory to target paths
 - **Task 7:** Run UBT build command, verify 0 errors/0 warnings
-- **Task 8:** Ask user to restart editor. Wait for confirmation. Verify MCP reconnects. Verify class exists via `query_class_hierarchy`.
+- **Task 8: Restart editor and verify class registration**
+  1. Use the Skill tool: `skill: "cortex-restart", args: "save=yes build=no"` (Task 7 already built)
+     - This handles: graceful shutdown -> wait for exit -> relaunch -> wait for port file -> verify MCP
+  2. After restart completes, verify the `reflect` domain is listed in the restart response's `domains` field
+     - If `reflect` domain missing: report error — CortexReflect plugin may not be enabled
+  3. Verify the new C++ class is registered:
+     - Call `reflect.class_detail` with the target class name (e.g., `AJumpPad`)
+     - If class not found: the build may not have been loaded. Report error, present recovery menu
+  4. Only fall back to asking the user if `/cortex-restart` fails after 2 attempts (and pipeline-wide restart cap not exceeded):
+     ```
+     Automated restart failed. Options:
+     [1] Retry — try restarting again
+     [2] Manual — I'll restart the editor myself, tell me when ready
+     [3] Stop — save progress, resume later with --resume
+     ```
+  5. If user picks [2] Manual: wait for user to confirm editor is ready, then run `/cortex-status` to verify MCP connection before proceeding
+  6. Update frontmatter: `current_task: 8`, `status: executing`, increment `editor_restarts`
 
 Update frontmatter after each task: increment `current_task`, add to `files_created`/`files_modified`.
 
