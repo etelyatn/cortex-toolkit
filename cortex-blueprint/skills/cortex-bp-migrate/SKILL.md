@@ -414,7 +414,7 @@ Do NOT create a `generated/` directory or separate `.h`/`.cpp` files. The code l
 
 Note for Tasks 5-6 (PREPARE phase): When writing C++ files to disk, extract the code from the fenced code blocks in `migration-plan.md`. Identify the correct block by its heading name (`### Header ({ClassName}.h)` or `### Source ({ClassName}.cpp)`), not by searching for arbitrary `cpp` blocks.
 
-### Step 2: Generate Task List
+### Step 3: Generate Task List
 
 Generate a numbered task list following this template. Adapt task count based on the Blueprint's complexity (more components = more sub-tasks in Task 14, etc.):
 
@@ -459,7 +459,7 @@ Each task must include:
 - **Verify** — how to confirm success
 - **Rollback** — what to undo on failure (file manifest for PREPARE, re-duplicate for EXECUTE, detailed steps for SWAP)
 
-### Step 3: Update Plan Document
+### Step 4: Update Plan Document
 
 Append to the existing `migration-plan.md` (created in ANALYZE stage). Use the Edit tool to insert after the `## Generated C++ Code` section:
 
@@ -480,7 +480,7 @@ Each task includes Action, Verify, and Rollback:
 (etc.)
 ```
 
-### Step 4: Hard Gate — User Approves Plan
+### Step 5: Hard Gate — User Approves Plan
 
 Present the plan summary:
 - Total task count
@@ -754,7 +754,7 @@ What would you like to do with the backup?
 
 - On [1] Keep: no action needed
 - On [2] Archive: call `rename_blueprint` to move to `/Game/Migration/Backups/`, then call `fixup_redirectors` on the source directory to resolve the redirector left behind
-- On [3] Delete: call Blueprint `delete` tool. If delete fails (asset not found), report warning but do not treat as error — the asset may have been consumed by redirector resolution.
+- On [3] Delete: call `delete_blueprint`. If delete fails (asset not found), report warning but do not treat as error — the asset may have been consumed by redirector resolution.
 
 ### Step 3: Update Plan Document
 
