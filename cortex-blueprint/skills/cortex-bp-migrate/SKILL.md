@@ -63,6 +63,23 @@ If user picks [2] Manual: wait for user to confirm editor is ready, then run `/c
 
 **Note:** Do NOT use inline bash commands (`tasklist`, `grep`, port file globbing) for editor lifecycle operations. Always delegate to the Cortex core skills which handle edge cases (stale port files, PID validation, multiple editor instances) consistently.
 
+### Pre-Dispatch Protocol (referenced by all phase dispatches)
+
+Before dispatching ANY phase agent (executor, verifier, finalizer):
+1. Run `/cortex-status` — verify editor alive + MCP connected + `blueprint` domain registered
+2. If editor is down -> use `/cortex-editor` or `/cortex-restart` as appropriate
+3. Only dispatch agent once MCP connection is confirmed and `blueprint` domain is registered
+4. If editor cannot be started after 2 attempts (respecting pipeline-wide restart cap) -> present:
+   ```
+   Editor is down before agent dispatch. Options:
+   [1] Retry — try starting editor again
+   [2] Manual — I'll start it myself, then continue
+   [3] Stop — save progress, resume later with --resume
+   ```
+   If user picks [2] Manual: wait for confirmation, re-run `/cortex-status` before dispatching.
+
+This prevents wasted agent dispatches (significant overhead per dispatch) when the editor is already dead.
+
 ## Stage 1: ANALYZE
 
 **Goal:** Understand user goals, analyze the Blueprint technically, present a migration design for approval.
@@ -281,6 +298,8 @@ Update frontmatter after each task: increment `current_task`, add to `files_crea
 
 ### EXECUTE Phase (Tasks 9-15) — Dispatch Executor Agent
 
+**Pre-dispatch:** Run Pre-Dispatch Protocol (see above).
+
 Dispatch `cortex-blueprint:bp-migration-executor` with:
 - Full text of migration-plan.md
 - Task range: 9-15
@@ -318,6 +337,8 @@ When a phase agent returns `status: editor_crashed`:
 
 ### VERIFY Phase (Tasks 16-17) — Dispatch Verifier Agent
 
+**Pre-dispatch:** Run Pre-Dispatch Protocol (see above).
+
 Dispatch `cortex-blueprint:bp-migration-verifier` with:
 - Full text of migration-plan.md
 - 01-pre-migration.json content
@@ -336,6 +357,8 @@ Present verification summary. Ask for approval:
 - [Abort] — delete migration copy, keep original. Clean up: delete `BP_Name_Migration`, delete C++ files, update frontmatter `status: failed`.
 
 ### SWAP + COMPLETE Phase (Tasks 18-22) — Dispatch Finalizer Agent
+
+**Pre-dispatch:** Run Pre-Dispatch Protocol (see above).
 
 Dispatch `cortex-blueprint:bp-migration-finalizer` with:
 - Full text of migration-plan.md
