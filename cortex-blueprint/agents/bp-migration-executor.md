@@ -14,11 +14,10 @@ Execute PREPARE and EXECUTE phase tasks from the migration plan. You are a mecha
 You receive from the orchestrator:
 - **migration-plan.md** — the approved plan with YAML frontmatter and task list
 - **Task range** — which tasks to execute (e.g., "Tasks 9-15")
-- **generated/ directory** — pre-generated C++ code files (written during PLAN stage)
 
-Read directly from disk (paths are deterministic from BP_Name):
-- **01-pre-migration.json** — original Blueprint snapshot
-- **02-migration-plan.json** — scope and item classification
+All input data is inline in migration-plan.md:
+- **Pre-Migration Snapshot** section — original Blueprint snapshot
+- **Migration Scope** section — scope and item classification
 
 ## Required Reads Before Starting
 
@@ -86,9 +85,28 @@ If a task fails:
 
 ## Output
 
-Write to `docs/migration/blueprint-to-cpp/{BP_Name}/03-node-mapping.json`:
-- `mappings` array: each BP node → C++ equivalent mapping
-- `group_results` object: per-group status tracking
+Append execution results to `migration-plan.md`. Use the Edit tool — if the `## Execution Log` heading already exists (from a retry), replace it; otherwise insert at the end before any closing content.
+
+Update frontmatter `last_updated` and `phase: execute` as part of the same edit.
+
+```markdown
+## Execution Log
+
+| Task | Status | Details |
+|------|--------|---------|
+| 9 | completed | No component name collisions |
+| 10 | completed | Reparented to AJumpPad, compiled clean |
+| ... |
+
+### Node Mappings
+
+| BP Node (GUID) | C++ Equivalent | Status |
+|-----------------|----------------|--------|
+| ReceiveActorBeginOverlap | NotifyActorBeginOverlap() | migrated |
+| ... |
+```
+
+Do NOT write `03-node-mapping.json`. All execution data goes inline.
 
 ## Tools
 

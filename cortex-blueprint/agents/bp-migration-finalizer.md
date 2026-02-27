@@ -13,10 +13,7 @@ Handle the SWAP and COMPLETE phases. This is the most critical phase — mistake
 
 You receive from the orchestrator:
 - **migration-plan.md** — the approved plan with YAML frontmatter
-- **01-pre-migration.json** — original Blueprint snapshot
-- **02-migration-plan.json** — scope and item classification
-- **03-node-mapping.json** — execution results
-- **04-verification.json** — verification results
+- **Relevant sections of migration-plan.md** — Execution Log, Verification Results, Task List (orchestrator extracts these before dispatch)
 - **Task range** — which tasks to execute (e.g., "Tasks 18-22")
 
 ## SWAP Phase Protocol
@@ -27,11 +24,15 @@ Disable editor auto-save before starting the swap. This prevents saving packages
 
 ### Task: Execute Rename Swap
 
-Use `rename_blueprint` to batch both renames in a single call:
-1. `BP_Name` → `BP_Name_Backup`
-2. `BP_Name_Migration` → `BP_Name`
+Execute the rename swap as a 3-step sequence (NOT a single batch — redirectors must be fixed between steps):
+1. `rename_blueprint`: `BP_Name` -> `BP_Name_Backup`
+2. `fixup_redirectors` on the parent directory — CRITICAL: this resolves the redirector left at `BP_Name`'s original location. Without this step, step 3 can fail because UE's `FAssetToolsModule` may refuse to rename to a path occupied by a redirector.
+3. `rename_blueprint`: `BP_Name_Migration` -> `BP_Name`
 
-UE handles redirector-at-destination and `_C` suffix (GeneratedClass) automatically.
+Rollback protocol: If step 3 fails after step 1 succeeded, immediately reverse step 1:
+- `rename_blueprint`: `BP_Name_Backup` -> `BP_Name`
+- Report the failure to orchestrator with both the original error and the rollback status
+- Do NOT leave the project in a state where `BP_Name` does not exist
 
 **Step 2b: Verify backup exists on disk**
 
@@ -40,11 +41,11 @@ After rename swap completes:
    ```bash
    ls Content/**/BP_{Name}_Backup.uasset 2>/dev/null
    ```
-2. If backup exists: record in `05-rollback.json`:
+2. If backup exists: record in `rollback.json`:
    - `"backup_verified": true`
    - `"backup_path": "/Game/.../BP_Name_Backup"`
 3. If backup does NOT exist:
-   - Set `"backup_verified": false` in `05-rollback.json`
+   - Set `"backup_verified": false` in `rollback.json`
    - Report WARNING to orchestrator: "Backup asset not found on disk after rename swap. The original Blueprint may have been consumed by redirector resolution."
    - Orchestrator must inform the user before proceeding to COMPLETE.
 
@@ -52,7 +53,7 @@ After rename swap completes:
 - If `backup_verified: false`: skip backup handling menu entirely and report "No backup created — original was replaced directly via redirector chain."
 - If `backup_verified: true`: show backup handling menu via `AskUserQuestion`.
 
-**Rollback tracking (record in 05-rollback.json):**
+**Rollback tracking (record in rollback.json):**
 - If first rename succeeded but second failed: reverse first rename
 - If both renames succeeded but save failed: reverse both renames, save
 - Record `git_commit_before` for C++ file rollback
@@ -76,28 +77,47 @@ Re-enable editor auto-save after swap is complete and all dependents are recompi
 
 ### Task: Write Final Report
 
-Merge all section files into `report.json`:
-- `01-pre-migration.json`
-- `02-migration-plan.json`
-- `03-node-mapping.json`
-- `04-verification.json`
-- `05-rollback.json`
-
-Return a summary to the orchestrator for the final user gate:
-
+Write `rollback.json` (the ONE file that remains separate — machine-readable for automated rollback):
+```json
+{
+  "backup_verified": true,
+  "backup_path": "/Game/.../BP_Name_Backup",
+  "rename_steps": [
+    { "step": 1, "from": "BP_Name", "to": "BP_Name_Backup", "status": "completed" },
+    { "step": "1b", "action": "fixup_redirectors", "status": "completed" },
+    { "step": 2, "from": "BP_Name_Migration", "to": "BP_Name", "status": "completed" }
+  ],
+  "cpp_files": ["Source/.../ClassName.h", "Source/.../ClassName.cpp"],
+  "git_commit_before": "{hash}"
+}
 ```
-Migration Complete: {BP_Name} → {ClassName}
-  Backup: /Game/Blueprints/{BP_Name}_Backup
-  C++ class: {ClassName}
-  Report: docs/migration/blueprint-to-cpp/{BP_Name}/report.json
+
+Append final report to `migration-plan.md`. Use the Edit tool — if the `## Final Report` heading already exists, replace it; otherwise insert at the end.
+
+Update frontmatter `status: completed`, `phase: complete`, `last_updated` as part of the same edit.
+
+```markdown
+## Final Report
+
+| Metric | Value |
+|--------|-------|
+| Status | Completed |
+| Duration | {time} |
+| Tasks Completed | 22/22 |
+| Tasks Skipped | 0 |
+| Backup | {path or "not preserved"} |
+| C++ Class | {ClassName} at {header_path} |
+
+### Files Created
+- `Source/{Module}/{ClassName}.h`
+- `Source/{Module}/{ClassName}.cpp`
+
+### Files Modified
+- `Source/{Module}/{Module}.Build.cs` (if applicable)
+- `/Game/.../{BP_Name}.uasset` (reparented)
 ```
 
-**Backup Handling (only if `backup_verified: true`):**
-
-Use `AskUserQuestion` with these options:
-- [1] Keep — stays in place as a safety net
-- [2] Archive — move to `/Game/Migration/Backups/`
-- [3] Delete — remove it (migration confirmed clean)
+Do NOT write `report.json`. The final report is inline.
 
 ## Crash Detection Protocol
 
@@ -136,8 +156,8 @@ If the swap fails:
 ## Output
 
 Write:
-- `docs/migration/blueprint-to-cpp/{BP_Name}/05-rollback.json` — rollback steps and status
-- `docs/migration/blueprint-to-cpp/{BP_Name}/report.json` — merged final report
+- `docs/migration/blueprint-to-cpp/{BP_Name}/rollback.json` — rollback steps and status
+- Append final report to `docs/migration/blueprint-to-cpp/{BP_Name}/migration-plan.md`
 
 ## Tools
 

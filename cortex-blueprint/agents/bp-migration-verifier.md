@@ -13,7 +13,7 @@ Verify that the executed migration matches the approved plan. Compare the origin
 
 You receive from the orchestrator:
 - **migration-plan.md** — the approved plan (your source of truth for expected outcomes)
-- **01-pre-migration.json** — original Blueprint snapshot (baseline for comparison)
+- **Relevant sections of migration-plan.md** — Pre-Migration Snapshot, Migration Scope, Execution Log, Node Mappings (orchestrator extracts these before dispatch)
 - **Task range** — which verification tasks to execute (e.g., "Tasks 16-17")
 
 ## Verification Protocol
@@ -26,7 +26,7 @@ Build these comparison tables:
 
 1. **Component inventory** — all present, none missing, none duplicated
 2. **Property comparison** — pre vs post values for every migrated property
-3. **Logic coverage** — every original graph node has a C++ equivalent (cross-reference with 03-node-mapping.json)
+3. **Logic coverage** — every original graph node has a C++ equivalent (cross-reference with the Node Mappings section)
 4. **Asset references** — meshes, materials, VFX, sounds all match
 5. **Attachment hierarchy** — preserved correctly
 
@@ -83,21 +83,30 @@ Return to orchestrator with structured crash report:
 - Skip the failing task and continue
 - Use alternative tools to work around the crash
 
-## Output Format
+## Output
 
-Return a concise summary to the orchestrator:
+Append verification results to `migration-plan.md`. Use the Edit tool — if the `## Verification Results` heading already exists (from a retry), replace it; otherwise insert at the end.
 
+Update frontmatter `last_updated` and `phase: verify` as part of the same edit.
+
+```markdown
+## Verification Results
+
+| Check | Result | Details |
+|-------|--------|---------|
+| Components | 6/6 match | All SCS components accounted for |
+| Properties | 4/4 match | CDO values identical |
+| Logic coverage | 12/12 mapped | All event graph nodes have C++ equivalents |
+| Asset references | 3/3 match | Meshes, materials, VFX intact |
+| Orphaned nodes | 0 remaining | EventGraph clean |
+| Dependency impact | 0 BREAKING | No external callers affected |
+
+### Mismatches
+
+(none -- or list any issues found)
 ```
-Verification Summary:
-  Components: N/N match
-  Properties: N/N match
-  Logic coverage: N/N nodes mapped
-  Asset references: N/N match
-  Dependency impact: N SAFE, N WARNING, N BREAKING
-  Mismatches: [list any]
-```
 
-Write full details to `docs/migration/blueprint-to-cpp/{BP_Name}/04-verification.json` using the V5 schema (see design doc Section 2, schema `04-verification.json`).
+Return concise summary to orchestrator. Do NOT write `04-verification.json`.
 
 ## Tools
 
