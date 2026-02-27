@@ -290,6 +290,26 @@ The executor returns:
 - Per-task status (completed or failed with error)
 - 03-node-mapping.json written to disk
 
+### Crash Recovery (Orchestrator)
+
+When a phase agent returns `status: editor_crashed`:
+
+1. Run the Editor Health Check (from Task 0)
+2. If editor is dead:
+   a. Delete stale port file
+   b. Invoke `/cortex-restart` skill (`build=no`, `save=no`)
+   c. Wait for MCP connection
+   d. Verify class registration via `reflect.class_detail` (if post-build)
+3. Resume from `failed_task` by re-dispatching the phase agent with updated task range
+4. Update frontmatter: refresh `last_updated`, keep `status: executing`
+5. If restart fails after 2 attempts, present:
+```
+Editor crashed and could not be restarted. Options:
+[1] Retry restart
+[2] I'll restart manually, then continue
+[3] Stop and save progress (resume later with --resume)
+```
+
 ### VERIFY Phase (Tasks 16-17) — Dispatch Verifier Agent
 
 Dispatch `cortex-blueprint:bp-migration-verifier` with:

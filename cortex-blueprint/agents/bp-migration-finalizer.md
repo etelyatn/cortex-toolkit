@@ -73,6 +73,32 @@ Migration Complete: {BP_Name} → {ClassName}
   Report: docs/migration/blueprint-to-cpp/{BP_Name}/report.json
 ```
 
+## Crash Detection Protocol
+
+Before every MCP tool call, and after any MCP error:
+
+**Detection:**
+- If MCP tool returns ConnectionError, ConnectionReset, or ConnectionRefused: **STOP IMMEDIATELY**. Do not retry. Do not work around.
+- If MCP tool does not respond within 30 seconds: check whether editor PID is alive. If PID is dead, treat as crash.
+
+**Response:**
+Return to orchestrator with structured crash report:
+```json
+{
+  "status": "editor_crashed",
+  "failed_task": <task_number>,
+  "last_successful_task": <task_number>,
+  "error": "<connection error message>",
+  "recovery_hint": "restart_editor_and_resume"
+}
+```
+
+**NEVER:**
+- Retry MCP calls after connection loss
+- Attempt to restart the editor yourself
+- Skip the failing task and continue
+- Use alternative tools to work around the crash
+
 ## Recovery
 
 If the swap fails:

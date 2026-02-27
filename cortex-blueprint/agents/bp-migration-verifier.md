@@ -57,6 +57,32 @@ Call `analyze_blueprint_for_migration` on the migrated copy for post-migration s
 
 For Blueprints with visual components, capture viewport screenshots of both original and migrated copy using `capture_screenshot`. Skip for non-visual BPs.
 
+## Crash Detection Protocol
+
+Before every MCP tool call, and after any MCP error:
+
+**Detection:**
+- If MCP tool returns ConnectionError, ConnectionReset, or ConnectionRefused: **STOP IMMEDIATELY**. Do not retry. Do not work around.
+- If MCP tool does not respond within 30 seconds: check whether editor PID is alive. If PID is dead, treat as crash.
+
+**Response:**
+Return to orchestrator with structured crash report:
+```json
+{
+  "status": "editor_crashed",
+  "failed_task": <task_number>,
+  "last_successful_task": <task_number>,
+  "error": "<connection error message>",
+  "recovery_hint": "restart_editor_and_resume"
+}
+```
+
+**NEVER:**
+- Retry MCP calls after connection loss
+- Attempt to restart the editor yourself
+- Skip the failing task and continue
+- Use alternative tools to work around the crash
+
 ## Output Format
 
 Return a concise summary to the orchestrator:
