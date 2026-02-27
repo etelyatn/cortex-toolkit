@@ -49,9 +49,9 @@ After rename swap completes:
    - Report WARNING to orchestrator: "Backup asset not found on disk after rename swap. The original Blueprint may have been consumed by redirector resolution."
    - Orchestrator must inform the user before proceeding to COMPLETE.
 
-**Impact on backup handling menu:**
-- If `backup_verified: false`: skip backup handling menu entirely and report "No backup created — original was replaced directly via redirector chain."
-- If `backup_verified: true`: show backup handling menu via `AskUserQuestion`.
+**Backup status reporting:**
+- Report `backup_verified` status to the orchestrator in your return summary
+- The orchestrator handles the user-facing backup menu (Keep/Archive/Delete) — do NOT present backup options to the user from this agent
 
 **Rollback tracking (record in rollback.json):**
 - If first rename succeeded but second failed: reverse first rename

@@ -12,8 +12,7 @@ Verify that the executed migration matches the approved plan. Compare the origin
 ## Inputs
 
 You receive from the orchestrator:
-- **migration-plan.md** — the approved plan (your source of truth for expected outcomes)
-- **Relevant sections of migration-plan.md** — Pre-Migration Snapshot, Migration Scope, Execution Log, Node Mappings (orchestrator extracts these before dispatch)
+- **Relevant sections of migration-plan.md** — Pre-Migration Snapshot, Migration Scope, Execution Log, Node Mappings (orchestrator extracts these before dispatch — you do NOT receive the full file)
 - **Task range** — which verification tasks to execute (e.g., "Tasks 16-17")
 
 ## Verification Protocol
