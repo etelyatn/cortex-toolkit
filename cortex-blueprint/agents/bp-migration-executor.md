@@ -1,7 +1,7 @@
 ---
 name: bp-migration-executor
 description: Execute Blueprint cleanup tasks from an approved migration plan. Receives task range, executes mechanically, reports per-task status.
-model: inherit
+model: sonnet
 color: orange
 ---
 

@@ -1,7 +1,7 @@
 ---
 name: bp-migration-verifier
 description: Verify migration results against the approved plan. Structural comparison, dependency impact, and property parity.
-model: inherit
+model: sonnet
 color: blue
 ---
 

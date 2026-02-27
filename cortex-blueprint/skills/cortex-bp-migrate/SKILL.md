@@ -80,6 +80,25 @@ Before dispatching ANY phase agent (executor, verifier, finalizer):
 
 This prevents wasted agent dispatches (significant overhead per dispatch) when the editor is already dead.
 
+### Model Selection Rules
+
+**All migration phase agents MUST use sonnet or higher.** Do not dispatch with haiku.
+
+**Intent:** `model: sonnet` is set as a **capability floor** — these agents require at least sonnet-level reasoning for MCP tool calls. This is an intentional trade-off:
+- If your session runs on Opus, agents will run at sonnet (not Opus). This is by design for cost control — phase agents are mechanical executors, not creative thinkers. Sonnet is sufficient for MCP operations.
+- If your session runs on sonnet, agents inherit the same level (no change).
+- If your session runs on haiku, agents are upgraded to sonnet (the whole point).
+
+| Context | Model | Reason |
+|---------|-------|--------|
+| Phase agents (executor, verifier, finalizer) | sonnet (frontmatter enforced) | MCP tool calls require understanding tool naming, parameter schemas, and error handling |
+| Orchestrator operations | session model (no override) | Orchestrator runs at whatever model the user's session uses; do not attempt to switch models mid-conversation |
+| Error recovery, MCP response interpretation | sonnet (via agent dispatch) | Complex reasoning required |
+
+The phase agent frontmatters enforce `model: sonnet`. Do not override this with `model: haiku` in the Task tool dispatch.
+
+**Why not haiku for MCP tasks:** During the BP_JumpPad migration, haiku agents confused TCP command names with MCP tool names, returned "UNKNOWN_COMMAND" errors, and couldn't distinguish "editor not running" from "stale port file." Sonnet handled all of these correctly.
+
 ## Stage 1: ANALYZE
 
 **Goal:** Understand user goals, analyze the Blueprint technically, present a migration design for approval.
