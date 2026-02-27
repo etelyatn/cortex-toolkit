@@ -16,6 +16,8 @@ Extract:
 - mode flag: `--audit` or `--dry-run`
 - migration preferences
 
+Check whether `docs/migration/blueprint-to-cpp/{BP_Name}/` exists and contains section files (e.g., `01-pre-migration.json`) from a previous v2 run. If it does, note this to the user and offer to resume via the `bp-migration-analyst` agent instead of starting fresh.
+
 ### 2. Launch C++ Migration Specialist Agent
 
 Delegate to `cortex-blueprint:cpp-migration-specialist`.
@@ -30,7 +32,7 @@ Delegate to `cortex-blueprint:cpp-migration-specialist`.
 5. Generate C++ code or patches (unless audit mode or Delete/Keep)
 6. Present analysis and code
 7. Ask before writing files (unless dry-run)
-8. After file write, ask user about Blueprint cleanup (Phase 7)
+8. After file write, ask user about Blueprint cleanup. Cleanup order: Reparent → Disconnect nodes → Remove functions → Remove variables → Remove SCS components (consumers before producers)
 
 ### 4. Review Agent Results
 
@@ -71,3 +73,5 @@ All common Blueprint constructs are translated to C++:
 - `/cortex-bp-migrate BP_HealthPickup --dry-run`
 - `/cortex-bp-migrate BP_Player --include-all` - skip element selection, migrate everything
 - `--skip-cleanup` — Skip Phase 7 Blueprint cleanup prompt
+
+> **For interactive guided migration** with dependency analysis, non-destructive rename-swap, rollback support, and section-based reports that survive editor restarts, use `/cortex-bp-migrate-guided` instead.
