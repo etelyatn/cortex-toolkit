@@ -279,6 +279,27 @@ Simple migrations (like BP_JumpPad: high confidence, 0 referencers, no timelines
 
 **If `--audit` flag:** Stop here. Present design and exit.
 
+### Migration Complexity Classification
+
+After ANALYZE completes, classify the migration as simple or complex:
+
+Simple migration (ALL must be true):
+- `migration_confidence` = high
+- `referencers` = 0
+- `blueprint_children_count` = 0
+- No timelines
+- No event dispatchers
+- No interfaces implemented
+- Parent is a C++ class (not another Blueprint)
+- Single migration pass (`total_planned_passes` = 1)
+- No UserConstructionScript nodes beyond visual sync (see cpp-migration.md "Visual Sync Classification")
+
+Complex migration: anything that fails one or more simple criteria.
+
+Record in frontmatter: `complexity: simple` or `complexity: complex`.
+
+This classification determines the agent dispatch strategy in EXECUTE stage.
+
 ---
 
 ## Stage 2: PLAN
@@ -548,6 +569,64 @@ tasks:
 
 **On failure:** Set `status: failed`, `failed_task: <N>` BEFORE presenting recovery options. This ensures the failure point is persisted even if the session crashes.
 
+### Agent Dispatch Strategy
+
+Simple migrations -- 2 dispatches:
+
+| Phase | Handler | Rationale |
+|-------|---------|-----------|
+| PREPARE (Tasks 1-8) | Orchestrator inline | No agent needed for file ops + build |
+| EXECUTE (Tasks 9-15) | Executor agent (sonnet) | Multi-step MCP workflow, needs dedicated agent |
+| VERIFY (Tasks 16-17) | Orchestrator inline | Simple: compile check + component delta + orphan check. No full verifier needed. |
+| SWAP + COMPLETE (Tasks 18-22) | Finalizer agent (sonnet) | Rename swap is critical, needs dedicated agent |
+
+Complex migrations -- 3 dispatches (unchanged):
+
+| Phase | Handler | Rationale |
+|-------|---------|-----------|
+| PREPARE (Tasks 1-8) | Orchestrator inline | Same as simple |
+| EXECUTE (Tasks 9-15) | Executor agent (sonnet) | Same as simple |
+| VERIFY (Tasks 16-17) | Verifier agent (sonnet) | Full structural comparison, dependency impact analysis needed |
+| SWAP + COMPLETE (Tasks 18-22) | Finalizer agent (sonnet) | Same as simple |
+
+### Inline Verification (Simple Migrations Only)
+
+When `complexity: simple`, the orchestrator handles VERIFY directly instead of dispatching the verifier agent:
+
+Task 16 -- Simplified Structural Verification:
+1. Call `compile_blueprint` on `BP_Name_Migration` -> must compile clean
+2. Call `analyze_blueprint_for_migration` on `BP_Name_Migration`:
+   - Verify parent class is the target C++ class
+   - Check that migrated variables are gone
+   - Check that migrated functions are gone
+   - Component count delta: post-migration SCS component count should equal `pre_migration_scs_count - migrated_component_count`. The migrated components now live in the C++ class (via `CreateDefaultSubobject`), so they should have been removed from the Blueprint's SCS.
+3. Check for orphaned nodes: if any migrated graphs had events disconnected, verify node count decreased (orphans were deleted by executor step 3b)
+
+Task 17 -- Simplified Dependency Check:
+- Skip entirely if `referencers = 0` (already known from ANALYZE)
+- If referencers > 0 (should not happen for simple migrations): fall back to full verifier agent
+
+Verification gate:
+
+```text
+Verification (inline -- simple migration):
+  Compile: clean
+  Parent: {ClassName} [PASS]
+  Components: {post_count}/{expected_count} [PASS]
+  Migrated vars removed: [PASS]
+  Migrated funcs removed: [PASS]
+  Orphaned nodes: 0
+
+Note: CDO property comparison was skipped (simple migration).
+Verify runtime behavior after swap.
+
+[Swap] -- proceed to rename swap
+[Fix]  -- address issues first
+[Stop] -- save progress
+```
+
+Fallback: If any inline check fails unexpectedly, dispatch the full verifier agent instead of trying to diagnose inline. Report: "Inline verification found issues -- dispatching full verifier for detailed analysis."
+
 ### EXECUTE Phase (Tasks 9-15) — Dispatch Executor Agent
 
 **Pre-dispatch:** Run Pre-Dispatch Protocol (see above).
@@ -585,10 +664,14 @@ When a phase agent returns `status: editor_crashed`:
    ```
    If user picks [2] Manual: wait for user confirmation, then run `/cortex-status` to verify before proceeding.
 
-### VERIFY Phase (Tasks 16-17) — Dispatch Verifier Agent
+### VERIFY Phase (Tasks 16-17)
 
 **Pre-dispatch:** Run Pre-Dispatch Protocol (see above).
 
+If `complexity: simple`:
+Run Inline Verification (see above). No agent dispatch.
+
+If `complexity: complex`:
 Dispatch `cortex-blueprint:bp-migration-verifier` with:
 - Relevant sections of migration-plan.md (see Agent Context Scoping in Implementation Notes)
 - Task range: 16-17
