@@ -378,6 +378,59 @@ Section files:
 | Visual-only designer component | Keep in BP unless needed for reusable base behavior |
 | Complex runtime logic in component graph | Migrate logic to C++; keep editor-facing tuning in BP |
 
+## Visual Sync Classification (Construction Script)
+
+During migration analysis, classify `UserConstructionScript` nodes into two buckets. These are hard rules — not heuristics.
+
+### ALWAYS Stays in Blueprint UserConstructionScript
+
+These operations encode material-specific slot indices, effect parameter names, or visual tuning values owned by artists/designers. Moving them to C++ creates unnecessary coupling.
+
+| Function | Reason |
+|----------|--------|
+| `SetDefaultCustomPrimitiveDataFloat` | Material slot index — asset-internal knowledge |
+| `SetDefaultCustomPrimitiveDataVector4` | Material slot index — asset-internal knowledge |
+| `SetNiagaraVariable*` (any variant) | Effect parameter name — designer-owned |
+| `SetLightColor` | Visual tuning |
+| `SetIntensity` | Visual tuning |
+| `SetMaterial`, `SetMaterialByName` | Material slot assignment |
+| `SetScalarParameterValue` | Dynamic material instance parameter |
+| `SetVectorParameterValue` | Dynamic material instance parameter |
+| `SetTextureParameterValue` | Dynamic material instance parameter |
+| `CreateDynamicMaterialInstance` | Must stay paired with its parameter setters |
+| `SetStaticMesh`, `SetSkeletalMesh` | Visual asset assignment |
+| `SetVisibility`, `SetHiddenInGame` | Visual toggle |
+| `SetCustomDepthStencilValue` | Rendering feature tied to visual effects |
+
+General heuristic: if the function's primary purpose is controlling what the player sees and the values are iterated on by artists/designers, it stays in Blueprint.
+
+### Moves to C++ OnConstruction
+
+- Component transforms (`SetRelativeLocation`, `SetWorldScale3D`, etc.)
+- `AddTag`, `SetCollisionProfileName`, `SetGenerateOverlapEvents`
+- Pure gameplay state initialization with no asset-internal knowledge
+
+### Rules
+
+- If `UserConstructionScript` contains ONLY visual-sync nodes, do NOT generate `OnConstruction()` at all.
+- `OnConstruction` (C++) runs before `UserConstructionScript` (BP) in the construction pipeline — they are sequential, not independent. BP visual sync can depend on state set by C++ structural init.
+- For actors with 500+ level instances, flag visual sync as a performance recommendation in the migration report, but default to keeping in Blueprint for designer accessibility.
+
+### Migration Plan Schema
+
+Visual sync items use `target: "blueprint"` with `reason: "visual_sync"`:
+
+```json
+{
+  "name": "SetLightColor chain",
+  "kind": "construction_script_nodes",
+  "target": "blueprint",
+  "reason": "visual_sync",
+  "pass": null,
+  "group": "Visual Feedback"
+}
+```
+
 ## Cleanup Order Rule
 
 When removing migrated Blueprint content, always clean consumers before producers:
