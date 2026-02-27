@@ -37,7 +37,7 @@ Before entering any stage, verify the editor is alive and MCP is healthy.
    - If all checks pass AND `blueprint` domain is registered -> proceed to ANALYZE
    - If editor not running OR port file stale -> go to step 2
    - If MCP connection fails but editor is running -> go to step 3
-   - If `blueprint` domain is missing -> editor may need full restart (not just reconnect). Go to step 2 with `/cortex-restart`
+   - If `blueprint` domain is missing -> editor may need full restart (not just reconnect). Run `/cortex-restart`, then re-run `/cortex-status`
 
 2. **Editor not running:** Use the Skill tool: `skill: "cortex-editor"` to start the editor
    - The skill handles: engine path lookup, background launch with `-AutoDeclinePackageRecovery`, port file polling (120s timeout), MCP verification
@@ -62,6 +62,19 @@ Editor could not be started. Options:
 If user picks [2] Manual: wait for user to confirm editor is ready, then run `/cortex-status` to verify MCP connection and `blueprint` domain before proceeding.
 
 **Note:** Do NOT use inline bash commands (`tasklist`, `grep`, port file globbing) for editor lifecycle operations. Always delegate to the Cortex core skills which handle edge cases (stale port files, PID validation, multiple editor instances) consistently.
+
+### Pipeline-Wide Restart Limit
+
+Track editor restarts in frontmatter field `editor_restarts`.
+
+- Hard cap: `3` total restarts across the full migration pipeline
+- Increment after every successful orchestrator-triggered restart (`/cortex-restart`)
+- If `editor_restarts >= 3`: stop immediately and present:
+  ```
+  Editor has restarted 3 times in this migration.
+  This usually indicates an underlying engine/plugin issue.
+  Please investigate manually (logs, crash report, plugin state), then resume with --resume.
+  ```
 
 ### Pre-Dispatch Protocol (referenced by all phase dispatches)
 

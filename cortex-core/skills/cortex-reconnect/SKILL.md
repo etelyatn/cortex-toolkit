@@ -12,7 +12,7 @@ Use skill names directly in instructions (for example `cortex-status`).
 
 ## When to Use
 
-> **Note:** Most reconnection scenarios are now handled automatically. The PreToolUse hook verifies editor connectivity before every MCP call, and the TCP client re-reads `CortexPort.txt` on reconnect to pick up port changes. Use this skill only when automatic recovery has failed.
+> **Note:** Most reconnection scenarios are now handled automatically. The PreToolUse hook verifies editor connectivity before every MCP call, and the TCP client re-reads `Saved/CortexPort-*.txt` on reconnect to pick up port changes. Use this skill only when automatic recovery has failed.
 
 - MCP tools are failing with connection errors **after** the PreToolUse hook passed
 - When `cortex-status` reports MCP unavailable but editor is running
