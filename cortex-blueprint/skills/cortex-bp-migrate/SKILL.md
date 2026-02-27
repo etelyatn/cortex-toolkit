@@ -112,6 +112,48 @@ The phase agent frontmatters enforce `model: sonnet`. Do not override this with 
 
 **Why not haiku for MCP tasks:** During the BP_JumpPad migration, haiku agents confused TCP command names with MCP tool names, returned "UNKNOWN_COMMAND" errors, and couldn't distinguish "editor not running" from "stale port file." Sonnet handled all of these correctly.
 
+## Implementation Notes
+
+### Content Anchors
+
+When this skill references a location, use unique text anchors rather than line numbers.
+
+### Append Mechanism (Idempotent)
+
+When this skill says "append to migration-plan.md":
+1. Read `migration-plan.md` first.
+2. Locate the target `##` heading.
+3. If the heading exists, replace that entire section (until the next `##` heading).
+4. If the heading does not exist, insert the new section at the end.
+5. Update frontmatter `phase` and `last_updated` in the same edit.
+
+### Agent Context Scoping
+
+Before dispatching an agent, extract and send only relevant sections:
+
+| Agent | Receives |
+|-------|----------|
+| Executor | Frontmatter + Pre-Migration Snapshot + Migration Scope + Generated C++ Code + Task List (tasks in range only) |
+| Verifier | Frontmatter + Pre-Migration Snapshot + Migration Scope + Execution Log + Node Mappings |
+| Finalizer | Frontmatter + Execution Log + Verification Results + Task List (tasks in range only) |
+
+### Artifact Rules
+
+Each migration produces at most 3 files:
+- `migration-plan.md` — primary document, updated through all stages
+- `design.md` — optional, complex migrations only
+- `rollback.json` — machine-readable rollback state
+
+Do NOT write legacy artifacts:
+- `01-pre-migration.json`
+- `02-migration-plan.json`
+- `generated/*.h`
+- `generated/*.cpp`
+- `03-node-mapping.json`
+- `04-verification.json`
+- `05-rollback.json`
+- `report.json`
+
 ## Stage 1: ANALYZE
 
 **Goal:** Understand user goals, analyze the Blueprint technically, present a migration design for approval.
@@ -155,11 +197,108 @@ Present the migration design and ask for approval using `AskUserQuestion`:
 - [Adjust] — user modifies scope, moves items between columns
 - [Cancel] — abort migration
 
-On approval:
-- Write `docs/migration/blueprint-to-cpp/{BP_Name}/01-pre-migration.json` (V5 schema)
-- Write `docs/migration/blueprint-to-cpp/{BP_Name}/02-migration-plan.json` (V5 schema)
+On approval, write `docs/migration/blueprint-to-cpp/{BP_Name}/migration-plan.md` with initial content:
+
+~~~markdown
+---
+blueprint: /Game/.../{BP_Name}
+target_class: {ClassName}
+target_header: Source/{Module}/{ClassName}.h
+target_source: Source/{Module}/{ClassName}.cpp
+status: planned
+current_task: 0
+total_tasks: 0          # Updated in PLAN stage
+failed_task: null
+phase: analyze
+created: "{ISO timestamp}"
+last_updated: "{ISO timestamp}"
+blueprint_hash: {hash}
+migration_pass: 1
+total_planned_passes: 1
+deferred_groups: []
+tasks: []               # Populated in PLAN stage
+files_created: []
+files_modified: []
+editor_restarts: 0
+complexity: {simple or complex}  # From Migration Complexity Classification
+---
+
+# {BP_Name} -> {ClassName} Migration
+
+## Pre-Migration Snapshot
+
+| Field | Value |
+|-------|-------|
+| Blueprint | `/Game/.../{BP_Name}` |
+| Parent Class | `{parent}` |
+| Type | `{type}` |
+| Compiled | `{yes/no}` |
+| Total Nodes | `{N}` |
+| Migration Confidence | `{high/medium/low}` |
+| Referencers | `{N}` |
+| Children | `{N}` |
+
+### Variables
+
+| Name | Type | Default | Exposed | Category | Usage Count |
+|------|------|---------|---------|----------|-------------|
+| ... |
+
+### SCS Components
+
+| Name | Class | Is Root |
+|------|-------|---------|
+| ... |
+
+### Graphs
+
+| Name | Nodes | Events | Variables Read | Variables Written | Components Referenced |
+|------|-------|--------|----------------|-------------------|----------------------|
+| ... |
+
+## Design Decisions
+
+- {3-5 bullets from ANALYZE synthesis}
+
+## Migration Scope
+
+| Migrating to C++ | Staying in Blueprint | Deferred |
+|-------------------|---------------------|----------|
+| ... | ... | ... |
+~~~
+
+Do NOT write `01-pre-migration.json` or `02-migration-plan.json`. All this data is now inline.
+
+Optional `design.md` decision (make this decision NOW, during ANALYZE): Only create a separate `design.md` if ANY of:
+- Multi-pass migration (`total_planned_passes > 1`)
+- Any HIGH risk items (timelines, event dispatchers, interfaces)
+- Deferred groups that need explanation
+- Complex dependency chains requiring detailed analysis
+
+Simple migrations (like BP_JumpPad: high confidence, 0 referencers, no timelines) should NOT generate `design.md`.
 
 **If `--audit` flag:** Stop here. Present design and exit.
+
+### Migration Complexity Classification
+
+After ANALYZE completes, classify the migration as simple or complex:
+
+Simple migration (ALL must be true):
+- `migration_confidence` = high
+- `referencers` = 0
+- `blueprint_children_count` = 0
+- No timelines
+- No event dispatchers
+- No interfaces implemented
+- Parent is a C++ class (not another Blueprint)
+- Single migration pass (`total_planned_passes` = 1)
+- No UserConstructionScript nodes beyond visual sync (see cpp-migration.md "Visual Sync Classification")
+
+Complex migration: anything that fails one or more simple criteria.
+
+Record in frontmatter: `complexity: simple` or `complexity: complex`.
+
+This classification determines the agent dispatch strategy in EXECUTE stage.
 
 ---
 
@@ -167,18 +306,59 @@ On approval:
 
 **Goal:** Generate complete C++ code and a granular task list. All hard thinking happens here — EXECUTE is mechanical.
 
-### Step 1: Generate C++ Code
+### Step 1: Inspect Migrating Graph Nodes (Ground Truth)
 
-Using the approved design and the `cpp-migration-specialist` agent patterns (see `cortex-blueprint/resources/cpp-migration.md`):
+Before generating any C++ code, inspect the actual Blueprint graph nodes to understand exactly what functions are called, what casts are performed, and what properties are accessed.
+
+Scope limitation: `graph_list_nodes` and `graph_get_node` query `UbergraphPages` and `FunctionGraphs` only. They do NOT reach macro graphs, delegate signature graphs, or collapsed subgraphs. If the pre-migration snapshot shows macro instances or collapsed graphs, flag them as requiring manual review.
+
+For each graph listed as "migrating" in the approved design:
+
+1. Call `graph_list_nodes` with the Blueprint path and graph name
+   - This returns: node_id, class, display_name, position, pin_count for every node
+2. For each node that is or inherits from `K2Node_CallFunction` (including `K2Node_CallParentFunction`, `K2Node_CallArrayFunction`):
+   - Call `graph_get_node` to get full pin details
+   - Extract the target function name from `display_name`
+   - IMPORTANT: The display name is human-readable (for example, "Launch Character"), not the C++ function name. The actual C++ function may have a `K2_` prefix (for example, `K2_SetActorLocation` not `SetActorLocation`). Cross-reference with UE documentation or `reflect.class_detail` to get the exact C++ function signature when in doubt.
+   - Record: `{node_id, display_name, inferred_function_name, target_class, parameters}`
+3. For each `K2Node_DynamicCast`:
+   - Record the target class being cast to
+4. For each `K2Node_VariableGet` or `K2Node_VariableSet`:
+   - Record the variable name and whether it is a get or set
+5. For each `K2Node_ComponentBoundEvent`:
+   - Record the component name and event name (for example, OnComponentBeginOverlap)
+   - These require `AddDynamic` delegate binding in C++ — do not confuse with direct function calls
+6. For each `K2Node_CallDelegate` or `K2Node_AssignDelegate`:
+   - Record the delegate name and binding pattern
+7. For latent function calls (`K2Node_CallFunction` where the function is latent — look for "Latent" in display name or node class):
+   - Flag as requiring special C++ treatment (FTimerHandle, async patterns, or UE5 subsystem async)
+
+Build a "Ground Truth Table" and append to migration-plan.md after the Migration Scope section:
+
+~~~markdown
+## Ground Truth Table
+
+| Node ID | Type | Function/Property | Target | Parameters | Notes |
+|---------|------|-------------------|--------|------------|-------|
+| N_123 | CallFunction | LaunchCharacter | ACharacter | FVector, bool, bool | |
+| N_456 | VariableGet | Velocity | Self | -- | |
+| N_789 | Cast | ACharacter | OtherActor | -- | |
+| N_012 | ComponentBoundEvent | OnComponentBeginOverlap | CollisionComp | -- | Needs AddDynamic |
+| N_345 | CallDelegate | OnJumpComplete | Self | -- | DECLARE_DYNAMIC_MULTICAST_DELEGATE |
+~~~
+
+Flag unmappable nodes as WARNING:
+`WARNING: Node N_999 (UK2Node_MacroInstance: "ForEachLoop") has no direct C++ equivalent. Recommend: Replace with standard for-loop in C++ implementation.`
+
+Feed this table into code generation. The generated C++ must use exactly the functions found in the graph — not assumed equivalents.
+
+### Step 2: Generate C++ Code
+
+Using the approved design, Ground Truth Table, and the `cpp-migration-specialist` agent patterns (see `cortex-blueprint/resources/cpp-migration.md`):
 
 1. Generate complete C++ header file
 2. Generate complete C++ source file
 3. Generate Build.cs patch (if module dependencies needed)
-
-Write generated code to:
-- `docs/migration/blueprint-to-cpp/{BP_Name}/generated/{ClassName}.h`
-- `docs/migration/blueprint-to-cpp/{BP_Name}/generated/{ClassName}.cpp`
-- `docs/migration/blueprint-to-cpp/{BP_Name}/generated/Build.cs.patch` (if needed)
 
 Code generation rules (from cpp-migration.md resource):
 - Read all defaults from pre-migration snapshot — never hallucinate values
@@ -189,7 +369,52 @@ Code generation rules (from cpp-migration.md resource):
 - Event dispatchers → `DECLARE_DYNAMIC_MULTICAST_DELEGATE`
 - Follow `docs/unreal-coding-standards.md` (Epic standard)
 
-### Step 2: Generate Task List
+### Step 2.5: Cross-Reference Generated Code Against Graph Nodes
+
+After generating C++ code but before writing it to the plan document:
+
+1. For each row in the Ground Truth Table, search the generated `.cpp` for the function/property name
+   - If the function name appears in a method call context -> PASS
+   - If the function name appears but with different parameters -> WARNING: `Parameter mismatch for {function}`
+   - If the function name is not found anywhere in generated code -> ERROR: `Missing C++ equivalent for BP node {node_id}: {function}`
+2. If any ERRORs found:
+   - Do NOT proceed to the hard gate
+   - Present the mismatches to the user
+   - Revise the generated code to match the actual graph nodes
+   - Re-run the cross-reference check
+3. If only WARNINGs:
+   - Include them in the plan document as a "Code Generation Notes" subsection under Generated C++ Code
+   - Proceed to the hard gate (user can review)
+
+Append generated C++ code inline to `migration-plan.md` under a new section. Use the Edit tool to insert after the `## Ground Truth Table` section (or after `## Migration Scope` if Ground Truth Table was not created):
+
+~~~markdown
+## Generated C++ Code
+
+### Header ({ClassName}.h)
+
+```cpp
+// Full generated header content here
+```
+
+### Source ({ClassName}.cpp)
+
+```cpp
+// Full generated source content here
+```
+
+### Build.cs Changes (if needed)
+
+```csharp
+// Module dependency additions
+```
+~~~
+
+Do NOT create a `generated/` directory or separate `.h`/`.cpp` files. The code lives in the plan document until Tasks 5-6 copy it to the actual source paths.
+
+Note for Tasks 5-6 (PREPARE phase): When writing C++ files to disk, extract the code from the fenced code blocks in `migration-plan.md`. Identify the correct block by its heading name (`### Header ({ClassName}.h)` or `### Source ({ClassName}.cpp)`), not by searching for arbitrary `cpp` blocks.
+
+### Step 3: Generate Task List
 
 Generate a numbered task list following this template. Adapt task count based on the Blueprint's complexity (more components = more sub-tasks in Task 14, etc.):
 
@@ -234,40 +459,28 @@ Each task must include:
 - **Verify** — how to confirm success
 - **Rollback** — what to undo on failure (file manifest for PREPARE, re-duplicate for EXECUTE, detailed steps for SWAP)
 
-### Step 3: Write Plan Document
+### Step 4: Update Plan Document
 
-Write `docs/migration/blueprint-to-cpp/{BP_Name}/migration-plan.md` with:
+Append to the existing `migration-plan.md` (created in ANALYZE stage). Use the Edit tool to insert after the `## Generated C++ Code` section:
 
-1. **YAML frontmatter** — machine-readable state:
-   ```yaml
-   ---
-   blueprint: /Game/Blueprints/{BP_Name}
-   target_class: {ClassName}
-   status: planned
-   current_task: 0
-   total_tasks: {N}
-   failed_task: null
-   phase: prepare
-   created: {ISO timestamp}
-   last_updated: {ISO timestamp}
-   blueprint_hash: {hash from 01-pre-migration.json}
-   migration_pass: 1
-   total_planned_passes: {1 or more}
-   deferred_groups: []
-   tasks:
-     - { id: 1, status: pending }
-     # ... all tasks
-   editor_restarts: 0
-   files_created: []
-   files_modified: []
-   ---
-   ```
+1. Update YAML frontmatter — set `total_tasks`, `status: planned`, `phase: plan`, populate `tasks` array, update `last_updated`
+2. Append the task list section:
 
-2. **Design Decisions section** — key reasoning from ANALYZE stage (3-5 bullets)
+```markdown
+## Task List
 
-3. **Task list** — complete numbered tasks with actions, verification, and rollback
+Each task includes Action, Verify, and Rollback:
 
-### Step 4: Hard Gate — User Approves Plan
+### Task 1 -- Verify MCP connection
+- **Action:** Call `get_status` via `/cortex-status`
+- **Verify:** Response includes expected domains
+- **Rollback:** N/A
+
+### Task 2 -- ...
+(etc.)
+```
+
+### Step 5: Hard Gate — User Approves Plan
 
 Present the plan summary:
 - Total task count
@@ -356,18 +569,73 @@ tasks:
 
 **On failure:** Set `status: failed`, `failed_task: <N>` BEFORE presenting recovery options. This ensures the failure point is persisted even if the session crashes.
 
+### Agent Dispatch Strategy
+
+Simple migrations -- 2 dispatches:
+
+| Phase | Handler | Rationale |
+|-------|---------|-----------|
+| PREPARE (Tasks 1-8) | Orchestrator inline | No agent needed for file ops + build |
+| EXECUTE (Tasks 9-15) | Executor agent (sonnet) | Multi-step MCP workflow, needs dedicated agent |
+| VERIFY (Tasks 16-17) | Orchestrator inline | Simple: compile check + component delta + orphan check. No full verifier needed. |
+| SWAP + COMPLETE (Tasks 18-22) | Finalizer agent (sonnet) | Rename swap is critical, needs dedicated agent |
+
+Complex migrations -- 3 dispatches (unchanged):
+
+| Phase | Handler | Rationale |
+|-------|---------|-----------|
+| PREPARE (Tasks 1-8) | Orchestrator inline | Same as simple |
+| EXECUTE (Tasks 9-15) | Executor agent (sonnet) | Same as simple |
+| VERIFY (Tasks 16-17) | Verifier agent (sonnet) | Full structural comparison, dependency impact analysis needed |
+| SWAP + COMPLETE (Tasks 18-22) | Finalizer agent (sonnet) | Same as simple |
+
+### Inline Verification (Simple Migrations Only)
+
+When `complexity: simple`, the orchestrator handles VERIFY directly instead of dispatching the verifier agent:
+
+Task 16 -- Simplified Structural Verification:
+1. Call `compile_blueprint` on `BP_Name_Migration` -> must compile clean
+2. Call `analyze_blueprint_for_migration` on `BP_Name_Migration`:
+   - Verify parent class is the target C++ class
+   - Check that migrated variables are gone
+   - Check that migrated functions are gone
+   - Component count delta: post-migration SCS component count should equal `pre_migration_scs_count - migrated_component_count`. The migrated components now live in the C++ class (via `CreateDefaultSubobject`), so they should have been removed from the Blueprint's SCS.
+3. Check for orphaned nodes: if any migrated graphs had events disconnected, verify node count decreased (orphans were deleted by executor step 3b)
+
+Task 17 -- Simplified Dependency Check:
+- Skip entirely if `referencers = 0` (already known from ANALYZE)
+- If referencers > 0 (should not happen for simple migrations): fall back to full verifier agent
+
+Verification gate:
+
+```text
+Verification (inline -- simple migration):
+  Compile: clean
+  Parent: {ClassName} [PASS]
+  Components: {post_count}/{expected_count} [PASS]
+  Migrated vars removed: [PASS]
+  Migrated funcs removed: [PASS]
+  Orphaned nodes: 0
+
+Note: CDO property comparison was skipped (simple migration).
+Verify runtime behavior after swap.
+
+[Swap] -- proceed to rename swap
+[Fix]  -- address issues first
+[Stop] -- save progress
+```
+
+Fallback: If any inline check fails unexpectedly, dispatch the full verifier agent instead of trying to diagnose inline. Report: "Inline verification found issues -- dispatching full verifier for detailed analysis."
+
 ### EXECUTE Phase (Tasks 9-15) — Dispatch Executor Agent
 
 **Pre-dispatch:** Run Pre-Dispatch Protocol (see above).
 
 Dispatch `cortex-blueprint:bp-migration-executor` with:
-- Full text of migration-plan.md
+- Relevant sections of migration-plan.md (see Agent Context Scoping in Implementation Notes)
 - Task range: 9-15
-- Generated code directory path
 
-The executor returns:
-- Per-task status (completed or failed with error)
-- 03-node-mapping.json written to disk
+The executor appends execution results to `migration-plan.md` and returns concise status.
 
 ### Crash Recovery (Orchestrator)
 
@@ -396,18 +664,19 @@ When a phase agent returns `status: editor_crashed`:
    ```
    If user picks [2] Manual: wait for user confirmation, then run `/cortex-status` to verify before proceeding.
 
-### VERIFY Phase (Tasks 16-17) — Dispatch Verifier Agent
+### VERIFY Phase (Tasks 16-17)
 
 **Pre-dispatch:** Run Pre-Dispatch Protocol (see above).
 
+If `complexity: simple`:
+Run Inline Verification (see above). No agent dispatch.
+
+If `complexity: complex`:
 Dispatch `cortex-blueprint:bp-migration-verifier` with:
-- Full text of migration-plan.md
-- 01-pre-migration.json content
+- Relevant sections of migration-plan.md (see Agent Context Scoping in Implementation Notes)
 - Task range: 16-17
 
-The verifier returns:
-- Concise summary (components match, properties match, logic coverage, impact)
-- 04-verification.json written to disk
+The verifier appends results to `migration-plan.md` and returns a concise summary.
 
 ### Hard Gate — User Reviews Verification
 
@@ -422,13 +691,12 @@ Present verification summary. Ask for approval:
 **Pre-dispatch:** Run Pre-Dispatch Protocol (see above).
 
 Dispatch `cortex-blueprint:bp-migration-finalizer` with:
-- Full text of migration-plan.md
-- All section file contents (01 through 04)
+- Relevant sections of migration-plan.md (see Agent Context Scoping in Implementation Notes)
 - Task range: 18-22
 
 The finalizer returns:
 - Swap status (success or failure with details)
-- 05-rollback.json and report.json written to disk
+- `rollback.json` written to disk and Final Report appended to `migration-plan.md`
 
 ### Failure Handling
 
@@ -452,31 +720,62 @@ On any task failure from any agent:
 
 ## Stage 4: COMPLETE (Post-Swap)
 
-After the finalizer succeeds, present results to user:
+After the finalizer succeeds:
 
-```
-Migration Complete: {BP_Name} → {ClassName}
+### Step 1: Present Migration Results
 
-  Backup: /Game/Blueprints/{BP_Name}_Backup
+Display a summary (not a menu -- just information):
+
+```text
+Migration Complete: {BP_Name} -> {ClassName}
+
   C++ class: {ClassName} ({header_path})
-  Report: docs/migration/blueprint-to-cpp/{BP_Name}/report.json
-
-  Backup handling:
-  [keep]    — {BP_Name}_Backup stays in place
-  [archive] — Move to /Game/Migration/Backups/
-  [delete]  — Remove backup (not recommended)
-
-  Optional cleanup:
-  [clean]   — Remove orphaned nodes from event graph
-  [skip]    — Leave orphaned nodes (safe, they don't execute)
+  Blueprint: /Game/.../{BP_Name} (reparented to {ClassName})
+  Plan: docs/migration/blueprint-to-cpp/{BP_Name}/migration-plan.md
 ```
 
-Update frontmatter: `status: completed`.
+### Step 2: Handle Backup
 
-For partial migrations, also show:
+Read `backup_verified` from the finalizer response (or from `rollback.json`).
+
+If `backup_verified: false`:
+- Report: `No backup preserved -- the original Blueprint was replaced directly via redirector chain. This is normal when rename redirectors are resolved.`
+- Skip the backup menu entirely.
+
+If `backup_verified: true`:
+- Use `AskUserQuestion`:
+
+```text
+What would you like to do with the backup?
+[1] Keep -- BP_Name_Backup stays in place as a safety net
+[2] Archive -- move to /Game/Migration/Backups/BP_Name_Backup
+[3] Delete -- remove the backup (migration confirmed clean)
+```
+
+- On [1] Keep: no action needed
+- On [2] Archive: call `rename_blueprint` to move to `/Game/Migration/Backups/`, then call `fixup_redirectors` on the source directory to resolve the redirector left behind
+- On [3] Delete: call `delete_blueprint`. If delete fails (asset not found), report warning but do not treat as error — the asset may have been consumed by redirector resolution.
+
+### Step 3: Update Plan Document
+
+The finalizer already appended the Final Report section. Update frontmatter: `status: completed`, `phase: complete`.
+
+### Step 4: Show Deferred Groups (Multi-Pass Only)
+
+For partial migrations (`total_planned_passes > 1`), show:
 - Which groups were migrated this pass
 - Which groups are deferred to future passes
 - Note: next pass requires editor restart (class layout changes)
+
+### Step 5: Note for User (Simple Migrations)
+
+If `complexity: simple`, add:
+
+```text
+Note: CDO (Class Default Object) property comparison was skipped for
+this simple migration. Verify runtime behavior matches expectations
+(component properties, default values, collision settings).
+```
 
 ---
 
