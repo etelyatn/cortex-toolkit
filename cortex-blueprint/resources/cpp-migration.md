@@ -434,8 +434,10 @@ Visual sync items use `target: "blueprint"` with `reason: "visual_sync"`:
 ## Cleanup Order Rule
 
 When removing migrated Blueprint content, always clean consumers before producers:
-1. Reparent
-2. Disconnect nodes
-3. Remove functions
-4. Remove variables
-5. Remove SCS components
+1. Reparent to C++ class
+2. Disconnect migrated event graph nodes — use `graph_disconnect` to break the exec
+   output pin on each event entry node (source_pin="then"). Leave orphaned nodes in
+   the graph. NEVER call graph.remove_node during Phase 3. Node removal is Phase 6 only.
+3. Remove migrated functions — verify compile after each
+4. Remove migrated variables — verify compile after each
+5. Remove migrated SCS components — verify compile after each

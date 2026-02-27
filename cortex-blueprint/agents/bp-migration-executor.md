@@ -31,8 +31,9 @@ Handle Phase 2 (prepare) + Gate 2 + Phase 3 (execute).
 
 Cleanup order is mandatory:
 1. Reparent to C++ class
-2. Disconnect migrated event graph nodes — break the exec output pin on each
-   event entry node (e.g., ReceiveBeginPlay, ReceiveActorBeginOverlap).
+2. Disconnect migrated event graph nodes — use `graph_disconnect` to break the
+   exec output pin on each event entry node (e.g., ReceiveBeginPlay,
+   ReceiveActorBeginOverlap): source=event entry node, source_pin="then".
    Leave orphaned nodes in the graph. They will not execute.
    NEVER call graph.remove_node during Phase 3. Node removal is Phase 6 only.
    Rationale: C++ overrides that call Super still trigger the BP event node.
@@ -55,5 +56,6 @@ Write:
 - `duplicate_blueprint`
 - `compile_blueprint`
 - `cleanup_blueprint_migration`
+- `graph_disconnect`
 - `remove_scs_component`
 - `save_blueprint`
