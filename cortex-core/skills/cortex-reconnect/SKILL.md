@@ -36,9 +36,9 @@ tasklist | grep -i UnrealEditor
 
 ### 2. Check Port File
 
-Verify `Saved/CortexPort.txt` exists (written by CortexCore on startup):
+Verify a `Saved/CortexPort-*.txt` port file exists (written by CortexCore on startup):
 ```bash
-cat Saved/CortexPort.txt
+cat Saved/CortexPort-*.txt
 ```
 
 **If missing:**
@@ -125,4 +125,4 @@ Troubleshooting:
 
 - `get_status` MCP tool returns successful response
 - Registered domains are listed
-- Port number matches `Saved/CortexPort.txt`
+- Port number matches `Saved/CortexPort-*.txt`
