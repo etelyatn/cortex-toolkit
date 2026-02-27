@@ -25,9 +25,13 @@ Run the `/cortex-editor` skill. It checks whether the editor is running, starts 
 1. Call `analyze_blueprint_for_migration`
 2. Call `get_referencers` and `impact_analysis`
 3. Call `query_class_hierarchy` and `query_class_context`
-4. Compute functional groups and coupling matrix
-5. Build SAFE/WARNING/BREAKING dependency impact table
-6. Produce scope options: Minimal / Medium / Maximal / Custom
+4. Classify UserConstructionScript nodes into visual_sync vs structural
+   (see "Visual Sync Classification" in cpp-migration.md resource).
+   Visual sync nodes form their own group with target=blueprint, reason=visual_sync.
+   If UserConstructionScript contains ONLY visual-sync nodes, do NOT generate OnConstruction.
+5. Compute functional groups and coupling matrix
+6. Build SAFE/WARNING/BREAKING dependency impact table
+7. Produce scope options: Minimal / Medium / Maximal / Custom
 
 ## Gate 1 Output Format
 - Migration level options with moved/stayed element counts
