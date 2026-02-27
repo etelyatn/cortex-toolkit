@@ -263,6 +263,51 @@ void UMyWidget::HandleConfirmClicked()
 | UKismetMathLibrary | `Kismet/KismetMathLibrary.h` |
 | FTimerHandle | `TimerManager.h` |
 
+## Blueprint Cleanup Tools
+
+### cleanup_blueprint_migration
+
+Reparents a Blueprint to a new C++ class and removes migrated variables and functions in a single transaction. This is the primary cleanup command used after the C++ class is built and compiled.
+
+```python
+cleanup_blueprint_migration(
+    asset_path="/Game/Blueprints/BP_Enemy",
+    new_parent_class="/Script/MyGame.AEnemyBase",
+    remove_variables=["Health", "MoveSpeed"],
+    remove_functions=["CalculateDamage", "OnHit"],
+    compile=True  # default
+)
+# Returns:
+# {
+#   "reparented": true,
+#   "new_parent": "AEnemyBase",
+#   "removed_variables": ["Health", "MoveSpeed"],
+#   "removed_functions": ["CalculateDamage", "OnHit"],
+#   "compiled": true,
+#   "compile_status": "UpToDate",
+#   "warnings": []
+# }
+```
+
+**Parameters:**
+- `asset_path`: Blueprint asset path (required)
+- `new_parent_class`: Full class path to reparent to (e.g., `/Script/MyGame.AEnemyBase`). Optional — omit to skip reparenting.
+- `remove_variables`: List of variable names to remove. Optional. Non-existent names are silently skipped and added to `warnings`.
+- `remove_functions`: List of function graph names to remove. Optional. Non-existent names are silently skipped and added to `warnings`.
+- `compile` (default `true`): Compile the Blueprint after all mutations
+
+**Reparent type safety:** Only same-family reparenting is allowed:
+- Actor → Actor subclass
+- ActorComponent → ActorComponent subclass
+- UserWidget → UserWidget subclass
+
+Cross-family reparenting (e.g., Actor → Component) returns `InvalidField`.
+
+**Error cases:**
+- `BlueprintNotFound`: Asset path not found
+- `InvalidField`: Missing `asset_path`, parent class not found, or type-family mismatch
+- `SaveFailed`: Package could not be saved to disk
+
 ## SCS Component Migration
 
 When migrating Blueprint SCS components (Components panel) to C++ `CreateDefaultSubobject` declarations, the Blueprint's SCS entry must be removed after the C++ class is created. Use `remove_scs_component` for this step.
@@ -299,6 +344,134 @@ remove_scs_component(
 - `InvalidField` (code): Blueprint has no SCS — only Actor-based Blueprints have SCS; component and widget Blueprints do not
 
 **Child component handling:** If the removed component has children in the hierarchy, they are automatically re-parented to the removed node's parent. No manual child re-wiring is needed.
+
+## Rename, Redirectors, and Recompile
+
+These commands handle the SWAP and COMPLETE phases of the migration pipeline.
+
+### rename_blueprint
+
+Renames or moves a Blueprint asset. UE automatically handles the `_C` suffix (GeneratedClass) and creates a redirector at the source path.
+
+```python
+rename_blueprint(
+    source_path="/Game/Blueprints/BP_Enemy",
+    dest_path="/Game/Blueprints/BP_Enemy_Backup"
+)
+# Returns: {"source_path": "...", "dest_path": "...", "success": true}
+```
+
+**Parameters:**
+- `source_path`: Existing Blueprint object path
+- `dest_path`: Destination Blueprint object path
+
+**Use in swap sequence:**
+```python
+# Step 1: move original out of the way
+rename_blueprint("/Game/Blueprints/BP_Enemy", "/Game/Blueprints/BP_Enemy_Backup")
+# Step 2: move migration copy into the canonical name
+rename_blueprint("/Game/Blueprints/BP_Enemy_Migration", "/Game/Blueprints/BP_Enemy")
+```
+
+**Rollback:** If step 2 fails, reverse step 1 immediately. Record `git_commit_before` for C++ file rollback.
+
+### fixup_redirectors
+
+Scans a content path for redirectors and fixes all references. Call after rename swap to eliminate stale redirectors.
+
+```python
+fixup_redirectors(
+    path="/Game/Blueprints",
+    recursive=True  # default
+)
+# Returns: {"path": "/Game/Blueprints", "recursive": true,
+#            "redirectors_found": 2, "redirectors_fixed": 2}
+```
+
+**Parameters:**
+- `path`: Content path to scan. Bare paths are prefixed with `/Game/` automatically.
+- `recursive` (default `true`): Whether to include subdirectories
+
+**Error cases:** None — if zero redirectors are found the command succeeds with `redirectors_found: 0`.
+
+### recompile_dependent_blueprints
+
+Recompiles all Blueprints that depend on the given Blueprint. Call after fixing redirectors to clear stale GUIDs.
+
+```python
+recompile_dependent_blueprints(
+    asset_path="/Game/Blueprints/BP_Enemy"
+)
+# Returns:
+# {
+#   "asset_path": "/Game/Blueprints/BP_Enemy",
+#   "dependent_count": 3,
+#   "recompiled_count": 3,
+#   "results": [
+#     {"blueprint": "/Game/Blueprints/BP_EnemyBoss", "status": "success", "errors": []},
+#     {"blueprint": "/Game/Blueprints/BP_EnemyMinion", "status": "success", "errors": []},
+#     ...
+#   ]
+# }
+```
+
+**Parameters:**
+- `asset_path`: The Blueprint whose dependents should be recompiled
+
+**Result fields per dependent:**
+- `blueprint`: Full object path of the dependent
+- `status`: `"success"` or `"error"`
+- `errors`: Array of error strings (empty on success)
+
+**Error cases:** `BlueprintNotFound` if `asset_path` does not exist.
+
+### compare_blueprints
+
+Structurally compares two Blueprints and returns a list of differences. Used in the VERIFY phase to confirm the migration copy matches the original.
+
+```python
+compare_blueprints(
+    source_path="/Game/Blueprints/BP_Enemy",
+    target_path="/Game/Blueprints/BP_Enemy_Migration"
+)
+# Returns:
+# {
+#   "match": true,
+#   "source_path": "...",
+#   "target_path": "...",
+#   "differences": [],
+#   "summary": {"total_checks": 12, "matches": 12, "differences": 0}
+# }
+```
+
+**Parameters:**
+- `source_path`: Baseline Blueprint (the original)
+- `target_path`: Blueprint to compare against the baseline
+- `sections` (optional): Array to restrict comparison — valid values: `"variables"`, `"functions"`, `"components"`, `"cdo"`
+
+**Sections compared by default (all four):**
+- `variables` — variable names, types, and default values
+- `functions` — function graph presence on each side
+- `components` — SCS component names and classes
+- `cdo` — CDO property values for all Blueprint-visible properties
+
+**Difference entry fields:**
+- `section`: Which section the difference is in
+- `item`: Variable/function/component/property name
+- `message`: Human-readable description
+- `source_value`: Value from source Blueprint
+- `target_value`: Value from target Blueprint
+
+**Example with sections filter:**
+```python
+compare_blueprints(
+    source_path="/Game/Blueprints/BP_Enemy",
+    target_path="/Game/Blueprints/BP_Enemy_Migration",
+    sections=["variables", "components"]
+)
+```
+
+**Error cases:** `BlueprintNotFound` if either path does not exist; `InvalidField` if params are missing.
 
 ## BP Audit Patterns
 
