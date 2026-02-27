@@ -1,7 +1,7 @@
 {
   "name": "cortex-core",
   "description": "Foundation plugin for AI-powered Unreal Engine development with UnrealCortex. Provides project setup, build/test workflows, editor lifecycle, and cross-domain agents.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": {
     "name": "etelyatn"
   },
