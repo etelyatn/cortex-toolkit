@@ -347,7 +347,7 @@ Cross-reference these against Blueprint analysis results during migration. Flag 
 
 This table grows over time. Add entries when deprecated APIs are encountered during migrations.
 
-## V5 Report Schema
+## Report Schema (V5/V6)
 
 For full JSON schema and section contracts, use:
 - `docs/plans/2026-02-26-bp-migration-v5-design.md` (Section 2)
@@ -441,3 +441,29 @@ When removing migrated Blueprint content, always clean consumers before producer
 3. Remove migrated functions — verify compile after each
 4. Remove migrated variables — verify compile after each
 5. Remove migrated SCS components — verify compile after each
+
+## V6 Migration Pipeline
+
+The migration workflow uses a 4-stage pipeline:
+
+| Stage | Purpose | Gate |
+|-------|---------|------|
+| **ANALYZE** | Conversational goals + technical analysis → migration design | User approves design |
+| **PLAN** | Generate granular task list with complete C++ code | User approves plan |
+| **EXECUTE** | Run tasks via phase agents with TaskCreate checkboxes | Auto-verify checkpoint |
+| **COMPLETE** | Verify, present results, swap decision, final report | User approves swap |
+
+Entry point: `/cortex-bp-migrate <BlueprintPath>` (supports `--audit` and `--resume`)
+
+### Plan Document
+
+Location: `docs/migration/blueprint-to-cpp/{BP_Name}/migration-plan.md`
+
+The plan document has YAML frontmatter for machine-readable state (status, current_task, failed_task, phase) and a markdown body with numbered tasks. Generated C++ code lives in `docs/migration/blueprint-to-cpp/{BP_Name}/generated/`.
+
+Key principle: all C++ code is generated during PLAN stage. The EXECUTE stage writes pre-generated code to disk — it does not derive code on the fly.
+
+### Design Reference
+
+- Pipeline design: `docs/plans/2026-02-27-bp-migration-pipeline-design.md`
+- V5 technical design: `docs/plans/2026-02-26-bp-migration-v5-design.md`
