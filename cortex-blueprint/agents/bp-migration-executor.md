@@ -49,6 +49,23 @@ When executing Blueprint cleanup tasks, follow this exact sequence:
 5. Remove migrated variables → verify compile after each
 6. Remove migrated SCS components → verify compile after each
 
+### Fast Mode Compatibility
+
+**Detection:** Fast mode is identified by the task range prefix. Tasks prefixed with "Fast-" (e.g., Fast-7, Fast-9) indicate fast mode. Tasks without prefix (e.g., Task 9, Task 11) indicate full mode. No separate mode flag is needed.
+
+**Task-to-cleanup-step mapping in fast mode:**
+
+| Fast Task | Cleanup Order Step | Action |
+|-----------|-------------------|--------|
+| Fast-7 | Step 1 | Validate collisions (auto-resolve if C++ name matches SCS name exactly; only stop if genuinely ambiguous) |
+| Fast-8 | Step 2 | Reparent to C++ class |
+| Fast-9 | Steps 3 + 3b | Disconnect events + delete orphaned nodes (full mode Tasks 11 + 11b combined into one fast task) |
+| Fast-10 | Step 4 | Remove migrated functions |
+| Fast-11 | Step 5 | Remove migrated variables |
+| Fast-12 | Step 6 | Remove migrated SCS components |
+
+The cleanup sequence is the same as full mode — only the task numbering and the Fast-9 combination differ. The orchestrator passes the correct task range and the plan document contains the task definitions.
+
 ## Crash Detection Protocol
 
 Before every MCP tool call, and after any MCP error:

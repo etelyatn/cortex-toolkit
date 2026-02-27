@@ -1,32 +1,66 @@
 ---
 name: cortex-bp-migrate
-description: Blueprint-to-C++ migration pipeline with conversational analysis, plan-driven execution, visual progress tracking, and hard gates. Supports --audit and --resume.
+description: Blueprint-to-C++ migration pipeline with conversational analysis, plan-driven execution, visual progress tracking, and hard gates. Supports --audit, --resume, and --fast (streamlined mode for simple migrations).
 ---
 
 # Blueprint to C++ Migration Pipeline
 
-Migrate a Blueprint to C++ using a 4-stage pipeline: ANALYZE → PLAN → EXECUTE → COMPLETE. Each stage has a hard gate requiring user approval before proceeding.
+Migrate a Blueprint to C++ using either:
+- Full mode (default): 4-stage pipeline, ANALYZE → PLAN → EXECUTE → COMPLETE, with hard gates
+- Fast mode (`--fast`): 3-stage streamlined flow with a single approval gate for eligible simple migrations
 
 ## Entry Point
 
 Parse user input for:
 - **Blueprint path** (required) — e.g., `BP_JumpPad` or `/Game/Blueprints/BP_JumpPad`
-- **`--audit`** — run ANALYZE stage only, present design without executing
-- **`--resume`** — detect and resume from saved migration state
+- **`--audit`** — run ANALYZE stage only, present design without executing. If combined with `--fast`, run analysis with auto-defaults and report fast mode eligibility, but stop after presenting the design (do not execute).
+- **`--resume`** — detect and resume from saved migration state. If the plan's frontmatter contains `mode: fast`, resume within the Fast Mode Pipeline (route to Stage A/B/C based on `phase` and `current_task`).
+- **`--fast`** — streamlined mode for simple migrations (1 gate instead of 4, fewer agent dispatches). Auto-detected eligibility; falls back to full pipeline if criteria not met.
+
+## Fast Mode Eligibility
+
+When `--fast` is specified, the pipeline checks eligibility AFTER the technical analysis (ANALYZE Step 2) completes. Eligibility cannot be checked before analysis because the criteria depend on analysis results.
+
+**All criteria must be true:**
+
+| Criterion | Check | Source |
+|-----------|-------|--------|
+| High confidence | `migration_confidence` = "high" | `analyze_blueprint_for_migration` |
+| No external dependents | `referencers` = 0 | `get_referencers` |
+| No child Blueprints | `blueprint_children_count` = 0 | `analyze_blueprint_for_migration` |
+| No timelines | `timelines` array is empty | `analyze_blueprint_for_migration` |
+| No event dispatchers | `event_dispatchers` array is empty | `analyze_blueprint_for_migration` |
+| No interfaces | `interfaces_implemented` array is empty | `analyze_blueprint_for_migration` |
+| C++ parent class | Parent class path starts with `/Script/` (not `/Game/`) | `analyze_blueprint_for_migration` |
+| No structural ConstructionScript | UserConstructionScript contains only visual-sync nodes (no structural logic) | `analyze_blueprint_for_migration` + graph inspection |
+| Single pass | All functional groups migrate in one pass (no HIGH-risk items requiring deferral) | Derived from functional group analysis |
+
+**If eligible:** Proceed with fast mode flow (see Fast Mode Pipeline below).
+
+**If not eligible:** Report which criteria failed and fall back to full pipeline:
+```
+Fast mode not available for {BP_Name}:
+  ✗ Has 3 referencers (fast mode requires 0)
+  ✗ Implements IInteractable interface
+
+Falling back to full pipeline (4-stage with gates).
+```
+The full pipeline continues from where fast mode left off — the analysis data is already collected, so ANALYZE Step 2 results are reused. The pipeline enters ANALYZE Step 3 (present design) directly using the auto-selected defaults (Goal: "Reusability / base class", Constraints: "No constraints", Scope: "Everything possible"). Do NOT re-ask goal questions — the user chose `--fast`, which implies these defaults.
 
 ## Resume Detection
 
 If `--resume` flag OR `docs/migration/blueprint-to-cpp/{BP_Name}/migration-plan.md` exists:
 
 1. Read `migration-plan.md` YAML frontmatter
-2. Parse: `status`, `current_task`, `failed_task`, `phase`, `blueprint_hash`
-3. Verify workspace state:
+2. Parse: `status`, `current_task`, `failed_task`, `phase`, `blueprint_hash`, `mode`
+3. **Route by mode:** If frontmatter contains `mode: fast`, resume within the Fast Mode Pipeline. Route to Stage A (if `phase: analyze` or `phase: plan`), Stage B (if `phase: execute`), or Stage C (if `phase: swap`) based on `phase` and `current_task`. If `mode` is absent or not `fast`, resume in the full pipeline.
+4. Verify workspace state:
    - Do files in `files_created` actually exist on disk?
    - Does `BP_Name_Migration` copy exist in the editor?
    - Does the C++ class exist and compile?
    - Does `blueprint_hash` match current Blueprint? (staleness check)
-4. Present resume point to user with options: [resume / rewind / restart]
-5. On resume: create TaskCreate entries for remaining tasks, continue from saved phase
+5. Present resume point to user with options: [resume / rewind / restart]
+6. On resume: create TaskCreate entries for remaining tasks, continue from saved phase
 
 ## Pre-Flight Check (Task 0)
 
@@ -153,6 +187,239 @@ Do NOT write legacy artifacts:
 - `04-verification.json`
 - `05-rollback.json`
 - `report.json`
+
+## Fast Mode Pipeline
+
+> **ROUTING:** If `--fast` was NOT specified, skip this entire section and proceed directly to **Stage 1: ANALYZE**.
+
+**Applies when:** `--fast` flag is set AND eligibility check passes.
+
+**Key differences from full pipeline:**
+- 3 stages instead of 4 (ANALYZE+PLAN combined, EXECUTE+VERIFY combined, SWAP+COMPLETE combined)
+- 1 approval gate instead of 4 (after plan generation, before execution)
+- No goal questions (auto-select "Reusability / base class")
+- No separate design approval gate
+- Inline verification only (no verifier agent dispatch)
+- Auto-archive backup after successful swap
+- 2 agent dispatches total (executor + finalizer)
+
+**Fast mode flow:**
+
+```
+Stage A: ANALYZE + PLAN (no gate between them)
+  └─ ONE approval gate ──────────────────────────
+Stage B: EXECUTE + VERIFY (inline verification)
+Stage C: SWAP + COMPLETE (auto-cleanup)
+```
+
+### Stage A: Analyze and Plan (Combined)
+
+**Step A1: Pre-Flight Check**
+Run Pre-Flight Check (Task 0) — same as full pipeline. Editor must be alive.
+
+**Step A2: Technical Analysis (No Goal Questions)**
+Skip the 3 conversational goal questions. Auto-select defaults:
+- Goal: "Reusability / base class"
+- Constraints: "No constraints"
+- Scope: "Everything possible"
+
+Call MCP tools (same as full pipeline ANALYZE Step 2):
+1. `analyze_blueprint_for_migration`
+2. `get_referencers`
+3. `query_class_hierarchy`
+4. `query_class_context`
+
+**Step A3: Eligibility Gate**
+Check fast mode eligibility criteria (from section above).
+If not eligible -> fall back to full pipeline at ANALYZE Step 3.
+
+**Step A4: Graph Node Inspection**
+Call `graph_list_nodes` on each migrating graph, then `graph_get_node` on every node to capture pin values, connections, and logic. Build the Ground Truth Table mapping each BP node to its C++ equivalent. This step is NOT skipped in fast mode because it's critical for code accuracy.
+(Full protocol: see PLAN Step 1. Key sub-steps: list all nodes per graph, inspect each node's pins/connections/defaults, build BP-node-to-C++-equivalent mapping table.)
+
+**Step A5: Generate C++ Code**
+Generate the C++ header and source files using the analysis results and Ground Truth Table. Apply all code generation rules (naming, includes, UPROPERTY/UFUNCTION macros, component initialization). Cross-reference every generated line against the Ground Truth Table.
+(Full protocol: see PLAN Step 2 and Step 2.5. Key sub-steps: generate header with UPROPERTY/UFUNCTION declarations, generate source with component creation and function bodies, cross-reference every line against Ground Truth Table.)
+
+**Checkpoint after A5:** At this point you have: analysis results, eligibility confirmed, Ground Truth Table, and generated C++ code. If your context is getting large, write `migration-plan.md` NOW (partial — snapshot + scope + ground truth + code) before generating the task list in A6. Complete the remaining sections in A7.
+
+**Step A6: Generate Compressed Task List**
+Fast mode uses a compressed task list. Tasks that are skipped or combined:
+
+| Full Pipeline Task | Fast Mode | Reason |
+|-------------------|-----------|--------|
+| Task 1: Verify MCP | Keep (already done in A1) | — |
+| Task 2: Staleness check | **Skip** | We just analyzed it |
+| Task 3: Build.cs check | **Check only** (no pause on success) | Auto-add modules if needed |
+| Task 4: Duplicate Blueprint | Keep | Required |
+| Task 5-6: Write C++ | Keep | Required |
+| Task 7: Build | Keep | Required |
+| Task 8: Restart editor | Keep (automated) | Required |
+| Task 9: Collision check | **Check only** (no pause on success) | Auto-resolve if possible |
+| Task 10: Reparent | Keep | Required |
+| Task 11: Disconnect events | Keep | Required |
+| Task 11b: Delete orphans | Keep | Required |
+| Task 12-14: Remove funcs/vars/components | Keep | Required |
+| Task 15: Smoke test | **Merge with verify** | Combined in Stage B |
+| Task 16: Structural verify | **Inline** (compile + parent + count) | No verifier agent |
+| Task 17: Dependency check | **Skip** | referencers = 0 (known) |
+| Task 18: Disable auto-save | **Skip** | No dependents to corrupt |
+| Task 19: Rename swap | Keep | Required |
+| Task 20: Fix redirectors | Keep | Required |
+| Task 21: Re-enable auto-save | **Skip** | Was never disabled |
+| Task 22: Final report | Keep (simplified) | Required |
+
+**Use the following 14-task list exactly as written.** The mapping table above is for reference only — do not re-derive the task list from the mapping.
+
+**Effective fast mode task list (14 tasks):**
+
+```
+── PREPARE ──────────────────────────────────
+Fast-1: Check/update Build.cs (auto, no pause)
+Fast-2: Duplicate Blueprint
+Fast-3: Write C++ header
+Fast-4: Write C++ source
+Fast-5: Build project
+Fast-6: Restart editor, verify class
+
+── EXECUTE ──────────────────────────────────
+Fast-7: Validate collisions (auto, no pause)
+Fast-8: Reparent to C++ class
+Fast-9: Disconnect events + delete orphans
+Fast-10: Remove migrated functions
+Fast-11: Remove migrated variables
+Fast-12: Remove migrated SCS components
+
+── VERIFY (orchestrator, not executor) ─────
+Fast-13: Inline verification (compile + parent + components)
+
+── SWAP ─────────────────────────────────────
+Fast-14: Rename swap + fix redirectors + report
+```
+
+**Step A7: Write Plan Document**
+Write `migration-plan.md` with all sections (same artifact model as full pipeline — Phase 3 single-document format). Include:
+- YAML frontmatter with `mode: fast`, `complexity: simple`, compressed task list
+- Pre-migration snapshot (inline)
+- Design decisions (auto-generated, no user input)
+- Generated C++ code (inline)
+- Compressed task list
+
+**Step A8: ONE Approval Gate**
+Present the complete plan summary to the user:
+
+```
+Fast Migration: {BP_Name} → {ClassName}
+
+  Confidence: HIGH
+  Referencers: 0
+  Components: {N} ({M} migrating, {K} staying)
+  Graphs: {N} ({events} events migrating)
+  Tasks: 14 (compressed from 22)
+  Estimated: ~5-8 minutes
+
+  Migrating:
+    Variables: {list}
+    Functions: {list}
+    Components: {list}
+  Staying in BP: {list or "nothing"}
+
+  C++ class preview:
+    {ClassName} : {ParentClass}
+    Components: {list}
+    Overrides: {list}
+
+  [Approve]       — execute all tasks automatically
+  [Review]        — show full C++ code before approving
+  [Full Pipeline] — switch to full 4-stage pipeline with gates
+  [Cancel]        — abort migration
+```
+
+- **[Approve]:** Proceed to Stage B. Update frontmatter: `status: approved`.
+- **[Review]:** Show full generated C++ code. Then re-present the gate.
+- **[Full Pipeline]:** Fall back to full pipeline at PLAN Step 4 (plan approval gate). The plan document already exists, so the full pipeline picks up from the plan review.
+- **[Cancel]:** Abort. Clean up plan document.
+
+### Stage B: Execute and Verify (Combined)
+
+**Step B1: PREPARE tasks (orchestrator inline)**
+Handle Fast-1 through Fast-6 directly. Same as full pipeline PREPARE but:
+- Fast-1 (Build.cs): auto-add modules, don't pause for approval. If modules need adding, add them and log it.
+- Fast-6 (restart): automated via `/cortex-restart` (same as Phase 2)
+- Update frontmatter after each task (same as Phase 2 Task 4). Use numeric IDs (1-14) in `current_task` regardless of mode — the `mode: fast` field distinguishes fast from full pipeline.
+
+**Step B2: Pre-dispatch** Run Pre-Dispatch Protocol.
+
+**Step B3: Dispatch executor agent** (`cortex-blueprint:bp-migration-executor`, model: sonnet) with:
+- Full text of migration-plan.md
+- Task range: Fast-7 through Fast-12 (EXECUTE tasks only)
+
+**EXECUTE tasks (executor agent):**
+The executor handles Fast-7 through Fast-12. Same cleanup order as full mode:
+1. Validate collisions (auto-resolve: if C++ component name matches SCS name, that's expected — skip)
+2. Reparent
+3. Disconnect events + delete orphaned nodes (combined into one task)
+4. Remove functions
+5. Remove variables
+6. Remove SCS components
+
+**Step B4: Inline verification (orchestrator, no verifier agent)**
+After executor completes, orchestrator runs Fast-13 inline:
+1. Compile `BP_Name_Migration` -> must compile clean
+2. Verify parent class is the target C++ class
+3. Compare component count against pre-migration snapshot
+4. Verify migrated variables are gone
+5. Verify migrated functions are gone
+6. Check orphaned node count = 0
+
+**NO verification gate in fast mode.** If all checks pass -> proceed directly to Stage C.
+
+**If any check fails:** Update frontmatter `complexity: complex` (prevents circular routing back to inline verification), then stop and present:
+```
+Fast mode verification failed:
+  ✗ {check}: {details}
+
+Options:
+[1] Fix — investigate and retry
+[2] Full verify — dispatch verifier agent on current state (does NOT re-execute migration)
+[3] Stop — save progress, resume later
+```
+
+### Stage C: Swap and Complete (Combined)
+
+**Pre-dispatch:** Run Pre-Dispatch Protocol.
+
+**Dispatch finalizer agent** (`cortex-blueprint:bp-migration-finalizer`, model: sonnet) with:
+- Full text of migration-plan.md
+- Task range: Fast-14
+
+The finalizer handles in one task:
+1. Rename swap (`BP_Name` → `BP_Name_Backup`, `BP_Name_Migration` → `BP_Name`)
+2. Fix redirectors + recompile dependents (should be 0 dependents, but run anyway for safety)
+3. Verify backup exists on disk
+4. Append final report section to migration-plan.md
+5. Write rollback.json
+
+**Auto-cleanup (no backup menu in fast mode):**
+After finalizer completes:
+- If `backup_verified: true` -> auto-archive the backup to `/Game/Migration/Backups/{BP_Name}_Backup` (moved out of content browser sight, but recoverable without git)
+- If `backup_verified: false` -> log explicit warning: "WARNING: No backup was created during swap. The original Blueprint cannot be recovered except via git."
+- Report: "Backup auto-archived to /Game/Migration/Backups/ (fast mode). Delete manually when confident, or use git to recover if needed."
+
+**Final output:**
+```
+Fast Migration Complete: {BP_Name} → {ClassName}
+
+  Duration: {time}
+  Tasks: 14/14 completed
+  C++ class: {ClassName} ({header_path})
+  Blueprint: /Game/.../{BP_Name} (reparented)
+  Backup: auto-archived to /Game/Migration/Backups/
+
+  Plan: docs/migration/blueprint-to-cpp/{BP_Name}/migration-plan.md
+```
+
+Update frontmatter: `status: completed`, `phase: complete`.
 
 ## Stage 1: ANALYZE
 
