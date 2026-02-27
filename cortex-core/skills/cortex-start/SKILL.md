@@ -7,6 +7,9 @@ description: Use when a user is new to the Cortex Toolkit, asks how to get start
 
 Guided onboarding for first-time Cortex Toolkit users. Demonstrates value within 60 seconds.
 
+Use skill names directly in instructions (for example `cortex-init`).
+**For Claude:** slash aliases are available (for example `/cortex-init`).
+
 ## Re-run Detection
 
 Check if `.cortex/onboarded` exists:
@@ -27,7 +30,7 @@ Check if `.cortex/config.yaml` exists.
 If missing:
 ```
 Your project hasn't been set up for Cortex yet.
-Run /cortex-init to configure your project — it takes about 30 seconds.
+Run `cortex-init` to configure your project — it takes about 30 seconds.
 ```
 Stop here. Do not proceed to 1.2.
 
@@ -38,18 +41,18 @@ Check if `Saved/CortexPort.txt` exists and read the port number.
 If missing:
 ```
 The Unreal Editor isn't running (no port file found).
-Run /cortex-editor to open the editor — Cortex needs a live connection.
+Run `cortex-editor` to open the editor — Cortex needs a live connection.
 ```
 Stop here. Do not proceed to 1.3.
 
 ### 1.3 MCP Connected?
 
-Call the `get_status` MCP tool to verify the full connection chain: Claude -> MCP server -> TCP -> CortexCore.
+Call the `get_status` MCP tool to verify the full connection chain: assistant client -> MCP server -> TCP -> CortexCore.
 
 If the call fails:
 ```
 MCP connection failed — the server can't reach the editor.
-Run /cortex-status to diagnose the issue.
+Run `cortex-status` to diagnose the issue.
 ```
 Stop here. Do not proceed to 1.4.
 
@@ -85,11 +88,11 @@ Cortex Toolkit — AI-Assisted Unreal Engine Development
 
 You have 23 skills and 14 specialist agents across 8 domains.
 
-  Quick actions:    /cortex-status, /cortex-build, /cortex-schema-refresh
-  Create things:    /cortex-bp-create, /cortex-data-create, /cortex-ui-create
-  Review & fix:     /cortex-bp-review, /cortex-data-review, /cortex-level-review
-  Testing:          /cortex-qa-run, /cortex-test
-  Need help?        /cortex-help
+  Quick actions:    cortex-status, cortex-build, cortex-schema-refresh
+  Create things:    cortex-bp-create, cortex-data-create, cortex-ui-create
+  Review & fix:     cortex-bp-review, cortex-data-review, cortex-level-review
+  Testing:          cortex-qa-run, cortex-test
+  Need help?        cortex-help
 
 Connected to: {ProjectName} (UE {Version}) — {N} domains active
 ```
@@ -119,7 +122,7 @@ Your project has {N} DataTables and {M} Blueprints. Want to:
 1. Review your DataTables — I'll analyze schemas and suggest improvements
 2. Build something new — I'll walk you through creating a Blueprint from a description
 
-Or just start working — run /cortex-help anytime.
+Or just start working — run `cortex-help` anytime.
 ```
 
 **If no DataTables but Blueprints exist:**
@@ -129,7 +132,7 @@ Your project has {M} Blueprints. Want to:
 1. Review your Blueprints — I'll check structure, naming, and suggest improvements
 2. Build something new — I'll walk you through creating a Blueprint from a description
 
-Or just start working — run /cortex-help anytime.
+Or just start working — run `cortex-help` anytime.
 ```
 
 **If no content detected:**
@@ -138,7 +141,7 @@ Your project is a blank canvas. Want to:
 
 1. Build something new — I'll walk you through creating a Blueprint from a description
 
-Or just start working — run /cortex-help anytime.
+Or just start working — run `cortex-help` anytime.
 ```
 
 Wait for the user to choose.
@@ -157,7 +160,7 @@ Here's what a great Cortex prompt looks like:
 Try it — paste that prompt (or write your own) and I'll build it.
 ```
 
-Wait for the user to provide a prompt, then execute it using the appropriate skill (typically `/cortex-bp-create`).
+Wait for the user to provide a prompt, then execute it using the appropriate skill (typically `cortex-bp-create`).
 
 ### 3.4 Task Completion
 
@@ -182,15 +185,15 @@ Next steps:
 
 Then add contextual next steps — only suggest skills for domains the user actually has content in:
 
-- If Blueprints exist: `  - /cortex-bp-review   — get AI feedback on any Blueprint`
-- If DataTables exist: `  - /cortex-data-review  — analyze DataTable schemas and balance`
-- If Materials exist: `  - /cortex-material-review — check material graph complexity`
-- If UI widgets exist: `  - /cortex-ui-review    — review widget hierarchy and properties`
-- If Maps exist: `  - /cortex-level-review — audit level organization and performance`
+- If Blueprints exist: `  - cortex-bp-review   — get AI feedback on any Blueprint`
+- If DataTables exist: `  - cortex-data-review  — analyze DataTable schemas and balance`
+- If Materials exist: `  - cortex-material-review — check material graph complexity`
+- If UI widgets exist: `  - cortex-ui-review    — review widget hierarchy and properties`
+- If Maps exist: `  - cortex-level-review — audit level organization and performance`
 
 Always include these two lines at the end:
 ```
-  - /cortex-help        — see all available commands and get suggestions
+  - cortex-help        — see all available commands and get suggestions
   - Just describe your next task — no slash command needed for most work
 ```
 
@@ -203,7 +206,7 @@ After Phase 4 completes (or after the user skips with the escape hatch), create 
 ```
 # Cortex onboarding completed
 # Date: {current date in YYYY-MM-DD format}
-# Re-run /cortex-start for the full walkthrough again
+# Re-run cortex-start for the full walkthrough again
 ```
 
 This prevents the full walkthrough from running automatically on subsequent sessions.

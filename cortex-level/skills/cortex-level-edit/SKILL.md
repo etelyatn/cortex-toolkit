@@ -23,7 +23,7 @@ Make the following level changes using the 3-phase methodology:
 **Request:** [user's request verbatim]
 
 MANDATORY WORKFLOW:
-0. VERIFY: call `get_info` to confirm MCP connectivity. If it fails, invoke `/cortex-status`.
+0. VERIFY: call `get_info` to confirm MCP connectivity. If it fails, invoke `cortex-status`.
 1. Read `.cortex/domains/level.md` for level conventions
 2. PLAN: call `get_info`, then `list_actors` or `find_actors` to understand current state.
    Design the complete `operations[]` array before touching anything.

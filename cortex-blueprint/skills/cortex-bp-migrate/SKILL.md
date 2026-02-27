@@ -34,11 +34,11 @@ Before entering any stage, verify the editor is alive and MCP is healthy.
 
 **Steps:**
 1. Glob for `Saved/CortexPort-*.txt`
-   - If no port file found: invoke `/cortex-editor` skill to start editor and wait for ready
+   - If no port file found: invoke `cortex-editor` skill to start editor and wait for ready
    - If a port file exists: validate PID is alive with `tasklist /FI "PID eq {pid}" /NH`
-     - If PID is not found: delete stale port file, then invoke `/cortex-editor`
+     - If PID is not found: delete stale port file, then invoke `cortex-editor`
 2. Call `get_status` MCP tool to verify the full chain
-   - If it fails: invoke `/cortex-editor` skill
+   - If it fails: invoke `cortex-editor` skill
 3. Proceed only when `get_status` returns success
 
 **Run this check:**
@@ -297,7 +297,7 @@ When a phase agent returns `status: editor_crashed`:
 1. Run the Editor Health Check (from Task 0)
 2. If editor is dead:
    a. Delete stale port file
-   b. Invoke `/cortex-restart` skill (`build=no`, `save=no`)
+   b. Invoke `cortex-restart` skill (`build=no`, `save=no`)
    c. Wait for MCP connection
    d. Verify class registration via `reflect.class_detail` (if post-build)
 3. Resume from `failed_task` by re-dispatching the phase agent with updated task range

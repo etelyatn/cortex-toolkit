@@ -9,8 +9,8 @@ Understand what breaks before you break it.
 
 ## Usage
 
-`/cortex-impact TakeDamage AMyCharacter` - What breaks if I remove `TakeDamage`?
-`/cortex-impact /Game/Blueprints/BP_BaseEnemy` - What depends on this Blueprint?
+`cortex-impact TakeDamage AMyCharacter` - What breaks if I remove `TakeDamage`?
+`cortex-impact /Game/Blueprints/BP_BaseEnemy` - What depends on this Blueprint?
 
 ## Steps
 

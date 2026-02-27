@@ -7,6 +7,9 @@ description: Use when checking MCP connection health, editor status, diagnosing 
 
 Diagnostic chain for MCP connectivity and domain health.
 
+Use skill names directly in instructions (for example `cortex-editor`).
+**For Claude:** slash aliases are available (for example `/cortex-editor`).
+
 ## Steps
 
 ### 1. Check Editor Process
@@ -16,7 +19,7 @@ Look for a running UnrealEditor process. On Windows:
 tasklist | grep -i UnrealEditor
 ```
 
-If not running → report "Editor not running" and suggest `/cortex-editor`.
+If not running → report "Editor not running" and suggest `cortex-editor`.
 
 ### 2. Check Port File
 
@@ -32,7 +35,7 @@ If multiple found → multiple editors are running; MCP will select the most rec
 
 ### 3. Verify MCP Connection
 
-Call the `get_status` MCP tool. This validates the full chain: Claude → MCP server → TCP → CortexCore.
+Call the `get_status` MCP tool. This validates the full chain: assistant client → MCP server → TCP → CortexCore.
 
 Report the response: server version, connected domains, uptime.
 

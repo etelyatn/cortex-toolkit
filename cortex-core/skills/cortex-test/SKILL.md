@@ -53,7 +53,7 @@ Check for test dependencies:
 cd Plugins/UnrealCortex/MCP && uv run pytest tests/ -v
 ```
 
-For E2E tests, first verify the editor is running (check `Saved/CortexPort.txt` exists). If not running, tell the user to start it or use `/cortex-editor`.
+For E2E tests, first verify the editor is running (check `Saved/CortexPort.txt` exists). If not running, tell the user to start it or use `cortex-editor`.
 
 ### 3b. MCP Benchmark Tests
 

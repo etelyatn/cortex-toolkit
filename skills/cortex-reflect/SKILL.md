@@ -9,9 +9,9 @@ Analyze your project's class architecture with a single command.
 
 ## Usage
 
-`/cortex-reflect AMyCharacter` — Full context for a class
-`/cortex-reflect hierarchy AMyCharacter` — Inheritance tree
-`/cortex-reflect usages Health AMyCharacter` — Cross-references
+`cortex-reflect AMyCharacter` — Full context for a class
+`cortex-reflect hierarchy AMyCharacter` — Inheritance tree
+`cortex-reflect usages Health AMyCharacter` — Cross-references
 
 ## What it does
 

@@ -24,7 +24,7 @@ If running and port file exists, read the port and verify TCP responds via `get_
 
 Read engine path from `.cortex/config.yaml` under `engine.path`.
 
-If no config → tell user to run `/cortex-init` first, or ask for the engine path directly.
+If no config → tell user to run `cortex-init` first, or ask for the engine path directly.
 
 Find the `.uproject` file in the project root.
 
@@ -61,4 +61,4 @@ Print: "Editor running on port {port}, MCP ready" with registered domains.
 
 If timeout → report "Editor did not start within 120 seconds" and suggest checking UE logs in `Saved/Logs/`.
 
-> **Need a full restart?** Use `/cortex-restart` instead — it handles graceful shutdown, optional C++ rebuild, relaunch, and MCP verification in one workflow.
+> **Need a full restart?** Use `cortex-restart` instead — it handles graceful shutdown, optional C++ rebuild, relaunch, and MCP verification in one workflow.

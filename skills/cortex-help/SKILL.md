@@ -7,6 +7,9 @@ description: Use when the user asks for help, wants to discover available comman
 
 Discoverability and contextual guidance for the Cortex Toolkit.
 
+Use skill names directly in instructions (for example `cortex-help all`).
+**For Claude:** slash aliases are available (for example `/cortex-help all`).
+
 ## Argument Parsing
 
 Check the arguments passed to this skill:
@@ -14,7 +17,7 @@ Check the arguments passed to this skill:
 - `all` → **Catalog Mode**
 - `agents` → **Agent Catalog Mode**
 - Domain keyword → **Domain Mode** (see domain mapping below)
-- Unrecognized argument → Fall back to **Advisor Mode** and mention: "No domain called '{arg}'. Run /cortex-help all to see all commands."
+- Unrecognized argument → Fall back to **Advisor Mode** and mention: "No domain called '{arg}'. Run cortex-help all to see all commands."
 
 **Domain mapping (accept aliases):**
 
@@ -52,18 +55,18 @@ Gather these signals via file reads only — no MCP calls:
 Generate 2-3 suggestions in this priority order:
 
 1. **Broken infrastructure** → fix first
-   - No `.cortex/config.yaml` → suggest `/cortex-init`
-   - No `Saved/CortexPort.txt` → suggest `/cortex-editor`
+   - No `.cortex/config.yaml` → suggest `cortex-init`
+   - No `Saved/CortexPort.txt` → suggest `cortex-editor`
 2. **Missing setup** → suggest setup
-   - No `.cortex/schema/` or schema older than 7 days → suggest `/cortex-schema-refresh`
+   - No `.cortex/schema/` or schema older than 7 days → suggest `cortex-schema-refresh`
    - Empty `.cortex/context.md` (still has template comments) → suggest filling it in
 3. **Active work context** → suggest next step
    - User just created something → suggest the matching review skill
    - User working in a domain → suggest related skills
 4. **No context** → suggest exploration
-   - Has DataTables → suggest `/cortex-data-review`
-   - Has Blueprints → suggest `/cortex-bp-review`
-   - Nothing detected → suggest `/cortex-start`
+   - Has DataTables → suggest `cortex-data-review`
+   - Has Blueprints → suggest `cortex-bp-review`
+   - Nothing detected → suggest `cortex-start`
 
 ### Output Format
 
@@ -86,7 +89,7 @@ Suggested Next Steps
    Run {/skill-command} to {action description}.
 
 ---
-All commands: /cortex-help all | Domain help: /cortex-help <domain>
+All commands: cortex-help all | Domain help: cortex-help <domain>
 ```
 
 **Rules:**
@@ -105,41 +108,41 @@ Print this complete reference grouped by workflow stage:
 All Commands
 
 Setup & Infrastructure
-  /cortex-init              Initialize project configuration
-  /cortex-editor            Open Unreal Editor
-  /cortex-build             Build the project
-  /cortex-status            Check editor connection and module status
-  /cortex-reconnect         Reconnect to editor after restart
-  /cortex-restart           Restart the MCP server
-  /cortex-schema-refresh    Regenerate project schema from live editor
+  cortex-init              Initialize project configuration
+  cortex-editor            Open Unreal Editor
+  cortex-build             Build the project
+  cortex-status            Check editor connection and module status
+  cortex-reconnect         Reconnect to editor after restart
+  cortex-restart           Restart the MCP server
+  cortex-schema-refresh    Regenerate project schema from live editor
 
 Create
-  /cortex-bp-create         Create Blueprints from description or spec
-  /cortex-data-create       Create DataTables, DataAssets, GameplayTags
-  /cortex-material-create   Create materials and material instances
-  /cortex-ui-create         Create UMG widget screens
-  /cortex-level-edit        Place and organize actors in levels
+  cortex-bp-create         Create Blueprints from description or spec
+  cortex-data-create       Create DataTables, DataAssets, GameplayTags
+  cortex-material-create   Create materials and material instances
+  cortex-ui-create         Create UMG widget screens
+  cortex-level-edit        Place and organize actors in levels
 
 Review & Analyze
-  /cortex-bp-review         Blueprint health check and improvement suggestions
-  /cortex-data-review       DataTable schema review and validation
-  /cortex-material-review   Material graph analysis
-  /cortex-ui-review         Widget hierarchy and property review
-  /cortex-level-review      Level organization and performance review
-  /cortex-reflect           Query C++ and Blueprint class hierarchies
+  cortex-bp-review         Blueprint health check and improvement suggestions
+  cortex-data-review       DataTable schema review and validation
+  cortex-material-review   Material graph analysis
+  cortex-ui-review         Widget hierarchy and property review
+  cortex-level-review      Level organization and performance review
+  cortex-reflect           Query C++ and Blueprint class hierarchies
 
 Test & QA
-  /cortex-test              Run Unreal or Python tests
-  /cortex-qa-init           Set up QA test scenarios
-  /cortex-qa-run            Execute automated QA scenarios
-  /cortex-qa-interactive    Interactive game testing session
+  cortex-test              Run Unreal or Python tests
+  cortex-qa-init           Set up QA test scenarios
+  cortex-qa-run            Execute automated QA scenarios
+  cortex-qa-interactive    Interactive game testing session
 
 Learn
-  /cortex-start             Guided onboarding with a real task
-  /cortex-bp-migrate        Migrate Blueprints to C++ — 4-stage pipeline with hard gates (ANALYZE → PLAN → EXECUTE → COMPLETE)
+  cortex-start             Guided onboarding with a real task
+  cortex-bp-migrate        Migrate Blueprints to C++ — 4-stage pipeline with hard gates (ANALYZE → PLAN → EXECUTE → COMPLETE)
 
 ---
-Domain help: /cortex-help <domain> (data, bp, mat, ui, level, qa, setup)
+Domain help: cortex-help <domain> (data, bp, mat, ui, level, qa, setup)
 ```
 
 No signal gathering needed. Print the catalog and stop.
@@ -158,44 +161,44 @@ For the requested domain, gather:
 ### Domain Definitions
 
 **data:**
-- Skills: `/cortex-data-create`, `/cortex-data-review`, `/cortex-reflect`, `/cortex-schema-refresh`
+- Skills: `cortex-data-create`, `cortex-data-review`, `cortex-reflect`, `cortex-schema-refresh`
 - Content path: `Content/Data/`
 - Schema files: `.cortex/schema/datatables.md`, `.cortex/schema/structs.md`, `.cortex/schema/tags.md`
 - Domain context: `.cortex/domains/data.md`
 - Agents: Data Architect, Game Balancer
 
 **blueprint (bp):**
-- Skills: `/cortex-bp-create`, `/cortex-bp-review`, `/cortex-bp-migrate`, `/cortex-reflect`
+- Skills: `cortex-bp-create`, `cortex-bp-review`, `cortex-bp-migrate`, `cortex-reflect`
 - Content path: `Content/Blueprints/`
 - Schema files: `.cortex/schema/blueprints.md`
 - Domain context: `.cortex/domains/blueprints.md`
 - Agents: Blueprint Developer, Blueprint Debugger, C++ Migration Specialist
 
 **material (mat):**
-- Skills: `/cortex-material-create`, `/cortex-material-review`
+- Skills: `cortex-material-create`, `cortex-material-review`
 - Content path: `Content/Materials/`
 - Domain context: `.cortex/domains/material.md`
 - Agents: Material Developer
 
 **ui (umg):**
-- Skills: `/cortex-ui-create`, `/cortex-ui-review`
+- Skills: `cortex-ui-create`, `cortex-ui-review`
 - Content path: `Content/UI/`
 - Domain context: `.cortex/domains/umg.md`
 - Agents: UI Developer
 
 **level:**
-- Skills: `/cortex-level-edit`, `/cortex-level-review`
+- Skills: `cortex-level-edit`, `cortex-level-review`
 - Content path: `Content/Maps/`
 - Domain context: `.cortex/domains/level.md`
 - Agents: Level Designer
 
 **qa (test):**
-- Skills: `/cortex-qa-init`, `/cortex-qa-run`, `/cortex-qa-interactive`, `/cortex-test`
+- Skills: `cortex-qa-init`, `cortex-qa-run`, `cortex-qa-interactive`, `cortex-test`
 - Domain context: `.cortex/domains/qa.md`
 - Agents: QA Engineer, Test Debugger
 
 **setup (infra):**
-- Skills: `/cortex-init`, `/cortex-editor`, `/cortex-build`, `/cortex-status`, `/cortex-reconnect`, `/cortex-restart`, `/cortex-schema-refresh`
+- Skills: `cortex-init`, `cortex-editor`, `cortex-build`, `cortex-status`, `cortex-reconnect`, `cortex-restart`, `cortex-schema-refresh`
 - Agents: Project Setup, Project Analyzer
 - Note: No content path or schema. "Your Project" section should show infrastructure status instead: config exists/missing, editor connected/not, schema freshness.
 

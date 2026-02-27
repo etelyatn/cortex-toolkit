@@ -7,7 +7,10 @@ description: Use when the Unreal Editor needs to be restarted, after C++ changes
 
 Restart the Unreal Editor - optionally build first, then graceful shutdown, relaunch, and verify MCP connection.
 
-> **Note:** For just starting the editor (not restarting), use `/cortex-editor` instead. The PreToolUse hook auto-starts the editor before MCP calls; this skill is for explicit restart workflows.
+Use skill names directly in instructions (for example `cortex-editor`).
+**For Claude:** slash aliases are available (for example `/cortex-editor`).
+
+> **Note:** For just starting the editor (not restarting), use `cortex-editor` instead. The PreToolUse hook auto-starts the editor before MCP calls; this skill is for explicit restart workflows.
 
 ## Steps
 
@@ -23,7 +26,7 @@ Check port file:
 cat Saved/CortexPort.txt
 ```
 
-If not running, ask user if they just want to start (redirect to `/cortex-editor`).
+If not running, ask user if they just want to start (redirect to `cortex-editor`).
 
 ### 2. Save Before Restart (Optional)
 
@@ -35,7 +38,7 @@ If yes, call `save_all` MCP tool (via `core.save_asset` with `path: "/Game/"` or
 
 Ask the user: "Build C++ before restart?"
 
-If yes, run the build command from the project's CLAUDE.md (substitute your project name):
+If yes, run the project's documented UnrealBuildTool command (substitute your project name/uproject as needed):
 ```bash
 # Replace CortexSandboxEditor / CortexSandbox.uproject with your project
 "$UE_56_PATH/Engine/Binaries/DotNET/UnrealBuildTool/UnrealBuildTool.exe" CortexSandboxEditor Win64 Development -Project="$(pwd)/CortexSandbox.uproject" -WaitMutex -FromMsBuild

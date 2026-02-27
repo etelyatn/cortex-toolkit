@@ -7,12 +7,15 @@ description: Use when MCP connection is lost or unresponsive. Attempts to reconn
 
 Reconnect to the Cortex MCP server when connection is lost or unresponsive.
 
+Use skill names directly in instructions (for example `cortex-status`).
+**For Claude:** slash aliases are available (for example `/cortex-status`).
+
 ## When to Use
 
 > **Note:** Most reconnection scenarios are now handled automatically. The PreToolUse hook verifies editor connectivity before every MCP call, and the TCP client re-reads `CortexPort.txt` on reconnect to pick up port changes. Use this skill only when automatic recovery has failed.
 
 - MCP tools are failing with connection errors **after** the PreToolUse hook passed
-- When `/cortex-status` reports MCP unavailable but editor is running
+- When `cortex-status` reports MCP unavailable but editor is running
 - Persistent connection issues that survive automatic retry
 
 ## Steps
@@ -26,7 +29,7 @@ tasklist | grep -i UnrealEditor
 
 **If NOT running:**
 - MCP server cannot run without editor
-- Inform user to start editor first using `/cortex-editor`
+- Inform user to start editor first using `cortex-editor`
 - Exit (cannot reconnect to non-existent server)
 
 **If running:** Proceed to reconnection attempts.
@@ -47,7 +50,7 @@ cat Saved/CortexPort.txt
 
 ### 3. Attempt Reconnection
 
-**IMPORTANT:** The MCP client in Claude Code may auto-reconnect when you attempt to use MCP tools. Try calling the `get_status` tool to trigger reconnection.
+Try calling the `get_status` tool to trigger reconnection.
 
 **Reconnection strategy (retry 4 times with delays):**
 
@@ -96,15 +99,16 @@ Inform the user:
 ✗ MCP automatic reconnection failed after 4 attempts.
 
 The MCP server appears to be running (editor is active, port file exists),
-but the Claude Code client cannot connect.
+but the MCP client cannot connect.
 
-Please type `/mcp` in the terminal to force a manual reconnection, then retry your operation.
+For clients with a manual reconnect command, run it, then retry your operation.
+**For Claude:** run `/mcp` to force a manual reconnect.
 
 Troubleshooting:
 - Check for firewall blocking localhost:{port}
 - Verify no other process is using port {port}
 - Check UE logs: Saved/Logs/CortexSandbox.log
-- Restart editor if issue persists: use /cortex-editor
+- Restart editor if issue persists: use `cortex-editor`
 ```
 
 **Do NOT retry indefinitely.** Stop after ~1 minute and request user intervention.
@@ -112,9 +116,9 @@ Troubleshooting:
 ## Important Notes
 
 - **MCP server runs inside Unreal Editor** - it cannot be restarted independently
-- **`/mcp` command** is a Claude Code CLI command that forces client reconnection
 - **This skill attempts auto-reconnect** by calling MCP tools (may trigger client reconnect)
-- **If auto-reconnect fails**, user must manually run `/mcp` command
+- **If auto-reconnect fails**, use your client's manual reconnect flow
+- **For Claude:** `/mcp` is the manual reconnect command
 - **Never wait longer than 60 seconds** - always timeout and ask for user help
 
 ## Success Criteria

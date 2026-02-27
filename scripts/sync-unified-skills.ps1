@@ -16,7 +16,11 @@ Get-ChildItem -Path $ToolkitRoot -Directory |
         $skillsPath = Join-Path $_.FullName "skills"
         if (Test-Path $skillsPath) {
             Get-ChildItem -Path $skillsPath -Directory | ForEach-Object {
-                Copy-Item -Path $_.FullName -Destination (Join-Path $targetRoot $_.Name) -Recurse -Force
+                $destination = Join-Path $targetRoot $_.Name
+                if (Test-Path $destination) {
+                    throw "Duplicate skill folder name detected: '$($_.Name)'. Skill names must be unique across domain plugins."
+                }
+                Copy-Item -Path $_.FullName -Destination $destination -Recurse -Force
             }
         }
     }

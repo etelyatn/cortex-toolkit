@@ -83,7 +83,9 @@ Create `.cortex/domains/` with a template for each detected domain:
 
 ### 5. Configure MCP
 
-Check `.mcp.json` exists. If not, create it:
+Use `.mcp.json` as the assistant-agnostic MCP config for this project.
+
+If `.mcp.json` is missing, create it with:
 ```json
 {
   "mcpServers": {
@@ -97,6 +99,12 @@ Check `.mcp.json` exists. If not, create it:
   }
 }
 ```
+
+If `.mcp.json` already exists:
+- Preserve all existing top-level keys.
+- Preserve all existing `mcpServers` entries.
+- Upsert only `mcpServers.cortex_mcp` with the expected value above.
+- Do not remove or rewrite unrelated MCP server configs.
 
 ### 6. Print Summary
 
