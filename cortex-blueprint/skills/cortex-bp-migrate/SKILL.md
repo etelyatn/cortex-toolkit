@@ -269,32 +269,59 @@ Mark each task `in_progress` when starting, `completed` when done.
 
 ### PREPARE Phase (Tasks 1-8) — Orchestrator Handles Directly
 
-These are simple operations the orchestrator runs directly (no agent dispatch):
+These are simple operations the orchestrator runs directly (no agent dispatch).
 
-- **Tasks 1-2:** MCP connection check and staleness check
-- **Task 3:** Check generated code imports against Build.cs, add missing modules
-- **Task 4:** Call `duplicate_blueprint`
-- **Tasks 5-6:** Write generated code from `generated/` directory to target paths
-- **Task 7:** Run UBT build command, verify 0 errors/0 warnings
-- **Task 8: Restart editor and verify class registration**
-  1. Use the Skill tool: `skill: "cortex-restart", args: "save=yes build=no"` (Task 7 already built)
-     - This handles: graceful shutdown -> wait for exit -> relaunch -> wait for port file -> verify MCP
-  2. After restart completes, verify the `reflect` domain is listed in the restart response's `domains` field
-     - If `reflect` domain missing: report error — CortexReflect plugin may not be enabled
-  3. Verify the new C++ class is registered:
-     - Call `reflect.class_detail` with the target class name (e.g., `AJumpPad`)
-     - If class not found: the build may not have been loaded. Report error, present recovery menu
-  4. Only fall back to asking the user if `/cortex-restart` fails after 2 attempts (and pipeline-wide restart cap not exceeded):
-     ```
-     Automated restart failed. Options:
-     [1] Retry — try restarting again
-     [2] Manual — I'll restart the editor myself, tell me when ready
-     [3] Stop — save progress, resume later with --resume
-     ```
-  5. If user picks [2] Manual: wait for user to confirm editor is ready, then run `/cortex-status` to verify MCP connection before proceeding
-  6. Update frontmatter: `current_task: 8`, `status: executing`, increment `editor_restarts`
+**CRITICAL: Frontmatter update after EVERY task, BEFORE proceeding to the next task.**
 
-Update frontmatter after each task: increment `current_task`, add to `files_created`/`files_modified`.
+After completing each PREPARE task, immediately edit `migration-plan.md` frontmatter. Do not batch frontmatter updates — update after each individual task. Frontmatter is the durable store; TaskCreate is ephemeral session state. Update frontmatter BEFORE marking the TaskCreate entry as completed.
+
+```yaml
+# Update these fields after each task:
+current_task: <N>           # The task just completed
+last_updated: "<ISO-8601>"  # Current timestamp
+tasks:
+  - { id: <N>, status: completed }  # Mark the specific task
+# Also update these when applicable:
+files_created: [...]        # Append paths of new files (Tasks 5, 6)
+files_modified: [...]       # Append paths of modified files (Task 3)
+editor_restarts: <count>    # Increment after Task 8 restart
+```
+
+This is mandatory, not optional. The migration-plan.md is the single source of truth. If the session is interrupted during PREPARE and resumed later, `--resume` relies on these fields to know where to continue.
+
+**Task sequence:**
+
+| Task | Action | Frontmatter Update |
+|------|--------|--------------------|
+| 1 | Verify MCP connection via `/cortex-status` | `current_task: 1`, task 1 completed |
+| 2 | Staleness check: compare `blueprint_hash` | `current_task: 2`, task 2 completed |
+| 3 | Check Build.cs for required modules | `current_task: 3`, task 3 completed, `files_modified` += Build.cs path (if changed) |
+| 4 | Call `duplicate_blueprint` | `current_task: 4`, task 4 completed |
+| 5 | Write C++ header to target path | `current_task: 5`, task 5 completed, `files_created` += header path |
+| 6 | Write C++ source to target path | `current_task: 6`, task 6 completed, `files_created` += source path |
+| 7 | Run UBT build, verify 0 errors/warnings | `current_task: 7`, task 7 completed |
+| 8 | Restart editor via `/cortex-restart`, verify class | `current_task: 8`, task 8 completed, **`phase: execute`**, `editor_restarts` += 1 |
+
+**Task 8 is the PREPARE-to-EXECUTE transition.** It is the only task that changes the `phase` field. Update `phase: execute` in addition to `current_task: 8`.
+
+**Example frontmatter edit after Task 5:**
+
+```yaml
+current_task: 5
+last_updated: "2026-02-27T14:30:00.000Z"
+files_created:
+  - "Source/CortexSandbox/Public/JumpPad/AJumpPad.h"
+tasks:
+  - { id: 1, status: completed }
+  - { id: 2, status: completed }
+  - { id: 3, status: completed }
+  - { id: 4, status: completed }
+  - { id: 5, status: completed }
+  - { id: 6, status: pending }
+  # ... rest unchanged
+```
+
+**On failure:** Set `status: failed`, `failed_task: <N>` BEFORE presenting recovery options. This ensures the failure point is persisted even if the session crashes.
 
 ### EXECUTE Phase (Tasks 9-15) — Dispatch Executor Agent
 
