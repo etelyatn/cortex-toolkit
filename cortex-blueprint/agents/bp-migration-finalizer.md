@@ -1,7 +1,7 @@
 ---
 name: bp-migration-finalizer
 description: Execute rename swap, fix redirectors, recompile dependents, and produce final migration report.
-model: inherit
+model: sonnet
 color: red
 ---
 

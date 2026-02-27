@@ -33,51 +33,84 @@ If `--resume` flag OR `docs/migration/blueprint-to-cpp/{BP_Name}/migration-plan.
 Before entering any stage, verify the editor is alive and MCP is healthy.
 
 **Steps:**
-1. Glob for `Saved/CortexPort-*.txt`
-   - If no port file found: invoke `cortex-editor` skill to start editor and wait for ready
-   - If a port file exists: validate PID is alive with `tasklist /FI "PID eq {pid}" /NH`
-     - If PID is not found: delete stale port file, then invoke `cortex-editor`
-2. Call `get_status` MCP tool to verify the full chain
-   - If it fails: invoke `cortex-editor` skill
-3. Proceed only when `get_status` returns success
+1. Use the Skill tool: `skill: "cortex-status"` — checks the full diagnostic chain (editor process, port file, MCP connection, domains)
+   - If all checks pass AND `blueprint` domain is registered -> proceed to ANALYZE
+   - If editor not running OR port file stale -> go to step 2
+   - If MCP connection fails but editor is running -> go to step 3
+   - If `blueprint` domain is missing -> editor may need full restart (not just reconnect). Run `/cortex-restart`, then re-run `/cortex-status`
 
-**Run this check:**
+2. **Editor not running:** Use the Skill tool: `skill: "cortex-editor"` to start the editor
+   - The skill handles: engine path lookup, background launch with `-AutoDeclinePackageRecovery`, port file polling (120s timeout), MCP verification
+   - After skill completes -> re-run `/cortex-status` to confirm `blueprint` domain is registered
+
+3. **MCP connection failed (editor running):** Use the Skill tool: `skill: "cortex-reconnect"`
+   - `/cortex-reconnect` retries `get_status` up to 4 times over ~55 seconds. It is for when the editor process is healthy but the MCP client lost its connection. Prefer this over a full restart when the editor is still running.
+   - If reconnect fails -> use `/cortex-restart` (full restart cycle)
+
+**This check runs:**
 - At pipeline start (before ANALYZE)
 - Before each phase agent dispatch (before EXECUTE, VERIFY, SWAP)
 - After any editor crash recovery
 
-**On failure after 2 retries:** present:
+**On failure after 2 retries (respecting pipeline-wide restart cap of 3):** Present to user via AskUserQuestion:
 ```
 Editor could not be started. Options:
 [1] Retry — try starting editor again
 [2] Manual — I'll start it myself, then continue
 [3] Stop — abort migration
 ```
+If user picks [2] Manual: wait for user to confirm editor is ready, then run `/cortex-status` to verify MCP connection and `blueprint` domain before proceeding.
 
-### Editor Health Check (Reusable)
+**Note:** Do NOT use inline bash commands (`tasklist`, `grep`, port file globbing) for editor lifecycle operations. Always delegate to the Cortex core skills which handle edge cases (stale port files, PID validation, multiple editor instances) consistently.
 
-```bash
-# 1. Find port file
-PORT_FILE=$(ls Saved/CortexPort-*.txt 2>/dev/null | head -1)
-if [ -z "$PORT_FILE" ]; then
-  echo "NO_PORT_FILE"
-  exit 0
-fi
+### Pipeline-Wide Restart Limit
 
-# 2. Extract PID from filename
-PID=$(echo "$PORT_FILE" | grep -oP 'CortexPort-\K\d+')
+Track editor restarts in frontmatter field `editor_restarts`.
 
-# 3. Check if PID is alive
-if ! tasklist /FI "PID eq $PID" /NH 2>/dev/null | grep -q "$PID"; then
-  echo "STALE_PORT_FILE"
-  rm "$PORT_FILE"
-  exit 0
-fi
+- Hard cap: `3` total restarts across the full migration pipeline
+- Increment after every successful orchestrator-triggered restart (`/cortex-restart`)
+- If `editor_restarts >= 3`: stop immediately and present:
+  ```
+  Editor has restarted 3 times in this migration.
+  This usually indicates an underlying engine/plugin issue.
+  Please investigate manually (logs, crash report, plugin state), then resume with --resume.
+  ```
 
-# 4. Read port number
-PORT=$(cat "$PORT_FILE")
-echo "ALIVE:$PORT"
-```
+### Pre-Dispatch Protocol (referenced by all phase dispatches)
+
+Before dispatching ANY phase agent (executor, verifier, finalizer):
+1. Run `/cortex-status` — verify editor alive + MCP connected + `blueprint` domain registered
+2. If editor is down -> use `/cortex-editor` or `/cortex-restart` as appropriate
+3. Only dispatch agent once MCP connection is confirmed and `blueprint` domain is registered
+4. If editor cannot be started after 2 attempts (respecting pipeline-wide restart cap) -> present:
+   ```
+   Editor is down before agent dispatch. Options:
+   [1] Retry — try starting editor again
+   [2] Manual — I'll start it myself, then continue
+   [3] Stop — save progress, resume later with --resume
+   ```
+   If user picks [2] Manual: wait for confirmation, re-run `/cortex-status` before dispatching.
+
+This prevents wasted agent dispatches (significant overhead per dispatch) when the editor is already dead.
+
+### Model Selection Rules
+
+**All migration phase agents MUST use sonnet or higher.** Do not dispatch with haiku.
+
+**Intent:** `model: sonnet` is set as a **capability floor** — these agents require at least sonnet-level reasoning for MCP tool calls. This is an intentional trade-off:
+- If your session runs on Opus, agents will run at sonnet (not Opus). This is by design for cost control — phase agents are mechanical executors, not creative thinkers. Sonnet is sufficient for MCP operations.
+- If your session runs on sonnet, agents inherit the same level (no change).
+- If your session runs on haiku, agents are upgraded to sonnet (the whole point).
+
+| Context | Model | Reason |
+|---------|-------|--------|
+| Phase agents (executor, verifier, finalizer) | sonnet (frontmatter enforced) | MCP tool calls require understanding tool naming, parameter schemas, and error handling |
+| Orchestrator operations | session model (no override) | Orchestrator runs at whatever model the user's session uses; do not attempt to switch models mid-conversation |
+| Error recovery, MCP response interpretation | sonnet (via agent dispatch) | Complex reasoning required |
+
+The phase agent frontmatters enforce `model: sonnet`. Do not override this with `model: haiku` in the Task tool dispatch.
+
+**Why not haiku for MCP tasks:** During the BP_JumpPad migration, haiku agents confused TCP command names with MCP tool names, returned "UNKNOWN_COMMAND" errors, and couldn't distinguish "editor not running" from "stale port file." Sonnet handled all of these correctly.
 
 ## Stage 1: ANALYZE
 
@@ -169,7 +202,7 @@ Task 4: Duplicate Blueprint
 Task 5: Write C++ header
 Task 6: Write C++ source
 Task 7: Build project (outside editor)
-Task 8: Restart editor, verify class registered
+Task 8: Restart editor (automated via cortex-restart), verify class registered
 
 ── EXECUTE (on BP_Name_Migration) ───────────────────────
 Task 9: Validate component name collisions
@@ -224,6 +257,7 @@ Write `docs/migration/blueprint-to-cpp/{BP_Name}/migration-plan.md` with:
    tasks:
      - { id: 1, status: pending }
      # ... all tasks
+   editor_restarts: 0
    files_created: []
    files_modified: []
    ---
@@ -268,18 +302,63 @@ Mark each task `in_progress` when starting, `completed` when done.
 
 ### PREPARE Phase (Tasks 1-8) — Orchestrator Handles Directly
 
-These are simple operations the orchestrator runs directly (no agent dispatch):
+These are simple operations the orchestrator runs directly (no agent dispatch).
 
-- **Tasks 1-2:** MCP connection check and staleness check
-- **Task 3:** Check generated code imports against Build.cs, add missing modules
-- **Task 4:** Call `duplicate_blueprint`
-- **Tasks 5-6:** Write generated code from `generated/` directory to target paths
-- **Task 7:** Run UBT build command, verify 0 errors/0 warnings
-- **Task 8:** Ask user to restart editor. Wait for confirmation. Verify MCP reconnects. Verify class exists via `query_class_hierarchy`.
+**CRITICAL: Frontmatter update after EVERY task, BEFORE proceeding to the next task.**
 
-Update frontmatter after each task: increment `current_task`, add to `files_created`/`files_modified`.
+After completing each PREPARE task, immediately edit `migration-plan.md` frontmatter. Do not batch frontmatter updates — update after each individual task. Frontmatter is the durable store; TaskCreate is ephemeral session state. Update frontmatter BEFORE marking the TaskCreate entry as completed.
+
+```yaml
+# Update these fields after each task:
+current_task: <N>           # The task just completed
+last_updated: "<ISO-8601>"  # Current timestamp
+tasks:
+  - { id: <N>, status: completed }  # Mark the specific task
+# Also update these when applicable:
+files_created: [...]        # Append paths of new files (Tasks 5, 6)
+files_modified: [...]       # Append paths of modified files (Task 3)
+editor_restarts: <count>    # Increment after Task 8 restart
+```
+
+This is mandatory, not optional. The migration-plan.md is the single source of truth. If the session is interrupted during PREPARE and resumed later, `--resume` relies on these fields to know where to continue.
+
+**Task sequence:**
+
+| Task | Action | Frontmatter Update |
+|------|--------|--------------------|
+| 1 | Verify MCP connection via `/cortex-status` | `current_task: 1`, task 1 completed |
+| 2 | Staleness check: compare `blueprint_hash` | `current_task: 2`, task 2 completed |
+| 3 | Check Build.cs for required modules | `current_task: 3`, task 3 completed, `files_modified` += Build.cs path (if changed) |
+| 4 | Call `duplicate_blueprint` | `current_task: 4`, task 4 completed |
+| 5 | Write C++ header to target path | `current_task: 5`, task 5 completed, `files_created` += header path |
+| 6 | Write C++ source to target path | `current_task: 6`, task 6 completed, `files_created` += source path |
+| 7 | Run UBT build, verify 0 errors/warnings | `current_task: 7`, task 7 completed |
+| 8 | Restart editor via `/cortex-restart`, verify class | `current_task: 8`, task 8 completed, **`phase: execute`**, `editor_restarts` += 1 |
+
+**Task 8 is the PREPARE-to-EXECUTE transition.** It is the only task that changes the `phase` field. Update `phase: execute` in addition to `current_task: 8`.
+
+**Example frontmatter edit after Task 5:**
+
+```yaml
+current_task: 5
+last_updated: "2026-02-27T14:30:00.000Z"
+files_created:
+  - "Source/CortexSandbox/Public/JumpPad/AJumpPad.h"
+tasks:
+  - { id: 1, status: completed }
+  - { id: 2, status: completed }
+  - { id: 3, status: completed }
+  - { id: 4, status: completed }
+  - { id: 5, status: completed }
+  - { id: 6, status: pending }
+  # ... rest unchanged
+```
+
+**On failure:** Set `status: failed`, `failed_task: <N>` BEFORE presenting recovery options. This ensures the failure point is persisted even if the session crashes.
 
 ### EXECUTE Phase (Tasks 9-15) — Dispatch Executor Agent
+
+**Pre-dispatch:** Run Pre-Dispatch Protocol (see above).
 
 Dispatch `cortex-blueprint:bp-migration-executor` with:
 - Full text of migration-plan.md
@@ -294,23 +373,32 @@ The executor returns:
 
 When a phase agent returns `status: editor_crashed`:
 
-1. Run the Editor Health Check (from Task 0)
-2. If editor is dead:
-   a. Delete stale port file
-   b. Invoke `cortex-restart` skill (`build=no`, `save=no`)
-   c. Wait for MCP connection
-   d. Verify class registration via `reflect.class_detail` (if post-build)
-3. Resume from `failed_task` by re-dispatching the phase agent with updated task range
-4. Update frontmatter: refresh `last_updated`, keep `status: executing`
-5. If restart fails after 2 attempts, present:
-```
-Editor crashed and could not be restarted. Options:
-[1] Retry restart
-[2] I'll restart manually, then continue
-[3] Stop and save progress (resume later with --resume)
-```
+1. Use the Skill tool: `skill: "cortex-status"` to diagnose the state
+2. If editor is dead (status shows "Editor not running" or stale port):
+   a. Use the Skill tool: `skill: "cortex-restart", args: "save=no build=no"` (editor crashed, nothing to save)
+      - The skill handles stale port file cleanup, process verification, and MCP reconnection
+   b. Verify `reflect` and `blueprint` domains are registered in the restart response
+   c. Verify class registration via `reflect.class_detail` (if post-build)
+   d. Increment `editor_restarts` in frontmatter. If >= 3, hard stop (see Pipeline-Wide Restart Limit)
+3. **Re-verify asset state before resuming** (critical for mid-EXECUTE/SWAP crashes):
+   - If crash during EXECUTE: verify the duplicate Blueprint exists and is not corrupted (`get_blueprint_details`)
+   - If crash during VERIFY: VERIFY is read-only — safe to retry from `failed_task` without re-verification of asset state
+   - If crash during SWAP: verify which referencers have already been updated (`get_referencers`). Do NOT blindly re-run from `failed_task` — some referencers may already point to the new asset
+   - The frontmatter `failed_task` indicates where to resume, but the orchestrator must confirm preconditions of that task still hold
+4. Resume from `failed_task` by re-dispatching the phase agent with updated task range
+5. Update frontmatter: refresh `last_updated`, keep `status: executing`
+6. If restart fails after 2 attempts, present via AskUserQuestion:
+   ```
+   Editor crashed and could not be restarted. Options:
+   [1] Retry restart
+   [2] Manual — I'll restart the editor myself, tell me when ready
+   [3] Stop — save progress, resume later with --resume
+   ```
+   If user picks [2] Manual: wait for user confirmation, then run `/cortex-status` to verify before proceeding.
 
 ### VERIFY Phase (Tasks 16-17) — Dispatch Verifier Agent
+
+**Pre-dispatch:** Run Pre-Dispatch Protocol (see above).
 
 Dispatch `cortex-blueprint:bp-migration-verifier` with:
 - Full text of migration-plan.md
@@ -330,6 +418,8 @@ Present verification summary. Ask for approval:
 - [Abort] — delete migration copy, keep original. Clean up: delete `BP_Name_Migration`, delete C++ files, update frontmatter `status: failed`.
 
 ### SWAP + COMPLETE Phase (Tasks 18-22) — Dispatch Finalizer Agent
+
+**Pre-dispatch:** Run Pre-Dispatch Protocol (see above).
 
 Dispatch `cortex-blueprint:bp-migration-finalizer` with:
 - Full text of migration-plan.md

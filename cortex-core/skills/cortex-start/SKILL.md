@@ -36,7 +36,7 @@ Stop here. Do not proceed to 1.2.
 
 ### 1.2 Editor Running?
 
-Check if `Saved/CortexPort.txt` exists and read the port number.
+Check if a `Saved/CortexPort-*.txt` port file exists and read the port number.
 
 If missing:
 ```
