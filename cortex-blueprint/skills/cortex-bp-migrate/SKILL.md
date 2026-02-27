@@ -16,7 +16,7 @@ Extract:
 - mode flag: `--audit` or `--dry-run`
 - migration preferences
 
-Check whether `docs/migration/blueprint-to-cpp/{BP_Name}/` exists and contains section files (e.g., `01-pre-migration.json`) from a previous v2 run. If it does, note this to the user and offer to resume via the `bp-migration-analyst` agent instead of starting fresh.
+Check whether `docs/migration/blueprint-to-cpp/{BP_Name}/` exists and contains section files (e.g., `01-pre-migration.json`) from a previous v2 run. If it does, note this to the user and offer to start fresh.
 
 ### 2. Launch C++ Migration Specialist Agent
 
@@ -74,4 +74,3 @@ All common Blueprint constructs are translated to C++:
 - `/cortex-bp-migrate BP_Player --include-all` - skip element selection, migrate everything
 - `--skip-cleanup` — Skip Phase 7 Blueprint cleanup prompt
 
-> **For interactive guided migration** with dependency analysis, non-destructive rename-swap, rollback support, and section-based reports that survive editor restarts, use `/cortex-bp-migrate-guided` instead.
