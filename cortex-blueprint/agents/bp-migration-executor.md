@@ -1,6 +1,6 @@
 ---
 name: bp-migration-executor
-description: Phase 2/3 migration execution agent for Blueprint-to-C++ v2.0 workflow
+description: Phase 2/3 migration execution agent for Blueprint-to-C++ V5 workflow
 model: inherit
 color: orange
 ---

@@ -1,6 +1,6 @@
 ---
 name: bp-migration-finalizer
-description: Phase 5/6 swap, rollback, and final report assembly for migration v2.0
+description: Phase 5/6 swap, rollback, and final report assembly for migration V5
 model: inherit
 color: red
 ---

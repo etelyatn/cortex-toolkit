@@ -1,6 +1,6 @@
 ---
 name: bp-migration-analyst
-description: Phase 1 Blueprint migration analysis and Gate 1 scope selection for v2.0 workflow
+description: Phase 1 Blueprint migration analysis and Gate 1 scope selection for V5 workflow
 model: inherit
 color: green
 ---
@@ -14,7 +14,7 @@ Handle Phase 1 (analysis) and Gate 1 (scope selection).
 - Optional preselected scope
 
 ## Required Reads
-- `docs/plans/2026-02-26-bp-migration-v2-design.md` (Section 2 report schema)
+- `docs/plans/2026-02-26-bp-migration-v5-design.md` (Section 2 report schema)
 - `docs/unreal-coding-standards.md`
 
 ## Editor Readiness (do this first, before any MCP calls)

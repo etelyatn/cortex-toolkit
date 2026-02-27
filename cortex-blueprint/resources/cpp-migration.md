@@ -347,10 +347,10 @@ Cross-reference these against Blueprint analysis results during migration. Flag 
 
 This table grows over time. Add entries when deprecated APIs are encountered during migrations.
 
-## v2.0 Report Schema
+## V5 Report Schema
 
 For full JSON schema and section contracts, use:
-- `docs/plans/2026-02-26-bp-migration-v2-design.md` (Section 2)
+- `docs/plans/2026-02-26-bp-migration-v5-design.md` (Section 2)
 
 Section files:
 - `01-pre-migration.json`
@@ -360,7 +360,7 @@ Section files:
 - `05-rollback.json`
 - `report.json` (merged final output)
 
-## v2.0 Verification Checklist
+## V5 Verification Checklist
 
 - Structural compare completed (`compare_blueprints`)
 - Property and default-value parity reviewed

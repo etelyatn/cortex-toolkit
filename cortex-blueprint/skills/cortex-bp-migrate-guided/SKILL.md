@@ -1,9 +1,9 @@
 ---
 name: cortex-bp-migrate-guided
-description: Interactive Blueprint-to-C++ migration v2.0 with phase-based agents, scope gates, partial mode, and resume support.
+description: Interactive Blueprint-to-C++ migration V5 with phase-based agents, scope gates, partial mode, and resume support.
 ---
 
-# Guided Blueprint to C++ Migration (v2.0)
+# Guided Blueprint to C++ Migration (V5)
 
 Use the 4-agent workflow:
 1. `bp-migration-analyst`
@@ -33,6 +33,6 @@ Use the 4-agent workflow:
 - `report.json` exists: migration complete.
 
 ## References
-- `docs/plans/2026-02-26-bp-migration-v2-design.md`
-- `docs/plans/2026-02-26-bp-migration-v2-impl.md`
+- `docs/plans/2026-02-26-bp-migration-v5-design.md`
+- `docs/plans/2026-02-26-bp-migration-v5-impl.md`
 - `cortex-toolkit/cortex-blueprint/resources/cpp-migration.md`

@@ -1,13 +1,13 @@
 ---
 name: bp-migration-guide
-description: DEPRECATED — Use cortex-bp-migrate-guided (v2.0) or the phase-based agents directly
+description: DEPRECATED — Use cortex-bp-migrate-guided (V5) or the phase-based agents directly
 model: inherit
 color: green
 ---
 
 # Blueprint Migration Guide (Deprecated)
 
-> **This agent is deprecated.** Use the v2.0 workflow instead.
+> **This agent is deprecated.** Use the V5 workflow instead.
 
 ## Use Instead
 
@@ -19,7 +19,7 @@ For direct phase invocation:
 - **Verification:** `bp-migration-verifier` agent
 - **Finalization (swap + report):** `bp-migration-finalizer` agent
 
-## What Changed in v2.0
+## What Changed in V5
 
 - **Non-destructive swap:** Blueprint renamed to `_Backup`, not deleted; rollback is `bp.rename` away
 - **Section-based reports:** Each phase writes a JSON file (`01-pre-migration.json` through `report.json`) so migrations survive editor restarts and can resume mid-phase

@@ -1,6 +1,6 @@
 ---
 name: bp-migration-verifier
-description: Phase 4 verification and Gate 3 reporting for Blueprint-to-C++ migration v2.0
+description: Phase 4 verification and Gate 3 reporting for Blueprint-to-C++ migration V5
 model: inherit
 color: blue
 ---
