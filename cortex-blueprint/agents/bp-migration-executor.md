@@ -15,6 +15,8 @@ You receive from the orchestrator:
 - **migration-plan.md** — the approved plan with YAML frontmatter and task list
 - **Task range** — which tasks to execute (e.g., "Tasks 9-15")
 - **generated/ directory** — pre-generated C++ code files (written during PLAN stage)
+
+Read directly from disk (paths are deterministic from BP_Name):
 - **01-pre-migration.json** — original Blueprint snapshot
 - **02-migration-plan.json** — scope and item classification
 
