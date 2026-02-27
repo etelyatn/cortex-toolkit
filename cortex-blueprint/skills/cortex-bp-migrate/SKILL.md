@@ -637,31 +637,62 @@ On any task failure from any agent:
 
 ## Stage 4: COMPLETE (Post-Swap)
 
-After the finalizer succeeds, present results to user:
+After the finalizer succeeds:
 
-```
-Migration Complete: {BP_Name} → {ClassName}
+### Step 1: Present Migration Results
 
-  Backup: /Game/Blueprints/{BP_Name}_Backup
+Display a summary (not a menu -- just information):
+
+```text
+Migration Complete: {BP_Name} -> {ClassName}
+
   C++ class: {ClassName} ({header_path})
-  Report: docs/migration/blueprint-to-cpp/{BP_Name}/report.json
-
-  Backup handling:
-  [keep]    — {BP_Name}_Backup stays in place
-  [archive] — Move to /Game/Migration/Backups/
-  [delete]  — Remove backup (not recommended)
-
-  Optional cleanup:
-  [clean]   — Remove orphaned nodes from event graph
-  [skip]    — Leave orphaned nodes (safe, they don't execute)
+  Blueprint: /Game/.../{BP_Name} (reparented to {ClassName})
+  Plan: docs/migration/blueprint-to-cpp/{BP_Name}/migration-plan.md
 ```
 
-Update frontmatter: `status: completed`.
+### Step 2: Handle Backup
 
-For partial migrations, also show:
+Read `backup_verified` from the finalizer response (or from `rollback.json`).
+
+If `backup_verified: false`:
+- Report: `No backup preserved -- the original Blueprint was replaced directly via redirector chain. This is normal when rename redirectors are resolved.`
+- Skip the backup menu entirely.
+
+If `backup_verified: true`:
+- Use `AskUserQuestion`:
+
+```text
+What would you like to do with the backup?
+[1] Keep -- BP_Name_Backup stays in place as a safety net
+[2] Archive -- move to /Game/Migration/Backups/BP_Name_Backup
+[3] Delete -- remove the backup (migration confirmed clean)
+```
+
+- On [1] Keep: no action needed
+- On [2] Archive: call `rename_blueprint` to move to `/Game/Migration/Backups/`, then call `fixup_redirectors` on the source directory to resolve the redirector left behind
+- On [3] Delete: call Blueprint `delete` tool. If delete fails (asset not found), report warning but do not treat as error — the asset may have been consumed by redirector resolution.
+
+### Step 3: Update Plan Document
+
+The finalizer already appended the Final Report section. Update frontmatter: `status: completed`, `phase: complete`.
+
+### Step 4: Show Deferred Groups (Multi-Pass Only)
+
+For partial migrations (`total_planned_passes > 1`), show:
 - Which groups were migrated this pass
 - Which groups are deferred to future passes
 - Note: next pass requires editor restart (class layout changes)
+
+### Step 5: Note for User (Simple Migrations)
+
+If `complexity: simple`, add:
+
+```text
+Note: CDO (Class Default Object) property comparison was skipped for
+this simple migration. Verify runtime behavior matches expectations
+(component properties, default values, collision settings).
+```
 
 ---
 
