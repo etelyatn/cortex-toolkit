@@ -136,7 +136,7 @@ Test & QA
 
 Learn
   /cortex-start             Guided onboarding with a real task
-  /cortex-bp-migrate        Migrate Blueprints to C++ autonomously (analysis + generation in one shot)
+  /cortex-bp-migrate        Migrate Blueprints to C++ — 4-stage pipeline with hard gates (ANALYZE → PLAN → EXECUTE → COMPLETE)
 
 ---
 Domain help: /cortex-help <domain> (data, bp, mat, ui, level, qa, setup)
@@ -240,7 +240,7 @@ Core
 
 Blueprint
   Blueprint Developer      — Blueprint creation, modification, graph wiring
-  C++ Migration Specialist — Blueprint-to-C++ autonomous translation (used by /cortex-bp-migrate)
+  C++ Migration Specialist — C++ code generation patterns for Blueprint migration (internal, used by cortex-bp-migrate PLAN stage)
 Data
   Data Architect       — DataTable creation, schema design, bulk data import
   Game Balancer        — Balance analysis, progression curves, reward scaling

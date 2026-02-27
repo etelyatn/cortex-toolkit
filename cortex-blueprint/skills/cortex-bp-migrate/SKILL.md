@@ -228,7 +228,7 @@ These are simple operations the orchestrator runs directly (no agent dispatch):
 
 Update frontmatter after each task: increment `current_task`, add to `files_created`/`files_modified`.
 
-### EXECUTE Phase (Tasks 9-14) — Dispatch Executor Agent
+### EXECUTE Phase (Tasks 9-15) — Dispatch Executor Agent
 
 Dispatch `cortex-blueprint:bp-migration-executor` with:
 - Full text of migration-plan.md
@@ -244,6 +244,7 @@ The executor returns:
 Dispatch `cortex-blueprint:bp-migration-verifier` with:
 - Full text of migration-plan.md
 - 01-pre-migration.json content
+- Task range: 16-17
 
 The verifier returns:
 - Concise summary (components match, properties match, logic coverage, impact)
@@ -262,6 +263,7 @@ Present verification summary. Ask for approval:
 Dispatch `cortex-blueprint:bp-migration-finalizer` with:
 - Full text of migration-plan.md
 - All section file contents (01 through 04)
+- Task range: 18-22
 
 The finalizer returns:
 - Swap status (success or failure with details)
