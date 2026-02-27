@@ -346,3 +346,43 @@ Cross-reference these against Blueprint analysis results during migration. Flag 
 | FHitResult::Actor | UE 5.0 | FHitResult::GetActor() | Direct access to FHitResult.Actor weak pointer field |
 
 This table grows over time. Add entries when deprecated APIs are encountered during migrations.
+
+## v2.0 Report Schema
+
+For full JSON schema and section contracts, use:
+- `docs/plans/2026-02-26-bp-migration-v2-design.md` (Section 2)
+
+Section files:
+- `01-pre-migration.json`
+- `02-migration-plan.json`
+- `03-node-mapping.json`
+- `04-verification.json`
+- `05-rollback.json`
+- `report.json` (merged final output)
+
+## v2.0 Verification Checklist
+
+- Structural compare completed (`compare_blueprints`)
+- Property and default-value parity reviewed
+- Logic coverage validated for migrated groups
+- Dependency impact checked (children/referencers)
+- Level instance behavior sanity-checked
+- Redirectors fixed and dependents recompiled after swap
+
+## Medium-Level Component Classification
+
+| Component Case | Medium-Level Handling |
+|---------------|-----------------------|
+| Core identity/capability component | Migrate declaration to C++ (`CreateDefaultSubobject`) |
+| Asset/config-only component tuning | Keep values in BP Class Defaults |
+| Visual-only designer component | Keep in BP unless needed for reusable base behavior |
+| Complex runtime logic in component graph | Migrate logic to C++; keep editor-facing tuning in BP |
+
+## Cleanup Order Rule
+
+When removing migrated Blueprint content, always clean consumers before producers:
+1. Reparent
+2. Disconnect nodes
+3. Remove functions
+4. Remove variables
+5. Remove SCS components
