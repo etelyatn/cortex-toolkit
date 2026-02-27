@@ -28,6 +28,57 @@ If `--resume` flag OR `docs/migration/blueprint-to-cpp/{BP_Name}/migration-plan.
 4. Present resume point to user with options: [resume / rewind / restart]
 5. On resume: create TaskCreate entries for remaining tasks, continue from saved phase
 
+## Pre-Flight Check (Task 0)
+
+Before entering any stage, verify the editor is alive and MCP is healthy.
+
+**Steps:**
+1. Glob for `Saved/CortexPort-*.txt`
+   - If no port file found: invoke `/cortex-editor` skill to start editor and wait for ready
+   - If a port file exists: validate PID is alive with `tasklist /FI "PID eq {pid}" /NH`
+     - If PID is not found: delete stale port file, then invoke `/cortex-editor`
+2. Call `get_status` MCP tool to verify the full chain
+   - If it fails: invoke `/cortex-editor` skill
+3. Proceed only when `get_status` returns success
+
+**Run this check:**
+- At pipeline start (before ANALYZE)
+- Before each phase agent dispatch (before EXECUTE, VERIFY, SWAP)
+- After any editor crash recovery
+
+**On failure after 2 retries:** present:
+```
+Editor could not be started. Options:
+[1] Retry — try starting editor again
+[2] Manual — I'll start it myself, then continue
+[3] Stop — abort migration
+```
+
+### Editor Health Check (Reusable)
+
+```bash
+# 1. Find port file
+PORT_FILE=$(ls Saved/CortexPort-*.txt 2>/dev/null | head -1)
+if [ -z "$PORT_FILE" ]; then
+  echo "NO_PORT_FILE"
+  exit 0
+fi
+
+# 2. Extract PID from filename
+PID=$(echo "$PORT_FILE" | grep -oP 'CortexPort-\K\d+')
+
+# 3. Check if PID is alive
+if ! tasklist /FI "PID eq $PID" /NH 2>/dev/null | grep -q "$PID"; then
+  echo "STALE_PORT_FILE"
+  rm "$PORT_FILE"
+  exit 0
+fi
+
+# 4. Read port number
+PORT=$(cat "$PORT_FILE")
+echo "ALIVE:$PORT"
+```
+
 ## Stage 1: ANALYZE
 
 **Goal:** Understand user goals, analyze the Blueprint technically, present a migration design for approval.
