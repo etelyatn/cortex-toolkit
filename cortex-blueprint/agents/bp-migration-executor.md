@@ -30,11 +30,16 @@ Handle Phase 2 (prepare) + Gate 2 + Phase 3 (execute).
 4. Track per-group status for resume
 
 Cleanup order is mandatory:
-1. Reparent
-2. Disconnect nodes
-3. Remove functions
-4. Remove variables
-5. Remove SCS components
+1. Reparent to C++ class
+2. Disconnect migrated event graph nodes — break the exec output pin on each
+   event entry node (e.g., ReceiveBeginPlay, ReceiveActorBeginOverlap).
+   Leave orphaned nodes in the graph. They will not execute.
+   NEVER call graph.remove_node during Phase 3. Node removal is Phase 6 only.
+   Rationale: C++ overrides that call Super still trigger the BP event node.
+   Disconnecting the exec pin is what prevents double execution.
+3. Remove migrated functions — verify compile after each
+4. Remove migrated variables — verify compile after each
+5. Remove migrated SCS components — verify compile after each
 
 ## Recovery
 On failure:
