@@ -18,7 +18,7 @@ Phase 5 (swap), and Phase 6 (finalize) + Gate 4.
 - `04-verification.json` (available from Phase 6 onward)
 
 ## Required Reads
-- `cortex-toolkit/cortex-blueprint/resources/cpp-migration.md`
+- `resources/cpp-migration.md`
 - `docs/unreal-coding-standards.md`
 
 ## Phase 2 — Prepare

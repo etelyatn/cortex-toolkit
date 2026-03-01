@@ -122,7 +122,7 @@ String parameter values matching `$steps[N].data.field` are resolved from previo
 }
 ```
 
-See `cortex-toolkit/cortex-core/resources/batch-pipeline-guide.md` for comprehensive reference.
+See `resources/batch-pipeline-guide.md` for comprehensive reference.
 
 ### Data (`data.*`)
 - DataTables: `list_datatables`, `get_datatable_schema`, `query_datatable`, `get_datatable_row`, `add_datatable_row`, `update_datatable_row`, `delete_datatable_row`, `search_datatable_content`, `import_datatable_json`, `batch_query`, `get_struct_schema`
@@ -271,4 +271,4 @@ cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_mcp_scenarios.py -v
 /mcp-benchmark
 ```
 
-See `cortex-toolkit/cortex-core/resources/testing-guide.md` for comprehensive test file map and pytest markers.
+See `resources/testing-guide.md` for comprehensive test file map and pytest markers.
