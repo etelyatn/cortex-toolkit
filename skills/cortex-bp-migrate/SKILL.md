@@ -719,17 +719,25 @@ For each graph listed as "migrating" in the approved design:
 
 Build a "Ground Truth Table" and append to migration-plan.md after the Migration Scope section:
 
+#### Unified Ground Truth Table Format
+
+The Ground Truth Table uses a single format for all migrations. For standard (non-redesign) migrations, `Target Class` defaults to the single target class and `Automated` defaults to `Yes`:
+
 ~~~markdown
 ## Ground Truth Table
 
-| Node ID | Type | Function/Property | Target | Parameters | Notes |
-|---------|------|-------------------|--------|------------|-------|
-| N_123 | CallFunction | LaunchCharacter | ACharacter | FVector, bool, bool | |
-| N_456 | VariableGet | Velocity | Self | -- | |
-| N_789 | Cast | ACharacter | OtherActor | -- | |
-| N_012 | ComponentBoundEvent | OnComponentBeginOverlap | CollisionComp | -- | Needs AddDynamic |
-| N_345 | CallDelegate | OnJumpComplete | Self | -- | DECLARE_DYNAMIC_MULTICAST_DELEGATE |
+| Node ID | Type | Function/Property | Target | Parameters | Notes | Target Class | Automated |
+|---------|------|-------------------|--------|------------|-------|-------------|-----------|
+| N_123 | CallFunction | LaunchCharacter | ACharacter | FVector, bool, bool | | AMyCharacterBase | Yes |
+| N_456 | VariableGet | Velocity | Self | -- | | AMyCharacterBase | Yes |
+| N_789 | Cast | ACharacter | OtherActor | -- | | AMyCharacterBase | Yes |
+| N_012 | ComponentBoundEvent | OnComponentBeginOverlap | CollisionComp | -- | Needs AddDynamic | UCollisionComponent | Yes |
+| N_345 | CallDelegate | OnJumpComplete | Self | -- | DECLARE_DYNAMIC_MULTICAST_DELEGATE | AMyCharacterBase | Yes |
 ~~~
+
+For redesign migrations, `Target Class` is set per-row based on the responsibility map. For Tier 3, rows targeting secondary actor classes have `Automated: No`.
+
+The executor acts on the `Automated` column: `Yes` = clean up automatically, `No` = leave with annotation.
 
 Flag unmappable nodes as WARNING:
 `WARNING: Node N_999 (UK2Node_MacroInstance: "ForEachLoop") has no direct C++ equivalent. Recommend: Replace with standard for-loop in C++ implementation.`
@@ -752,6 +760,29 @@ Code generation rules (from cpp-migration.md resource):
 - Timelines → `UTimelineComponent` + curve setup in BeginPlay
 - Event dispatchers → `DECLARE_DYNAMIC_MULTICAST_DELEGATE`
 - Follow `docs/unreal-coding-standards.md` (Epic standard)
+
+#### Multi-File Code Generation (When Goal = "Redesign/restructure")
+
+For redesign migrations, PLAN generates multiple `.h`/`.cpp` file pairs:
+
+1. **Primary class** — inherits from BP's parent class. Constructor includes `CreateDefaultSubobject<>()` calls for Tier 1 components, plus `SetupAttachment(RootComponent)` for any `USceneComponent` subclasses. Holds cached `UPROPERTY()` pointers to each component.
+2. **Component classes** (Tier 1) — one `.h`/`.cpp` pair per extracted component. Use `USceneComponent` for spatial responsibilities, `UActorComponent` for pure logic.
+3. **Utility classes** (Tier 2) — one `.h`/`.cpp` pair per subsystem or function library.
+4. **Secondary actor classes** (Tier 3) — one `.h`/`.cpp` pair per split-off actor. Include TODO comments for manual wiring.
+
+**All generated classes must go in the same module** (same Build.cs). Cross-module generation is not supported.
+
+**Forward declarations:** Component headers forward-declare the owner; owner header forward-declares components. Full includes in `.cpp` files only. UHT needs full type only for `TSubclassOf<>` and `meta=` specifiers — use raw pointers in cross-class `UPROPERTY()` declarations.
+
+**Include ordering in `.cpp`:** matching header first, then engine headers, then project headers.
+
+Single UBT build for all files at once. If build fails, parse compiler error output to identify which generated file contains the error, present the error with file context, and offer to fix.
+
+**Build.cs dependency analysis:** During PLAN (not deferred), identify any new module dependencies required by extracted classes and list them explicitly in the migration plan.
+
+Update `target_classes` in frontmatter and `files_created` for each generated file pair.
+
+**Dynamic task numbering:** Generate one write-task per file pair. For a 3-class redesign, tasks become: "Write PrimaryClass .h/.cpp", "Write HealthComponent .h/.cpp", "Write InventoryComponent .h/.cpp", then "Build all C++."
 
 ### Step 2.5: Cross-Reference Generated Code Against Graph Nodes
 
@@ -794,9 +825,23 @@ Append generated C++ code inline to `migration-plan.md` under a new section. Use
 ```
 ~~~
 
-Do NOT create a `generated/` directory or separate `.h`/`.cpp` files. The code lives in the plan document until Tasks 5-6 copy it to the actual source paths.
+For standard migrations, do NOT create a `generated/` directory or separate `.h`/`.cpp` files. The code lives in the plan document until Tasks 5-6 copy it to the actual source paths. For redesign migrations generating 4+ files, generated code may be written to `docs/migration/blueprint-to-cpp/{BP_Name}/generated/` and referenced from `files_created`.
 
 Note for Tasks 5-6 (PREPARE phase): When writing C++ files to disk, extract the code from the fenced code blocks in `migration-plan.md`. Identify the correct block by its heading name (`### Header ({ClassName}.h)` or `### Source ({ClassName}.cpp)`), not by searching for arbitrary `cpp` blocks.
+
+#### Context Management for Redesign
+
+For redesign migrations generating 4+ files, generated C++ code may be written to `docs/migration/blueprint-to-cpp/{BP_Name}/generated/` instead of inline in migration-plan.md. Reference file paths in migration-plan.md via `files_created` frontmatter. The executor reads files from disk.
+
+**Agent context scoping for redesign:** When dispatching the executor for cleanup tasks, include only:
+- Frontmatter (full)
+- Responsibility Map section
+- Ground Truth Table (only rows relevant to current task range)
+- Primary class code (for cleanup decisions)
+
+Do NOT include all generated source files in the executor dispatch. The executor needs the responsibility map and ground truth to know what to clean, not the full source of every component class.
+
+**Cross-reference check scaling:** For multi-class redesign, cross-reference the ground truth table per-class: for each target class, validate only the rows assigned to that class against that class's `.cpp` file. Do not search all `.cpp` files for every row.
 
 ### Step 3: Generate Task List
 
