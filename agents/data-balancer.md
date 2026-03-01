@@ -1,5 +1,5 @@
 ---
-name: game-balancer
+name: data-balancer
 description: Use when analyzing game data for balance issues, progression curves, reward scaling, or cross-table validation. Examples — "are quest rewards fair at level 5?", "analyze item pricing", "check XP curve", "compare weapon stats"
 model: inherit
 ---
