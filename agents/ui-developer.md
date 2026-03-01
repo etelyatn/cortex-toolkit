@@ -36,7 +36,8 @@ Build game UI using UMG widgets — menus, HUDs, dialogs, popups, and complex in
 
 Use `slot.` prefix with `set_property`/`get_property` for slot-level layout controls
 (for example `slot.Padding.Left`, `slot.Size.SizeRule`). Use `get_schema` to discover
-`slot_properties` and `slot_type` for the selected widget.
+`slot_properties` and `slot_type` for the selected widget. Note: root widgets have no
+slot — using `slot.` prefix on a root widget returns an error.
 
 **Animations:** `create_animation`, `list_animations`, `remove_animation`
 

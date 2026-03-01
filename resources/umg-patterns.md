@@ -85,8 +85,9 @@ add_widget (root panel) → add_widget (sections) → add_widget (content)
 
 ### Control Slot Layout
 ```
-get_schema (discover slot properties) → set_property with "slot." prefix
-Example: set_property(property_path="slot.HorizontalAlignment", value="Center")
+get_schema (discover slot properties) → get_property / set_property with "slot." prefix
+Read:  get_property(property_path="slot.Padding.Left") → returns current value
+Write: set_property(property_path="slot.HorizontalAlignment", value="Center")
 ```
 
 ### Modify Existing Screen
