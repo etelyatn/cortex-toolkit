@@ -1,133 +1,186 @@
 # Cortex Toolkit
 
-Skills, agents, and domain knowledge for AI coding assistants working with Unreal Engine projects powered by [UnrealCortex](https://github.com/etelyatn/UnrealCortex).
+AI-powered Unreal Engine development toolkit — skills, agents, and domain knowledge for Claude Code, Codex, and Cursor.
 
-## Plugins
+Requires the [UnrealCortex](https://github.com/etelyatn/UnrealCortex) plugin running in your Unreal Engine project.
 
-Install only what you need:
+## Support Matrix
 
-| Plugin | Domain | Skills | Agents |
-|--------|--------|--------|--------|
-| **cortex-core** | Foundation | cortex-init, cortex-start, cortex-help, cortex-build, cortex-test, cortex-status, cortex-editor, cortex-reconnect, cortex-restart, cortex-schema-refresh | Game Architect, Game Designer, Blueprint Debugger, Test Debugger, Project Setup |
-| **cortex-data** | DataTables, DataAssets, CurveTables, GameplayTags | cortex-data-review, cortex-data-create | Game Balancer, Data Architect |
-| **cortex-blueprint** | Blueprints, Graphs | cortex-bp-review, cortex-bp-create, cortex-bp-migrate, cortex-bp-migrate-guided | Blueprint Developer, C++ Migration Specialist, BP Migration Guide |
-| **cortex-ui** | UMG Widgets | cortex-ui-review, cortex-ui-create | UI Developer |
-| **cortex-material** | Materials, Instances, Parameter Collections | cortex-material-review, cortex-material-create | Material Designer |
-| **cortex-level** | Actors, Transforms, Components, Queries, Streaming | cortex-level-review, cortex-level-create | Level Designer |
-| **cortex-qa** | Gameplay QA, Scenarios, Assertions | cortex-qa-init, cortex-qa-run, cortex-qa-interactive | QA Engineer |
-| **cortex-reflect** | C++ & Blueprint class hierarchy, cross-references | cortex-reflect | Project Analyzer |
+| Feature | Claude Code | Codex | Cursor |
+|---------|-------------|-------|--------|
+| Skills | ✅ | ✅ | ✅ |
+| Agents | ✅ | ✅ | ✅ |
+| Commands | ✅ | ❌ | ✅ |
+| Hooks | ✅ | ❌ | ⚠️ planned |
 
 ## Installation
 
-### Claude Code (Marketplace)
+### Claude Code
 
 ```bash
-# Add the marketplace
-/plugin marketplace add etelyatn/cortex-toolkit
-
-# Then browse and install via /plugins, or install directly:
-/plugin install cortex-core@cortex-toolkit      # Required
-/plugin install cortex-data@cortex-toolkit       # Pick your domains
-/plugin install cortex-blueprint@cortex-toolkit
-/plugin install cortex-ui@cortex-toolkit
-/plugin install cortex-material@cortex-toolkit
-/plugin install cortex-level@cortex-toolkit
-/plugin install cortex-qa@cortex-toolkit
-/plugin install cortex-reflect@cortex-toolkit
+/plugin marketplace add cortex-toolkit
+/plugin install cortex-toolkit
 ```
 
-### Claude Code (Direct)
+### Codex
 
-```bash
-# Or install directly without marketplace:
-claude plugin add etelyatn/cortex-toolkit/cortex-core      # Required
-claude plugin add etelyatn/cortex-toolkit/cortex-data       # Pick your domains
-claude plugin add etelyatn/cortex-toolkit/cortex-blueprint
-claude plugin add etelyatn/cortex-toolkit/cortex-ui
-claude plugin add etelyatn/cortex-toolkit/cortex-material
-claude plugin add etelyatn/cortex-toolkit/cortex-level
-claude plugin add etelyatn/cortex-toolkit/cortex-qa
-claude plugin add etelyatn/cortex-toolkit/cortex-reflect
-```
+See `.codex/INSTALL.md` in this repository.
 
-### After Installation
+### Cursor
 
-```
-/cortex-start      # Guided onboarding — checks setup, verifies connection, walks you through your first task
-```
+Install via `.cursor-plugin/plugin.json` in this repository.
 
-`/cortex-start` handles everything: if your project isn't configured yet, it guides you through setup first. Then it verifies your editor connection and offers a guided first task to get you productive immediately.
+## Getting Started
 
-Run `/cortex-help` anytime to discover available commands or get contextual suggestions.
+After installation, run `/cortex-start` for guided onboarding. It checks your setup, verifies the MCP connection to the running Unreal Editor, and walks you through your first task.
 
-## How It Works
+Run `/cortex-help` anytime to discover available skills or get contextual suggestions.
 
-### Skills
-Skills are slash commands that launch specialized agents to handle complex workflows. For example:
-- `/cortex-material-create` → launches Material Designer agent to build materials/instances from specs
-- `/cortex-ui-create` → launches UI Developer agent to build UMG widget hierarchies
-- `/cortex-bp-review` → launches Blueprint Developer agent to review graph structure
+## Skills
 
-Skills keep your conversation clean by running MCP tool sequences in the background. Use Ctrl+O to expand agent output if needed.
+Skills are slash commands that launch specialized agents to handle complex workflows. They keep your conversation clean by running MCP tool sequences in the background.
 
-### Hooks
-The `cortex-core` plugin includes hooks that run automatically:
-- **PreToolUse guard** — before any MCP tool call, verifies the Unreal Editor is running and CortexCore TCP is responsive. Auto-starts the editor if it's down, with lock-protected parallel safety and a 180s two-phase startup poll.
-- **SessionStart** — injects `.cortex/` project memory into the conversation context.
+### Blueprint
 
-### Agents
-Domain specialists with deep knowledge of specific Unreal Engine systems:
-- **Material Designer** — creates materials, modifies expression graphs, manages parameter collections
-- **UI Developer** — builds UMG hierarchies, sets properties, creates animations
-- **Blueprint Developer** — manages Blueprint assets, modifies graphs, analyzes C++ migration
-- **BP Migration Guide** — interactive guided migration with level selection, preview, and rollback at each decision gate
-- **Game Balancer** — tunes DataTables, validates balance rules, tracks progression curves
-- **Data Architect** — designs table schemas, manages GameplayTags, organizes DataAssets
-- **Level Designer** — spawns actors, manages transforms, constructs multi-actor scenes, organizes level content
-- **Project Analyzer** — queries C++ and Blueprint class hierarchies, finds overrides, tracks cross-class symbol references
+| Skill | Description |
+|-------|-------------|
+| `/cortex-bp-create` | Use when creating new Blueprints with variables, functions, or components from a spec or description |
+| `/cortex-bp-review` | Use when reviewing Blueprint structure, complexity, naming conventions, or best practices compliance |
+| `/cortex-bp-migrate` | Migrate Blueprint logic to C++, or audit a Blueprint for migration candidates. Supports `--audit` (analysis only) and `--dry-run` (generate but don't write) |
+| `/cortex-bp-migrate-guided` | Interactive Blueprint-to-C++ migration with phase-based agents, scope gates, partial mode, and resume support |
 
-Agents read `.cortex/domains/*.md` to follow your project conventions automatically.
+### Data
 
-### Resources
-Each plugin includes pattern documentation and workflow guides:
-- `material-patterns.md` — common material graphs (PBR, masked, emissive), instance hierarchies
-- `umg-patterns.md` — screen layouts (menu, HUD, dialog), widget naming conventions
-- `blueprint-patterns.md` — graph structures, function libraries, event handling
-- `level-patterns.md` — actor workflows, scene construction, organization patterns
+| Skill | Description |
+|-------|-------------|
+| `/cortex-data-create` | Use when creating new DataTables, DataAssets, CurveTables, or StringTables from a description, spec, or design document |
+| `/cortex-data-review` | Use when reviewing DataTables or DataAssets for balance issues, naming convention violations, structural problems, or data integrity checks |
+
+### Core
+
+| Skill | Description |
+|-------|-------------|
+| `/cortex-start` | Use when new to the toolkit, asking how to get started, or wanting a guided introduction to AI-assisted Unreal Engine development |
+| `/cortex-init` | Use when setting up a new Unreal Engine project for AI-assisted development, when `.cortex/` is missing, or when MCP connection needs configuration |
+| `/cortex-help` | Use when asking for help, wanting to discover available commands, or unsure what to do next |
+| `/cortex-test` | Use when running automation tests, checking test results, or after code changes that need verification. Accepts optional domain parameter |
+| `/cortex-impact` | Assess the impact of removing, renaming, or changing a C++ member or Blueprint asset. Use before any breaking change to understand blast radius |
+
+### Level
+
+| Skill | Description |
+|-------|-------------|
+| `/cortex-level-edit` | Use when making any change to level content — placing actors, moving or reorganizing existing actors, adjusting lighting, building multi-actor layouts, or reorganizing scene structure |
+| `/cortex-level-review` | Use when reviewing level content, auditing actor organization, checking scene structure, or analyzing spatial layout |
+
+### Material
+
+| Skill | Description |
+|-------|-------------|
+| `/cortex-material-create` | Use when creating new materials, material instances, parameter collections, or building material graphs from a spec or description |
+| `/cortex-material-review` | Use when reviewing material structure, parameter usage, graph complexity, instance hierarchies, or checking material best practices compliance |
+
+### QA
+
+| Skill | Description |
+|-------|-------------|
+| `/cortex-qa-init` | Use when initializing QA workflows for a project and generating a baseline game QA profile |
+| `/cortex-qa-run` | Use when executing a predefined gameplay QA scenario and collecting findings |
+| `/cortex-qa-interactive` | Use when running a live, interactive QA session with iterative action and observation |
+
+### Reflect
+
+| Skill | Description |
+|-------|-------------|
+| `/cortex-reflect` | Analyze project class architecture — inheritance trees, Blueprint overrides, cross-references. Use when you need to understand how C++ and Blueprint classes relate |
+
+### UI
+
+| Skill | Description |
+|-------|-------------|
+| `/cortex-ui-create` | Use when creating new widgets, screens, or UI components from a spec, mockup, or description |
+| `/cortex-ui-review` | Use when reviewing widget hierarchy, layout patterns, UI structure, or checking UMG best practices compliance |
+
+## Commands
+
+Commands are lightweight utilities that run directly without launching a subagent.
+
+| Command | Description |
+|---------|-------------|
+| `/cortex-build` | Use when building the Unreal Engine project, after modifying C++ source files, or when build errors need diagnosis |
+| `/cortex-editor` | Use when the Unreal Editor needs to be running, MCP connection fails, or user asks to start or open the editor |
+| `/cortex-reconnect` | Use when MCP connection is lost or unresponsive. Attempts to reconnect to the Cortex MCP server automatically |
+| `/cortex-restart` | Use when the Unreal Editor needs to be restarted, after C++ changes need recompilation, or when the editor is in a bad state |
+| `/cortex-schema-refresh` | Use when refreshing project schema files, when `.cortex/schema/` is missing or stale, or when data structures have changed |
+| `/cortex-status` | Use when checking MCP connection health, editor status, diagnosing connectivity issues, or verifying domain registration |
+
+## Agents
+
+Domain specialists with deep knowledge of specific Unreal Engine systems. Agents read `.cortex/domains/*.md` to follow your project conventions automatically.
+
+| Agent | Description |
+|-------|-------------|
+| `blueprint-debugger` | Analyzing Blueprint graph flow, tracing execution paths, diagnosing logic issues in node graphs, or understanding why a Blueprint behaves unexpectedly |
+| `blueprint-developer` | Creating, modifying, or fixing Blueprints — adding variables, functions, components, implementing gameplay logic, or troubleshooting Blueprint issues |
+| `bp-migration-planner` | Internal pipeline agent invoked by `cortex-bp-migrate`. Phase 1: Blueprint migration analysis and scope selection |
+| `bp-migration-executor` | Internal pipeline agent invoked by `cortex-bp-migrate`. Phases 2–6: C++ generation, integration, verification, swap, and report |
+| `cpp-migration-specialist` | Translating Blueprint logic to C++, deciding what should stay in BP vs move to native code, or optimizing performance-critical Blueprint systems |
+| `data-architect` | Creating or populating data structures from specs, bulk importing data, designing table schemas, or planning the data layer for a new feature |
+| `data-balancer` | Analyzing game data for balance issues, progression curves, reward scaling, or cross-table validation |
+| `level-designer` | Making any change to level content — placing objects, moving actors, adjusting lighting, organizing the scene, or building multi-actor layouts |
+| `material-developer` | Creating, modifying, or debugging materials, material instances, parameter collections, or material expression graphs |
+| `project-analyzer` | Analyzing project-wide class architecture, understanding inheritance trees, finding Blueprint overrides, or mapping cross-references |
+| `qa-engineer` | Testing gameplay, running QA scenarios, finding bugs in PIE, or validating game mechanics |
+| `test-debugger` | Tests are failing, need to understand error patterns, diagnose flaky tests, or figure out why a test passes locally but fails in automation |
+| `ui-developer` | Building UMG widget hierarchies, implementing screens, creating game UI (menus, HUDs, dialogs, popups), or working with widget properties and animations |
 
 ## Project Memory
 
-The `.cortex/` directory stores project-specific knowledge that agents read automatically:
+The `.cortex/` directory stores project-specific knowledge that agents read automatically at session start:
 
 ```
 .cortex/
-├── config.yaml          ← engine path, active domains
-├── context.md           ← shared project knowledge (read every session)
-└── domains/
-    ├── data.md          ← table schemas, balance rules
-    ├── blueprints.md    ← class hierarchy, conventions
-    ├── umg.md           ← screen inventory, style guide
-    ├── material.md      ← material conventions, instance hierarchies
-    └── level.md         ← actor conventions, level structure
+├── config.yaml          — engine path, active domains
+├── context.md           — shared project knowledge (injected every session)
+├── domains/
+│   ├── data.md          — table schemas, balance rules
+│   ├── blueprints.md    — class hierarchy, conventions
+│   ├── umg.md           — screen inventory, style guide
+│   ├── material.md      — material conventions, instance hierarchies
+│   └── level.md         — actor conventions, level structure
+└── schema/              — LLM-readable project snapshots (generated by cortex-schema-refresh)
 ```
 
-Fill these files with your game's specifics. Agents use this context to work without repeated questions.
-
-## Known Limitations
-
-These are documented limitations in the current beta:
-
-- **Widget animation keyframing** — Named animations can be created and listed, but property track binding and keyframe creation are not yet available via MCP tools
-- **Blueprint compile diagnostics** — `bp.compile` returns success/failure but error details are unstructured text; agents cannot pinpoint specific nodes or graphs causing errors
-- **Reflect coverage** — Class hierarchy and usage queries only see Blueprint classes currently loaded in memory; agents should recommend opening relevant Blueprints before scanning
-- **Concurrent input sequences** — `run_input_sequence` is designed for single-agent use; multiple agents injecting input simultaneously may produce incorrect results
-- **Batch rollback** — If a step in `batch_query` fails, previously completed steps are not rolled back
+Fill the domain files with your game's specifics. Agents use this context to work without repeated questions.
 
 ## Requirements
 
 - [UnrealCortex](https://github.com/etelyatn/UnrealCortex) plugin installed in your UE project
 - Unreal Engine 5.6+
-- Python 3.10+ with `uv` (for MCP server)
+- Python 3.10+ with `uv` (for the MCP server)
+
+## Migration from v0.x
+
+If you were using the old per-domain plugin structure (cortex-core, cortex-data, cortex-blueprint, etc.):
+
+1. Uninstall all individual plugins:
+   ```bash
+   /plugin uninstall cortex-core
+   /plugin uninstall cortex-data
+   /plugin uninstall cortex-blueprint
+   /plugin uninstall cortex-ui
+   /plugin uninstall cortex-material
+   /plugin uninstall cortex-level
+   /plugin uninstall cortex-qa
+   /plugin uninstall cortex-reflect
+   ```
+
+2. Install the unified toolkit:
+   ```bash
+   /plugin install cortex-toolkit
+   ```
+
+3. Update any `subagent_type` references in custom prompts or automation — all agents now use the `cortex-toolkit:` namespace (e.g., `cortex-toolkit:blueprint-developer` instead of `cortex-blueprint:blueprint-developer`).
 
 ## License
 
