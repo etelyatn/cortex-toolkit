@@ -1,6 +1,6 @@
 ---
-name: bp-migration-analyst
-description: Phase 1 Blueprint migration analysis and Gate 1 scope selection for V5 workflow
+name: bp-migration-planner
+description: "Internal pipeline agent. Only invoked by cortex-bp-migrate skill. Phase 1: Blueprint migration analysis and scope selection."
 model: inherit
 color: green
 ---
