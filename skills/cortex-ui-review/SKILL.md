@@ -11,7 +11,7 @@ Reviews UMG widget hierarchies for structure, layout patterns, and best practice
 
 ### 1. Launch UI Developer Agent
 
-Use the Task tool with `subagent_type: "cortex-ui:ui-developer"` to delegate UI review.
+Use the Task tool with `subagent_type: "cortex-toolkit:ui-developer"` to delegate UI review.
 
 Pass the review scope and focus:
 - Specific widgets to review (if targeted)

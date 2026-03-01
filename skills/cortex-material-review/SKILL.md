@@ -11,7 +11,7 @@ Reviews materials, instances, and parameter collections for structure, performan
 
 ### 1. Launch Material Designer Agent
 
-Use the Task tool with `subagent_type: "cortex-material:material-developer"` to delegate material review.
+Use the Task tool with `subagent_type: "cortex-toolkit:material-developer"` to delegate material review.
 
 Pass the review scope and focus:
 - Specific materials to review (if targeted)

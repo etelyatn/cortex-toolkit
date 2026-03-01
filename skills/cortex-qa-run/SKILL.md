@@ -11,7 +11,7 @@ Execute a scenario file through the QA agent and return findings with report art
 
 ## Steps
 
-1. Launch Task agent: `cortex-qa:qa-engineer`.
+1. Launch Task agent: `cortex-toolkit:qa-engineer`.
 2. Provide the scenario path/content and request:
    - Scenario execution via QA composite tools.
    - Structural issue detection after each step.

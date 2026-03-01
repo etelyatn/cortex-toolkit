@@ -350,7 +350,7 @@ Handle Fast-1 through Fast-6 directly. Same as full pipeline PREPARE but:
 
 **Step B2: Pre-dispatch** Run Pre-Dispatch Protocol.
 
-**Step B3: Dispatch executor agent** (`cortex-blueprint:bp-migration-executor`, model: sonnet) with:
+**Step B3: Dispatch executor agent** (`cortex-toolkit:bp-migration-executor`, model: sonnet) with:
 - Full text of migration-plan.md
 - Task range: Fast-7 through Fast-12 (EXECUTE tasks only)
 
@@ -389,7 +389,7 @@ Options:
 
 **Pre-dispatch:** Run Pre-Dispatch Protocol.
 
-**Dispatch finalizer agent** (`cortex-blueprint:bp-migration-finalizer`, model: sonnet) with:
+**Dispatch finalizer agent** (`cortex-toolkit:bp-migration-finalizer`, model: sonnet) with:
 - Full text of migration-plan.md
 - Task range: Fast-14
 
@@ -898,7 +898,7 @@ Fallback: If any inline check fails unexpectedly, dispatch the full verifier age
 
 **Pre-dispatch:** Run Pre-Dispatch Protocol (see above).
 
-Dispatch `cortex-blueprint:bp-migration-executor` with:
+Dispatch `cortex-toolkit:bp-migration-executor` with:
 - Relevant sections of migration-plan.md (see Agent Context Scoping in Implementation Notes)
 - Task range: 9-15
 
@@ -939,7 +939,7 @@ If `complexity: simple`:
 Run Inline Verification (see above). No agent dispatch.
 
 If `complexity: complex`:
-Dispatch `cortex-blueprint:bp-migration-verifier` with:
+Dispatch `cortex-toolkit:bp-migration-verifier` with:
 - Relevant sections of migration-plan.md (see Agent Context Scoping in Implementation Notes)
 - Task range: 16-17
 
@@ -957,7 +957,7 @@ Present verification summary. Ask for approval:
 
 **Pre-dispatch:** Run Pre-Dispatch Protocol (see above).
 
-Dispatch `cortex-blueprint:bp-migration-finalizer` with:
+Dispatch `cortex-toolkit:bp-migration-finalizer` with:
 - Relevant sections of migration-plan.md (see Agent Context Scoping in Implementation Notes)
 - Task range: 18-22
 
