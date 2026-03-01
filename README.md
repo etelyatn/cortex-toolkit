@@ -65,7 +65,6 @@ Skills are slash commands that launch specialized agents to handle complex workf
 | `/cortex-init` | Use when setting up a new Unreal Engine project for AI-assisted development, when `.cortex/` is missing, or when MCP connection needs configuration |
 | `/cortex-help` | Use when asking for help, wanting to discover available commands, or unsure what to do next |
 | `/cortex-test` | Use when running automation tests, checking test results, or after code changes that need verification. Accepts optional domain parameter |
-| `/cortex-impact` | Assess the impact of removing, renaming, or changing a C++ member or Blueprint asset. Use before any breaking change to understand blast radius |
 
 ### Level
 
@@ -94,6 +93,7 @@ Skills are slash commands that launch specialized agents to handle complex workf
 | Skill | Description |
 |-------|-------------|
 | `/cortex-reflect` | Analyze project class architecture — inheritance trees, Blueprint overrides, cross-references. Use when you need to understand how C++ and Blueprint classes relate |
+| `/cortex-impact` | Assess the impact of removing, renaming, or changing a C++ member or Blueprint asset. Use before any breaking change to understand blast radius |
 
 ### UI
 

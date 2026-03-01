@@ -5,7 +5,7 @@ description: Migrate Blueprint logic to C++, or audit a Blueprint for migration 
 
 # Blueprint to C++ Migration
 
-Analyzes a Blueprint against existing C++ code, determines the right action (migrate, merge, improve, delete, or keep), and generates C++ code with the C++ Migration Specialist agent.
+Analyzes a Blueprint against existing C++ code, determines the right action (migrate, merge, improve, delete, or keep), and generates C++ code via the planner and executor pipeline agents.
 
 ## Steps
 
@@ -79,6 +79,6 @@ All common Blueprint constructs are translated to C++:
 - `/cortex-bp-migrate BP_HealthPickup --audit`
 - `/cortex-bp-migrate BP_HealthPickup --dry-run`
 - `/cortex-bp-migrate BP_Player --include-all` - skip element selection, migrate everything
-- `--skip-cleanup` — Skip Phase 7 Blueprint cleanup prompt
+- `--skip-cleanup` — Skip Blueprint cleanup prompt
 
 > **For interactive guided migration** with dependency analysis, non-destructive rename-swap, rollback support, and section-based reports that survive editor restarts, use `/cortex-bp-migrate-guided` instead.
