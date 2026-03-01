@@ -35,7 +35,7 @@ After installation, Codex should discover skills from the `skills/` symlink in y
 ## Limitations
 
 - **No hooks support** — Codex does not execute shell hooks. The `hooks/` directory is not used.
-- **No operational commands** — Commands in `commands/` that rely on Claude Code's Skill tool are not available.
+- **No operational skills** — Skills like `/cortex-editor`, `/cortex-restart`, and `/cortex-build` require a local Unreal Editor and are not functional in Codex cloud environments.
 - **MCP tools only** — Use the `cortex_mcp` server tools directly (configured in `.mcp.json`).
 
 ## Project Memory

@@ -11,7 +11,6 @@
 |---------|-----------|
 | Skills (`skills/`) | ✅ |
 | Agents (`agents/`) | ✅ |
-| Commands (`commands/`) | ✅ |
 | Hooks (`hooks/`) | ⚠️ Depends on Cursor version |
 
 ## Getting Started

@@ -7,7 +7,6 @@ AI-powered Unreal Engine development toolkit. Skills, agents, and domain knowled
 | Feature | Claude Code | Codex | Cursor |
 |---------|-------------|-------|--------|
 | Skills (`skills/`) | ✅ | ✅ via symlink | ✅ |
-| Commands (`commands/`) | ✅ | ❌ | ✅ |
 | Agents (`agents/`) | ✅ | ❌ | ✅ |
 | Hooks (`hooks/`) | ✅ | ❌ | ⚠️ |
 | MCP tools | ✅ | ✅ | ✅ |
@@ -106,12 +105,10 @@ Skills are invoked with `/skill-name` in Claude Code. Skills launch specialized 
 | `/cortex-start` | Start a Cortex session, verify editor connection, and run guided onboarding |
 | `/cortex-test` | Run Unreal C++ and Python MCP tests (dual-track test runner) |
 
-## Commands
+### Operations
 
-Operational commands for session and editor management. Invoked as slash commands in Claude Code and Cursor.
-
-| Command | Description |
-|---------|-------------|
+| Skill | Description |
+|-------|-------------|
 | `/cortex-build` | Build the Unreal project after modifying C++ source files |
 | `/cortex-editor` | Open the Unreal Editor when it needs to be running |
 | `/cortex-reconnect` | Reconnect to the Cortex MCP server when connection is lost |
@@ -173,6 +170,10 @@ If you were using the old multi-plugin structure (`cortex-core@cortex-toolkit`, 
 1. Uninstall all individual domain plugins
 2. Install the unified `cortex-toolkit` plugin
 3. Update any custom `subagent_type` references from `cortex-{domain}:agent-name` to `cortex-toolkit:agent-name`
+
+## Development
+
+This toolkit was restructured from 8 separate plugins into a single unified plugin. For architecture decisions and rationale, see the [design doc](https://github.com/etelyatn/CortexSandbox/blob/main/docs/plans/2026-03-01-cortex-toolkit-unified-design.md).
 
 ## License
 
