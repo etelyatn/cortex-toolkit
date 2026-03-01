@@ -34,6 +34,11 @@ Build game UI using UMG widgets — menus, HUDs, dialogs, popups, and complex in
 
 **Properties:** `set_color`, `set_text`, `set_font`, `set_brush`, `set_padding`, `set_anchor`, `set_alignment`, `set_size`, `set_visibility`, `set_property`, `get_property`, `get_schema`
 
+Use `slot.` prefix with `set_property`/`get_property` for slot-level layout controls
+(for example `slot.Padding.Left`, `slot.Size.SizeRule`). Use `get_schema` to discover
+`slot_properties` and `slot_type` for the selected widget. Note: root widgets have no
+slot — using `slot.` prefix on a root widget returns an error.
+
 **Animations:** `create_animation`, `list_animations`, `remove_animation`
 
 ### get_widget — Full Response Fields
@@ -67,12 +72,19 @@ Use `slot_type` to determine how to interpret `slot` before reading layout value
 | Scrollable content | `ScrollBox` | Long lists, inventories |
 | Grid layout | `UniformGridPanel` | Inventory grids, card layouts |
 
+Widget `class` can also be a user Widget Blueprint asset path (for example
+`/Game/UI/WBP_InventorySlot`) when composing screens.
+
 ## Anchoring Guidelines
 
 - Full-screen backgrounds: Anchor to all edges (0,0)-(1,1)
 - Center content: Anchor to center (0.5, 0.5)
 - HUD corners: Anchor to respective corner
 - Responsive text: Anchor to horizontal edge, auto-size vertically
+
+## Styling Notes
+
+- `set_font` supports `family` for engine fonts or font asset paths (for example `Roboto` or `/Game/Fonts/MyFont`)
 
 ## MANDATORY Pipeline — New Widget Screen Creation
 
