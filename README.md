@@ -11,24 +11,30 @@ AI-powered Unreal Engine development toolkit. Skills, agents, and domain knowled
 | Hooks (`hooks/`) | ✅ | ❌ | ⚠️ |
 | MCP tools | ✅ | ✅ | ✅ |
 
+## Prerequisites
+
+- **Unreal Engine 5.6+** with [UnrealCortex](https://github.com/etelyatn/UnrealCortex) plugin installed
+- **Python 3.10+** with [uv](https://docs.astral.sh/uv/) (for the MCP server)
+- **Claude Code**, **Codex**, or **Cursor**
+
 ## Installation
 
 ### Claude Code
 
 ```bash
-# Install via Claude Code plugin marketplace
-/plugin marketplace add etelyatn/cortex-toolkit
-/plugin install cortex-toolkit
+claude plugin add etelyatn/cortex-toolkit
 ```
+
+Then open your project and run `/cortex-init` to configure MCP and project memory.
 
 ### Codex
 
 See [`.codex/INSTALL.md`](.codex/INSTALL.md) for full instructions.
 
-Quick install prompt:
-
-```text
-Fetch and follow instructions from https://raw.githubusercontent.com/etelyatn/cortex-toolkit/refs/heads/main/.codex/INSTALL.md
+```bash
+git clone https://github.com/etelyatn/cortex-toolkit.git ~/.cortex-toolkit
+# Create a symlink in your project root
+ln -s ~/.cortex-toolkit/skills skills
 ```
 
 ### Cursor
@@ -37,9 +43,9 @@ See [`docs/cursor-setup.md`](docs/cursor-setup.md) for full instructions.
 
 ## Getting Started
 
-Run `/cortex-start` to connect to the Unreal Editor and begin a session.
-
-Run `/cortex-help` anytime to discover available skills or get contextual suggestions.
+1. Open your Unreal project in the editor (CortexCore writes a port file on startup)
+2. Run `/cortex-start` to verify the connection and get a guided introduction
+3. Run `/cortex-help` anytime to discover available skills or get contextual suggestions
 
 ## Skills
 
@@ -157,18 +163,12 @@ Cortex Toolkit reads project-specific knowledge from `.cortex/`:
 
 Fill the domain files with your project's specifics. Agents use this context to work without repeated questions. Run `/cortex-schema-refresh` to regenerate schema snapshots from live editor data.
 
-## Requirements
+## Migration from v0.1.x
 
-- **Unreal Engine 5.6+** with [UnrealCortex](https://github.com/etelyatn/UnrealCortex) plugin installed
-- **Claude Code**, **Codex**, or **Cursor**
-- **Python 3.10+** with `uv` (for the UnrealCortex MCP server)
+If you were using the old multi-plugin structure (8 separate plugins like `cortex-core`, `cortex-data`, etc.):
 
-## Migration from v0.x
-
-If you were using the old multi-plugin structure (`cortex-core@cortex-toolkit`, `cortex-data@cortex-toolkit`, etc.):
-
-1. Uninstall all individual domain plugins
-2. Install the unified `cortex-toolkit` plugin
+1. Uninstall all individual domain plugins: `claude plugin remove cortex-core` (repeat for each)
+2. Install the unified plugin: `claude plugin add etelyatn/cortex-toolkit`
 3. Update any custom `subagent_type` references from `cortex-{domain}:agent-name` to `cortex-toolkit:agent-name`
 
 ## Development
