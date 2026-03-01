@@ -560,6 +560,9 @@ files_created: []
 files_modified: []
 editor_restarts: 0
 complexity: {simple or complex}  # From Migration Complexity Classification
+goal: {performance|reusability|complexity|cleanup|redesign}
+redesign_tier: null       # Set to 1, 2, or 3 when goal is "redesign"
+target_classes: []        # List of {name, type, parent, file_h, file_cpp} for multi-class output
 ---
 
 # {BP_Name} -> {ClassName} Migration
@@ -604,6 +607,48 @@ complexity: {simple or complex}  # From Migration Complexity Classification
 | Migrating to C++ | Staying in Blueprint | Deferred |
 |-------------------|---------------------|----------|
 | ... | ... | ... |
+
+<!-- When goal = "redesign" — add these sections -->
+
+## Responsibility Groups
+
+| Group Name | Variables | Functions | Components | Target Class |
+|-----------|-----------|-----------|------------|-------------|
+| {name} | {list} | {list} | {list} | {TargetClass} |
+| ... | ... | ... | ... | ... |
+
+## Architecture Proposal
+
+**Tier:** {1: Component extraction | 2: Subsystem extraction | 3: Actor split}
+
+**Target Classes:**
+
+| Class | Type | Parent | UCLASS Specifiers | Purpose |
+|-------|------|--------|-------------------|---------|
+| {PrimaryClass} | Primary | {BP parent} | Blueprintable | Main actor identity |
+| {ComponentClass} | Component | UActorComponent/USceneComponent | BlueprintSpawnableComponent | {responsibility} |
+| ... | ... | ... | ... | ... |
+
+## Responsibility Map
+
+| BP Item | Target Class | Action | Notes |
+|---------|-------------|--------|-------|
+| {var/func/component} | {TargetClass} | MIGRATING / STAYING | {rewiring needed?} |
+| ... | ... | ... | ... |
+
+## Integration Points
+
+| From | To | Pattern | Detail |
+|------|-----|---------|--------|
+| {PrimaryClass} | {ComponentClass} | Cached UPROPERTY | `UPROPERTY() UHealthComponent* HealthComp` |
+| {ComponentClass} | {PrimaryClass} | GetOwner<T> | `GetOwner<APrimaryClass>()` |
+| ... | ... | ... | ... |
+
+<!-- Tier 3 only -->
+## Manual Migration Steps
+
+- [ ] {Step requiring human judgment — e.g., place secondary actors in levels}
+- [ ] ...
 ~~~
 
 Do NOT write `01-pre-migration.json` or `02-migration-plan.json`. All this data is now inline.
