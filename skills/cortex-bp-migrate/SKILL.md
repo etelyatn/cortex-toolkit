@@ -490,11 +490,50 @@ Synthesize user goals (Step 1) with technical analysis (Step 2). Present:
 4. **Scope recommendation** — based on user's stated goals
 5. **MIGRATING / STAYING / DEFERRED columns** — what moves to C++, what stays in BP, what's deferred
 
+#### Extended Presentation (When Goal = "Redesign/restructure")
+
+When goal is "Redesign/restructure", the design presentation adds these sections after the standard content:
+
+6. **Architecture proposal** — describe the target class structure:
+   - Primary class name, parent, and UCLASS specifiers
+   - Extracted classes (components, subsystems, or secondary actors) with their types and parents
+   - Rationale for each extraction (why this responsibility is a separate class)
+   - Tier classification with justification
+7. **Responsibility map** — which BP items go to which target class:
+
+   | Item | Target Class | Type | Action |
+   |------|-------------|------|--------|
+   | MaxHealth, CurrentHealth | UHealthComponent | Component (Tier 1) | MIGRATING |
+   | TakeDamage(), OnHealthChanged | UHealthComponent | Component (Tier 1) | MIGRATING |
+   | MovementSpeed, JumpForce | AMyCharacterBase | Primary | MIGRATING |
+   | BeginPlay, Tick | AMyCharacterBase | Primary | MIGRATING |
+   | Widget reference | BP | -- | STAYING |
+
+8. **Integration points** — how extracted classes communicate, using this decision table:
+
+   | Pattern | When to Use |
+   |---------|------------|
+   | Cached `UPROPERTY()` pointer | Owner -> Component (primary class holds component pointers set in constructor) |
+   | `GetOwner<T>()` | Component -> Owner (tightly coupled, single owner type) |
+   | `IInterface` + `Execute_*()` | Component -> Owner (reusable component, multiple possible owner types) |
+   | `DECLARE_DYNAMIC_MULTICAST_DELEGATE` | One-to-many notification, decoupled (for example, OnHealthChanged) |
+   | Owner mediation | Component -> Component (A calls owner, owner calls B) |
+   | `UInterface` | Cross-actor communication (Tier 3) |
+
+   **Anti-pattern:** avoid `GetComponentByClass<>()` for frequently-accessed components from the owner — use cached `UPROPERTY()` pointer set in constructor instead. Reserve `GetComponentByClass` for external/cross-actor lookups only.
+
+   **Component-to-component:** recommend pattern 1 (owner mediation) or 2 (delegates). Explicitly discourage direct `GetOwner()->FindComponentByClass<OtherComp>()` which couples components to each other.
+
+9. **Variable reference analysis** — identify STAYING BP nodes that reference MIGRATING variables. These nodes will need rewiring to access data via component (for example, `HealthComp->MaxHealth` instead of `MaxHealth`). List them explicitly as "requires rewiring after migration."
+10. **Tier classification** — present as adjustable: "This is classified as Tier {N} ({description}). Is this the right decomposition, or should any of these be split differently?"
+11. **For Tier 3 only: Manual migration steps** — list steps requiring human judgment. Add warning: "Tier 3 (true actor split) is an advanced migration pattern. The automated portion handles C++ generation and primary class reparent. All secondary actor placement and reference updates are manual. Proceed?"
+
 ### Step 4: Hard Gate — User Approves Design
 
 Present the migration design and ask for approval using `AskUserQuestion`:
 - [Approve] — proceed to PLAN stage
-- [Adjust] — user modifies scope, moves items between columns
+- [Adjust scope] — user modifies scope, moves items between MIGRATING/STAYING/DEFERRED columns
+- [Adjust tier] — user changes tier classification or target class assignments (redesign only)
 - [Cancel] — abort migration
 
 On approval, write `docs/migration/blueprint-to-cpp/{BP_Name}/migration-plan.md` with initial content:
