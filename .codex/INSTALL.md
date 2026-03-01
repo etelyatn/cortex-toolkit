@@ -14,7 +14,7 @@
 git clone https://github.com/etelyatn/cortex-toolkit.git ~/.codex/cortex-toolkit
 ```
 
-### 2. Create the skills symlink
+### 2. Create the toolkit skills symlink
 
 **Unix/macOS:**
 ```bash
@@ -48,5 +48,6 @@ Skills update automatically via the symlink.
 
 ## Notes
 
-- Operational commands (`cortex-build`, `cortex-editor`, `cortex-status`, etc.) are not available in Codex — they require a local Unreal Editor.
+- Operational commands (`cortex-build`, `cortex-editor`, `cortex-status`, etc.) are not available in Codex.
 - Hooks (PreToolUse editor check) are Claude Code-only. Codex agents should check editor connectivity manually.
+- Many workflow skills dispatch `cortex-toolkit:*` subagents. If your Codex build does not support those subagent types, run those workflows in Claude Code or Cursor.

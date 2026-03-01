@@ -12,7 +12,7 @@ AI Agent → MCP Server (Python) → TCP → CortexCore (C++ UE Plugin) → Unre
 
 - **Transport:** Line-delimited JSON over TCP
 - **Address:** `127.0.0.1:{port}`
-- **Port discovery:** Read from `Saved/CortexPort.txt` (written by CortexCore on startup)
+- **Port discovery:** Read the newest `Saved/CortexPort-*.txt` (PID-scoped); fall back to legacy `Saved/CortexPort.txt`
 - **Default port:** 8742, auto-increments if busy (supports multiple editors)
 
 ## Command Format
@@ -231,13 +231,13 @@ The `cortex-core` plugin includes a PreToolUse hook that gates every `cortex_mcp
 2. Resolves the engine path from `UE_56_PATH` or `.cortex/config.yaml`
 3. Launches the editor with `-nosplash -unattended -nopause`
 4. Two-phase polls for up to 180s (silent wait → process-alive checks)
-5. Exits 0 once `CortexPort.txt` is written and TCP responds
+5. Exits 0 once `CortexPort-{PID}.txt` (or legacy `CortexPort.txt`) is written and TCP responds
 
 **Failure path:** If the editor cannot be started or times out, the hook exits with code 2 and directs the agent to present options to the user (start manually, fix config, or abort).
 
 ## Port Re-discovery
 
-The MCP TCP client automatically re-reads `Saved/CortexPort.txt` on reconnect. If the editor restarts on a different port (e.g., another editor instance was already using the default), the client picks up the new port without requiring a manual restart.
+The MCP TCP client automatically re-reads port files on reconnect (prefers newest `Saved/CortexPort-*.txt`, with fallback to `Saved/CortexPort.txt`). If the editor restarts on a different port (e.g., another editor instance was already using the default), the client picks up the new port without requiring a manual restart.
 
 ## Caching
 

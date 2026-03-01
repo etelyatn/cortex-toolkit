@@ -9,7 +9,7 @@ Requires the [UnrealCortex](https://github.com/etelyatn/UnrealCortex) plugin run
 | Feature | Claude Code | Codex | Cursor |
 |---------|-------------|-------|--------|
 | Skills | ✅ | ✅ | ✅ |
-| Agents | ✅ | ✅ | ✅ |
+| Agents | ✅ | ⚠️ depends on Codex subagent support | ✅ |
 | Commands | ✅ | ❌ | ✅ |
 | Hooks | ✅ | ❌ | ⚠️ planned |
 
@@ -25,6 +25,7 @@ Requires the [UnrealCortex](https://github.com/etelyatn/UnrealCortex) plugin run
 ### Codex
 
 See `.codex/INSTALL.md` in this repository.
+Agent-backed workflows in Codex depend on your Codex build supporting `cortex-toolkit:*` subagent types.
 
 ### Cursor
 

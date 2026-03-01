@@ -13,7 +13,7 @@ Editor lifecycle management — detect, start, and verify the Unreal Editor.
 
 ### 1. Check If Running
 
-Check for UnrealEditor process and verify `Saved/CortexPort.txt` exists:
+Check for UnrealEditor process and verify a Cortex port file exists (`Saved/CortexPort-*.txt`, fallback `Saved/CortexPort.txt`):
 ```bash
 tasklist | grep -i UnrealEditor
 ```
@@ -39,12 +39,13 @@ Launch the editor in the background:
 
 ### 4. Wait for Ready
 
-Poll for `Saved/CortexPort.txt` to appear (CortexCore writes it on startup). Check every 5 seconds, timeout after 120 seconds.
+Poll for a port file to appear (`Saved/CortexPort-*.txt` preferred, fallback `Saved/CortexPort.txt`). Check every 5 seconds, timeout after 120 seconds.
 
 ```bash
 # Poll loop
 for i in {1..24}; do
-  if [ -f "Saved/CortexPort.txt" ]; then
+  PORT_FILE=$(ls -t Saved/CortexPort-*.txt Saved/CortexPort.txt 2>/dev/null | head -1)
+  if [ -n "$PORT_FILE" ]; then
     break
   fi
   sleep 5
@@ -53,7 +54,7 @@ done
 
 ### 5. Verify Connection
 
-Once port file appears, read the port number and call `get_status` MCP tool to verify the full chain is healthy.
+Once a port file appears, read the port number and call `get_status` MCP tool to verify the full chain is healthy.
 
 ### 6. Report
 

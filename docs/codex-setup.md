@@ -24,7 +24,8 @@ Codex discovers skills by scanning `~/.agents/skills/`. The symlink created duri
 
 - **No hooks:** The `PreToolUse` editor connectivity check is Claude Code-only. In Codex, verify editor connectivity manually by calling `get_status` before using MCP tools.
 - **No operational commands:** Commands such as `cortex-build`, `cortex-editor`, and `cortex-status` require a local shell and Unreal Editor — they are not available in Codex agents.
-- **Skills only:** Codex benefits from workflow skills (`skills/`) and agent definitions (`agents/`). The `commands/` directory is not applicable.
+- **Subagent compatibility:** Many toolkit skills dispatch `cortex-toolkit:*` subagents. If your Codex build does not support these subagent types, run those workflows in Claude Code or Cursor.
+- **Commands directory:** The `commands/` directory is not applicable to Codex.
 
 ## Updating
 
