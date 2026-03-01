@@ -5,13 +5,13 @@ description: Use when reviewing DataTables or DataAssets for balance issues, nam
 
 # Data Review
 
-Reviews DataTables, DataAssets, and related data for quality and balance issues using the Game Balancer agent.
+Reviews DataTables, DataAssets, and related data for quality and balance issues using the Data Balancer agent.
 
 ## Steps
 
-### 1. Launch Game Balancer Agent
+### 1. Launch Data Balancer Agent
 
-Use the Task tool with `subagent_type: "cortex-data:game-balancer"` to delegate data review.
+Use the Task tool with `subagent_type: "cortex-toolkit:data-balancer"` to delegate data review.
 
 Pass the review scope and focus:
 - Specific assets to review (if targeted)
@@ -26,7 +26,7 @@ Example prompts:
 
 ### 2. Agent Workflow (runs in background)
 
-The Game Balancer agent will:
+The Data Balancer agent will:
 1. Read `.cortex/domains/data.md` for project schemas, balance rules, naming conventions
 2. Discover relevant data assets (DataTables, DataAssets, CurveTables, StringTables)
 3. Check naming conventions against project patterns

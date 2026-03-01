@@ -11,7 +11,7 @@ Drive live exploratory testing in PIE with tight observe-act-assert loops.
 
 ## Steps
 
-1. Launch Task agent: `cortex-qa:qa-engineer`.
+1. Launch Task agent: `cortex-toolkit:qa-engineer`.
 2. Instruct the agent to operate in `guided` mode and:
    - execute one user-requested step at a time,
    - report findings after every step,

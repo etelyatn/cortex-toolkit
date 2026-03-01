@@ -16,11 +16,11 @@ Extract:
 - mode flag: `--audit` or `--dry-run`
 - migration preferences
 
-Check whether `docs/migration/blueprint-to-cpp/{BP_Name}/` exists and contains section files (e.g., `01-pre-migration.json`) from a previous v2 run. If it does, note this to the user and offer to resume via the `bp-migration-analyst` agent instead of starting fresh.
+Check whether `docs/migration/blueprint-to-cpp/{BP_Name}/` exists and contains section files (e.g., `01-pre-migration.json`) from a previous v2 run. If it does, note this to the user and offer to resume via the `cortex-toolkit:bp-migration-planner` agent instead of starting fresh.
 
 ### 2. Launch C++ Migration Specialist Agent
 
-Delegate to `cortex-blueprint:cpp-migration-specialist`.
+Delegate to `cortex-toolkit:cpp-migration-specialist`.
 
 ### 3. Agent Workflow (runs autonomously)
 

@@ -11,7 +11,7 @@ Creates UMG widget screens using the `create_widget_screen` composite tool via t
 
 ### 1. Launch UI Developer Agent
 
-Use the Task tool with `subagent_type: "cortex-ui:ui-developer"` to delegate UI creation.
+Use the Task tool with `subagent_type: "cortex-toolkit:ui-developer"` to delegate UI creation.
 
 Pass the full specification including:
 - Screen type and name

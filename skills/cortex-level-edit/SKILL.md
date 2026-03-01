@@ -13,7 +13,7 @@ Delegates any level change to the Level Designer agent using the batch-first met
 
 ### 1. Launch Level Designer Agent
 
-Use the Task tool with `subagent_type: "cortex-level:level-designer"` to delegate the work.
+Use the Task tool with `subagent_type: "cortex-toolkit:level-designer"` to delegate the work.
 
 **Structure the prompt using the 3-phase directive:**
 

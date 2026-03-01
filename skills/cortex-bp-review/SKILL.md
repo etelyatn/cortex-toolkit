@@ -11,7 +11,7 @@ Reviews Blueprint assets for structure, naming, complexity, and UE best practice
 
 ### 1. Launch Blueprint Developer Agent
 
-Use the Task tool with `subagent_type: "cortex-blueprint:blueprint-developer"` to delegate Blueprint review.
+Use the Task tool with `subagent_type: "cortex-toolkit:blueprint-developer"` to delegate Blueprint review.
 
 Pass the review scope:
 - Specific Blueprint paths to review (if targeted review)
