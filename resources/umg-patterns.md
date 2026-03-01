@@ -83,6 +83,12 @@ add_widget (root panel) → add_widget (sections) → add_widget (content)
 → create_animation (transitions)
 ```
 
+### Control Slot Layout
+```
+get_schema (discover slot properties) → set_property with "slot." prefix
+Example: set_property(property_path="slot.HorizontalAlignment", value="Center")
+```
+
 ### Modify Existing Screen
 ```
 get_tree → identify target widgets → set_property / add_widget / remove_widget
@@ -131,6 +137,13 @@ result["slot"]
 ### Duplicate and Customize
 ```
 duplicate_widget → set_text / set_color (customize copy)
+```
+
+### Vertical Fill Child Pattern
+```
+Root: VerticalBox
+├── Header: TextBlock (slot.Size.SizeRule = Auto)
+└── Body: ScrollBox (slot.Size.SizeRule = Fill, slot.Size.Value = 1.0)
 ```
 
 ## Benchmark Tests
