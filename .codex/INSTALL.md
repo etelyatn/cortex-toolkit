@@ -1,71 +1,46 @@
-# Installing Cortex Toolkit for Codex
-
-Enable Cortex Toolkit skills in Codex via native skill discovery.
+# Cortex Toolkit — Codex Installation
 
 ## Prerequisites
 
-- Git
+1. **Git** — required to clone the toolkit
+2. **UnrealCortex plugin** — must be installed in your Unreal Engine project
+3. **MCP configuration** — your project must have `.mcp.json` pointing to the `cortex_mcp` server
 
 ## Installation
 
-1. Clone the repository:
-
-```bash
-git clone https://github.com/etelyatn/cortex-toolkit.git ~/.codex/cortex-toolkit
-```
-
-2. Create the skills symlink:
-
-```bash
-mkdir -p ~/.agents/skills
-ln -s ~/.codex/cortex-toolkit/skills ~/.agents/skills/cortex
-```
-
-Windows (PowerShell):
+### Windows (PowerShell as Administrator)
 
 ```powershell
-New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.agents\skills"
-cmd /c mklink /J "$env:USERPROFILE\.agents\skills\cortex" "$env:USERPROFILE\.codex\cortex-toolkit\skills"
+# 1. Clone the toolkit
+git clone https://github.com/etelyatn/cortex-toolkit.git ~/.cortex-toolkit
+
+# 2. Create a symlink in your project root
+New-Item -ItemType SymbolicLink -Path "skills" -Target "$HOME\.cortex-toolkit\skills"
 ```
 
-3. Restart Codex (quit and relaunch) so skills are discovered.
-
-## Verify
-
-Prompt Codex:
-
-```text
-Use cortex-help to show available Cortex Toolkit skills.
-```
-
-Then run project setup:
-
-```text
-Use cortex-init to configure this Unreal project and ensure .mcp.json contains cortex_mcp settings.
-```
-
-## Updating
+### macOS/Linux
 
 ```bash
-cd ~/.codex/cortex-toolkit && git pull
+# 1. Clone the toolkit
+git clone https://github.com/etelyatn/cortex-toolkit.git ~/.cortex-toolkit
+
+# 2. Create a symlink in your project root
+ln -s ~/.cortex-toolkit/skills skills
 ```
 
-Skills update instantly through the symlink/junction.
+## Verify Installation
 
-## Uninstalling
+After installation, Codex should discover skills from the `skills/` symlink in your project root.
 
-```bash
-rm ~/.agents/skills/cortex
-```
+## Limitations
 
-Windows (PowerShell):
+- **No hooks support** — Codex does not execute shell hooks. The `hooks/` directory is not used.
+- **No operational commands** — Commands in `commands/` that rely on Claude Code's Skill tool are not available.
+- **MCP tools only** — Use the `cortex_mcp` server tools directly (configured in `.mcp.json`).
 
-```powershell
-Remove-Item "$env:USERPROFILE\.agents\skills\cortex"
-```
+## Project Memory
 
-Optionally remove the clone:
-
-```bash
-rm -rf ~/.codex/cortex-toolkit
-```
+Before starting work, read:
+- `.cortex/config.yaml` — engine path and active domains
+- `.cortex/context.md` — project-specific conventions
+- `.cortex/domains/*.md` — domain-specific knowledge
