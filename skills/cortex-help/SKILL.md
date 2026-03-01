@@ -113,7 +113,7 @@ Setup & Infrastructure
   cortex-build             Build the project
   cortex-status            Check editor connection and module status
   cortex-reconnect         Reconnect to editor after restart
-  cortex-restart           Restart the MCP server
+  cortex-restart           Restart the Unreal Editor
   cortex-schema-refresh    Regenerate project schema from live editor
 
 Create
@@ -129,6 +129,7 @@ Review & Analyze
   cortex-material-review   Material graph analysis
   cortex-ui-review         Widget hierarchy and property review
   cortex-level-review      Level organization and performance review
+  cortex-impact            Analyze cross-system impact before making changes
   cortex-reflect           Query C++ and Blueprint class hierarchies
 
 Test & QA
@@ -236,12 +237,15 @@ These agents run autonomously when skills need complex, multi-step work.
 You don't invoke them directly — they're launched automatically.
 
 Core
-  Blueprint Debugger   — Blueprint graph flow analysis, logic diagnosis
   Test Debugger        — Test failure analysis, error patterns, flaky tests
 
 Blueprint
   Blueprint Developer      — Blueprint creation, modification, graph wiring
+  Blueprint Debugger       — Blueprint graph flow analysis, logic diagnosis
   C++ Migration Specialist — C++ code generation patterns for Blueprint migration (internal, used by cortex-bp-migrate PLAN stage)
+  BP Migration Executor    — Execute migration tasks from approved plan (internal, used by cortex-bp-migrate)
+  BP Migration Verifier    — Verify migration results against plan (internal, used by cortex-bp-migrate)
+  BP Migration Finalizer   — Rename swap, fix redirectors, final cleanup (internal, used by cortex-bp-migrate)
 Data
   Data Architect       — DataTable creation, schema design, bulk data import
   Data Balancer        — Balance analysis, progression curves, reward scaling
