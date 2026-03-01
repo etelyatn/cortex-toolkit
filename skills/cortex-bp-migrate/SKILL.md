@@ -478,7 +478,7 @@ When the user selects "Redesign/restructure" as the migration goal, perform addi
    - Class name following Unreal conventions (Components: `U{Responsibility}Component`, Subsystems: `U{Name}Subsystem`, Secondary actors: `A{Name}`)
    - Parent class (`UActorComponent` vs `USceneComponent` for Tier 1; subsystem type for Tier 2)
    - UCLASS specifiers: primary class gets `Blueprintable` if source BP was; components get `BlueprintSpawnableComponent` if addable in BP editors; internal-only components get `ClassGroup=(Custom)`
-5. **Serialize responsibility groups** — write a `## Responsibility Groups` section to migration-plan.md with named groups and their member items (variables, functions, components). This is the concrete input for the cpp-migration-specialist agent's tier classification during PLAN.
+5. **Serialize responsibility groups** — write a `## Responsibility Groups` section to migration-plan.md with named groups and their member items (variables, functions, components). This is the concrete input for the cpp-migration-specialist agent's redesign validation/refinement during PLAN.
 
 ### Step 3: Present Migration Design
 

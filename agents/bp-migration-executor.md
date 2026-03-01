@@ -41,7 +41,7 @@ For each task in your assigned range:
 
 When executing Blueprint cleanup tasks, follow this exact sequence.
 
-**Redesign filter rule (When `goal: redesign` in frontmatter):** The Ground Truth Table contains `Target Class` and `Automated` columns (standardized format — same columns exist for all migrations). All cleanup steps (1-6 below) apply **only** to items where `Automated: Yes`. Items with `Automated: No` (Tier 3 secondary actor targets) must be left in the BP with annotation: "Skipped — manual migration to {TargetClass}". Report skipped items in the execution log.
+**Redesign filter rule (When `goal: redesign` in frontmatter):** The Ground Truth Table contains `Target Class` and `Automated` columns (standardized format — same columns exist for all migrations). The global workflow steps still run in order (collision validation, reparent, verification gates). The `Automated` filter applies to **item-level cleanup operations only** (event disconnect/delete-orphans, function removal, variable removal, SCS component removal): operate only on rows where `Automated: Yes`. Items with `Automated: No` (Tier 3 secondary actor targets) must be left in the BP with annotation: "Skipped — manual migration to {TargetClass}". Report skipped items in the execution log.
 
 #### Pre-Reparent Steps (When `goal: redesign` in frontmatter)
 
