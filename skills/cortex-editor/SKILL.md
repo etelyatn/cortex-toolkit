@@ -32,10 +32,10 @@ Find the `.uproject` file in the project root.
 
 Launch the editor in the background:
 ```bash
-"$ENGINE_PATH/Engine/Binaries/Win64/UnrealEditor.exe" "<path to .uproject>" -AutoDeclinePackageRecovery &
+"$ENGINE_PATH/Engine/Binaries/Win64/UnrealEditor.exe" "<path to .uproject>" -AutoDeclinePackageRecovery -ExecCmds="Mainframe.ShowRestoreAssetsPromptOnStartup 0" &
 ```
 
-> **Note:** `-AutoDeclinePackageRecovery` suppresses the "Restore Packages" modal that appears after a crash. Without it, the editor blocks waiting for user input and never reaches a usable state. We avoid `-unattended` because that suppresses all dialogs.
+> **Note:** `-AutoDeclinePackageRecovery` suppresses the "Restore Packages" modal (crash recovery). `-ExecCmds="Mainframe.ShowRestoreAssetsPromptOnStartup 0"` suppresses the "Restore Open Assets" toast (reopens previously-open asset editors). Both ensure the editor starts clean without prompts. We avoid `-unattended` because that suppresses all dialogs.
 
 ### 4. Wait for Ready
 

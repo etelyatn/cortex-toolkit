@@ -90,6 +90,29 @@ After rename swap completes:
 
 Re-enable editor auto-save after swap is complete and all dependents are recompiled.
 
+### Task: Remove Orphaned Nodes (Task 19b)
+
+After the rename swap succeeds, delete all orphaned nodes from migrated graphs:
+
+1. Read the Node Mappings section from `migration-plan.md` — use the orphaned node IDs as the deletion list
+2. For each graph with orphaned nodes:
+   - Call `delete_orphaned_nodes` with the list of node IDs for that graph
+   - Verify graph node count matches expected post-cleanup count via `graph_list_nodes`
+3. Compile Blueprint — must be 0 errors, 0 warnings
+4. Only proceed to Task 19c after compile succeeds
+
+**Do NOT save before compiling.** A save of a Blueprint with errors persists corrupt state to disk.
+
+**Order of deletion does not matter.** The underlying `RemoveNode` API breaks all pin links before destroying each node — no dangling references.
+
+**Do NOT call `RefreshAllNodes` after deletion.** That API is for type system changes (class renames, property additions), not node removal. It can cause unexpected pin reconnection on surviving nodes.
+
+### Task: Save Blueprint to Disk (Task 19c)
+
+1. Call `save_blueprint` on the migrated Blueprint (now at the original path after rename swap)
+2. Verify response: `saved: true`
+3. Rationale: unsaved changes are lost if the editor closes unexpectedly. Save immediately after successful compile so the clean state is durable.
+
 ## COMPLETE Phase Protocol
 
 ### Task: Write Final Report
@@ -182,3 +205,6 @@ Write:
 - `fixup_redirectors`
 - `recompile_dependent_blueprints`
 - `compile_blueprint`
+- `delete_orphaned_nodes`
+- `save_blueprint`
+- `graph_list_nodes`

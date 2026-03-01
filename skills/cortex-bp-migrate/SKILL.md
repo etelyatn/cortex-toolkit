@@ -99,6 +99,8 @@ If user picks [2] Manual: wait for user to confirm editor is ready, then run `/c
 
 **Note:** Do NOT use inline bash commands (`tasklist`, `grep`, port file globbing) for editor lifecycle operations. Always delegate to the Cortex core skills which handle edge cases (stale port files, PID validation, multiple editor instances) consistently.
 
+**Never launch or restart the editor with raw bash commands** (e.g., `start "" "$UE_56_PATH/..."` or `UnrealEditor.exe &`). Use the Skill tool with `cortex-editor` or `cortex-restart` instead. Raw launch bypasses graceful shutdown, port file management, and MCP verification.
+
 ### Pipeline-Wide Restart Limit
 
 Track editor restarts in frontmatter field `editor_restarts`.
@@ -171,7 +173,7 @@ Before dispatching an agent, extract and send only relevant sections:
 |-------|----------|
 | Executor | Frontmatter + Pre-Migration Snapshot + Migration Scope + Generated C++ Code + Task List (tasks in range only) |
 | Verifier | Frontmatter + Pre-Migration Snapshot + Migration Scope + Execution Log + Node Mappings |
-| Finalizer | Frontmatter + Execution Log + Verification Results + Task List (tasks in range only) |
+| Finalizer | Frontmatter + Execution Log + Node Mappings + Verification Results + Task List (tasks in range only) |
 
 ### Artifact Rules
 
@@ -296,7 +298,7 @@ Fast-12: Remove migrated SCS components
 Fast-13: Inline verification (compile + parent + components)
 
 ── SWAP ─────────────────────────────────────
-Fast-14: Rename swap + fix redirectors + report
+Fast-14: Rename swap + delete orphaned nodes + save + fix redirectors + report
 ```
 
 **Step A7: Write Plan Document**
@@ -336,6 +338,11 @@ Fast Migration: {BP_Name} → {ClassName}
   [Full Pipeline] — switch to full 4-stage pipeline with gates
   [Cancel]        — abort migration
 ```
+
+**If IMPROVEMENTs were flagged in Step A5:** Add an additional option to the gate:
+- [Review improvements] — show faithful vs. improved code, choose which to use
+
+Present the faithful/improvement binary choice (same format as full pipeline Step 5) before executing. The faithful version is always the default.
 
 - **[Approve]:** Proceed to Stage B. Update frontmatter: `status: approved`.
 - **[Review]:** Show full generated C++ code. Then re-present the gate.
@@ -792,12 +799,18 @@ After generating C++ code but before writing it to the plan document:
    - If the function name appears in a method call context -> PASS
    - If the function name appears but with different parameters -> WARNING: `Parameter mismatch for {function}`
    - If the function name is not found anywhere in generated code -> ERROR: `Missing C++ equivalent for BP node {node_id}: {function}`
-2. If any ERRORs found:
+   - If you generate a function call that does NOT appear as a node in the Ground Truth Table -> IMPROVEMENT: `Node {node_id} ({original_function}) replaced with {new_function}. Moved to Optional Improvement section.`
+2. **Mechanical test for faithful vs. improvement:** Every `graph_get_node` result must map 1:1 to a line of generated C++. If you are generating a function call that does NOT appear as a node in the Ground Truth Table, it is an improvement, not a translation. Move it to a separate "Optional Improvement" section in the generated code.
+3. If any ERRORs found:
    - Do NOT proceed to the hard gate
    - Present the mismatches to the user
    - Revise the generated code to match the actual graph nodes
    - Re-run the cross-reference check
-3. If only WARNINGs:
+4. If any IMPROVEMENTs found:
+   - Generate TWO code sections: "Generated C++ — Faithful Translation" (exact node-by-node) and "Optional: Suggested Improvement" (with the improved version and explanation)
+   - Both sections go into the plan document
+   - The faithful version is the default — improvements only apply on explicit user approval at the plan review gate
+5. If only WARNINGs (no ERRORs, no IMPROVEMENTs):
    - Include them in the plan document as a "Code Generation Notes" subsection under Generated C++ Code
    - Proceed to the hard gate (user can review)
 
@@ -876,6 +889,8 @@ Task 17: Dependency impact check
 ── SWAP ─────────────────────────────────────────────────
 Task 18: Disable auto-save
 Task 19: Execute rename swap
+Task 19b: Remove orphaned nodes from migrated graphs
+Task 19c: Save migrated Blueprint to disk
 Task 20: Fix redirectors and recompile dependents
 Task 21: Re-enable auto-save
 
@@ -917,7 +932,26 @@ Present the plan summary:
 - C++ code preview (show key sections of generated header/source)
 - Any HIGH risk items
 
-Ask for approval using `AskUserQuestion`:
+**If IMPROVEMENTs were flagged in Step 2.5:** Before the main approval gate, present the faithful vs. improvement choice as a **required binary decision** using `AskUserQuestion`:
+
+```
+The cross-reference found suggested improvements to the faithful translation.
+
+## Generated C++ — Faithful Translation
+[code preview: exact translation of Blueprint logic]
+
+## Optional: Suggested Improvement
+[description of why the improvement is better]
+[code preview: improved version]
+```
+
+Options:
+- [Keep faithful translation] — use exact BP logic translation (default)
+- [Apply improvement instead] — use the improved version
+
+This choice is required — do not proceed without an explicit selection. If the user selects "Keep faithful translation", discard the improvement section from the plan document before proceeding.
+
+**Then present the main approval gate** using `AskUserQuestion`:
 - [Approve and execute] — proceed to EXECUTE stage
 - [Review code] — show full generated C++ code for review
 - [Adjust] — user requests changes to the plan
@@ -944,7 +978,7 @@ Mark each task `in_progress` when starting, `completed` when done.
 
 ### PREPARE Phase (Tasks 1-8) — Orchestrator Handles Directly
 
-These are simple operations the orchestrator runs directly (no agent dispatch).
+**NEVER dispatch a sub-agent for PREPARE tasks.** Call MCP tools and file operations directly in this conversation. If you reach for the Agent tool for any of Tasks 1-8, stop — that is incorrect. Tasks 1-8 are simple operations: status checks, file reads, build commands. They require no agent context and no agent overhead.
 
 **CRITICAL: Frontmatter update after EVERY task, BEFORE proceeding to the next task.**
 
@@ -975,7 +1009,7 @@ This is mandatory, not optional. The migration-plan.md is the single source of t
 | 5 | Write C++ header to target path | `current_task: 5`, task 5 completed, `files_created` += header path |
 | 6 | Write C++ source to target path | `current_task: 6`, task 6 completed, `files_created` += source path |
 | 7 | Run UBT build, verify 0 errors/warnings | `current_task: 7`, task 7 completed |
-| 8 | Restart editor via `/cortex-restart`, verify class | `current_task: 8`, task 8 completed, **`phase: execute`**, `editor_restarts` += 1 |
+| 8 | Invoke Skill tool: `skill: "cortex-restart", args: "save=no build=no"` — verify target C++ class is registered in editor | `current_task: 8`, task 8 completed, **`phase: execute`**, `editor_restarts` += 1 |
 
 **Task 8 is the PREPARE-to-EXECUTE transition.** It is the only task that changes the `phase` field. Update `phase: execute` in addition to `current_task: 8`.
 

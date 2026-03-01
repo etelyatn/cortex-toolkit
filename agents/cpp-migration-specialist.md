@@ -203,6 +203,8 @@ Use these for class analysis, asset dependency checks, and impact assessment —
 
 **Skip this phase for Delete and Keep outcomes.**
 
+**Faithful translation rule:** Translate node-by-node from the Ground Truth Table. If Ground Truth shows `K2Node_CallFunction: Jump`, generate `Jump()`. Do not substitute `LaunchCharacter()` even if it is more idiomatic — that is an improvement, not a translation. If you identify a better pattern, present it in a separate "Optional: Suggested Improvement" section alongside the faithful translation. Only apply improvements on explicit user approval.
+
 Generate complete, compilable C++ files:
 
 **First: Ask for target module name.** The user must specify which module this code goes into (for the API macro and file paths). Suggest the game module if only one exists.
