@@ -5,7 +5,7 @@ model: inherit
 color: green
 ---
 
-# BP Migration Analyst
+# BP Migration Planner
 
 Handle Phase 1 (analysis) and Gate 1 (scope selection).
 
