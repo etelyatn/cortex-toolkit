@@ -18,21 +18,28 @@ Extract:
 
 Check whether `docs/migration/blueprint-to-cpp/{BP_Name}/` exists and contains section files (e.g., `01-pre-migration.json`) from a previous v2 run. If it does, note this to the user and offer to resume via the `cortex-toolkit:bp-migration-planner` agent instead of starting fresh.
 
-### 2. Launch C++ Migration Specialist Agent
+### 2. Dispatch Planner Agent (Phase 1)
 
-Delegate to `cortex-toolkit:cpp-migration-specialist`.
+Delegate to `cortex-toolkit:bp-migration-planner`.
 
-### 3. Agent Workflow (runs autonomously)
+The planner agent:
+1. Reads project context and coding standards
+2. Analyzes Blueprint via MCP
+3. Scans existing C++ source
+4. Classifies outcome: Migrate / Merge / Improve / Delete / Keep
+5. Presents migratable elements for user selection (interactive, multiSelect)
+6. Produces a migration plan and node mapping
 
-1. Read project context and coding standards
-2. Analyze Blueprint via MCP
-3. Scan existing C++ source
-4. Classify outcome: Migrate / Merge / Improve / Delete / Keep
-3.5. Present migratable elements for user selection (interactive, multiSelect)
-5. Generate C++ code or patches (unless audit mode or Delete/Keep)
-6. Present analysis and code
-7. Ask before writing files (unless dry-run)
-8. After file write, ask user about Blueprint cleanup. Cleanup order: Reparent → Disconnect nodes → Remove functions → Remove variables → Remove SCS components (consumers before producers)
+### 3. Dispatch Executor Agent (Phases 2-6)
+
+After the planner completes and the user confirms scope, delegate to `cortex-toolkit:bp-migration-executor`.
+
+The executor agent:
+1. Generates C++ code or patches (unless audit mode or Delete/Keep)
+2. Presents analysis and code
+3. Asks before writing files (unless dry-run)
+4. After file write, asks user about Blueprint cleanup. Cleanup order: Reparent → Disconnect nodes → Remove functions → Remove variables → Remove SCS components (consumers before producers)
+5. Merges section files into `report.json`
 
 ### 4. Review Agent Results
 
