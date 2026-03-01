@@ -449,6 +449,37 @@ From the results:
 - Classify UserConstructionScript nodes: visual_sync stays in BP, structural moves to C++ (see cpp-migration.md resource, "Visual Sync Classification")
 - Build SAFE/WARNING/BREAKING dependency impact table
 
+#### Redesign Analysis (When Goal = "Redesign/restructure")
+
+When the user selects "Redesign/restructure" as the migration goal, perform additional analysis after the standard MCP tools:
+
+1. **Responsibility detection** — group BP functions, variables, and components by logical responsibility. Use functional group analysis from coupling matrix. Name each group by its domain (for example, "Health Management", "Movement", "Combat", "UI Binding"). A responsibility = a cohesive set of variables + the functions that read/write them + the components they reference.
+2. **Existing C++ integration scan** — use `query_class_context` results to identify existing C++ classes that overlap with detected responsibilities. Also call `query_usages` on key BP functions/variables to find cross-references. Flag merge opportunities where BP logic duplicates existing C++ functionality. **Early exit:** if no overlap found after checking BP parent class and its siblings in the hierarchy, skip further scanning. Do not exhaustively search the entire project.
+3. **Tier classification** — classify the migration using these rules:
+
+   **Default hierarchy:** Tier 1 > Tier 2 > Tier 3. Always prefer the lower tier.
+
+   - **Tier 1 (Component extraction):** Responsibilities map to self-contained components. *Indicators:* groups have clear data ownership, minimal cross-group variable access, groups map to standard component patterns.
+     - Use `USceneComponent` (or subclass) if the responsibility involves spatial data (transforms, attachment, collision)
+     - Use `UActorComponent` if the responsibility is pure logic with no spatial meaning
+   - **Tier 2 (Subsystem/utility extraction):** Logic is stateless or shared across multiple actors. *Indicators:* functions don't reference `this` actor's instance state, logic is called from multiple BPs, utility/helper pattern.
+     - `UWorldSubsystem` — state scoped to current level, destroyed on level transition
+     - `UGameInstanceSubsystem` — state persists across level transitions
+     - `UBlueprintFunctionLibrary` — purely stateless utility functions
+   - **Tier 3 (True actor split):** BP genuinely represents multiple distinct game entities. *Indicators:* responsibility groups have no shared state, different groups are placed/referenced independently, groups represent different actor archetypes. **Tier 3 is rare — default to Tier 1 unless strong evidence of distinct entities. Tier 3 is specified but unvalidated.**
+
+   **Tiebreaker: actor-state reference = Tier 1.** If a responsibility group references actor instance state (member variables, components), it is Tier 1 regardless of how many BPs share the pattern. Tier 2 is reserved for truly stateless logic or logic whose state lives in a subsystem.
+
+   **Construction script exclusion:** If a responsibility group contains UserConstructionScript nodes with structural logic, it cannot extract to a component (only actors have UserConstructionScript). These nodes must stay on the primary class or remain in BP.
+
+   **Existing C++ merge detection:** Before generating new component/subsystem classes, check if the project already has a matching C++ class (for example, an existing `UHealthComponent`). Use `query_class_hierarchy` under `UActorComponent` and `query_class_context`. If found, propose merging into the existing class rather than generating a duplicate.
+
+4. **Target class mapping** — for each responsibility group, assign a target C++ class:
+   - Class name following Unreal conventions (Components: `U{Responsibility}Component`, Subsystems: `U{Name}Subsystem`, Secondary actors: `A{Name}`)
+   - Parent class (`UActorComponent` vs `USceneComponent` for Tier 1; subsystem type for Tier 2)
+   - UCLASS specifiers: primary class gets `Blueprintable` if source BP was; components get `BlueprintSpawnableComponent` if addable in BP editors; internal-only components get `ClassGroup=(Custom)`
+5. **Serialize responsibility groups** — write a `## Responsibility Groups` section to migration-plan.md with named groups and their member items (variables, functions, components). This is the concrete input for the cpp-migration-specialist agent's tier classification during PLAN.
+
 ### Step 3: Present Migration Design
 
 Synthesize user goals (Step 1) with technical analysis (Step 2). Present:
