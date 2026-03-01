@@ -293,4 +293,4 @@ Reference these tests when extending Material MCP tools or debugging integration
 
 ### Manual Batch Construction (Existing Materials)
 
-For multi-step modifications to existing materials (add node + set property + connect), you can construct batches manually with `$ref` wiring. See `cortex-toolkit/cortex-core/resources/batch-pipeline-guide.md` for `$ref` syntax, error handling, and examples.
+For multi-step modifications to existing materials (add node + set property + connect), you can construct batches manually with `$ref` wiring. See `resources/batch-pipeline-guide.md` for `$ref` syntax, error handling, and examples.

@@ -21,7 +21,7 @@ All input data is inline in migration-plan.md:
 
 ## Required Reads Before Starting
 
-- `cortex-toolkit/cortex-blueprint/resources/cpp-migration.md` — cleanup order and patterns
+- `resources/cpp-migration.md` — cleanup order and patterns
 - `docs/unreal-coding-standards.md` — coding standards for any code adjustments
 
 ## Execution Protocol

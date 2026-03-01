@@ -405,6 +405,6 @@ Independent queries — partial success acceptable, so `stop_on_error: false`.
 
 ## See Also
 
-- **Material Composite Tools:** `cortex-toolkit/cortex-material/resources/material-patterns.md`
-- **MCP Protocol Reference:** `cortex-toolkit/cortex-core/resources/mcp-protocol.md`
-- **Testing Guide:** `cortex-toolkit/cortex-core/resources/testing-guide.md`
+- **Material Composite Tools:** `resources/material-patterns.md`
+- **MCP Protocol Reference:** `resources/mcp-protocol.md`
+- **Testing Guide:** `resources/testing-guide.md`

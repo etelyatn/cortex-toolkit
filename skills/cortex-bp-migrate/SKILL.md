@@ -621,7 +621,7 @@ Feed this table into code generation. The generated C++ must use exactly the fun
 
 ### Step 2: Generate C++ Code
 
-Using the approved design, Ground Truth Table, and the `cpp-migration-specialist` agent patterns (see `cortex-blueprint/resources/cpp-migration.md`):
+Using the approved design, Ground Truth Table, and the `cpp-migration-specialist` agent patterns (see `resources/cpp-migration.md`):
 
 1. Generate complete C++ header file
 2. Generate complete C++ source file
@@ -1058,5 +1058,5 @@ this simple migration. Verify runtime behavior matches expectations
 
 - Design: `docs/plans/2026-02-27-bp-migration-pipeline-design.md`
 - V5 schema: `docs/plans/2026-02-26-bp-migration-v5-design.md`
-- Patterns: `cortex-toolkit/cortex-blueprint/resources/cpp-migration.md`
+- Patterns: `resources/cpp-migration.md`
 - Standards: `docs/unreal-coding-standards.md`
