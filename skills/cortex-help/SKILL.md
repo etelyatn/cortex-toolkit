@@ -163,14 +163,14 @@ For the requested domain, gather:
 - Content path: `Content/Data/`
 - Schema files: `.cortex/schema/datatables.md`, `.cortex/schema/structs.md`, `.cortex/schema/tags.md`
 - Domain context: `.cortex/domains/data.md`
-- Agents: Data Architect, Game Balancer
+- Agents: Data Architect, Data Balancer
 
 **blueprint (bp):**
 - Skills: `/cortex-bp-create`, `/cortex-bp-review`, `/cortex-bp-migrate`, `/cortex-bp-migrate-guided`, `/cortex-reflect`
 - Content path: `Content/Blueprints/`
 - Schema files: `.cortex/schema/blueprints.md`
 - Domain context: `.cortex/domains/blueprints.md`
-- Agents: Blueprint Developer, Blueprint Debugger, C++ Migration Specialist, BP Migration Guide
+- Agents: Blueprint Developer, Blueprint Debugger, BP Migration Planner, BP Migration Executor
 
 **material (mat):**
 - Skills: `/cortex-material-create`, `/cortex-material-review`
@@ -197,7 +197,7 @@ For the requested domain, gather:
 
 **setup (infra):**
 - Skills: `/cortex-init`, `/cortex-editor`, `/cortex-build`, `/cortex-status`, `/cortex-reconnect`, `/cortex-restart`, `/cortex-schema-refresh`
-- Agents: Project Setup, Project Analyzer
+- Agents: Project Analyzer
 - Note: No content path or schema. "Your Project" section should show infrastructure status instead: config exists/missing, editor connected/not, schema freshness.
 
 ### Output Format
@@ -234,19 +234,17 @@ These agents run autonomously when skills need complex, multi-step work.
 You don't invoke them directly — they're launched automatically.
 
 Core
-  Game Architect       — System architecture, module planning, BP vs C++ decisions
-  Game Designer        — Game mechanics, progression, balance frameworks
   Blueprint Debugger   — Blueprint graph flow analysis, logic diagnosis
   Test Debugger        — Test failure analysis, error patterns, flaky tests
 
 Blueprint
   Blueprint Developer      — Blueprint creation, modification, graph wiring
-  C++ Migration Specialist — Blueprint-to-C++ autonomous translation (used by /cortex-bp-migrate)
-  BP Migration Guide       — Interactive guided migration: level selection, preview, rollback (used by /cortex-bp-migrate-guided)
+  BP Migration Planner     — Phase 1: analysis and scope selection (used by /cortex-bp-migrate and /cortex-bp-migrate-guided)
+  BP Migration Executor    — Phase 2-6: C++ generation, verification, swap, and report (used by /cortex-bp-migrate and /cortex-bp-migrate-guided)
 
 Data
   Data Architect       — DataTable creation, schema design, bulk data import
-  Game Balancer        — Balance analysis, progression curves, reward scaling
+  Data Balancer        — Balance analysis, progression curves, reward scaling
 
 Level
   Level Designer       — Actor placement, level organization, streaming
