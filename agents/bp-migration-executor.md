@@ -39,7 +39,9 @@ For each task in your assigned range:
 
 ## Cleanup Order (Mandatory — Never Reorder)
 
-When executing Blueprint cleanup tasks, follow this exact sequence:
+When executing Blueprint cleanup tasks, follow this exact sequence.
+
+**Redesign filter rule (When `goal: redesign` in frontmatter):** The Ground Truth Table contains `Target Class` and `Automated` columns (standardized format — same columns exist for all migrations). All cleanup steps (1-6 below) apply **only** to items where `Automated: Yes`. Items with `Automated: No` (Tier 3 secondary actor targets) must be left in the BP with annotation: "Skipped — manual migration to {TargetClass}". Report skipped items in the execution log.
 
 #### Pre-Reparent Steps (When `goal: redesign` in frontmatter)
 
@@ -47,8 +49,8 @@ When executing Blueprint cleanup tasks, follow this exact sequence:
 
 When the C++ constructor creates components via `CreateDefaultSubobject` (Tier 1 redesign), check for name conflicts with existing BP SCS components:
 
-1. Read `target_classes` from frontmatter to get component names
-2. Compare against BP SCS component names from the pre-migration snapshot
+1. Read the primary class constructor from the generated C++ source to extract `CreateDefaultSubobject` name strings (the `TEXT("...")` arguments — these are the SCS instance names, not the class names from `target_classes`)
+2. Compare these instance names against BP SCS component names from the pre-migration snapshot
 3. If any names match (for example, both C++ constructor and BP SCS create "HealthComp"):
    - **Remove the conflicting SCS component from the BP BEFORE reparent** using `remove_scs_component`
    - Log: "Removed SCS component '{Name}' (will be replaced by C++ CreateDefaultSubobject)"
@@ -76,15 +78,6 @@ For each STAYING node that references a migrated variable:
 - Count total rewiring-needed items and include in the execution summary.
 
 If the count is 0, report: "No STAYING nodes reference migrated variables — clean migration."
-
-#### Multi-Class Ground Truth Awareness (When `goal: redesign`)
-
-The Ground Truth Table contains `Target Class` and `Automated` columns (standardized format — same columns exist for all migrations):
-
-- **Automated: Yes** — clean up normally (disconnect events, delete orphans, remove functions/variables/components)
-- **Automated: No** (Tier 3 only) — leave the node in the BP with annotation: "Skipped — manual migration to {TargetClass}"
-- All cleanup steps (Steps 3-7) apply only to items where `Automated: Yes`
-- Report skipped items in the execution log as "Skipped (manual migration required)"
 
 ### Fast Mode Compatibility
 
@@ -136,6 +129,8 @@ If a task fails:
 - Do NOT proceed to the next task
 - Return the failure to the orchestrator with full context
 - The orchestrator will present [fix/skip/stop] options to the user
+
+**Tier 3 failure cleanup:** If a redesign migration with Tier 3 targets fails during execution, include in the failure report: "Secondary actor C++ files ({list from target_classes where type=SecondaryActor}) have no BP instances yet and can be safely deleted as part of cleanup." The orchestrator handles the actual deletion.
 
 ## Output
 

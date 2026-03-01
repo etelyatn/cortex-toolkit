@@ -122,44 +122,37 @@ BP Analysis Complete
 
 #### Redesign Tier Classification (When Goal = "Redesign/restructure")
 
-When the orchestrator passes `goal: redesign`, Phase 3 uses the `## Responsibility Groups` section from migration-plan.md (provided by the orchestrator) as input. Instead of the standard decision tree, perform tier classification:
+When the orchestrator passes `goal: redesign`, Phase 3 uses the `## Responsibility Groups` section from migration-plan.md (provided by the orchestrator) as input. The orchestrator has already performed tier classification in ANALYZE — use its tier assignment and target class mapping as the starting point. **Re-validate, don't re-classify.** Only adjust the tier or class assignments if code generation analysis reveals new information (for example, a dependency the orchestrator missed).
 
-1. **For each responsibility group, determine extraction pattern:**
-   - Group references actor instance state (member variables, components) -> **Component (Tier 1)**
-     - Involves spatial data (transforms, attachment, collision) -> `USceneComponent` subclass
-     - Pure logic, no spatial meaning -> `UActorComponent` subclass
-     - Contains UserConstructionScript structural nodes -> **cannot extract to component**, must stay on primary class
-   - Group is truly stateless, no actor-specific state -> **Subsystem/Utility (Tier 2)**
-     - State scoped to current level -> `UWorldSubsystem`
-     - State persists across levels -> `UGameInstanceSubsystem`
-     - Purely stateless helpers -> `UBlueprintFunctionLibrary`
-   - Group represents a distinct game entity with independent lifecycle -> **Secondary Actor (Tier 3)**
+> **Note:** The authoritative tier classification rules are in the SKILL.md orchestrator (ANALYZE Step 2). This agent validates and refines during PLAN, but does not independently re-derive tiers.
 
-   **Default hierarchy:** Tier 1 > Tier 2 > Tier 3. Prefer the lower tier on ambiguity.
+**Validation steps:**
 
-2. **Check for existing C++ matches** before naming new classes:
+1. **Verify responsibility group coherence** — confirm each group's variables, functions, and components are actually cohesive. Flag if a group mixes unrelated concerns.
+2. **Verify tier assignments are feasible for code generation:**
+   - Tier 1 components: confirm no UserConstructionScript structural nodes (cannot extract to component)
+   - Tier 1 spatial: confirm `USceneComponent` is used for groups with transforms/attachment/collision; `UActorComponent` for pure logic
+   - Tier 2: confirm the group is truly stateless or subsystem-scoped, verify correct subsystem type (`UWorldSubsystem` vs `UGameInstanceSubsystem` vs `UBlueprintFunctionLibrary`)
+   - Tier 3: confirm groups genuinely represent distinct entities
+3. **Check for existing C++ matches** before generating new classes:
    - `query_class_hierarchy` under `UActorComponent` for component matches
    - `query_class_context` for subsystem/utility matches
    - If match found -> propose merge into existing class, not new generation
-
-3. **Assign target classes** — name each class following Unreal conventions:
+4. **Validate target class names** follow Unreal conventions:
    - Components: `U{Responsibility}Component` (for example, `UHealthComponent`)
    - Subsystems: `U{Name}Subsystem` or `U{Name}FunctionLibrary`
    - Secondary actors: `A{Name}` (for example, `AWaveManager`)
    - Primary: inherits BP parent class name with C++ prefix
-
-4. **Determine UCLASS specifiers:**
+5. **Validate UCLASS specifiers:**
    - Primary: `Blueprintable` if source BP was Blueprintable
    - Components: `BlueprintSpawnableComponent` if addable in BP editors; `ClassGroup=(Custom)` for internal-only
    - Subsystems: standard specifiers for the subsystem type
-
-5. **Map integration points** using the decision table:
+6. **Map integration points** using the decision table:
    - Owner -> Component: cached `UPROPERTY()` pointer (set in constructor, no runtime lookup)
    - Component -> Owner: `GetOwner<PrimaryClass>()` for tightly coupled; `IInterface` for reusable components
    - Cross-component: owner mediation (preferred) or delegates. **Never** `GetOwner()->FindComponentByClass<OtherComp>()`
    - Actor -> Actor (Tier 3): `UInterface`
-
-6. **Output:** Tier classification + target class list + responsibility map + integration points
+7. **Output:** Validated tier classification + target class list + responsibility map + integration points. Note any adjustments from the orchestrator's original classification.
 
 **Additional checks (from BP Audit Patterns in resource):**
 - Does the BP duplicate functionality already in C++?
@@ -319,10 +312,10 @@ Before the standard migration analysis table, present:
 
 ### Integration Points
 
-| From | To | Pattern | Why |
-|------|-----|---------|-----|
-| Primary | HealthComp | Cached UPROPERTY | Frequent access, set in constructor |
-| HealthComp | Primary | GetOwner<T> | Tightly coupled, single owner type |
+| From | To | Pattern | Detail |
+|------|-----|---------|--------|
+| Primary | HealthComp | Cached UPROPERTY | `UPROPERTY() UHealthComponent* HealthComp` |
+| HealthComp | Primary | GetOwner<T> | `GetOwner<APrimaryClass>()` |
 
 ### Responsibility Map
 

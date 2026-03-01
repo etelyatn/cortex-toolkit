@@ -647,7 +647,7 @@ target_classes: []        # List of {name, type, parent, file_h, file_cpp} for m
 <!-- Tier 3 only -->
 ## Manual Migration Steps
 
-- [ ] {Step requiring human judgment — e.g., place secondary actors in levels}
+- [ ] {Step requiring human judgment — for example, place secondary actors in levels}
 - [ ] ...
 ~~~
 
@@ -1065,6 +1065,17 @@ Dispatch `cortex-toolkit:bp-migration-executor` with:
 - Task range: 9-15
 
 The executor appends execution results to `migration-plan.md` and returns concise status.
+
+**Tier 3 pause (When `goal: redesign` and `redesign_tier: 3`):** After executor completes, present the `## Manual Migration Steps` checklist from migration-plan.md to the user. Pause and wait for user confirmation that manual steps are done before proceeding to VERIFY. Ask via `AskUserQuestion`:
+```
+The automated portion of the Tier 3 migration is complete.
+These manual steps remain before verification:
+{list from Manual Migration Steps}
+
+[Done — proceed to verify]
+[Need help with a step]
+[Pause — resume later]
+```
 
 ### Crash Recovery (Orchestrator)
 
