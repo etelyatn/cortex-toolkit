@@ -24,8 +24,10 @@ You receive from the orchestrator:
 
 **In fast mode (Fast-14), execute these SWAP Phase Protocol sections:**
 1. "Task: Execute Rename Swap" — full protocol (3-step rename sequence + rollback on failure)
-2. "Task: Fix Redirectors and Recompile Dependents" — full protocol
-3. "Task: Write Final Report" — write `rollback.json` + append report to `migration-plan.md`
+2. "Task: Remove Orphaned Nodes (Task 19b)" — full protocol
+3. "Task: Save Blueprint to Disk (Task 19c)" — full protocol
+4. "Task: Fix Redirectors and Recompile Dependents" — full protocol
+5. "Task: Write Final Report" — write `rollback.json` + append report to `migration-plan.md`
 
 **Skip these sections:**
 - "Task: Disable Auto-Save" — not needed (no dependents in fast mode)
@@ -75,21 +77,6 @@ After rename swap completes:
 - If both renames succeeded but save failed: reverse both renames, save
 - Record `git_commit_before` for C++ file rollback
 
-### Task: Fix Redirectors and Recompile Dependents
-
-1. Identify all redirectors created by the swap
-2. For each dependent Blueprint (from impact analysis):
-   - Load the dependent
-   - Call `RefreshAllNodes` (clears stale GUIDs from reparenting)
-   - Recompile
-   - Verify 0 errors
-3. Delete resolved redirectors
-4. Verify no remaining redirector references via AssetRegistry query
-
-### Task: Re-Enable Auto-Save
-
-Re-enable editor auto-save after swap is complete and all dependents are recompiled.
-
 ### Task: Remove Orphaned Nodes (Task 19b)
 
 After the rename swap succeeds, delete all orphaned nodes from migrated graphs:
@@ -112,6 +99,21 @@ After the rename swap succeeds, delete all orphaned nodes from migrated graphs:
 1. Call `save_blueprint` on the migrated Blueprint (now at the original path after rename swap)
 2. Verify response: `saved: true`
 3. Rationale: unsaved changes are lost if the editor closes unexpectedly. Save immediately after successful compile so the clean state is durable.
+
+### Task: Fix Redirectors and Recompile Dependents
+
+1. Identify all redirectors created by the swap
+2. For each dependent Blueprint (from impact analysis):
+   - Load the dependent
+   - Call `RefreshAllNodes` (clears stale GUIDs from reparenting)
+   - Recompile
+   - Verify 0 errors
+3. Delete resolved redirectors
+4. Verify no remaining redirector references via AssetRegistry query
+
+### Task: Re-Enable Auto-Save
+
+Re-enable editor auto-save after swap is complete and all dependents are recompiled.
 
 ## COMPLETE Phase Protocol
 
