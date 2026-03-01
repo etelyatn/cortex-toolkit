@@ -17,6 +17,39 @@ You receive from the orchestrator:
 
 ## Verification Protocol
 
+#### Multi-Class Verification (When migration-plan.md contains `goal: redesign`)
+
+Additional verification steps for redesign migrations:
+
+1. **Target class existence** — verify all target classes from `target_classes` frontmatter exist in the reflection system:
+   - Call `query_class_context` on each target class name
+   - Confirm class exists, compiles, and has expected parent class
+   - For components: verify they appear in `query_class_hierarchy` under `UActorComponent` or `USceneComponent`
+
+2. **Component wiring** — for Tier 1, verify the primary class constructor creates all expected components:
+   - Call `analyze_blueprint_for_migration` on the migrated BP
+   - Check `scs_components` list: inherited C++ components should appear here
+   - Verify each expected component name and class matches the Architecture Proposal
+   - **Cannot verify:** `SetupAttachment` (not visible in CDO), delegate bindings (runtime only). Report these as "not statically verifiable."
+
+3. **Responsibility coverage** — cross-reference the responsibility map:
+   - Every "MIGRATING" item should have a C++ equivalent in the appropriate target class
+   - Use the Ground Truth Table `Target Class` column for verification
+   - Report any items in the responsibility map that lack a ground truth entry
+
+4. **Integration point verification** — for each documented integration point:
+   - Verify cached UPROPERTY pointers exist in the primary class header (grep for component type declarations)
+   - Verify delegate declarations exist where specified (grep for `DECLARE_DYNAMIC_MULTICAST_DELEGATE`)
+   - Verify interface implementations where specified (grep for `IInterface` in class declaration)
+
+5. **STAYING-node rewiring report** — count STAYING nodes that reference migrated variables (from execution log):
+   - If count > 0: WARNING with list of nodes requiring manual rewiring
+   - If count == 0: PASS
+
+6. **Tier 3 residual check** — if Tier 3 items exist:
+   - Verify they are still present in the BP (not accidentally cleaned up)
+   - Report them as "Pending manual migration" in the verification results
+
 ### Task: Structural Verification
 
 Call `compare_blueprints` with the original and migrated Blueprint paths.

@@ -34,6 +34,7 @@ When `--fast` is specified, the pipeline checks eligibility AFTER the technical 
 | C++ parent class | Parent class path starts with `/Script/` (not `/Game/`) | `analyze_blueprint_for_migration` |
 | No structural ConstructionScript | UserConstructionScript contains only visual-sync nodes (no structural logic) | `analyze_blueprint_for_migration` + graph inspection |
 | Single pass | All functional groups migrate in one pass (no HIGH-risk items requiring deferral) | Derived from functional group analysis |
+| Not redesign goal | Goal is not "Redesign/restructure" | User-selected goal (or auto-selected by --fast) |
 
 **If eligible:** Proceed with fast mode flow (see Fast Mode Pipeline below).
 
@@ -52,15 +53,16 @@ The full pipeline continues from where fast mode left off — the analysis data 
 If `--resume` flag OR `docs/migration/blueprint-to-cpp/{BP_Name}/migration-plan.md` exists:
 
 1. Read `migration-plan.md` YAML frontmatter
-2. Parse: `status`, `current_task`, `failed_task`, `phase`, `blueprint_hash`, `mode`
+2. Parse: `status`, `current_task`, `failed_task`, `phase`, `blueprint_hash`, `mode`, `goal`, `redesign_tier`
 3. **Route by mode:** If frontmatter contains `mode: fast`, resume within the Fast Mode Pipeline. Route to Stage A (if `phase: analyze` or `phase: plan`), Stage B (if `phase: execute`), or Stage C (if `phase: swap`) based on `phase` and `current_task`. If `mode` is absent or not `fast`, resume in the full pipeline.
-4. Verify workspace state:
+4. **Route by goal:** If frontmatter contains `goal: redesign`, use redesign-aware analysis path in ANALYZE (extended presentation, tier classification, responsibility groups).
+5. Verify workspace state:
    - Do files in `files_created` actually exist on disk?
    - Does `BP_Name_Migration` copy exist in the editor?
    - Does the C++ class exist and compile?
    - Does `blueprint_hash` match current Blueprint? (staleness check)
-5. Present resume point to user with options: [resume / rewind / restart]
-6. On resume: create TaskCreate entries for remaining tasks, continue from saved phase
+6. Present resume point to user with options: [resume / rewind / restart]
+7. On resume: create TaskCreate entries for remaining tasks, continue from saved phase
 
 ## Pre-Flight Check (Task 0)
 
@@ -429,7 +431,7 @@ Update frontmatter: `status: completed`, `phase: complete`.
 
 Use `AskUserQuestion` to ask one question at a time:
 
-1. "Why are you migrating this Blueprint?" — options: Performance, Reusability/base class, Complexity management, Cleanup/tech debt
+1. "Why are you migrating this Blueprint?" — options: Performance, Reusability/base class, Complexity management, Cleanup/tech debt, Redesign/restructure
 2. "Any constraints for this migration?" — options: Keep specific things in BP, Avoid adding module dependencies, No constraints
 3. "What scope are you thinking?" — options: Everything possible, Logic only (keep visual BP), Specific features (I'll choose), Not sure (recommend for me)
 
@@ -447,6 +449,37 @@ From the results:
 - Classify UserConstructionScript nodes: visual_sync stays in BP, structural moves to C++ (see cpp-migration.md resource, "Visual Sync Classification")
 - Build SAFE/WARNING/BREAKING dependency impact table
 
+#### Redesign Analysis (When Goal = "Redesign/restructure")
+
+When the user selects "Redesign/restructure" as the migration goal, perform additional analysis after the standard MCP tools:
+
+1. **Responsibility detection** — group BP functions, variables, and components by logical responsibility. Use functional group analysis from coupling matrix. Name each group by its domain (for example, "Health Management", "Movement", "Combat", "UI Binding"). A responsibility = a cohesive set of variables + the functions that read/write them + the components they reference.
+2. **Existing C++ integration scan** — use `query_class_context` results to identify existing C++ classes that overlap with detected responsibilities. Also call `query_usages` on key BP functions/variables to find cross-references. Flag merge opportunities where BP logic duplicates existing C++ functionality. **Early exit:** if no overlap found after checking BP parent class and its siblings in the hierarchy, skip further scanning. Do not exhaustively search the entire project.
+3. **Tier classification** — classify the migration using these rules:
+
+   **Default hierarchy:** Tier 1 > Tier 2 > Tier 3. Always prefer the lower tier.
+
+   - **Tier 1 (Component extraction):** Responsibilities map to self-contained components. *Indicators:* groups have clear data ownership, minimal cross-group variable access, groups map to standard component patterns.
+     - Use `USceneComponent` (or subclass) if the responsibility involves spatial data (transforms, attachment, collision)
+     - Use `UActorComponent` if the responsibility is pure logic with no spatial meaning
+   - **Tier 2 (Subsystem/utility extraction):** Logic is stateless or shared across multiple actors. *Indicators:* functions don't reference `this` actor's instance state, logic is called from multiple BPs, utility/helper pattern.
+     - `UWorldSubsystem` — state scoped to current level, destroyed on level transition
+     - `UGameInstanceSubsystem` — state persists across level transitions
+     - `UBlueprintFunctionLibrary` — purely stateless utility functions
+   - **Tier 3 (True actor split):** BP genuinely represents multiple distinct game entities. *Indicators:* responsibility groups have no shared state, different groups are placed/referenced independently, groups represent different actor archetypes. **Tier 3 is rare — default to Tier 1 unless strong evidence of distinct entities. Tier 3 is specified but unvalidated.**
+
+   **Tiebreaker: actor-state reference = Tier 1.** If a responsibility group references actor instance state (member variables, components), it is Tier 1 regardless of how many BPs share the pattern. Tier 2 is reserved for truly stateless logic or logic whose state lives in a subsystem.
+
+   **Construction script exclusion:** If a responsibility group contains UserConstructionScript nodes with structural logic, it cannot extract to a component (only actors have UserConstructionScript). These nodes must stay on the primary class or remain in BP.
+
+   **Existing C++ merge detection:** Before generating new component/subsystem classes, check if the project already has a matching C++ class (for example, an existing `UHealthComponent`). Use `query_class_hierarchy` under `UActorComponent` and `query_class_context`. If found, propose merging into the existing class rather than generating a duplicate.
+
+4. **Target class mapping** — for each responsibility group, assign a target C++ class:
+   - Class name following Unreal conventions (Components: `U{Responsibility}Component`, Subsystems: `U{Name}Subsystem`, Secondary actors: `A{Name}`)
+   - Parent class (`UActorComponent` vs `USceneComponent` for Tier 1; subsystem type for Tier 2)
+   - UCLASS specifiers: primary class gets `Blueprintable` if source BP was; components get `BlueprintSpawnableComponent` if addable in BP editors; internal-only components get `ClassGroup=(Custom)`
+5. **Serialize responsibility groups** — write a `## Responsibility Groups` section to migration-plan.md with named groups and their member items (variables, functions, components). This is the concrete input for the cpp-migration-specialist agent's redesign validation/refinement during PLAN.
+
 ### Step 3: Present Migration Design
 
 Synthesize user goals (Step 1) with technical analysis (Step 2). Present:
@@ -457,11 +490,50 @@ Synthesize user goals (Step 1) with technical analysis (Step 2). Present:
 4. **Scope recommendation** — based on user's stated goals
 5. **MIGRATING / STAYING / DEFERRED columns** — what moves to C++, what stays in BP, what's deferred
 
+#### Extended Presentation (When Goal = "Redesign/restructure")
+
+When goal is "Redesign/restructure", the design presentation adds these sections after the standard content:
+
+6. **Architecture proposal** — describe the target class structure:
+   - Primary class name, parent, and UCLASS specifiers
+   - Extracted classes (components, subsystems, or secondary actors) with their types and parents
+   - Rationale for each extraction (why this responsibility is a separate class)
+   - Tier classification with justification
+7. **Responsibility map** — which BP items go to which target class:
+
+   | Item | Target Class | Type | Action |
+   |------|-------------|------|--------|
+   | MaxHealth, CurrentHealth | UHealthComponent | Component (Tier 1) | MIGRATING |
+   | TakeDamage(), OnHealthChanged | UHealthComponent | Component (Tier 1) | MIGRATING |
+   | MovementSpeed, JumpForce | AMyCharacterBase | Primary | MIGRATING |
+   | BeginPlay, Tick | AMyCharacterBase | Primary | MIGRATING |
+   | Widget reference | BP | -- | STAYING |
+
+8. **Integration points** — how extracted classes communicate, using this decision table:
+
+   | Pattern | When to Use |
+   |---------|------------|
+   | Cached `UPROPERTY()` pointer | Owner -> Component (primary class holds component pointers set in constructor) |
+   | `GetOwner<T>()` | Component -> Owner (tightly coupled, single owner type) |
+   | `IInterface` + `Execute_*()` | Component -> Owner (reusable component, multiple possible owner types) |
+   | `DECLARE_DYNAMIC_MULTICAST_DELEGATE` | One-to-many notification, decoupled (for example, OnHealthChanged) |
+   | Owner mediation | Component -> Component (A calls owner, owner calls B) |
+   | `UInterface` | Cross-actor communication (Tier 3) |
+
+   **Anti-pattern:** avoid `GetComponentByClass<>()` for frequently-accessed components from the owner — use cached `UPROPERTY()` pointer set in constructor instead. Reserve `GetComponentByClass` for external/cross-actor lookups only.
+
+   **Component-to-component:** recommend pattern 1 (owner mediation) or 2 (delegates). Explicitly discourage direct `GetOwner()->FindComponentByClass<OtherComp>()` which couples components to each other.
+
+9. **Variable reference analysis** — identify STAYING BP nodes that reference MIGRATING variables. These nodes will need rewiring to access data via component (for example, `HealthComp->MaxHealth` instead of `MaxHealth`). List them explicitly as "requires rewiring after migration."
+10. **Tier classification** — present as adjustable: "This is classified as Tier {N} ({description}). Is this the right decomposition, or should any of these be split differently?"
+11. **For Tier 3 only: Manual migration steps** — list steps requiring human judgment. Add warning: "Tier 3 (true actor split) is an advanced migration pattern. The automated portion handles C++ generation and primary class reparent. All secondary actor placement and reference updates are manual. Proceed?"
+
 ### Step 4: Hard Gate — User Approves Design
 
 Present the migration design and ask for approval using `AskUserQuestion`:
 - [Approve] — proceed to PLAN stage
-- [Adjust] — user modifies scope, moves items between columns
+- [Adjust scope] — user modifies scope, moves items between MIGRATING/STAYING/DEFERRED columns
+- [Adjust tier] — user changes tier classification or target class assignments (redesign only)
 - [Cancel] — abort migration
 
 On approval, write `docs/migration/blueprint-to-cpp/{BP_Name}/migration-plan.md` with initial content:
@@ -488,6 +560,9 @@ files_created: []
 files_modified: []
 editor_restarts: 0
 complexity: {simple or complex}  # From Migration Complexity Classification
+goal: {performance|reusability|complexity|cleanup|redesign}
+redesign_tier: null       # Set to 1, 2, or 3 when goal is "redesign"
+target_classes: []        # List of {name, type, parent, file_h, file_cpp} for multi-class output
 ---
 
 # {BP_Name} -> {ClassName} Migration
@@ -532,6 +607,48 @@ complexity: {simple or complex}  # From Migration Complexity Classification
 | Migrating to C++ | Staying in Blueprint | Deferred |
 |-------------------|---------------------|----------|
 | ... | ... | ... |
+
+<!-- When goal = "redesign" — add these sections -->
+
+## Responsibility Groups
+
+| Group Name | Variables | Functions | Components | Target Class |
+|-----------|-----------|-----------|------------|-------------|
+| {name} | {list} | {list} | {list} | {TargetClass} |
+| ... | ... | ... | ... | ... |
+
+## Architecture Proposal
+
+**Tier:** {1: Component extraction | 2: Subsystem extraction | 3: Actor split}
+
+**Target Classes:**
+
+| Class | Type | Parent | UCLASS Specifiers | Purpose |
+|-------|------|--------|-------------------|---------|
+| {PrimaryClass} | Primary | {BP parent} | Blueprintable | Main actor identity |
+| {ComponentClass} | Component | UActorComponent/USceneComponent | BlueprintSpawnableComponent | {responsibility} |
+| ... | ... | ... | ... | ... |
+
+## Responsibility Map
+
+| BP Item | Target Class | Action | Notes |
+|---------|-------------|--------|-------|
+| {var/func/component} | {TargetClass} | MIGRATING / STAYING | {rewiring needed?} |
+| ... | ... | ... | ... |
+
+## Integration Points
+
+| From | To | Pattern | Detail |
+|------|-----|---------|--------|
+| {PrimaryClass} | {ComponentClass} | Cached UPROPERTY | `UPROPERTY() UHealthComponent* HealthComp` |
+| {ComponentClass} | {PrimaryClass} | GetOwner<T> | `GetOwner<APrimaryClass>()` |
+| ... | ... | ... | ... |
+
+<!-- Tier 3 only -->
+## Manual Migration Steps
+
+- [ ] {Step requiring human judgment — for example, place secondary actors in levels}
+- [ ] ...
 ~~~
 
 Do NOT write `01-pre-migration.json` or `02-migration-plan.json`. All this data is now inline.
@@ -602,17 +719,25 @@ For each graph listed as "migrating" in the approved design:
 
 Build a "Ground Truth Table" and append to migration-plan.md after the Migration Scope section:
 
+#### Unified Ground Truth Table Format
+
+The Ground Truth Table uses a single format for all migrations. For standard (non-redesign) migrations, `Target Class` defaults to the single target class and `Automated` defaults to `Yes`:
+
 ~~~markdown
 ## Ground Truth Table
 
-| Node ID | Type | Function/Property | Target | Parameters | Notes |
-|---------|------|-------------------|--------|------------|-------|
-| N_123 | CallFunction | LaunchCharacter | ACharacter | FVector, bool, bool | |
-| N_456 | VariableGet | Velocity | Self | -- | |
-| N_789 | Cast | ACharacter | OtherActor | -- | |
-| N_012 | ComponentBoundEvent | OnComponentBeginOverlap | CollisionComp | -- | Needs AddDynamic |
-| N_345 | CallDelegate | OnJumpComplete | Self | -- | DECLARE_DYNAMIC_MULTICAST_DELEGATE |
+| Node ID | Type | Function/Property | Target | Parameters | Notes | Target Class | Automated |
+|---------|------|-------------------|--------|------------|-------|-------------|-----------|
+| N_123 | CallFunction | LaunchCharacter | ACharacter | FVector, bool, bool | | AMyCharacterBase | Yes |
+| N_456 | VariableGet | Velocity | Self | -- | | AMyCharacterBase | Yes |
+| N_789 | Cast | ACharacter | OtherActor | -- | | AMyCharacterBase | Yes |
+| N_012 | ComponentBoundEvent | OnComponentBeginOverlap | CollisionComp | -- | Needs AddDynamic | UCollisionComponent | Yes |
+| N_345 | CallDelegate | OnJumpComplete | Self | -- | DECLARE_DYNAMIC_MULTICAST_DELEGATE | AMyCharacterBase | Yes |
 ~~~
+
+For redesign migrations, `Target Class` is set per-row based on the responsibility map. For Tier 3, rows targeting secondary actor classes have `Automated: No`.
+
+The executor acts on the `Automated` column: `Yes` = clean up automatically, `No` = leave with annotation.
 
 Flag unmappable nodes as WARNING:
 `WARNING: Node N_999 (UK2Node_MacroInstance: "ForEachLoop") has no direct C++ equivalent. Recommend: Replace with standard for-loop in C++ implementation.`
@@ -635,6 +760,29 @@ Code generation rules (from cpp-migration.md resource):
 - Timelines → `UTimelineComponent` + curve setup in BeginPlay
 - Event dispatchers → `DECLARE_DYNAMIC_MULTICAST_DELEGATE`
 - Follow `docs/unreal-coding-standards.md` (Epic standard)
+
+#### Multi-File Code Generation (When Goal = "Redesign/restructure")
+
+For redesign migrations, PLAN generates multiple `.h`/`.cpp` file pairs:
+
+1. **Primary class** — inherits from BP's parent class. Constructor includes `CreateDefaultSubobject<>()` calls for Tier 1 components, plus `SetupAttachment(RootComponent)` for any `USceneComponent` subclasses. Holds cached `UPROPERTY()` pointers to each component.
+2. **Component classes** (Tier 1) — one `.h`/`.cpp` pair per extracted component. Use `USceneComponent` for spatial responsibilities, `UActorComponent` for pure logic.
+3. **Utility classes** (Tier 2) — one `.h`/`.cpp` pair per subsystem or function library.
+4. **Secondary actor classes** (Tier 3) — one `.h`/`.cpp` pair per split-off actor. Include TODO comments for manual wiring.
+
+**All generated classes must go in the same module** (same Build.cs). Cross-module generation is not supported.
+
+**Forward declarations:** Component headers forward-declare the owner; owner header forward-declares components. Full includes in `.cpp` files only. UHT needs full type only for `TSubclassOf<>` and `meta=` specifiers — use raw pointers in cross-class `UPROPERTY()` declarations.
+
+**Include ordering in `.cpp`:** matching header first, then engine headers, then project headers.
+
+Single UBT build for all files at once. If build fails, parse compiler error output to identify which generated file contains the error, present the error with file context, and offer to fix.
+
+**Build.cs dependency analysis:** During PLAN (not deferred), identify any new module dependencies required by extracted classes and list them explicitly in the migration plan.
+
+Update `target_classes` in frontmatter and `files_created` for each generated file pair.
+
+**Dynamic task numbering:** Generate one write-task per file pair. For a 3-class redesign, tasks become: "Write PrimaryClass .h/.cpp", "Write HealthComponent .h/.cpp", "Write InventoryComponent .h/.cpp", then "Build all C++."
 
 ### Step 2.5: Cross-Reference Generated Code Against Graph Nodes
 
@@ -677,9 +825,23 @@ Append generated C++ code inline to `migration-plan.md` under a new section. Use
 ```
 ~~~
 
-Do NOT create a `generated/` directory or separate `.h`/`.cpp` files. The code lives in the plan document until Tasks 5-6 copy it to the actual source paths.
+For standard migrations, do NOT create a `generated/` directory or separate `.h`/`.cpp` files. The code lives in the plan document until Tasks 5-6 copy it to the actual source paths. For redesign migrations generating 4+ files, generated code may be written to `docs/migration/blueprint-to-cpp/{BP_Name}/generated/` and referenced from `files_created`.
 
 Note for Tasks 5-6 (PREPARE phase): When writing C++ files to disk, extract the code from the fenced code blocks in `migration-plan.md`. Identify the correct block by its heading name (`### Header ({ClassName}.h)` or `### Source ({ClassName}.cpp)`), not by searching for arbitrary `cpp` blocks.
+
+#### Context Management for Redesign
+
+For redesign migrations generating 4+ files, generated C++ code may be written to `docs/migration/blueprint-to-cpp/{BP_Name}/generated/` instead of inline in migration-plan.md. Reference file paths in migration-plan.md via `files_created` frontmatter. The executor reads files from disk.
+
+**Agent context scoping for redesign:** When dispatching the executor for cleanup tasks, include only:
+- Frontmatter (full)
+- Responsibility Map section
+- Ground Truth Table (only rows relevant to current task range)
+- Primary class code (for cleanup decisions)
+
+Do NOT include all generated source files in the executor dispatch. The executor needs the responsibility map and ground truth to know what to clean, not the full source of every component class.
+
+**Cross-reference check scaling:** For multi-class redesign, cross-reference the ground truth table per-class: for each target class, validate only the rows assigned to that class against that class's `.cpp` file. Do not search all `.cpp` files for every row.
 
 ### Step 3: Generate Task List
 
@@ -903,6 +1065,17 @@ Dispatch `cortex-toolkit:bp-migration-executor` with:
 - Task range: 9-15
 
 The executor appends execution results to `migration-plan.md` and returns concise status.
+
+**Tier 3 pause (When `goal: redesign` and `redesign_tier: 3`):** After executor completes, present the `## Manual Migration Steps` checklist from migration-plan.md to the user. Pause and wait for user confirmation that manual steps are done before proceeding to VERIFY. Ask via `AskUserQuestion`:
+```
+The automated portion of the Tier 3 migration is complete.
+These manual steps remain before verification:
+{list from Manual Migration Steps}
+
+[Done — proceed to verify]
+[Need help with a step]
+[Pause — resume later]
+```
 
 ### Crash Recovery (Orchestrator)
 

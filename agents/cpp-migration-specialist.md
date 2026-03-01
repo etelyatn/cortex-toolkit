@@ -120,6 +120,40 @@ BP Analysis Complete
     └─ Default → KEEP (explain why)
 ```
 
+#### Redesign Tier Classification (When Goal = "Redesign/restructure")
+
+When the orchestrator passes `goal: redesign`, Phase 3 uses the `## Responsibility Groups` section from migration-plan.md (provided by the orchestrator) as input. The orchestrator has already performed tier classification in ANALYZE — use its tier assignment and target class mapping as the starting point. **Re-validate, don't re-classify.** Only adjust the tier or class assignments if code generation analysis reveals new information (for example, a dependency the orchestrator missed).
+
+> **Note:** The authoritative tier classification rules are in the SKILL.md orchestrator (ANALYZE Step 2). This agent validates and refines during PLAN, but does not independently re-derive tiers.
+
+**Validation steps:**
+
+1. **Verify responsibility group coherence** — confirm each group's variables, functions, and components are actually cohesive. Flag if a group mixes unrelated concerns.
+2. **Verify tier assignments are feasible for code generation:**
+   - Tier 1 components: confirm no UserConstructionScript structural nodes (cannot extract to component)
+   - Tier 1 spatial: confirm `USceneComponent` is used for groups with transforms/attachment/collision; `UActorComponent` for pure logic
+   - Tier 2: confirm the group is truly stateless or subsystem-scoped, verify correct subsystem type (`UWorldSubsystem` vs `UGameInstanceSubsystem` vs `UBlueprintFunctionLibrary`)
+   - Tier 3: confirm groups genuinely represent distinct entities
+3. **Check for existing C++ matches** before generating new classes:
+   - `query_class_hierarchy` under `UActorComponent` for component matches
+   - `query_class_context` for subsystem/utility matches
+   - If match found -> propose merge into existing class, not new generation
+4. **Validate target class names** follow Unreal conventions:
+   - Components: `U{Responsibility}Component` (for example, `UHealthComponent`)
+   - Subsystems: `U{Name}Subsystem` or `U{Name}FunctionLibrary`
+   - Secondary actors: `A{Name}` (for example, `AWaveManager`)
+   - Primary: inherits BP parent class name with C++ prefix
+5. **Validate UCLASS specifiers:**
+   - Primary: `Blueprintable` if source BP was Blueprintable
+   - Components: `BlueprintSpawnableComponent` if addable in BP editors; `ClassGroup=(Custom)` for internal-only
+   - Subsystems: standard specifiers for the subsystem type
+6. **Map integration points** using the decision table:
+   - Owner -> Component: cached `UPROPERTY()` pointer (set in constructor, no runtime lookup)
+   - Component -> Owner: `GetOwner<PrimaryClass>()` for tightly coupled; `IInterface` for reusable components
+   - Cross-component: owner mediation (preferred) or delegates. **Never** `GetOwner()->FindComponentByClass<OtherComp>()`
+   - Actor -> Actor (Tier 3): `UInterface`
+7. **Output:** Validated tier classification + target class list + responsibility map + integration points. Note any adjustments from the orchestrator's original classification.
+
 **Additional checks (from BP Audit Patterns in resource):**
 - Does the BP duplicate functionality already in C++?
 - Does the BP override C++ functions with identical logic (no-op override)?
@@ -219,6 +253,40 @@ Generate complete, compilable C++ files:
 - `b` prefix for booleans
 - No `LogTemp` — project log category
 
+#### Multi-Class Code Generation (When Goal = "Redesign/restructure")
+
+Generate one `.h`/`.cpp` pair per target class. **All classes must go in the same module.**
+
+1. **Primary class:**
+   - Inherits from BP's actual parent class
+   - Constructor creates all Tier 1 components via `CreateDefaultSubobject<>()`
+   - **For `USceneComponent` subclasses:** add `SetupAttachment(RootComponent)` after creation. For the root scene component, use `SetRootComponent()` instead.
+   - Holds cached `UPROPERTY(VisibleAnywhere)` pointers to each component — no runtime `GetComponentByClass` lookups
+   - Implements functions from the "primary" responsibility group
+   - Forward declarations for component types in header; full includes in `.cpp` only
+   - Include ordering in `.cpp`: matching header first, then engine, then project
+
+2. **Component classes (Tier 1):**
+   - Inherit from `USceneComponent` (spatial) or `UActorComponent` (pure logic)
+   - Own their responsibility group's variables as `UPROPERTY()`
+   - Implement their responsibility group's functions as `UFUNCTION()`
+   - Access owner via `GetOwner<PrimaryClass>()` (forward declare in header)
+   - `BeginPlay()` for initialization, component activation/deactivation
+   - **Conditional components:** If BP had conditional creation logic, use `CreateDefaultSubobject` + `SetActive(false)` in constructor, not runtime `NewObject`
+   - **Array components:** If BP had multiple instances (for example, weapon slots), use `TArray<UWeaponComponent*>` populated in `BeginPlay()`, not `CreateDefaultSubobject`
+
+3. **Utility classes (Tier 2):**
+   - `UBlueprintFunctionLibrary` with static `UFUNCTION(BlueprintCallable)` functions, or
+   - `UWorldSubsystem` / `UGameInstanceSubsystem` with instance state
+   - No BP representation — pure C++
+
+4. **Secondary actor classes (Tier 3):**
+   - Inherit from appropriate base (AActor, APawn, etc.)
+   - Communicate with primary via interfaces or delegates
+   - Include TODO comments marking where manual wiring is needed
+
+**Build.cs dependency analysis:** Before finalizing code, identify new module dependencies and list them in the plan. All classes must be in the same module.
+
 ## Phase 5: Present & Confirm
 
 **Run validation checklist before presenting:**
@@ -228,6 +296,36 @@ Generate complete, compilable C++ files:
 - Class hierarchy matches UE conventions (A prefix for Actors, U for UObjects, F for structs)
 - Constructor sets all default values from BP Class Defaults
 - Parent class matches what `get_blueprint_info` returned
+
+#### Architecture Presentation (When Goal = "Redesign/restructure")
+
+Before the standard migration analysis table, present:
+
+### Architecture Proposal
+
+**Tier {N}:** {Description}
+
+| Target Class | Type | Parent | UCLASS Specifiers | Responsibilities |
+|-------------|------|--------|-------------------|-----------------|
+| {Primary} | Primary | {parent} | Blueprintable | {list} |
+| {Component} | Component | UActorComponent | BlueprintSpawnableComponent | {list} |
+
+### Integration Points
+
+| From | To | Pattern | Detail |
+|------|-----|---------|--------|
+| Primary | HealthComp | Cached UPROPERTY | `UPROPERTY() UHealthComponent* HealthComp` |
+| HealthComp | Primary | GetOwner<T> | `GetOwner<APrimaryClass>()` |
+
+### Responsibility Map
+
+| BP Item | Target Class | Action | Notes |
+|---------|-------------|--------|-------|
+| ... | ... | ... | {rewiring needed?} |
+
+Then present ALL generated files (one code block per class, or file paths if using generated/ directory).
+
+**Tier correction prompt:** After presenting, ask: "This is classified as Tier {N}. Is this the right decomposition?" alongside the standard write-files confirmation.
 
 Present the results to the user in this order:
 
