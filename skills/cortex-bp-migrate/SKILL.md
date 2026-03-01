@@ -34,6 +34,7 @@ When `--fast` is specified, the pipeline checks eligibility AFTER the technical 
 | C++ parent class | Parent class path starts with `/Script/` (not `/Game/`) | `analyze_blueprint_for_migration` |
 | No structural ConstructionScript | UserConstructionScript contains only visual-sync nodes (no structural logic) | `analyze_blueprint_for_migration` + graph inspection |
 | Single pass | All functional groups migrate in one pass (no HIGH-risk items requiring deferral) | Derived from functional group analysis |
+| Not redesign goal | Goal is not "Redesign/restructure" | User-selected goal (or auto-selected by --fast) |
 
 **If eligible:** Proceed with fast mode flow (see Fast Mode Pipeline below).
 
@@ -52,15 +53,16 @@ The full pipeline continues from where fast mode left off — the analysis data 
 If `--resume` flag OR `docs/migration/blueprint-to-cpp/{BP_Name}/migration-plan.md` exists:
 
 1. Read `migration-plan.md` YAML frontmatter
-2. Parse: `status`, `current_task`, `failed_task`, `phase`, `blueprint_hash`, `mode`
+2. Parse: `status`, `current_task`, `failed_task`, `phase`, `blueprint_hash`, `mode`, `goal`, `redesign_tier`
 3. **Route by mode:** If frontmatter contains `mode: fast`, resume within the Fast Mode Pipeline. Route to Stage A (if `phase: analyze` or `phase: plan`), Stage B (if `phase: execute`), or Stage C (if `phase: swap`) based on `phase` and `current_task`. If `mode` is absent or not `fast`, resume in the full pipeline.
-4. Verify workspace state:
+4. **Route by goal:** If frontmatter contains `goal: redesign`, use redesign-aware analysis path in ANALYZE (extended presentation, tier classification, responsibility groups).
+5. Verify workspace state:
    - Do files in `files_created` actually exist on disk?
    - Does `BP_Name_Migration` copy exist in the editor?
    - Does the C++ class exist and compile?
    - Does `blueprint_hash` match current Blueprint? (staleness check)
-5. Present resume point to user with options: [resume / rewind / restart]
-6. On resume: create TaskCreate entries for remaining tasks, continue from saved phase
+6. Present resume point to user with options: [resume / rewind / restart]
+7. On resume: create TaskCreate entries for remaining tasks, continue from saved phase
 
 ## Pre-Flight Check (Task 0)
 
@@ -429,7 +431,7 @@ Update frontmatter: `status: completed`, `phase: complete`.
 
 Use `AskUserQuestion` to ask one question at a time:
 
-1. "Why are you migrating this Blueprint?" — options: Performance, Reusability/base class, Complexity management, Cleanup/tech debt
+1. "Why are you migrating this Blueprint?" — options: Performance, Reusability/base class, Complexity management, Cleanup/tech debt, Redesign/restructure
 2. "Any constraints for this migration?" — options: Keep specific things in BP, Avoid adding module dependencies, No constraints
 3. "What scope are you thinking?" — options: Everything possible, Logic only (keep visual BP), Specific features (I'll choose), Not sure (recommend for me)
 
