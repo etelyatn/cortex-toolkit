@@ -11,7 +11,7 @@ Reviews level content and organization using the Level Designer agent.
 
 ### 1. Launch Level Designer Agent
 
-Use the Task tool with `subagent_type: "cortex-level:level-designer"` to delegate the review.
+Use the Task tool with `subagent_type: "cortex-toolkit:level-designer"` to delegate the review.
 
 Pass context about what to review:
 

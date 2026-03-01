@@ -11,7 +11,7 @@ Creates Blueprint assets using the `create_blueprint_graph` composite tool via t
 
 ### 1. Launch Blueprint Developer Agent
 
-Use the Task tool with `subagent_type: "cortex-blueprint:blueprint-developer"` to delegate Blueprint creation.
+Use the Task tool with `subagent_type: "cortex-toolkit:blueprint-developer"` to delegate Blueprint creation.
 
 Pass the full user specification including:
 - Blueprint type (Actor, ActorComponent, FunctionLibrary, Interface, etc.)

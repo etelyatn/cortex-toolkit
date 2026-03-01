@@ -1,0 +1,15 @@
+{
+  "name": "cortex-toolkit",
+  "description": "AI-powered Unreal Engine development toolkit. Skills, agents, and domain knowledge — powered by UnrealCortex MCP.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Eugene Telyatnik",
+    "email": "etelyatn@gmail.com"
+  },
+  "homepage": "https://github.com/etelyatn/cortex-toolkit",
+  "repository": "https://github.com/etelyatn/cortex-toolkit",
+  "license": "MIT",
+  "skills": "./skills/",
+  "agents": "./agents/",
+  "hooks": "./hooks/hooks.json"
+}

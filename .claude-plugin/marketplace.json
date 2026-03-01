@@ -5,57 +5,15 @@
     "email": "etelyatn@gmail.com"
   },
   "metadata": {
-    "description": "AI-powered Unreal Engine development toolkit for Claude Code",
-    "version": "0.1.1"
+    "description": "AI-powered Unreal Engine development toolkit",
+    "version": "0.2.0"
   },
   "plugins": [
     {
-      "name": "cortex-core",
-      "source": "./cortex-core",
-      "description": "Foundation plugin — project setup, build/test workflows, editor lifecycle, cross-domain agents. Required by all other plugins.",
-      "version": "0.1.0",
-      "strict": true
-    },
-    {
-      "name": "cortex-data",
-      "source": "./cortex-data",
-      "description": "Data domain — DataTables, DataAssets, CurveTables, StringTables, GameplayTags.",
-      "version": "0.1.1",
-      "strict": true
-    },
-    {
-      "name": "cortex-blueprint",
-      "source": "./cortex-blueprint",
-      "description": "Blueprint domain — asset management, graph operations, C++ migration analysis.",
-      "version": "0.1.1",
-      "strict": true
-    },
-    {
-      "name": "cortex-ui",
-      "source": "./cortex-ui",
-      "description": "UI domain — UMG widget hierarchy, properties, animations.",
-      "version": "0.1.0",
-      "strict": true
-    },
-    {
-      "name": "cortex-material",
-      "source": "./cortex-material",
-      "description": "Material domain — materials, instances, parameter collections, graph operations.",
-      "version": "0.1.0",
-      "strict": true
-    },
-    {
-      "name": "cortex-level",
-      "source": "./cortex-level",
-      "description": "Level domain — actor lifecycle, transforms, components, queries, organization, streaming, scene construction.",
-      "version": "0.1.0",
-      "strict": true
-    },
-    {
-      "name": "cortex-qa",
-      "source": "./cortex-qa",
-      "description": "QA domain — gameplay scenario execution, assertions, structured bug detection, and report generation.",
-      "version": "0.1.0",
+      "name": "cortex-toolkit",
+      "source": "./",
+      "description": "Complete toolkit — skills, agents, and domain knowledge for AI-powered Unreal Engine development.",
+      "version": "0.2.0",
       "strict": true
     }
   ]

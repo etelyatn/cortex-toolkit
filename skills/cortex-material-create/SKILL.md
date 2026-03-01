@@ -11,7 +11,7 @@ Creates materials, instances, and parameter collections from specifications usin
 
 ### 1. Launch Material Designer Agent
 
-Use the Task tool with `subagent_type: "cortex-material:material-developer"` to delegate material creation.
+Use the Task tool with `subagent_type: "cortex-toolkit:material-developer"` to delegate material creation.
 
 **IMPORTANT: Structure the prompt as a mandatory pipeline directive.** Do NOT pass a free-form natural language description. Instead, pass a structured prompt that forces the agent to use the composite tool:
 

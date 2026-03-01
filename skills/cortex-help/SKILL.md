@@ -113,7 +113,7 @@ Setup & Infrastructure
   cortex-build             Build the project
   cortex-status            Check editor connection and module status
   cortex-reconnect         Reconnect to editor after restart
-  cortex-restart           Restart the MCP server
+  cortex-restart           Restart the Unreal Editor
   cortex-schema-refresh    Regenerate project schema from live editor
 
 Create
@@ -129,6 +129,7 @@ Review & Analyze
   cortex-material-review   Material graph analysis
   cortex-ui-review         Widget hierarchy and property review
   cortex-level-review      Level organization and performance review
+  cortex-impact            Analyze cross-system impact before making changes
   cortex-reflect           Query C++ and Blueprint class hierarchies
 
 Test & QA
@@ -165,7 +166,7 @@ For the requested domain, gather:
 - Content path: `Content/Data/`
 - Schema files: `.cortex/schema/datatables.md`, `.cortex/schema/structs.md`, `.cortex/schema/tags.md`
 - Domain context: `.cortex/domains/data.md`
-- Agents: Data Architect, Game Balancer
+- Agents: Data Architect, Data Balancer
 
 **blueprint (bp):**
 - Skills: `cortex-bp-create`, `cortex-bp-review`, `cortex-bp-migrate`, `cortex-reflect`
@@ -199,7 +200,7 @@ For the requested domain, gather:
 
 **setup (infra):**
 - Skills: `cortex-init`, `cortex-editor`, `cortex-build`, `cortex-status`, `cortex-reconnect`, `cortex-restart`, `cortex-schema-refresh`
-- Agents: Project Setup, Project Analyzer
+- Agents: Project Analyzer
 - Note: No content path or schema. "Your Project" section should show infrastructure status instead: config exists/missing, editor connected/not, schema freshness.
 
 ### Output Format
@@ -236,17 +237,18 @@ These agents run autonomously when skills need complex, multi-step work.
 You don't invoke them directly — they're launched automatically.
 
 Core
-  Game Architect       — System architecture, module planning, BP vs C++ decisions
-  Game Designer        — Game mechanics, progression, balance frameworks
-  Blueprint Debugger   — Blueprint graph flow analysis, logic diagnosis
   Test Debugger        — Test failure analysis, error patterns, flaky tests
 
 Blueprint
   Blueprint Developer      — Blueprint creation, modification, graph wiring
+  Blueprint Debugger       — Blueprint graph flow analysis, logic diagnosis
   C++ Migration Specialist — C++ code generation patterns for Blueprint migration (internal, used by cortex-bp-migrate PLAN stage)
+  BP Migration Executor    — Execute migration tasks from approved plan (internal, used by cortex-bp-migrate)
+  BP Migration Verifier    — Verify migration results against plan (internal, used by cortex-bp-migrate)
+  BP Migration Finalizer   — Rename swap, fix redirectors, final cleanup (internal, used by cortex-bp-migrate)
 Data
   Data Architect       — DataTable creation, schema design, bulk data import
-  Game Balancer        — Balance analysis, progression curves, reward scaling
+  Data Balancer        — Balance analysis, progression curves, reward scaling
 
 Level
   Level Designer       — Actor placement, level organization, streaming

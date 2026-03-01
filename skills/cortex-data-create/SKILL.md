@@ -11,7 +11,7 @@ Creates and populates data assets from specifications using the Data Architect a
 
 ### 1. Launch Data Architect Agent
 
-Use the Task tool with `subagent_type: "cortex-data:data-architect"` to delegate data creation.
+Use the Task tool with `subagent_type: "cortex-toolkit:data-architect"` to delegate data creation.
 
 Pass the full specification including:
 - Asset type (DataTable, DataAsset, CurveTable, StringTable)
