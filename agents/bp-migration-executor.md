@@ -41,6 +41,23 @@ For each task in your assigned range:
 
 When executing Blueprint cleanup tasks, follow this exact sequence:
 
+#### Pre-Reparent Steps (When `goal: redesign` in frontmatter)
+
+**Step 0: SCS Component Collision Resolution**
+
+When the C++ constructor creates components via `CreateDefaultSubobject` (Tier 1 redesign), check for name conflicts with existing BP SCS components:
+
+1. Read `target_classes` from frontmatter to get component names
+2. Compare against BP SCS component names from the pre-migration snapshot
+3. If any names match (for example, both C++ constructor and BP SCS create "HealthComp"):
+   - **Remove the conflicting SCS component from the BP BEFORE reparent** using `remove_scs_component`
+   - Log: "Removed SCS component '{Name}' (will be replaced by C++ CreateDefaultSubobject)"
+   - Verify BP still compiles after each removal
+
+This step is critical: if skipped, reparent will produce duplicate components (one from SCS, one from C++ constructor), causing undefined behavior.
+
+After all conflicts resolved, proceed to Step 1 (standard collision validation for remaining non-conflicting components).
+
 1. Validate component name collisions (before reparent)
 2. Reparent to C++ class → verify compile
 3. Disconnect event entry exec pins — use `graph_disconnect` to break `PN_Then` on migrated event nodes.
@@ -48,6 +65,26 @@ When executing Blueprint cleanup tasks, follow this exact sequence:
 4. Remove migrated functions → verify compile after each (leaf-first order from plan)
 5. Remove migrated variables → verify compile after each
 6. Remove migrated SCS components → verify compile after each
+
+#### STAYING-Node Variable Reference Handling (When `goal: redesign`)
+
+After cleanup, some STAYING BP nodes may reference variables that migrated to component classes. The Responsibility Map in migration-plan.md marks these with "rewiring needed" in the Notes column.
+
+For each STAYING node that references a migrated variable:
+- Report in the execution log: "STAYING node '{NodeName}' references migrated variable '{VarName}' (now on {ComponentClass}). Requires manual rewiring to access via component reference."
+- Do NOT attempt automated graph rewiring — this is flagged for the user to handle post-migration.
+- Count total rewiring-needed items and include in the execution summary.
+
+If the count is 0, report: "No STAYING nodes reference migrated variables — clean migration."
+
+#### Multi-Class Ground Truth Awareness (When `goal: redesign`)
+
+The Ground Truth Table contains `Target Class` and `Automated` columns (standardized format — same columns exist for all migrations):
+
+- **Automated: Yes** — clean up normally (disconnect events, delete orphans, remove functions/variables/components)
+- **Automated: No** (Tier 3 only) — leave the node in the BP with annotation: "Skipped — manual migration to {TargetClass}"
+- All cleanup steps (Steps 3-7) apply only to items where `Automated: Yes`
+- Report skipped items in the execution log as "Skipped (manual migration required)"
 
 ### Fast Mode Compatibility
 
