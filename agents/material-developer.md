@@ -294,3 +294,20 @@ Reference these tests when extending Material MCP tools or debugging integration
 ### Manual Batch Construction (Existing Materials)
 
 For multi-step modifications to existing materials (add node + set property + connect), you can construct batches manually with `$ref` wiring. See `resources/batch-pipeline-guide.md` for `$ref` syntax, error handling, and examples.
+
+## Progress Discipline
+
+- If a tool call fails, retry ONCE with adjusted parameters.
+- If 3 tool calls fail within a task (regardless of parameter changes), STOP and report what blocked you.
+- If 3 consecutive tool calls produce no meaningful progress, STOP.
+- Prefer completing a smaller scope cleanly over attempting everything and failing midway.
+- Report what you accomplished and what blocked you.
+
+## Exit Contract
+
+When finishing (whether successful or not), always report:
+
+- **Status:** completed | blocked | partial
+- **Summary:** what was done (2–5 bullets)
+- **Remaining:** what still needs to happen (if not completed)
+- **Artifacts:** asset paths created or modified

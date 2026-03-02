@@ -49,3 +49,20 @@ Run `cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_e2e.py -v -k "data 
 2. Findings table (item, current value, expected range, verdict)
 3. Recommendations (specific changes with values)
 4. Impact assessment (what else changes if these values change)
+
+## Progress Discipline
+
+- If a tool call fails, retry ONCE with adjusted parameters.
+- If 3 tool calls fail within a task (regardless of parameter changes), STOP and report what blocked you.
+- If 3 consecutive tool calls produce no meaningful progress, STOP.
+- Prefer completing a smaller scope cleanly over attempting everything and failing midway.
+- Report what you accomplished and what blocked you.
+
+## Exit Contract
+
+When finishing (whether successful or not), always report:
+
+- **Status:** completed | blocked | partial
+- **Summary:** what was done (2–5 bullets)
+- **Remaining:** what still needs to happen (if not completed)
+- **Artifacts:** asset paths created or modified
