@@ -84,6 +84,22 @@ If an UnrealEditor process exists but no port file was found in Step 1:
 
 ### 3. Start Editor
 
+Before launching, clean up stale port files from previous sessions (only after Step 1 confirmed no healthy running editor):
+
+```bash
+for f in Saved/CortexPort-*.txt; do
+  [ -f "$f" ] || continue
+  PID=$(echo "$f" | grep -oP 'CortexPort-\K[0-9]+')
+  if [ -n "$PID" ] && kill -0 "$PID" 2>/dev/null; then
+    continue
+  fi
+  rm -f "$f"
+done
+rm -f Saved/CortexPort.txt 2>/dev/null || true
+```
+
+This prevents stale dead-editor port files from short-circuiting readiness checks.
+
 Launch the editor in the background:
 ```bash
 "$ENGINE_PATH/Engine/Binaries/Win64/UnrealEditor.exe" "<path to .uproject>" -AutoDeclinePackageRecovery -ExecCmds="Mainframe.ShowRestoreAssetsPromptOnStartup 0" &
