@@ -109,21 +109,55 @@ Launch the editor in the background:
 
 ### 4. Wait for Ready
 
-Poll for a new `Saved/CortexPort-*.txt` file to appear (CortexCore writes it on startup). Check every 5 seconds, timeout after 120 seconds.
+Poll for a new `Saved/CortexPort-*.txt` file to appear. Provide graduated feedback.
+
+Important: Do NOT call MCP tools during this poll phase. Verify TCP with bash only. Call MCP tools only after port file exists and TCP responds.
+
+At 0s: print "Starting editor... (this typically takes 30-90 seconds)".
+
+Poll every 5 seconds:
 
 ```bash
-# Poll loop
 for i in {1..24}; do
   if ls Saved/CortexPort-*.txt 1>/dev/null 2>&1; then
     break
+  fi
+  if [ "$i" -eq 6 ]; then
+    echo "Still starting... If this is the first launch, the editor may be compiling shaders."
+  fi
+  if [ "$i" -eq 12 ]; then
+    echo "Still waiting - check the editor window for modal dialogs (beta warning, restore assets prompt)."
   fi
   sleep 5
 done
 ```
 
+On timeout (120s, no port file): print diagnostics and tail latest log:
+
+```bash
+LATEST_LOG=$(ls -t Saved/Logs/*.log 2>/dev/null | head -1)
+echo "Editor started but CortexCore did not write a port file within 120 seconds."
+echo "Possible causes:"
+echo "1. UnrealCortex plugin not enabled"
+echo "2. Plugin failed to load"
+echo "3. A modal dialog is blocking startup"
+echo "4. Editor crashed during startup"
+if [ -n "$LATEST_LOG" ]; then
+  echo "Last 10 log lines from $LATEST_LOG:"
+  tail -10 "$LATEST_LOG"
+fi
+```
+
 ### 5. Verify Connection
 
-Once port file appears, read the port number and call `get_status` MCP tool to verify the full chain is healthy.
+Once port file appears, read the port and verify TCP with bash first:
+
+```bash
+PORT=$(cat Saved/CortexPort-*.txt 2>/dev/null | head -1 | tr -d '[:space:]')
+(echo > /dev/tcp/127.0.0.1/$PORT) 2>/dev/null && echo "TCP OK"
+```
+
+Only after TCP is healthy, call `get_status` MCP tool to verify full MCP health.
 
 ### 6. Report
 
