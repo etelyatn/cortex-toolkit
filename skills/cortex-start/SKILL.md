@@ -88,7 +88,7 @@ Print this reference card, substituting `{ProjectName}`, `{Version}`, and `{N}` 
 ```
 Cortex Toolkit — AI-Assisted Unreal Engine Development
 
-You have 26 skills and 14 specialist agents across 8 domains.
+You have skills and specialist agents across multiple domains.
 
   Quick actions:    cortex-status, cortex-build, cortex-schema-refresh
   Create things:    cortex-bp-create, cortex-data-create, cortex-ui-create
