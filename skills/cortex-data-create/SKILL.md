@@ -11,7 +11,8 @@ Creates and populates data assets from specifications using the Data Architect a
 
 ### 1. Launch Data Architect Agent
 
-Use the Task tool with `subagent_type: "cortex-toolkit:data-architect"` to delegate data creation.
+<!-- Turn budget: CREATE tier (max_turns=25) — design + execute + verify pattern -->
+Use the Task tool with `subagent_type: "cortex-toolkit:data-architect"` and `max_turns: 25` to delegate data creation.
 
 Pass the full specification including:
 - Asset type (DataTable, DataAsset, CurveTable, StringTable)
@@ -55,3 +56,11 @@ If the agent encounters issues (invalid types, missing tags, conflicts), it will
 - **Context-aware design** — agent follows project naming conventions and validates against existing schemas
 - **Bulk operations** — handles large datasets efficiently
 - **Expandable details** — use Ctrl+O to see what the agent did if needed
+
+## Handling Agent Results
+
+If the agent's response includes a **Status** line:
+- **completed** — present created artifacts to the user. Optionally verify key assets exist with a single search_assets call.
+- **blocked** / **partial** — surface what was done, what remains, and what blocked it. The user may need to clean up partially created assets.
+
+If the agent's response has no Status line (e.g., turn limit reached mid-response), treat as **partial** — summarize whatever the agent produced and warn that assets may be incomplete.

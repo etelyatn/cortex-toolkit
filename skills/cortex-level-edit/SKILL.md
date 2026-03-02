@@ -13,7 +13,8 @@ Delegates any level change to the Level Designer agent using the batch-first met
 
 ### 1. Launch Level Designer Agent
 
-Use the Task tool with `subagent_type: "cortex-toolkit:level-designer"` to delegate the work.
+<!-- Turn budget: CREATE tier (max_turns=25) — design + execute + verify pattern -->
+Use the Task tool with `subagent_type: "cortex-toolkit:level-designer"` and `max_turns: 25` to delegate the work.
 
 **Structure the prompt using the 3-phase directive:**
 
@@ -72,3 +73,11 @@ Common causes: actor label not found (`ActorNotFound`), class not available (`Cl
 
 **"Grouping not supported in World Partition":**
 `group_actors` is not available in WP levels. Use folder organization instead.
+
+## Handling Agent Results
+
+If the agent's response includes a **Status** line:
+- **completed** — present the batch results to the user.
+- **blocked** / **partial** — surface what was done, what remains, and what blocked it. The user may need to inspect the level for partially applied changes.
+
+If the agent's response has no Status line (e.g., turn limit reached mid-response), treat as **partial** — summarize whatever the agent produced and warn that level changes may be incomplete.

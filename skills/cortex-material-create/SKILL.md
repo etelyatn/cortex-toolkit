@@ -11,7 +11,8 @@ Creates materials, instances, and parameter collections from specifications usin
 
 ### 1. Launch Material Designer Agent
 
-Use the Task tool with `subagent_type: "cortex-toolkit:material-developer"` to delegate material creation.
+<!-- Turn budget: CREATE tier (max_turns=25) — design + execute + verify pattern -->
+Use the Task tool with `subagent_type: "cortex-toolkit:material-developer"` and `max_turns: 25` to delegate material creation.
 
 **IMPORTANT: Structure the prompt as a mandatory pipeline directive.** Do NOT pass a free-form natural language description. Instead, pass a structured prompt that forces the agent to use the composite tool:
 
@@ -81,3 +82,11 @@ If the agent encounters issues (invalid expression class, missing parent materia
 **Multiple material variants created:**
 - Agent may be retrying failed operations with slightly different names
 - Solution: Ensure composite tool is used (atomic all-or-nothing operations prevent retries)
+
+## Handling Agent Results
+
+If the agent's response includes a **Status** line:
+- **completed** — present created artifacts to the user. Optionally verify key assets exist with a single search_assets call.
+- **blocked** / **partial** — surface what was done, what remains, and what blocked it. The user may need to clean up partially created assets.
+
+If the agent's response has no Status line (e.g., turn limit reached mid-response), treat as **partial** — summarize whatever the agent produced and warn that assets may be incomplete.
