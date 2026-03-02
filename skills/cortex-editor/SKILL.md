@@ -28,6 +28,60 @@ If no config → tell user to run `cortex-init` first, or ask for the engine pat
 
 Find the `.uproject` file in the project root.
 
+#### 2b. Verify Plugin Is Enabled
+
+After finding the `.uproject` file, parse its `Plugins` array:
+
+```bash
+UPROJECT=$(ls *.uproject 2>/dev/null | head -1)
+PLUGIN_STATUS=$(python3 -c "
+import json
+with open('$UPROJECT', encoding='utf-8') as f:
+    data = json.load(f)
+plugins = data.get('Plugins', [])
+match = [p for p in plugins if p.get('Name') == 'UnrealCortex']
+if not match:
+    print('missing')
+elif not match[0].get('Enabled', False):
+    print('disabled')
+else:
+    print('enabled')
+" 2>/dev/null || echo "parse_error")
+```
+
+If `missing` or `disabled`: Print this message and STOP. Do not launch the editor.
+```
+UnrealCortex is not enabled in {UPROJECT}.
+
+Enable it first:
+1. Open the editor manually
+2. Go to Edit -> Plugins -> search "UnrealCortex" -> Enable
+3. Accept the beta warning, then restart the editor
+4. Re-run cortex-editor
+
+Alternatively, edit {UPROJECT}:
+- If a "Plugins" array exists, add: { "Name": "UnrealCortex", "Enabled": true }
+- If no "Plugins" key exists, add: "Plugins": [{ "Name": "UnrealCortex", "Enabled": true }]
+
+Without the plugin enabled, the editor will start but CortexCore won't initialize and no port file will be written.
+```
+
+If `parse_error`: Warn and continue.
+If `enabled`: Continue to Step 2c.
+
+#### 2c. Check for Running Editor Process
+
+Before launching a new editor, check if one is already running:
+
+```bash
+tasklist /FI "IMAGENAME eq UnrealEditor.exe" /FO CSV 2>/dev/null | grep -i UnrealEditor
+```
+
+If an UnrealEditor process exists but no port file was found in Step 1:
+- Tell the user an editor process is running but no port file was found.
+- Explain this usually means the editor is still starting, or UnrealCortex is not enabled.
+- Ask whether to wait and poll for the port file, or proceed with a new launch.
+
 ### 3. Start Editor
 
 Launch the editor in the background:
