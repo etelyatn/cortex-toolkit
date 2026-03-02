@@ -26,8 +26,8 @@ Find the `.uproject` file in the project root and parse its `Plugins` array:
 UPROJECT=$(ls *.uproject 2>/dev/null | head -1)
 if [ -n "$UPROJECT" ]; then
   PLUGIN_STATUS=$(python3 -c "
-import json
-with open('$UPROJECT', encoding='utf-8') as f:
+import json, sys
+with open(sys.argv[1], encoding='utf-8') as f:
     data = json.load(f)
 plugins = data.get('Plugins', [])
 match = [p for p in plugins if p.get('Name') == 'UnrealCortex']
@@ -37,7 +37,7 @@ elif not match[0].get('Enabled', False):
     print('disabled')
 else:
     print('enabled')
-" 2>/dev/null || echo "parse_error")
+" "$UPROJECT" 2>/dev/null || echo "parse_error")
 fi
 ```
 

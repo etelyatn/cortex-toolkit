@@ -35,8 +35,8 @@ After finding the `.uproject` file, parse its `Plugins` array:
 ```bash
 UPROJECT=$(ls *.uproject 2>/dev/null | head -1)
 PLUGIN_STATUS=$(python3 -c "
-import json
-with open('$UPROJECT', encoding='utf-8') as f:
+import json, sys
+with open(sys.argv[1], encoding='utf-8') as f:
     data = json.load(f)
 plugins = data.get('Plugins', [])
 match = [p for p in plugins if p.get('Name') == 'UnrealCortex']
@@ -46,7 +46,7 @@ elif not match[0].get('Enabled', False):
     print('disabled')
 else:
     print('enabled')
-" 2>/dev/null || echo "parse_error")
+" "$UPROJECT" 2>/dev/null || echo "parse_error")
 ```
 
 If `missing` or `disabled`: Print this message and STOP. Do not launch the editor.
@@ -74,7 +74,7 @@ If `enabled`: Continue to Step 2c.
 Before launching a new editor, check if one is already running:
 
 ```bash
-tasklist /FI "IMAGENAME eq UnrealEditor.exe" /FO CSV 2>/dev/null | grep -i UnrealEditor
+MSYS_NO_PATHCONV=1 tasklist /FI "IMAGENAME eq UnrealEditor.exe" /FO CSV 2>/dev/null | grep -i UnrealEditor
 ```
 
 If an UnrealEditor process exists but no port file was found in Step 1:
@@ -89,9 +89,9 @@ Before launching, clean up stale port files from previous sessions (only after S
 ```bash
 for f in Saved/CortexPort-*.txt; do
   [ -f "$f" ] || continue
-  PID=$(echo "$f" | grep -oP 'CortexPort-\K[0-9]+')
-  if [ -n "$PID" ] && kill -0 "$PID" 2>/dev/null; then
-    continue
+  PID=$(echo "$f" | sed 's/.*CortexPort-\([0-9]*\).*/\1/')
+  if [ -n "$PID" ] && MSYS_NO_PATHCONV=1 tasklist /FI "PID eq $PID" /NH 2>/dev/null | grep -q "$PID"; then
+    continue  # PID still alive (native Windows check), keep port file
   fi
   rm -f "$f"
 done
@@ -153,8 +153,16 @@ fi
 Once port file appears, read the port and verify TCP with bash first:
 
 ```bash
-PORT=$(cat Saved/CortexPort-*.txt 2>/dev/null | head -1 | tr -d '[:space:]')
-(echo > /dev/tcp/127.0.0.1/$PORT) 2>/dev/null && echo "TCP OK"
+RAW=$(cat Saved/CortexPort-*.txt 2>/dev/null | head -1 | tr -d '[:space:]')
+# Support both plain-number and JSON {"port":N,...} formats
+if [[ "$RAW" =~ ^[0-9]+$ ]]; then
+  PORT="$RAW"
+elif [[ "$RAW" =~ \"port\":([0-9]+) ]]; then
+  PORT="${BASH_REMATCH[1]}"
+fi
+if [ -n "$PORT" ]; then
+  (echo > /dev/tcp/127.0.0.1/$PORT) 2>/dev/null && echo "TCP OK"
+fi
 ```
 
 Only after TCP is healthy, call `get_status` MCP tool to verify full MCP health.
