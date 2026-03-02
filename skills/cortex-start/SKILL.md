@@ -154,15 +154,47 @@ Each suggestion should include:
 - copy-pasteable prompt in quotes
 - one-line outcome
 
-Ordering:
-1. Reflect cache (if cold/stale)
-2. Data domain (if data exists)
-3. Blueprints (if blueprints exist)
-4. Materials (if materials exist)
-5. UMG widgets (if widget blueprints exist)
-6. Level content (if actors exist)
-7. Domain documentation (if domain docs are empty)
-8. Ask-anything fallback
+Ordering and full example (all categories populated):
+
+```
+What's next?
+
+  1. Build the knowledge graph             (cache is cold)
+     -> "Scan the project and build the Reflect cache"
+     Takes ~30-60s. Unlocks class hierarchy, impact analysis, and usage search.
+
+  2. Review your data balance              (53 DataTables detected)
+     -> "Review my DataTables for balance and naming issues"
+     I'll analyze pricing distribution, tier consistency, and naming conventions.
+
+  3. Audit GameplayTag coverage            (32 tag prefixes detected)
+     -> "Check for mismatches between GameplayTags and DataTable rows"
+     I'll cross-reference tag definitions against DataTable entries.
+
+  4. Review your Blueprints                (12 Blueprints detected)
+     -> "Review my Blueprints for structure and naming issues"
+     I'll check class hierarchy, graph complexity, and naming conventions.
+
+  5. Review your materials                 (8 materials detected)
+     -> "Review my materials for parameter usage and instance hierarchy"
+     I'll check parameter collections, instance chains, and naming patterns.
+
+  6. Review your UI                        (5 Widget Blueprints detected)
+     -> "Review my UMG widgets for hierarchy and layout issues"
+     I'll check widget trees, anchor usage, and naming patterns.
+
+  7. Explore the current level             (42 actors in TestMap)
+     -> "Review the level content and actor organization"
+     I'll audit actor placement, folder structure, and lighting setup.
+
+  8. Document your project domains         (.cortex/domains/ files are empty)
+     -> "Update .cortex/domains/ with the actual project schemas"
+     Agents will use this as context in every future session.
+
+Or just describe what you need - I'll figure out the right tool.
+```
+
+Only show categories backed by detected content (except cache scan and ask-anything fallback). Skip any category with 0 items.
 
 Blank project variant (all counts zero and cache cold):
 
