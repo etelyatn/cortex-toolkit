@@ -12,10 +12,12 @@ Use skill names directly in instructions (for example `cortex-init`).
 
 ## Re-run Detection
 
-Check if `.cortex/onboarded` exists:
+Check if `.cortex/onboarded` exists.
 
-- **Exists:** Ask the user: "Want the full walkthrough again, or just the reference card?" If they choose the reference card, skip directly to Phase 2 only. If they want the full walkthrough, run all 4 phases.
-- **Missing:** Run all 4 phases in order.
+- **If exists (returning user):** Ask: "Want the full walkthrough, or just the reference card?"
+- **Reference card:** Print Phase 2 reference card, then run Phase 3 (What's Next?).
+- **Full walkthrough:** Run all phases (1, 2, 3).
+- **If missing (first time):** Run all phases (1, 2, 3) without asking.
 
 ---
 
@@ -97,111 +99,95 @@ You have 26 skills and 14 specialist agents across 8 domains.
 Connected to: {ProjectName} (UE {Version}) — {N} domains active
 ```
 
-If this was a reference-card-only re-run (from Re-run Detection), stop here. Do not proceed to Phase 3.
-
 ---
 
-## Phase 3: Guided First Task
+## Phase 3: What's Next?
 
-### 3.1 Detect Available Content
+> Applies to all paths: first-time, re-run reference card, and re-run full walkthrough. After Phase 2, always continue here.
 
-Check for existing project content by looking for `.uasset` files (recursively):
-- `Content/Data/` — DataTables and data assets
-- `Content/Blueprints/` — Blueprint assets
+Run these steps sequentially to generate prioritized, project-specific suggestions.
 
-Note the counts for each.
+### 3.1 Check Reflect Cache (Always First)
 
-### 3.2 Offer Choices
+Call `reflect_cache_status` first.
 
-Based on detected content, present options to the user:
-
-**If DataTables exist:**
-```
-Your project has {N} DataTables and {M} Blueprints. Want to:
-
-1. Review your DataTables — I'll analyze schemas and suggest improvements
-2. Build something new — I'll walk you through creating a Blueprint from a description
-
-Or just start working — run `cortex-help` anytime.
-```
-
-**If no DataTables but Blueprints exist:**
-```
-Your project has {M} Blueprints. Want to:
-
-1. Review your Blueprints — I'll check structure, naming, and suggest improvements
-2. Build something new — I'll walk you through creating a Blueprint from a description
-
-Or just start working — run `cortex-help` anytime.
-```
-
-**If no content detected:**
-```
-Your project is a blank canvas. Want to:
-
-1. Build something new — I'll walk you through creating a Blueprint from a description
-
-Or just start working — run `cortex-help` anytime.
-```
-
-Wait for the user to choose.
-
-### 3.3 If User Picks "Build Something"
-
-Model what a good prompt looks like by presenting this example:
+If `cached` is false, or `stale` is true, make this suggestion #1:
 
 ```
-Here's what a great Cortex prompt looks like:
-
-  "Create a Blueprint Actor called BP_Campfire in /Game/Blueprints with a
-   PointLight component, a float variable called BurnRate defaulting to 1.0,
-   and a bool called bIsLit defaulting to true."
-
-Try it — paste that prompt (or write your own) and I'll build it.
+  1. Build the knowledge graph (do this first - everything else improves with it)
+     -> "Scan the project and build the Reflect cache"
+     Takes ~30-60s. Unlocks class hierarchy, impact analysis, and usage search.
 ```
 
-Wait for the user to provide a prompt, then execute it using the appropriate skill (typically `cortex-bp-create`).
+If `cached` is true and `stale` is false, skip this suggestion.
 
-### 3.4 Task Completion
+### 3.2 Detect Live Project Content
 
-After the user completes a task (review or build), proceed to Phase 4.
+Call:
+- `get_data_catalog`
+- `list_blueprints` with `path="/Game"`
+- `list_blueprints` with `path="/Game"` and `type="Widget"`
+- `list_actors` with `limit=1`
+- `list_materials` with `path="/Game"`
 
-If the user chooses the escape hatch ("just start working"), skip directly to setting the onboarded flag — do not print the Phase 4 debrief.
+Record counts from each response. If a call fails, treat that category as 0.
 
----
+If all TCP-dependent calls fail, print:
+```
+Lost connection to the editor - run `cortex-status` to diagnose.
+```
+Skip suggestions.
 
-## Phase 4: Reflection
+### 3.2a Check Domain Documentation (Local)
 
-After the guided task completes, print this debrief:
+Read `.cortex/domains/*.md`.
+
+A domain file is considered empty if it only contains template text (or has fewer than 10 lines of non-comment content). Track empty files.
+
+### 3.3 Generate Sequenced Suggestions
+
+Build suggestions in dependency order (foundational -> analytical -> creative). Only show content-backed suggestions (except cache scan and ask-anything fallback).
+
+Each suggestion should include:
+- sequential number
+- short title with live count
+- copy-pasteable prompt in quotes
+- one-line outcome
+
+Ordering:
+1. Reflect cache (if cold/stale)
+2. Data domain (if data exists)
+3. Blueprints (if blueprints exist)
+4. Materials (if materials exist)
+5. UMG widgets (if widget blueprints exist)
+6. Level content (if actors exist)
+7. Domain documentation (if domain docs are empty)
+8. Ask-anything fallback
+
+Blank project variant (all counts zero and cache cold):
 
 ```
-What just happened:
-- You described what you wanted in plain language
-- A specialist agent handled the multi-step work
-- It read your project conventions, created the asset, and compiled
+What's next?
 
-Next steps:
+  1. Build the knowledge graph
+     -> "Scan the project and build the Reflect cache"
+     Takes ~30-60s, even for empty projects.
+
+  2. Create your first asset - just describe it:
+     -> "Create a Blueprint Actor called BP_MyActor in /Game/Blueprints"
+
+Or just describe what you need - I'll figure out the right tool.
 ```
 
-Then add contextual next steps — only suggest skills for domains the user actually has content in:
+### 3.4 Wait for User
 
-- If Blueprints exist: `  - cortex-bp-review   — get AI feedback on any Blueprint`
-- If DataTables exist: `  - cortex-data-review  — analyze DataTable schemas and balance`
-- If Materials exist: `  - cortex-material-review — check material graph complexity`
-- If UI widgets exist: `  - cortex-ui-review    — review widget hierarchy and properties`
-- If Maps exist: `  - cortex-level-review — audit level organization and performance`
-
-Always include these two lines at the end:
-```
-  - cortex-help        — see all available commands and get suggestions
-  - Just describe your next task — no slash command needed for most work
-```
+After printing suggestions, wait for user input. Do not auto-run a suggestion.
 
 ---
 
 ## Set Onboarded Flag
 
-After Phase 4 completes (or after the user skips with the escape hatch), create the file `.cortex/onboarded` with this content:
+After Phase 3 completes, create the file `.cortex/onboarded` with this content:
 
 ```
 # Cortex onboarding completed
