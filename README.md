@@ -22,7 +22,8 @@ AI-powered Unreal Engine development toolkit. Skills, agents, and domain knowled
 ### Claude Code
 
 ```bash
-claude plugin add etelyatn/cortex-toolkit
+claude plugin marketplace add etelyatn/cortex-toolkit
+claude plugin install cortex-toolkit
 ```
 
 Then open your project and run `/cortex-init` to configure MCP and project memory.
@@ -167,8 +168,8 @@ Fill the domain files with your project's specifics. Agents use this context to 
 
 If you were using the old multi-plugin structure (8 separate plugins like `cortex-core`, `cortex-data`, etc.):
 
-1. Uninstall all individual domain plugins: `claude plugin remove cortex-core` (repeat for each)
-2. Install the unified plugin: `claude plugin add etelyatn/cortex-toolkit`
+1. Uninstall all individual domain plugins: `claude plugin uninstall cortex-core` (repeat for each)
+2. Add the marketplace and install the unified plugin: `claude plugin marketplace add etelyatn/cortex-toolkit && claude plugin install cortex-toolkit`
 3. Update any custom `subagent_type` references from `cortex-{domain}:agent-name` to `cortex-toolkit:agent-name`
 
 ## Development
