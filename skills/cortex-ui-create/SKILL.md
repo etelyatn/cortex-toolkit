@@ -11,7 +11,8 @@ Creates UMG widget screens using the `create_widget_screen` composite tool via t
 
 ### 1. Launch UI Developer Agent
 
-Use the Task tool with `subagent_type: "cortex-toolkit:ui-developer"` to delegate UI creation.
+<!-- Turn budget: CREATE tier (max_turns=25) — design + execute + verify pattern -->
+Use the Task tool with `subagent_type: "cortex-toolkit:ui-developer"` and `max_turns: 25` to delegate UI creation.
 
 Pass the full specification including:
 - Screen type and name
@@ -37,3 +38,11 @@ The agent returns:
 - Widget count, styling count, animation count
 - Compilation status
 - Any warnings from post-batch steps
+
+## Handling Agent Results
+
+If the agent's response includes a **Status** line:
+- **completed** — present created artifacts to the user. Optionally verify key assets exist with a single search_assets call.
+- **blocked** / **partial** — surface what was done, what remains, and what blocked it. The user may need to clean up partially created assets.
+
+If the agent's response has no Status line (e.g., turn limit reached mid-response), treat as **partial** — summarize whatever the agent produced and warn that assets may be incomplete.

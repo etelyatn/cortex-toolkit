@@ -11,7 +11,8 @@ Creates Blueprint assets using the `create_blueprint_graph` composite tool via t
 
 ### 1. Launch Blueprint Developer Agent
 
-Use the Task tool with `subagent_type: "cortex-toolkit:blueprint-developer"` to delegate Blueprint creation.
+<!-- Turn budget: CREATE tier (max_turns=25) — design + execute + verify pattern -->
+Use the Task tool with `subagent_type: "cortex-toolkit:blueprint-developer"` and `max_turns: 25` to delegate Blueprint creation.
 
 Pass the full user specification including:
 - Blueprint type (Actor, ActorComponent, FunctionLibrary, Interface, etc.)
@@ -39,3 +40,11 @@ The agent returns:
 - Variable, function, node, and connection counts
 - Compilation status
 - Any warnings from auto_layout or post-batch steps
+
+## Handling Agent Results
+
+If the agent's response includes a **Status** line:
+- **completed** — present created artifacts to the user. Optionally verify key assets exist with a single search_assets call.
+- **blocked** / **partial** — surface what was done, what remains, and what blocked it. The user may need to clean up partially created assets.
+
+If the agent's response has no Status line (e.g., turn limit reached mid-response), treat as **partial** — summarize whatever the agent produced and warn that assets may be incomplete.

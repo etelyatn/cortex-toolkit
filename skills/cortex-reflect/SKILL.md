@@ -21,4 +21,13 @@ Analyze your project's class architecture with a single command.
 
 ## Implementation
 
-Use the project-analyzer agent to execute this skill with the appropriate CortexReflect MCP tools.
+<!-- Turn budget: COMPLEX tier (max_turns=35) — iterative class hierarchy exploration -->
+Use the Task tool with `subagent_type: "cortex-toolkit:project-analyzer"` and `max_turns: 35` to execute this skill with the appropriate CortexReflect MCP tools.
+
+## Handling Agent Results
+
+If the agent's response includes a **Status** line:
+- **completed** — present the class analysis to the user.
+- **blocked** / **partial** — surface what was analyzed and what remains. If the cache was stale or a rebuild was needed, note it.
+
+If the agent's response has no Status line (e.g., turn limit reached mid-response), treat as **partial** — summarize whatever analysis was produced.

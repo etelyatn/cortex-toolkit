@@ -11,7 +11,8 @@ Reviews materials, instances, and parameter collections for structure, performan
 
 ### 1. Launch Material Designer Agent
 
-Use the Task tool with `subagent_type: "cortex-toolkit:material-developer"` to delegate material review.
+<!-- Turn budget: REVIEW tier (max_turns=15) — read + analyze + report pattern -->
+Use the Task tool with `subagent_type: "cortex-toolkit:material-developer"` and `max_turns: 15` to delegate material review.
 
 Pass the review scope and focus:
 - Specific materials to review (if targeted)
@@ -57,3 +58,11 @@ Each finding includes:
 - **Context-aware analysis** — agent applies project material conventions
 - **Comprehensive checks** — systematic review of graphs, parameters, instances, collections
 - **Expandable details** — use Ctrl+O to see inspection details if needed
+
+## Handling Agent Results
+
+If the agent's response includes a **Status** line:
+- **completed** — present the findings to the user as-is.
+- **blocked** / **partial** — surface what was done, what remains, and what blocked it. Let the user decide whether to re-invoke for the remaining scope.
+
+If the agent's response has no Status line (e.g., turn limit reached mid-response), treat as **partial** — summarize whatever the agent produced and note that the review may be incomplete.

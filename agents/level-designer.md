@@ -305,3 +305,20 @@ Use these for class analysis, asset dependency checks, and impact assessment —
 - Check `is_world_partition` before using `group_actors` (not supported in WP)
 - Use `get_bounds` to understand spatial layout before placing new actors
 - Save with `save: true` in the batch (default) rather than calling `save_level` separately
+
+## Progress Discipline
+
+- If a tool call fails, retry ONCE with adjusted parameters.
+- If 3 tool calls fail within a task (regardless of parameter changes), STOP and report what blocked you.
+- If 3 consecutive tool calls produce no meaningful progress, STOP.
+- Prefer completing a smaller scope cleanly over attempting everything and failing midway.
+- Report what you accomplished and what blocked you.
+
+## Exit Contract
+
+When finishing (whether successful or not), always report:
+
+- **Status:** completed | blocked | partial
+- **Summary:** what was done (2–5 bullets)
+- **Remaining:** what still needs to happen (if not completed)
+- **Artifacts:** asset paths created or modified

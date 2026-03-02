@@ -98,3 +98,20 @@ Follow project conventions from `.cortex/domains/data.md`, defaulting to:
 - `DA_{Name}` for DataAssets
 - `CT_{Name}` for CurveTables
 - `ST_{Name}` for StringTables
+
+## Progress Discipline
+
+- If a tool call fails, retry ONCE with adjusted parameters.
+- If 3 tool calls fail within a task (regardless of parameter changes), STOP and report what blocked you.
+- If 3 consecutive tool calls produce no meaningful progress, STOP.
+- Prefer completing a smaller scope cleanly over attempting everything and failing midway.
+- Report what you accomplished and what blocked you.
+
+## Exit Contract
+
+When finishing (whether successful or not), always report:
+
+- **Status:** completed | blocked | partial
+- **Summary:** what was done (2–5 bullets)
+- **Remaining:** what still needs to happen (if not completed)
+- **Artifacts:** asset paths created or modified
