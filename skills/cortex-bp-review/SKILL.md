@@ -11,7 +11,8 @@ Reviews Blueprint assets for structure, naming, complexity, and UE best practice
 
 ### 1. Launch Blueprint Developer Agent
 
-Use the Task tool with `subagent_type: "cortex-toolkit:blueprint-developer"` to delegate Blueprint review.
+<!-- Turn budget: REVIEW tier (max_turns=15) — read + analyze + report pattern -->
+Use the Task tool with `subagent_type: "cortex-toolkit:blueprint-developer"` and `max_turns: 15` to delegate Blueprint review.
 
 Pass the review scope:
 - Specific Blueprint paths to review (if targeted review)
@@ -55,3 +56,11 @@ Each finding includes:
 - **Context-aware analysis** — agent compares against project conventions
 - **Comprehensive checks** — agent performs all standard review steps systematically
 - **Expandable details** — use Ctrl+O to see inspection details if needed
+
+## Handling Agent Results
+
+If the agent's response includes a **Status** line:
+- **completed** — present the findings to the user as-is.
+- **blocked** / **partial** — surface what was done, what remains, and what blocked it. Let the user decide whether to re-invoke for the remaining scope.
+
+If the agent's response has no Status line (e.g., turn limit reached mid-response), treat as **partial** — summarize whatever the agent produced and note that the review may be incomplete.
