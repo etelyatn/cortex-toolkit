@@ -11,7 +11,8 @@ Execute a scenario file through the QA agent and return findings with report art
 
 ## Steps
 
-1. Launch Task agent: `cortex-toolkit:qa-engineer`.
+<!-- Turn budget: COMPLEX tier (max_turns=35) — iterative OODA loop pattern -->
+1. Use the Task tool with `subagent_type: "cortex-toolkit:qa-engineer"` and `max_turns: 35`.
 2. Provide the scenario path/content and request:
    - Scenario execution via QA composite tools.
    - Structural issue detection after each step.
@@ -24,3 +25,11 @@ Execute a scenario file through the QA agent and return findings with report art
 ## Constraints
 
 - Do not duplicate QA execution logic in this skill; delegate to the agent.
+
+## Handling Agent Results
+
+If the agent's response includes a **Status** line:
+- **completed** — present the scenario results (pass/fail, findings, report paths).
+- **blocked** / **partial** — surface what steps were completed, what remains, and what blocked execution. The user can re-invoke for remaining steps.
+
+If the agent's response has no Status line (e.g., turn limit reached mid-response), treat as **partial** — summarize whatever findings were collected and note that the scenario may not have completed all steps.
