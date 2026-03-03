@@ -17,6 +17,7 @@ Analyze test failures, identify root causes, and suggest fixes. You understand b
 1. Read the test output — get the exact error message and stack trace
 2. Read `.cortex/context.md` for project context
 3. Check `docs/tech-debt/` for known test issues
+4. Read `cortex-toolkit/resources/ue-api-recipes.md` — verified patterns for `LoadObject` guards, `MarkAsGarbage` vs `SavePackage`, and `FScopedTransaction` placement; these cover the most common test failure root causes
 
 ## Methodology
 

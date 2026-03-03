@@ -28,13 +28,15 @@ UBlueprint* BP = FKismetEditorUtilities::CreateBlueprint(
 
 **Correct parameter matrix:**
 
-| BP Type | `ParentClass` | `BlueprintClass` | `GeneratedClassClass` |
-|---------|--------------|------------------|-----------------------|
-| Actor | `AActor` or subclass | `UBlueprint::StaticClass()` | `UBlueprintGeneratedClass::StaticClass()` |
-| Widget | `UUserWidget` or subclass | `FindObject<UClass>(nullptr, TEXT("/Script/UMGEditor.WidgetBlueprint"))` | `UBlueprintGeneratedClass::StaticClass()` ¹ |
-| Component | `UActorComponent` or subclass | `UBlueprint::StaticClass()` | `UBlueprintGeneratedClass::StaticClass()` |
-| Interface | `UInterface` | `UBlueprint::StaticClass()` | `UBlueprintGeneratedClass::StaticClass()` |
-| FunctionLibrary | `UBlueprintFunctionLibrary` | `UBlueprint::StaticClass()` | `UBlueprintGeneratedClass::StaticClass()` |
+| BP Type | `ParentClass` | `BlueprintType` | `BlueprintClass` | `GeneratedClassClass` |
+|---------|--------------|-----------------|------------------|-----------------------|
+| Actor | `AActor` or subclass | `BPTYPE_Normal` | `UBlueprint::StaticClass()` | `UBlueprintGeneratedClass::StaticClass()` |
+| Widget | `UUserWidget` or subclass | `BPTYPE_Normal` | `FindObject<UClass>(nullptr, TEXT("/Script/UMGEditor.WidgetBlueprint"))` | `UBlueprintGeneratedClass::StaticClass()` ¹ |
+| Component | `UActorComponent` or subclass | `BPTYPE_Normal` | `UBlueprint::StaticClass()` | `UBlueprintGeneratedClass::StaticClass()` |
+| Interface | `UInterface` | **`BPTYPE_Interface`** | `UBlueprint::StaticClass()` | `UBlueprintGeneratedClass::StaticClass()` |
+| FunctionLibrary | `UBlueprintFunctionLibrary` | **`BPTYPE_FunctionLibrary`** | `UBlueprint::StaticClass()` | `UBlueprintGeneratedClass::StaticClass()` |
+
+> **Critical:** Interface and FunctionLibrary use non-`Normal` `BlueprintType` values. Passing `BPTYPE_Normal` for either creates a Blueprint that compiles silently but fails at runtime — the engine uses `BP->BlueprintType` to route interface-specific compilation, event graph filtering, and editor toolbar state. This is the most common AI mistake with this API.
 
 **Correct pattern (Widget Blueprint):**
 ```cpp
@@ -74,13 +76,14 @@ UBlueprint* BP = FKismetEditorUtilities::CreateBlueprint(
 UClass* WidgetBPClass = UWidgetBlueprint::StaticClass(); // Hard dependency
 ```
 
-**Correct pattern:**
+**Correct pattern (short-lived context, e.g., a single command handler):**
 ```cpp
 // CORRECT — resolve at runtime, no compile-time dependency
-// Cache the result in a static local to avoid repeated lookups
+// For short-lived call sites: static local is fine (see hot reload caveat below)
 static UClass* WidgetBlueprintClass = nullptr;
 if (!WidgetBlueprintClass)
 {
+    // Note: FindObject returns nullptr if UMGEditor hasn't loaded yet (e.g., during StartupModule)
     WidgetBlueprintClass = FindObject<UClass>(nullptr, TEXT("/Script/UMGEditor.WidgetBlueprint"));
 }
 
@@ -96,6 +99,18 @@ if (Asset->IsA(WidgetBlueprintClass))
 }
 ```
 
+**Hot reload caveat:** `static UClass*` locals are initialized once per process. After a hot reload, the cached pointer refers to the old (GC'd) class at a stale address — this causes crashes or silent type mismatches. For long-lived objects (subsystems, module-level caches), use `TWeakObjectPtr<UClass>` instead:
+```cpp
+// For long-lived caches: use TWeakObjectPtr to survive hot reload
+static TWeakObjectPtr<UClass> WidgetBlueprintClassPtr;
+UClass* WidgetBlueprintClass = WidgetBlueprintClassPtr.Get();
+if (!WidgetBlueprintClass)
+{
+    WidgetBlueprintClass = FindObject<UClass>(nullptr, TEXT("/Script/UMGEditor.WidgetBlueprint"));
+    WidgetBlueprintClassPtr = WidgetBlueprintClass;
+}
+```
+
 **Common paths to resolve:**
 
 | Class | Path |
@@ -108,6 +123,8 @@ if (Asset->IsA(WidgetBlueprintClass))
 **Why:** `FindObject` searches the currently-loaded class pool at runtime. This works because UMGEditor is always loaded in the editor, where you'd use this class. In cooked builds, the editor module isn't present — but you'd never need `UWidgetBlueprint` at runtime anyway.
 
 **Thread safety:** `FindObject` is not thread-safe — call it on the Game Thread only. All Cortex operations already dispatch to the Game Thread via `AsyncTask(ENamedThreads::GameThread)`, so this is always safe in context.
+
+**Source:** `Plugins/UnrealCortex/Source/CortexBlueprint/Private/Operations/CortexBPAssetOps.cpp` (multiple call sites)
 
 ---
 
@@ -150,7 +167,7 @@ UBlueprint* TestBP = FKismetEditorUtilities::CreateBlueprint(ParentClass, Pkg, .
 FString FilePath = FPackageName::LongPackageNameToFilename(
     TEXT("/Game/Tests/BP_Persistent"), FPackageName::GetAssetPackageExtension());
 FSavePackageArgs SaveArgs;
-SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
+SaveArgs.TopLevelFlags = RF_Standalone; // RF_Standalone is sufficient; Blueprint UObject already has RF_Public set by CreateBlueprint
 UPackage::SavePackage(Pkg, TestBP, *FilePath, SaveArgs); // Persist to disk
 
 // ... assertions ...
@@ -163,6 +180,8 @@ return true;
 - Named package + `SavePackage()` + `MarkAsGarbage()` → for assets referenced by later tests or MCP tools
 
 **Why:** `MarkAsGarbage()` removes the object from GC roots so the engine can collect it. Without it, the asset stays alive across tests. `SavePackage()` is separate — it writes the package to disk so `LoadObject` (called by MCP tools in E2E tests) can find it without the dreaded `SkipPackage` warning.
+
+**Source:** `Plugins/UnrealCortex/Source/CortexBlueprint/Private/Operations/CortexBPAssetOps.cpp` (lines 594, 918); `Plugins/UnrealCortex/Source/CortexBlueprint/Private/Tests/CortexBPContentSetupTest.cpp`
 
 ---
 
@@ -216,12 +235,13 @@ UBlueprint* BP = LoadObject<UBlueprint>(nullptr, *AssetPath);
 **Wrong pattern:**
 ```cpp
 // WRONG — transaction created AFTER modifications are already made
+// Modify() calls below are NOT captured — they happen before FScopedTransaction opens the undo record
 void FMyOps::RenameNode(UEdGraph* Graph, UEdGraphNode* Node, const FString& NewName)
 {
     Node->NodeComment = NewName;                  // Modified BEFORE transaction — NOT undoable
-    Graph->Modify();                              // Too late
+    Graph->Modify();                              // Modify() has nowhere to write; no open record yet
 
-    FScopedTransaction Transaction(              // Created after modifications
+    FScopedTransaction Transaction(              // Created after modifications — too late
         FText::FromString(TEXT("Rename Node")));
     Node->ReconstructNode();
 }
@@ -252,7 +272,9 @@ FScopedTransaction Transaction(
         FString::Printf(TEXT("Cortex: %s %s"), *ActionName, *TargetName)));
 ```
 
-**Why:** `FScopedTransaction` works by calling `Modify()` on objects to save their pre-modification state into the undo buffer. Any modification that happens before the transaction was opened has no pre-state snapshot — it cannot be undone. The transaction is committed (or rolled back) when it goes out of scope.
+**Why:** `FScopedTransaction` opens an undo record in the global undo buffer. Explicit `Modify()` calls on each UObject then snapshot that object's pre-change state into the open record. Without an open transaction, `Modify()` is a no-op for undo purposes. Without `Modify()` inside a transaction, the snapshot is never written. Call `Modify()` on **every** object whose properties will change — not just the outermost container. A missing `Modify()` on a nested object produces a silent partial undo where some changes revert and others don't. The transaction is committed (or rolled back) when it goes out of scope.
+
+**Source:** `Plugins/UnrealCortex/Source/CortexBlueprint/Private/Operations/CortexBPGraphOps.cpp`
 
 ---
 
@@ -264,11 +286,12 @@ FScopedTransaction Transaction(
 
 **Wrong pattern (AI commonly generates direct cast):**
 ```cpp
-// WRONG — FProperty is not directly indexable
+// WRONG — ContainerPtrToValuePtr gives you the raw array storage, but without
+// FScriptArrayHelper you have no way to know element size, count, or layout.
+// Indexing this void* as a flat array is undefined behavior.
 FProperty* Prop = Object->GetClass()->FindPropertyByName(FName(TEXT("MyArray")));
-// Attempting to read array elements from raw pointer — undefined behavior
-void* ArrayData = Prop->ContainerPtrToValuePtr<void>(Object);
-// No way to safely iterate — crash
+void* ArrayData = Prop->ContainerPtrToValuePtr<void>(Object); // Gets raw storage — this part is fine
+// Crash: cannot safely index ArrayData without knowing element stride/count
 ```
 
 **Correct pattern:**
@@ -308,3 +331,40 @@ for (int32 i = 0; i < Helper.Num(); ++i)
 ```
 
 **Why:** `TArray<T>` is not a plain C++ array — it's a heap-allocated buffer with a separate count and capacity. `FScriptArrayHelper` knows how to interpret the raw buffer using the `FArrayProperty` metadata (element size, alignment). Without it, all array access is undefined behavior.
+
+**Source:** `Plugins/UnrealCortex/Source/CortexBlueprint/Private/Operations/CortexBPAnalysisOps.cpp` (line 682); `Plugins/UnrealCortex/Source/CortexData/Private/Operations/CortexDataTableOps.cpp` (line 68)
+
+---
+
+## Contributing Recipes
+
+Add a recipe when a plan or implementation uses a wrong UE API pattern. Keep this battle-tested, not speculative.
+
+**Template:**
+
+```markdown
+### Recipe N: `API::Name` — Short Description
+
+**What:** One sentence — what operation this covers and why it's tricky.
+
+**Wrong pattern (AI commonly generates X):**
+```cpp
+// WRONG — explain why this fails (silent wrong behavior / crash / link error)
+<wrong code>
+```
+
+**Correct pattern:**
+```cpp
+// CORRECT — verified working
+<correct code>
+```
+
+**Why:** Causal explanation of the UE internals that make the wrong pattern fail.
+
+**Source:** `Plugins/UnrealCortex/Source/...` (line N or function name)
+```
+
+**When to add a recipe:**
+- A code review catches an AI-generated wrong pattern in a PR → add recipe before merging
+- A test fails due to an API misuse → add recipe as part of the fix commit
+- A plan review catches a wrong pattern during planning → add recipe as part of the session

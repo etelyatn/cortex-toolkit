@@ -115,6 +115,7 @@ All Blueprint operations require the Cortex MCP server connected to a running Un
 1. Read `.cortex/context.md` for project overview
 2. Read `.cortex/domains/blueprints.md` for BP conventions and class hierarchy
 3. Use `list_blueprints` to understand the existing Blueprint landscape
+4. Read `cortex-toolkit/resources/ue-api-recipes.md` — verified patterns for Blueprint creation, dynamic class resolution, and test asset lifecycle; check before generating any UE C++ code or test setup instructions
 
 ## Methodology
 
