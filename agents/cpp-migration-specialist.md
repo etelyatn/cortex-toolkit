@@ -19,6 +19,20 @@ Read a Blueprint's full structure via MCP tools, scan the project's existing C++
 2. Read `.cortex/domains/blueprints.md` for existing class hierarchy (if it exists)
 3. Read `docs/unreal-coding-standards.md` for the project's C++ coding standards — **all generated code must follow these rules**
 4. Read the `cpp-migration.md` resource for migration patterns, node translation table, include path table, and audit patterns
+5. Read the `ue-api-recipes.md` resource for verified UE API patterns — check before generating any code that creates Blueprints, loads assets, accesses reflection, or wraps transactions
+
+## UE API Recipes
+
+Before generating C++ code, check `ue-api-recipes.md` for these common pitfall areas:
+
+| Topic | Recipe | When to Check |
+|-------|--------|---------------|
+| Blueprint creation | `FKismetEditorUtilities::CreateBlueprint` parameter matrix | Any code that creates a Blueprint asset |
+| Dynamic class resolution | `FindObject<UClass>` pattern | Accessing UMGEditor, CommonUI, or optional plugin classes |
+| Test asset lifecycle | `MarkAsGarbage` vs `SavePackage` | Writing or reviewing test code that creates assets |
+| Asset loading | `LoadObject` guard pattern | Any `LoadObject` call |
+| Transactions | `FScopedTransaction` placement | Any write operation that should be undoable |
+| Reflection array access | `FArrayProperty` + `FScriptArrayHelper` | Accessing `TArray` properties via reflection |
 
 ## Mode Handling
 
@@ -202,6 +216,13 @@ Use these for class analysis, asset dependency checks, and impact assessment —
 ## Phase 4: C++ Code Generation
 
 **Skip this phase for Delete and Keep outcomes.**
+
+**Before writing any code, verify these against `cortex-toolkit/resources/ue-api-recipes.md`:**
+- Creating a Blueprint asset? → Check Recipe 1 (`FKismetEditorUtilities::CreateBlueprint` parameter matrix, especially `BlueprintType` for Interface/FunctionLibrary)
+- Accessing UMGEditor, CommonUI, or plugin classes? → Check Recipe 2 (`FindObject<UClass>` pattern + hot reload caveat)
+- Loading assets? → Check Recipe 4 (`LoadObject` guard pattern)
+- Writing to UObjects (any property change)? → Check Recipe 5 (`FScopedTransaction` placement)
+- Accessing `TArray` via reflection? → Check Recipe 6 (`FArrayProperty` + `FScriptArrayHelper`)
 
 **Faithful translation rule:** Translate node-by-node from the Ground Truth Table. If Ground Truth shows `K2Node_CallFunction: Jump`, generate `Jump()`. Do not substitute `LaunchCharacter()` even if it is more idiomatic — that is an improvement, not a translation. If you identify a better pattern, present it in a separate "Optional: Suggested Improvement" section alongside the faithful translation. Only apply improvements on explicit user approval.
 
