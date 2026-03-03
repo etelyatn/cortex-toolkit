@@ -31,7 +31,7 @@ UBlueprint* BP = FKismetEditorUtilities::CreateBlueprint(
 | BP Type | `ParentClass` | `BlueprintClass` | `GeneratedClassClass` |
 |---------|--------------|------------------|-----------------------|
 | Actor | `AActor` or subclass | `UBlueprint::StaticClass()` | `UBlueprintGeneratedClass::StaticClass()` |
-| Widget | `UUserWidget` or subclass | `FindObject<UClass>(nullptr, TEXT("/Script/UMGEditor.WidgetBlueprint"))` | `UBlueprintGeneratedClass::StaticClass()` |
+| Widget | `UUserWidget` or subclass | `FindObject<UClass>(nullptr, TEXT("/Script/UMGEditor.WidgetBlueprint"))` | `UBlueprintGeneratedClass::StaticClass()` ¹ |
 | Component | `UActorComponent` or subclass | `UBlueprint::StaticClass()` | `UBlueprintGeneratedClass::StaticClass()` |
 | Interface | `UInterface` | `UBlueprint::StaticClass()` | `UBlueprintGeneratedClass::StaticClass()` |
 | FunctionLibrary | `UBlueprintFunctionLibrary` | `UBlueprint::StaticClass()` | `UBlueprintGeneratedClass::StaticClass()` |
@@ -51,6 +51,8 @@ UBlueprint* BP = FKismetEditorUtilities::CreateBlueprint(
     UBlueprintGeneratedClass::StaticClass());
 // IsA(WidgetBlueprintClass) → true, WidgetTree → valid
 ```
+
+¹ Widget Blueprints technically generate `UWidgetBlueprintGeneratedClass`, but passing `UBlueprintGeneratedClass::StaticClass()` here is accepted by the engine and confirmed working in `CortexBPAssetOps.cpp`. The engine substitutes the correct class internally.
 
 **Why:** `UWidgetBlueprint` is defined in the `UMGEditor` module, which is editor-only. Engine code that creates Widget BPs must use `FindObject<UClass>` rather than including the header directly. Using `UBlueprint::StaticClass()` creates a plain `UBlueprint` — it compiles, but `Cast<UWidgetBlueprint>()` returns null and the WidgetTree is never initialized.
 
@@ -105,6 +107,8 @@ if (Asset->IsA(WidgetBlueprintClass))
 
 **Why:** `FindObject` searches the currently-loaded class pool at runtime. This works because UMGEditor is always loaded in the editor, where you'd use this class. In cooked builds, the editor module isn't present — but you'd never need `UWidgetBlueprint` at runtime anyway.
 
+**Thread safety:** `FindObject` is not thread-safe — call it on the Game Thread only. All Cortex operations already dispatch to the Game Thread via `AsyncTask(ENamedThreads::GameThread)`, so this is always safe in context.
+
 ---
 
 ## Test Asset Lifecycle
@@ -144,7 +148,7 @@ UPackage* Pkg = CreatePackage(TEXT("/Game/Tests/BP_Persistent"));
 UBlueprint* TestBP = FKismetEditorUtilities::CreateBlueprint(ParentClass, Pkg, ...);
 
 FString FilePath = FPackageName::LongPackageNameToFilename(
-    TEXT("/Game/Tests/BP_Persistent"), FPackageSavingContext::GetPackageExtension(false));
+    TEXT("/Game/Tests/BP_Persistent"), FPackageName::GetAssetPackageExtension());
 FSavePackageArgs SaveArgs;
 SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
 UPackage::SavePackage(Pkg, TestBP, *FilePath, SaveArgs); // Persist to disk
@@ -241,6 +245,8 @@ void FMyOps::RenameNode(UEdGraph* Graph, UEdGraphNode* Node, const FString& NewN
 
 **Format for Cortex tools:**
 ```cpp
+// ActionName and TargetName are FString variables from the calling context
+// e.g., ActionName = TEXT("Rename Node"), TargetName = Node->GetName()
 FScopedTransaction Transaction(
     FText::FromString(
         FString::Printf(TEXT("Cortex: %s %s"), *ActionName, *TargetName)));
