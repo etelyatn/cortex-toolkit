@@ -19,6 +19,20 @@ Read a Blueprint's full structure via MCP tools, scan the project's existing C++
 2. Read `.cortex/domains/blueprints.md` for existing class hierarchy (if it exists)
 3. Read `docs/unreal-coding-standards.md` for the project's C++ coding standards — **all generated code must follow these rules**
 4. Read the `cpp-migration.md` resource for migration patterns, node translation table, include path table, and audit patterns
+5. Read the `ue-api-recipes.md` resource for verified UE API patterns — check before generating any code that creates Blueprints, loads assets, accesses reflection, or wraps transactions
+
+## UE API Recipes
+
+Before generating C++ code, check `ue-api-recipes.md` for these common pitfall areas:
+
+| Topic | Recipe | When to Check |
+|-------|--------|---------------|
+| Blueprint creation | `FKismetEditorUtilities::CreateBlueprint` parameter matrix | Any code that creates a Blueprint asset |
+| Dynamic class resolution | `FindObject<UClass>` pattern | Accessing UMGEditor, CommonUI, or optional plugin classes |
+| Test asset lifecycle | `MarkAsGarbage` vs `SavePackage` | Writing or reviewing test code that creates assets |
+| Asset loading | `LoadObject` guard pattern | Any `LoadObject` call |
+| Transactions | `FScopedTransaction` placement | Any write operation that should be undoable |
+| Reflection array access | `FArrayProperty` + `FScriptArrayHelper` | Accessing `TArray` properties via reflection |
 
 ## Mode Handling
 
