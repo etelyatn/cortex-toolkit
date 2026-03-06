@@ -26,10 +26,17 @@ Analyze Blueprint graphs to trace execution flow, identify logic errors, and dia
 2. **Get the Blueprint info** — use `get_blueprint_info` to understand the asset type and compilation status
 3. **List graphs** — use `graph_list_graphs` to see EventGraph, functions, macros
 4. **Examine nodes** — use `graph_list_nodes` on the relevant graph to see the execution flow
-5. **Trace the path** — follow execution pins from the entry point, checking:
-   - Are branches reachable?
-   - Are pins connected correctly?
-   - Is the execution order what you expect?
+5. **Trace execution flow**
+   - Use `graph_search_nodes` to find entry points by node type or function name:
+     - `graph_search_nodes(asset_path, node_class="UK2Node_Event")` - event entry points
+     - `graph_search_nodes(asset_path, function_name="SetVisibility")` - visibility changes
+     - `graph_search_nodes(asset_path, node_class="UK2Node_IfThenElse")` - branches
+   - Then trace from each result using `graph_get_node`:
+     1. Read the `then` pin's `connected_to[0].node_id`
+     2. Call `graph_get_node` on that node_id
+     3. Repeat until the exec chain ends or hits a branch (follow both `True` and `False` paths)
+     4. Use `entry.get("connected_to", [])` defensively; the field is absent (not empty) when disconnected
+   - Re-run `graph_list_nodes` after any compile operation, because node IDs are invalidated
 6. **Check variables** — use the Blueprint structure tools to verify variable types and defaults
 7. **Identify the issue** — common problems:
    - Disconnected execution pins (dead code)
