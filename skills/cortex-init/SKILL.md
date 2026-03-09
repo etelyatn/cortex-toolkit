@@ -151,9 +151,9 @@ If `.mcp.json` already exists:
 - Upsert only `mcpServers.cortex_mcp` with the expected value above.
 - Do not remove or rewrite unrelated MCP server configs.
 
-### 6. Inject LLM Context (Optional)
+### 6. Inject LLM Context
 
-Ask the user for each file (CLAUDE.md default yes, AGENTS.md default ask):
+**This step is required — do not skip it.** Ask the user for each file (CLAUDE.md default yes, AGENTS.md default ask):
 
 > "Inject Cortex Toolkit context block into `CLAUDE.md`? (y/n) [y]"
 > "Create/update `AGENTS.md` with Cortex Toolkit context? (y/n)"
