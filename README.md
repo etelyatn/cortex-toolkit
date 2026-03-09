@@ -42,6 +42,15 @@ ln -s ~/.cortex-toolkit/skills skills
 
 See [`docs/cursor-setup.md`](docs/cursor-setup.md) for full instructions.
 
+### Manual Setup
+
+If you prefer not to use `/cortex-init`, add the context block manually:
+
+- **Claude Code:** Append [`templates/claude-block.md`](templates/claude-block.md) to your project's `CLAUDE.md`
+- **Codex:** Append [`templates/agents-block.md`](templates/agents-block.md) to your project's `AGENTS.md`
+
+Then create `.cortex/` manually following the structure in [Project Memory](#project-memory).
+
 ## Getting Started
 
 1. Open your Unreal project in the editor (CortexCore writes a port file on startup)
