@@ -151,10 +151,48 @@ If `.mcp.json` already exists:
 - Upsert only `mcpServers.cortex_mcp` with the expected value above.
 - Do not remove or rewrite unrelated MCP server configs.
 
-### 6. Print Summary
+### 6. Inject LLM Context (Optional)
+
+Ask the user for each file (CLAUDE.md default yes, AGENTS.md default ask):
+
+> "Inject Cortex Toolkit context block into `CLAUDE.md`? (y/n) [y]"
+> "Create/update `AGENTS.md` with Cortex Toolkit context? (y/n)"
+
+**For each approved file, follow this sequence:**
+
+**A. Check writeability**
+If the file exists and is read-only or locked, report: "Cannot write to {file} — skipping." Do not proceed for that file.
+
+**B. Sentinel guard**
+Search the file for `<!-- cortex-toolkit:`.
+- Not found → proceed to inject.
+- Found matching current version (`<!-- cortex-toolkit:v1 -->`) → skip, report "already present (v1)".
+- Found with different version → warn: "Existing Cortex Toolkit block found (older version). Replace it? (y/n)". If yes, remove old block (from sentinel line to the next `---` or root-level `##` heading, whichever comes first); if no, skip.
+
+**C. Build filtered block**
+Read the canonical template:
+- For `CLAUDE.md`: `{toolkit-root}/templates/claude-block.md`
+- For `AGENTS.md`: `{toolkit-root}/templates/agents-block.md`
+
+`{toolkit-root}` resolves as:
+1. If `CLAUDE_PLUGIN_ROOT` env var is set (marketplace install) → use that path.
+2. Otherwise → go two directories up from this skill file (`skills/cortex-init/SKILL.md` → toolkit root).
+
+Filter the table rows to only the domains detected in Step 3. Remove any row whose domain is not in the detected domain list. Always keep the table header row.
+
+**D. Inject**
+- If file exists → append the filtered block preceded by a blank line. Note in output: "Block appended at end of file — you may want to relocate it within the file."
+- If file does not exist → create it containing only the block.
+
+**E. Record result** for Step 7 summary.
+
+### 7. Print Summary
 
 Report:
 - Engine path and version
 - Detected domains
 - Created files
+- Context injection:
+  - CLAUDE.md: injected (N domain rows) / already present / skipped
+  - AGENTS.md: injected (N domain rows) / already present / skipped / not requested
 - Next steps: "Fill in .cortex/context.md with your project details"
