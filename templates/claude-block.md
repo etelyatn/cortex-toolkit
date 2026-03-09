@@ -3,7 +3,7 @@
 ## Cortex Toolkit
 
 AI-powered UE development via UnrealCortex MCP.
-Config: `.cortex/config.yaml` | Context: `.cortex/context.md` | Domain details: `.cortex/domains/{domain}.md`
+Config: `.cortex/config.yaml` | Context: `.cortex/context.md` | Domain details: `.cortex/domains/`
 
 | Domain | Use when you need to... | Skills |
 |--------|-------------------------|--------|

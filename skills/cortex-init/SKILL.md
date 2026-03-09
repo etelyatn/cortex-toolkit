@@ -161,13 +161,13 @@ Ask the user for each file (CLAUDE.md default yes, AGENTS.md default ask):
 **For each approved file, follow this sequence:**
 
 **A. Check writeability**
-If the file exists and is read-only or locked, report: "Cannot write to {file} — skipping." Do not proceed for that file.
+Attempt the write; if a write error occurs, report "Cannot write to {file} — {error}" and skip. Do not pre-check with stat.
 
 **B. Sentinel guard**
 Search the file for `<!-- cortex-toolkit:`.
 - Not found → proceed to inject.
 - Found matching current version (`<!-- cortex-toolkit:v1 -->`) → skip, report "already present (v1)".
-- Found with different version → warn: "Existing Cortex Toolkit block found (older version). Replace it? (y/n)". If yes, remove old block (from sentinel line to the next `---` or root-level `##` heading, whichever comes first); if no, skip.
+- Found with different version → warn: "Existing Cortex Toolkit block found (older version). Replace it? (y/n)". If yes, remove old block: starting from the sentinel line, delete until the next `---` or root-level `##` heading found *after* the sentinel, or end of file — whichever comes first; if no, skip.
 
 **C. Build filtered block**
 Read the canonical template:
@@ -178,7 +178,21 @@ Read the canonical template:
 1. If `CLAUDE_PLUGIN_ROOT` env var is set (marketplace install) → use that path.
 2. Otherwise → go two directories up from this skill file (`skills/cortex-init/SKILL.md` → toolkit root).
 
-Filter the table rows to only the domains detected in Step 3. Remove any row whose domain is not in the detected domain list. Always keep the table header row.
+Strip the first line of the template (the `<!-- Template: ... -->` header comment) — it is metadata for maintainers, not content for injection.
+
+Filter the table rows to only the domains detected in Step 3, using this key-to-label mapping:
+
+| Detected domain key | Table row label |
+|---------------------|-----------------|
+| `blueprint`         | `Blueprint`     |
+| `data`              | `Data`          |
+| `level`             | `Level`         |
+| `material`          | `Material`      |
+| `umg`               | `UI`            |
+| `qa`                | `QA`            |
+| `reflect`           | `Reflect`       |
+
+Remove any row whose label is not matched by a detected domain key. Always keep the table header and separator rows.
 
 **D. Inject**
 - If file exists → append the filtered block preceded by a blank line. Note in output: "Block appended at end of file — you may want to relocate it within the file."

@@ -3,7 +3,7 @@
 ## Cortex Toolkit
 
 AI-powered UE development via UnrealCortex MCP (`cortex_mcp` server, configured in `.mcp.json`).
-Config: `.cortex/config.yaml` | Context: `.cortex/context.md` | Domain details: `.cortex/domains/{domain}.md`
+Config: `.cortex/config.yaml` | Context: `.cortex/context.md` | Domain details: `.cortex/domains/`
 
 Unreal Editor must be running before using tools. Call `get_status` first — if it fails, the editor is not running; open it and retry.
 
