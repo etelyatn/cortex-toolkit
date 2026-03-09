@@ -11,9 +11,13 @@ Sets up a UE project for AI-assisted development with UnrealCortex.
 
 ### 1. Validate UnrealCortex Plugin
 
-Check that `Plugins/UnrealCortex/` exists and contains `UnrealCortex.uplugin`.
+Check for `UnrealCortex.uplugin` in any of these locations (in order):
+1. `Plugins/UnrealCortex/UnrealCortex.uplugin`
+2. `Plugins/Developer/UnrealCortex/UnrealCortex.uplugin`
 
-If missing, tell the user to add the UnrealCortex submodule:
+Use whichever path exists. Store it as `{plugin_root}` for use in Step 3.
+
+If not found in either location, tell the user to add the UnrealCortex submodule:
 ```
 git submodule add https://github.com/etelyatn/UnrealCortex Plugins/UnrealCortex
 ```
@@ -74,7 +78,7 @@ Verify the path exists and contains `Engine/Binaries/Win64/UnrealEditor.exe`.
 
 ### 3. Detect Enabled Domains
 
-Read `Plugins/UnrealCortex/UnrealCortex.uplugin` and extract module names.
+Read `{plugin_root}/UnrealCortex.uplugin` (detected in Step 1) and extract module names.
 Map modules to domains:
 - `CortexData` → `data`
 - `CortexBlueprint` + `CortexGraph` → `blueprint`
