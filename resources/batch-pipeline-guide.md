@@ -295,7 +295,7 @@ Material operations check `FCortexCommandRouter::IsInBatch()` to defer expensive
 **DO:**
 ```json
 // Batch 1: Create material with nodes/connections
-create_material_graph(...)
+material_compose(...)
 
 // Batch 2: Create instance (depends on batch 1)
 material.create_instance(parent_path: result_from_batch_1)

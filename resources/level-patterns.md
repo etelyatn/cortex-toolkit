@@ -4,14 +4,14 @@ Common patterns and workflows for level design with UnrealCortex MCP tools.
 
 ## Actor Lifecycle Workflows
 
-### Spawn and Configure (use level_batch)
+### Spawn and Configure (use level_compose)
 ```
-level_batch(operations=[{"op": "spawn", ..., "folder": "...", "properties": {...}}])
+level_compose(operations=[{"op": "spawn", ..., "folder": "...", "properties": {...}}])
 ```
 
-### Spawn and Attach (use level_batch)
+### Spawn and Attach (use level_compose)
 ```
-level_batch(operations=[
+level_compose(operations=[
     {"op": "spawn", "id": "parent", ...},
     {"op": "spawn", "id": "child", ...},
     {"op": "attach", "actor": "$ops[child].name", "parent": "$ops[parent].name"}
@@ -128,12 +128,12 @@ set_sublevel_visibility(sublevel="SubLevel_Lighting", visible=false)
 list_data_layers → set_data_layer(actors=["Actor1", "Actor2"], data_layer="Gameplay") → save_level
 ```
 
-## Scene Construction and Modification (level_batch)
+## Scene Construction and Modification (level_compose)
 
 ### Multi-Actor Scene Creation
 
 ```python
-level_batch(
+level_compose(
     operations=[
         {
             "op": "spawn",
@@ -170,7 +170,7 @@ level_batch(
 ### Scene with Attachments
 
 ```python
-level_batch(
+level_compose(
     operations=[
         {
             "op": "spawn",
@@ -200,7 +200,7 @@ level_batch(
 ### Bulk Modification of Existing Actors
 
 ```python
-level_batch(
+level_compose(
     operations=[
         {"op": "modify", "actor": "Wall_North", "folder": "Geometry/Walls", "tags": ["wall"]},
         {"op": "modify", "actor": "Wall_South", "folder": "Geometry/Walls", "tags": ["wall"]},
@@ -215,7 +215,7 @@ level_batch(
 ### Mixed Create, Modify, Delete
 
 ```python
-level_batch(
+level_compose(
     operations=[
         {"op": "spawn", "id": "fill", "class": "PointLight",
          "label": "FillLight", "folder": "Lighting",
@@ -232,7 +232,7 @@ level_batch(
 ### Duplicate and Offset (Repeated Geometry)
 
 ```python
-level_batch(
+level_compose(
     operations=[
         {"op": "duplicate", "actor": "Wall_Section_A", "id": "wall_b", "offset": [200, 0, 0]},
         {"op": "duplicate", "actor": "Wall_Section_A", "id": "wall_c", "offset": [400, 0, 0]},
@@ -247,7 +247,7 @@ level_batch(
 ### Spawn with Component Properties
 
 ```python
-level_batch(
+level_compose(
     operations=[
         {
             "op": "spawn",
@@ -355,7 +355,7 @@ Level domain workflows are validated by the benchmark testing framework in `Plug
 | Test File | Coverage |
 |-----------|----------|
 | `test_level_e2e.py` | Actor lifecycle, transforms, components, queries (list, find, bounds, selection), streaming (sublevels, data layers) |
-| `test_level_batch.py` | `level_batch` with spawn/modify/delete/duplicate/attach/detach, `$ops[]` refs, stop-on-error |
+| `test_level_batch.py` | `level_compose` with spawn/modify/delete/duplicate/attach/detach, `$ops[]` refs, stop-on-error |
 | `test_level_tools.py` | MCP tool wrappers for level operations |
 
 Run to validate after modifying Level MCP tools or C++ command handlers.

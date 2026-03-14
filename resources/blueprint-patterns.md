@@ -107,7 +107,7 @@ create_blueprint → add_blueprint_variable (×N) → add_blueprint_function (×
 
 ### Create Fully Functional Blueprint (Automated)
 
-Prefer `create_blueprint_graph` for creating from scratch — it runs all steps atomically.
+Prefer `blueprint_compose` for creating from scratch — it runs all steps atomically.
 For manual step-by-step construction:
 ```
 create_blueprint
@@ -122,7 +122,7 @@ create_blueprint
 
 ### graph_add_node — Node Class Short Names
 
-When calling `graph_add_node` or specifying nodes in `create_blueprint_graph`, use these short names:
+When calling `graph_add_node` or specifying nodes in `blueprint_compose`, use these short names:
 
 | Short Name | UK2Node Class | Params Required |
 |-----------|--------------|-----------------|
@@ -245,7 +245,7 @@ get_class_defaults(
 
 ### Configure Timeline
 ```
-create_blueprint_graph (with Timeline node) → configure_timeline (tracks + keyframes) → compile_blueprint
+blueprint_compose (with Timeline node) → configure_timeline (tracks + keyframes) → compile_blueprint
 ```
 
 **Example: Float track for door open animation**
@@ -370,7 +370,7 @@ Blueprint MCP workflows are validated by the benchmark testing framework in `Plu
 |-----------|----------|
 | `test_e2e.py` | Blueprint CRUD lifecycle, variable/function ops, compilation, error cases |
 | `test_mcp_scenarios.py` | Blueprint Lifecycle scenario (create + structure + graph wiring + compile) |
-| `test_blueprint_composites.py` | `create_blueprint_graph` composite tool end-to-end |
+| `test_blueprint_composites.py` | `blueprint_compose` composite tool end-to-end |
 | `test_class_defaults.py` | CDO get/set with auto-compile and auto-save |
 
 Run to validate after modifying Blueprint MCP tools or C++ command handlers.

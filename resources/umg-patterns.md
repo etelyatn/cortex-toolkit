@@ -154,7 +154,7 @@ UMG domain workflows are validated by the benchmark testing framework in `Plugin
 | Test File | Coverage |
 |-----------|----------|
 | `test_e2e.py` | Widget class listing, tree CRUD, property setters, schema queries |
-| `test_umg_composites.py` | `create_widget_screen` composite end-to-end |
+| `test_umg_composites.py` | `widget_compose` composite end-to-end |
 | `test_mcp_scenarios.py` | Widget Builder scenario (create + hierarchy + styling + verify) |
 
 Run to validate after modifying UMG MCP tools or C++ command handlers.

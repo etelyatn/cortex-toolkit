@@ -4,84 +4,84 @@ Common patterns for working with UE data assets via UnrealCortex MCP tools.
 
 ## Schema Discovery (fast path)
 
-Check `.cortex/schema/_catalog.md` first for project overview, struct schemas, and table inventory. The catalog includes engine and plugin version info. If schema files are missing or stale (>24h), use `schema_status` to check freshness, then `generate_project_schema` to regenerate.
+Check `.cortex/schema/_catalog.md` first for project overview, struct schemas, and table inventory. The catalog includes engine and plugin version info. If schema files are missing or stale (>24h), use `core_cmd(command="schema_status")` to check freshness, then `schema_generate` to regenerate.
 
 ```
-schema_status → (if stale) generate_project_schema → read _catalog.md → read data.md
+core_cmd("schema_status") → (if stale) schema_generate → read _catalog.md → read data.md
 ```
 
 ## DataTable Workflows
 
 ### Create New DataTable
 ```
-create_datatable (table_path, row_struct) → add_datatable_row (×N) OR import_datatable_json → query_datatable (verify)
+data_cmd("create_datatable") → data_cmd("add_datatable_row") (×N) OR data_cmd("import_datatable_json") → data_cmd("query_datatable") (verify)
 ```
 
 **Example:**
 ```python
-create_datatable(
-    table_path="/Game/Data/DT_Enemies",
-    row_struct="EnemyDefinition"  # Must be compiled FTableRowBase subclass
+data_cmd(
+    command="create_datatable",
+    params={"table_path": "/Game/Data/DT_Enemies", "row_struct": "EnemyDefinition"}
 )
 # Then populate:
-import_datatable_json(
-    table_path="/Game/Data/DT_Enemies",
-    json_data=[
+data_cmd(
+    command="import_datatable_json",
+    params={"table_path": "/Game/Data/DT_Enemies", "json_data": [
         {"name": "Goblin", "health": 50, "damage": 10},
         {"name": "Orc", "health": 150, "damage": 25}
-    ]
+    ]}
 )
 ```
 
 ### Query and Filter
 ```
-list_datatables → get_datatable_schema → query_datatable (with filters)
+data_cmd("list_datatables") → data_cmd("get_datatable_schema") → data_cmd("query_datatable", params)
 ```
 
 ### Bulk Population
 ```
-get_struct_schema → prepare JSON → import_datatable_json → query_datatable (verify)
+reflect_cmd("get_struct_schema") → prepare JSON → data_cmd("import_datatable_json") → data_cmd("query_datatable") (verify)
 ```
 
 ### Cross-Table Analysis
 ```
-batch_query (multiple tables) → correlate by shared keys (FName, tags)
+core_cmd("batch") (multiple tables) → correlate by shared keys (FName, tags)
 ```
 
 ## DataAsset Workflows
 
 ### Inspect
 ```
-list_data_assets → get_data_asset (specific) → review properties
+data_cmd("list_data_assets") → data_cmd("get_data_asset") → review properties
 ```
 
 ### Modify
 ```
-get_data_asset → update_data_asset (specific fields) → get_data_asset (verify)
+data_cmd("get_data_asset") → data_cmd("update_data_asset") → data_cmd("get_data_asset") (verify)
 ```
 
 ## GameplayTag Workflows
 
 ### Validate Before Use
 ```
-validate_gameplay_tag → register_gameplay_tag (if missing) → use in data
+data_cmd("validate_gameplay_tag") → data_cmd("register_gameplay_tag") (if missing) → use in data
 ```
 
 ### Bulk Register
 ```
-register_gameplay_tags (batch) → list_gameplay_tags (verify)
+data_cmd("register_gameplay_tags") (batch) → data_cmd("list_gameplay_tags") (verify)
 ```
 
 ## CurveTable Workflows
 
 ### Read Curve
 ```
-list_curve_tables → get_curve_table (specific) → analyze keys
+data_cmd("list_curve_tables") → data_cmd("get_curve_table") → analyze keys
 ```
 
 ### Modify Curve
 ```
-get_curve_table → update_curve_table_row (modify keys) → get_curve_table (verify)
+data_cmd("get_curve_table") → data_cmd("update_curve_table_row") → data_cmd("get_curve_table") (verify)
 ```
 
 ## Benchmark Tests
@@ -99,7 +99,7 @@ Run to validate after modifying Data MCP tools or C++ command handlers.
 ## Common Pitfalls
 
 - Always verify struct schema before adding rows — field names are case-sensitive
-- Use `search_assets` to find assets by name when path is unknown
+- Use `core_cmd(command="search_assets")` to find assets by name when path is unknown
 - GameplayTags must be registered before use in DataTable rows
-- `import_datatable_json` overwrites existing rows with same key
+- `data_cmd(command="import_datatable_json")` overwrites existing rows with same key
 - Soft references in DataAssets must point to valid asset paths

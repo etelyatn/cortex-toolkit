@@ -35,7 +35,7 @@ Cannot update material: /Game/Materials/M_PulsatingGradient
 
    Options:
    1. Check the correct path (list_materials to see available materials)
-   2. Create a new material with create_material_graph
+   2. Create a new material with material_compose
    3. Provide the correct asset path
 ```
 

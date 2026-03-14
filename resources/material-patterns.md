@@ -110,7 +110,7 @@ Vectors:
 
 ### Composite Tool Creation Pattern (Primary Method)
 
-The `create_material_graph` composite tool is the **recommended** way to build materials. It leverages UnrealCortex's batch pipeline for atomic, reliable creation.
+The `material_compose` composite tool is the **recommended** way to build materials. It leverages UnrealCortex's batch pipeline for atomic, reliable creation.
 
 #### Why Use Composite Tools
 
@@ -122,7 +122,7 @@ The `create_material_graph` composite tool is the **recommended** way to build m
 - 90% failure rate on large graphs
 
 **NEW approach (atomic, fast):**
-- Single `create_material_graph` call
+- Single `material_compose` call
 - Atomic batch execution with stop-on-error
 - Auto-cleanup on failure (deletes partial .uasset)
 - <2 minutes, reliable
@@ -131,7 +131,7 @@ The `create_material_graph` composite tool is the **recommended** way to build m
 #### Usage
 
 ```python
-create_material_graph(
+material_compose(
     name="M_PBR",
     path="/Game/Materials/",
     nodes=[
@@ -435,7 +435,7 @@ set_material_node_property("/Game/Materials/M_Mat", "Expr_1", "SamplerType", "SA
 ### Individual Tool Usage (Legacy, Not Recommended)
 
 ⚠️ Only use individual tools when modifying existing materials and a batch is unnecessary.
-   For new materials, always use `create_material_graph` composite tool.
+   For new materials, always use `material_compose` composite tool.
    For complex updates, use manual batch construction.
 
 ```
@@ -516,7 +516,7 @@ set_node_property (asset_path, node_id, property_name, value)
 ## Pin Naming Reference
 
 ### Composite Tool Pin Validation
-The `create_material_graph` composite tool validates pin names against a comprehensive _PIN_MAP covering 30+ expression types before executing the batch. This catches pin name errors early and prevents cascading failures.
+The `material_compose` composite tool validates pin names against a comprehensive _PIN_MAP covering 30+ expression types before executing the batch. This catches pin name errors early and prevents cascading failures.
 
 Validated expression types include:
 - Parameters: ScalarParameter, VectorParameter, TextureParameter, StaticSwitchParameter, StaticBoolParameter
@@ -587,7 +587,7 @@ Material domain workflows are validated by the benchmark testing framework in `P
 
 | Test File | Coverage |
 |-----------|----------|
-| `test_material_composites.py` | `create_material_graph` composite end-to-end, node/connection validation, failure recovery, auto-cleanup |
+| `test_material_composites.py` | `material_compose` composite end-to-end, node/connection validation, failure recovery, auto-cleanup |
 | `test_material_composites_e2e.py` | `set_material_property`, `set_material_node_property`, enum/byte property support |
 | `test_material_enum_aliases.py` | Pretty name to UE reflection name mapping (MaterialDomain, BlendMode, ShadingModel) |
 | `test_mcp_scenarios.py` | Material Create benchmark (create graph + create instance + set parameter) |
