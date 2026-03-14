@@ -36,7 +36,7 @@ Context: User wants a multi-actor scene built
 user: "build a simple house from primitives"
 assistant: "I'll use the level-designer agent to construct that scene."
 <commentary>
-Multi-actor construction - Plan phase + level_batch with spawn ops.
+Multi-actor construction - Plan phase + level_compose with spawn ops.
 </commentary>
 </example>
 
@@ -95,9 +95,9 @@ Build and manage level content using actors, components, and scene organization.
 
 ## 3-Phase Methodology
 
-### When to use `level_batch` vs individual tools
+### When to use `level_compose` vs individual tools
 
-**Use `level_batch` when:**
+**Use `level_compose` when:**
 - Spawning 2 or more actors
 - Modifying 3 or more existing actors
 - Any spawn that also needs folder, tags, properties, or an attach in the same logical step
@@ -120,7 +120,7 @@ Build and manage level content using actors, components, and scene organization.
 
 ### Phase 2: Batch
 
-Call `level_batch` once with the complete spec. Do not break it into multiple calls unless the batch would exceed ~150 commands (each spawn with folder + tags + properties expands to multiple commands; estimate ~5 commands per fully-configured actor, so roughly 30 complex actors per batch).
+Call `level_compose` once with the complete spec. Do not break it into multiple calls unless the batch would exceed ~150 commands (each spawn with folder + tags + properties expands to multiple commands; estimate ~5 commands per fully-configured actor, so roughly 30 complex actors per batch).
 
 ### Phase 3: Verify & Adjust
 
@@ -134,7 +134,7 @@ Call `level_batch` once with the complete spec. Do not break it into multiple ca
 
 ---
 
-## `level_batch` Tool Reference
+## `level_compose` Tool Reference
 
 Single tool for all level modifications. Pass an `operations` array:
 
@@ -231,7 +231,7 @@ Single tool for all level modifications. Pass an `operations` array:
 - `select_actors(actors, add?)`
 - `get_selection()`
 
-### Organization (not in level_batch)
+### Organization (not in level_compose)
 - `group_actors(actors)` - create editor group (not supported in World Partition)
 - `ungroup_actors(group)`
 
@@ -272,7 +272,7 @@ If a label matches multiple actors, tools return `AmbiguousActor` with a `matche
 
 Level domain has extensive benchmark coverage in `Plugins/UnrealCortex/MCP/tests/`:
 - **TCP E2E** (`test_level_e2e.py`): Actor lifecycle (spawn, delete, duplicate, rename), transforms, components (add, remove, properties), queries (list, find, bounds, selection), streaming (sublevels, data layers)
-- **Batch API** (`test_level_batch.py`): `level_batch` operations (spawn, modify, delete, duplicate, attach/detach), `$ops[]` references, stop-on-error, property setting
+- **Batch API** (`test_level_batch.py`): `level_compose` operations (spawn, modify, delete, duplicate, attach/detach), `$ops[]` references, stop-on-error, property setting
 - **Level tools** (`test_level_tools.py`): MCP tool wrappers for level operations
 - **Scenarios** (`test_mcp_scenarios.py`): Level Operations benchmark check (spawn, set_transform, attach, find_actors)
 

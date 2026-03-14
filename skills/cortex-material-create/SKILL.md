@@ -28,10 +28,10 @@ Create the following material using the MANDATORY pipeline:
 MANDATORY WORKFLOW:
 1. Read `.cortex/domains/material.md` for pin conventions
 2. Design your nodes[] and connections[] arrays as a JSON spec
-3. Call `create_material_graph(name, path, nodes, connections)` as a SINGLE call
+3. Call `material_compose(name, path, nodes, connections)` as a SINGLE call
 4. Create material instances if requested
 
-PROHIBITED: Do NOT call create_material, add_node, connect, set_node_property, or auto_layout individually. These are ONLY for modifying existing materials. For new materials, you MUST use create_material_graph exclusively.
+PROHIBITED: Do NOT call `material_cmd` for `create_material`, `add_node`, `connect`, `set_node_property`, or `auto_layout` individually. These are ONLY for modifying existing materials. For new materials, you MUST use `material_compose` exclusively.
 ```
 
 ### 2. Agent Workflow (runs in background)
@@ -39,13 +39,13 @@ PROHIBITED: Do NOT call create_material, add_node, connect, set_node_property, o
 The Material Designer agent will:
 1. Read `.cortex/domains/material.md` for project material conventions
 2. Design the full expression graph spec (nodes + connections as JSON arrays)
-3. **Call `create_material_graph` once** — atomic creation of material + nodes + connections in single batch
+3. **Call `material_compose` once** — atomic creation of material + nodes + connections in single batch
 4. Create material instances if requested
 
 **Enforcement:**
 - The agent prompt contains a PROHIBITED tools list — it will not use individual graph tools for new materials
 - The composite tool executes atomically: all-or-nothing with auto-cleanup on failure
-- One `create_material_graph` call replaces what would be 20-60 individual tool calls
+- One `material_compose` call replaces what would be 20-60 individual tool calls
 
 ### 3. Review Agent Results
 
@@ -60,7 +60,7 @@ If the agent encounters issues (invalid expression class, missing parent materia
 
 ## Why Use the Agent?
 
-- **Single tool call** — one `create_material_graph` instead of dozens of individual calls
+- **Single tool call** — one `material_compose` instead of dozens of individual calls
 - **Context-aware design** — agent follows project material conventions and naming
 - **Graph planning** — designs proper expression graphs automatically
 - **Reliability** — atomic operations with validation and auto-cleanup

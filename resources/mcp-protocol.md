@@ -28,19 +28,19 @@ Built-in commands (no namespace): `get_status`, `get_capabilities`
 ## MCP Server
 
 - **Location:** `Plugins/UnrealCortex/MCP/src/cortex_mcp/`
-- **Tools:** `Plugins/UnrealCortex/MCP/tools/{domain}/`
+- **Tools:** explicit registration from `Plugins/UnrealCortex/MCP/src/cortex_mcp/tools/`
 - **Run:** `uv run --directory Plugins/UnrealCortex/MCP cortex-mcp`
 - **Config:** `.mcp.json` in project root
 
 ## Available Domains and Tools
 
-### Core (no namespace)
-- `get_status` — connection health, registered domains, engine/plugin versions
-- `get_data_catalog` — unified project data overview (cached 10 min)
-- `refresh_cache` — clear all cached MCP responses
-- `batch` — execute multiple commands sequentially with $ref resolution
-- `generate_project_schema` — generate LLM-readable `.cortex/schema/` files from live editor data (requires running editor)
-- `schema_status` — check if `.cortex/schema/` exists, per-domain freshness and version (no editor required)
+### Core
+- `core_cmd(command="get_status")` — connection health, registered domains, engine/plugin versions
+- `core_cmd(command="get_data_catalog")` — unified project data overview (cached 10 min)
+- `core_cmd(command="refresh_cache")` — clear all cached MCP responses
+- `core_cmd(command="batch", params={...})` — execute multiple commands sequentially with $ref resolution
+- `schema_generate` — generate LLM-readable `.cortex/schema/` files from live editor data (requires running editor)
+- `core_cmd(command="schema_status")` — check if `.cortex/schema/` exists, per-domain freshness and version (no editor required)
 
 #### Asset Editor Commands (`core.*`)
 
@@ -177,21 +177,22 @@ Repositions nodes using execution-first left-to-right layout with parameter grou
 - `graph_name`: Layout a specific graph, or omit to layout all graphs
 - `horizontal_spacing` / `vertical_spacing`: Override default spacing (80/40)
 
-### Editor (composite tools — no namespace prefix)
-- PIE lifecycle: `start_pie_session`, `stop_pie_session`, `get_pie_state`, `pause_pie`, `resume_pie`, `restart_pie`
-- Viewport: `get_viewport_info`, `capture_screenshot`, `set_viewport_camera`, `focus_actor`, `set_viewport_mode`
-- Utilities: `get_editor_state`, `get_recent_logs`, `execute_console_command`, `set_time_dilation`, `get_world_info`
-- Input injection (requires active PIE): `press_key`, `run_input_sequence`
-- Editor lifecycle: `shutdown_editor`, `restart_editor`
+### Editor
+- Routed editor commands: `editor_cmd(command=..., params=...)`
+- PIE lifecycle: `editor_cmd(command="start_pie", params={...})`, `editor_cmd(command="stop_pie", params={})`, `editor_cmd(command="get_pie_state", params={})`, `editor_cmd(command="pause_pie", params={})`, `editor_cmd(command="resume_pie", params={})`, `editor_cmd(command="restart_pie", params={...})`
+- Viewport: `editor_cmd(command="get_viewport_info", params={})`, `editor_cmd(command="capture_screenshot", params={...})`, `editor_cmd(command="set_viewport_camera", params={...})`, `editor_cmd(command="focus_actor", params={...})`, `editor_cmd(command="set_viewport_mode", params={...})`
+- Utilities: `editor_cmd(command="get_editor_state", params={})`, `editor_cmd(command="get_recent_logs", params={...})`, `editor_cmd(command="execute_console_command", params={...})`, `editor_cmd(command="set_time_dilation", params={...})`, `editor_cmd(command="get_world_info", params={})`
+- Input injection (requires active PIE): `editor_cmd(command="inject_key", params={...})`, `editor_cmd(command="inject_input_sequence", params={...})`
+- Editor lifecycle: `core_cmd(command="shutdown", params={...})`, `editor_restart`
 
 #### Input Injection Tools
 
-`press_key` — inject a single key event into the active PIE session:
+`editor_cmd(command="inject_key", params={...})` — inject a single key event into the active PIE session:
 - `key` (str): UE key name — `"W"`, `"SpaceBar"`, `"LeftShift"`, `"Enter"`, `"Escape"`, `"F1"`, `"LeftMouseButton"`. Case-sensitive.
 - `action` (str): `"tap"` (press + timed release), `"press"` (hold), or `"release"`. Default `"tap"`.
 - `duration_ms` (int): Hold duration for tap. Default 100.
 
-`run_input_sequence` — execute a timed multi-step input sequence during PIE (deferred):
+`editor_cmd(command="inject_input_sequence", params={...})` — execute a timed multi-step input sequence during PIE (deferred):
 - `steps` (list): Each step has `at_ms` (int, timing offset from start) and `kind` (`"key"`, `"mouse"`, or `"action"`).
   - `kind="key"`: `key` (str), `action` (str, default `"tap"`), `duration_ms` (int, default 100)
   - `kind="mouse"`: `action` (`"click"`, `"move"`, or `"scroll"`), `button` (str, for click), `x`/`y` (float), `delta` (float, for scroll)
@@ -209,7 +210,7 @@ Example — walk and jump:
 }
 ```
 
-**Constraint:** Only one `run_input_sequence` should run at a time — concurrent sequences share a single callback slot (see ED-001 in `docs/tech-debt/cortex-editor-tech-debt.md`).
+**Constraint:** Only one `editor_cmd(command="inject_input_sequence", ...)` should run at a time — concurrent sequences share a single callback slot (see ED-001 in `docs/tech-debt/cortex-editor-tech-debt.md`).
 
 **Reliability (ED-002b):** When the MCP TCP client disconnects unexpectedly, orphaned input tickers are automatically cancelled. `inject_input_sequence` correctly terminates on client disconnect — no manual cleanup required.
 

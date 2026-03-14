@@ -5,7 +5,7 @@ description: Use when creating new widgets, screens, or UI components from a spe
 
 # UI Create
 
-Creates UMG widget screens using the `create_widget_screen` composite tool via the UI Developer agent.
+Creates UMG widget screens using the `widget_compose` composite tool via the UI Developer agent.
 
 ## Steps
 
@@ -25,11 +25,11 @@ Pass the full specification including:
 The UI Developer agent will:
 1. Read `.cortex/domains/umg.md` for widget conventions and styling shorthand
 2. Plan the widget hierarchy top-down
-3. **Use `create_widget_screen` composite tool** — single call builds the entire screen
+3. **Use `widget_compose` composite tool** — single call builds the entire screen
 4. Review warnings from compilation
 5. Report final result with widget tree and stats
 
-**IMPORTANT:** The agent MUST use `create_widget_screen` for new screen creation. Individual tools (`add_widget`, `set_text`, `set_color`, `set_font`, `set_brush`, `set_padding`, `set_anchor`, `set_alignment`, `set_size`, `set_visibility`, `create_animation`) are PROHIBITED for new screen creation.
+**IMPORTANT:** The agent MUST use `widget_compose` for new screen creation. Individual tools via `umg_cmd` (`add_widget`, `set_text`, `set_color`, `set_font`, `set_brush`, `set_padding`, `set_anchor`, `set_alignment`, `set_size`, `set_visibility`, `create_animation`) are PROHIBITED for new screen creation.
 
 ### 3. Review Agent Results
 

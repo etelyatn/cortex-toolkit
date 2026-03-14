@@ -5,7 +5,7 @@ description: Use when creating new Blueprints with variables, functions, or comp
 
 # Blueprint Create
 
-Creates Blueprint assets using the `create_blueprint_graph` composite tool via the Blueprint Developer agent.
+Creates Blueprint assets using the `blueprint_compose` composite tool via the Blueprint Developer agent.
 
 ## Steps
 
@@ -27,11 +27,11 @@ Pass the full user specification including:
 The Blueprint Developer agent will:
 1. Read `.cortex/domains/blueprints.md` for node class names and pin conventions
 2. Investigate existing Blueprints to avoid name collisions
-3. **Use `create_blueprint_graph` composite tool** — single call creates the entire Blueprint
+3. **Use `blueprint_compose` composite tool** — single call creates the entire Blueprint
 4. Review warnings from auto_layout and compilation
 5. Report final result with asset path and stats
 
-**IMPORTANT:** The agent MUST use `create_blueprint_graph` for new Blueprint creation. Individual tools (`create_blueprint`, `add_blueprint_variable`, `graph_add_node`) are PROHIBITED for new Blueprint creation.
+**IMPORTANT:** The agent MUST use `blueprint_compose` for new Blueprint creation. Individual tools via `blueprint_cmd` and `graph_cmd` (`create_blueprint`, `add_blueprint_variable`, `graph_add_node`) are PROHIBITED for new Blueprint creation.
 
 ### 3. Review Agent Results
 
