@@ -79,8 +79,8 @@ Before entering any stage, verify the editor is alive and MCP is healthy.
    - The skill handles: engine path lookup, background launch with `-AutoDeclinePackageRecovery`, port file polling (120s timeout), MCP verification
    - After skill completes -> re-run `/cortex-status` to confirm `blueprint` domain is registered
 
-3. **MCP connection failed (editor running):** Use the Skill tool: `skill: "cortex-reconnect"`
-   - `/cortex-reconnect` retries `get_status` up to 4 times over ~55 seconds. It is for when the editor process is healthy but the MCP client lost its connection. Prefer this over a full restart when the editor is still running.
+3. **MCP connection failed (editor running):** Use the Skill tool: `skill: "cortex-status"`
+   - `/cortex-status` retries `get_status` up to 4 times over ~55 seconds when initial connection fails. It is for when the editor process is healthy but the MCP client lost its connection. Prefer this over a full restart when the editor is still running.
    - If reconnect fails -> use `/cortex-restart` (full restart cycle)
 
 **This check runs:**

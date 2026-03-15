@@ -91,8 +91,7 @@ Cortex Toolkit — AI-Assisted Unreal Engine Development
 You have skills and specialist agents across multiple domains.
 
   Quick actions:    cortex-status, cortex-build, cortex-schema-refresh
-  Create things:    cortex-bp-create, cortex-data-create, cortex-ui-create
-  Review & fix:     cortex-bp-review, cortex-data-review, cortex-level-review
+  Domains:          cortex-blueprint, cortex-data, cortex-material, cortex-ui, cortex-level, cortex-reflect
   Testing:          cortex-qa-run, cortex-test
   Need help?        cortex-help
 

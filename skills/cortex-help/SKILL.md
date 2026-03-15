@@ -64,8 +64,8 @@ Generate 2-3 suggestions in this priority order:
    - User just created something → suggest the matching review skill
    - User working in a domain → suggest related skills
 4. **No context** → suggest exploration
-   - Has DataTables → suggest `cortex-data-review`
-   - Has Blueprints → suggest `cortex-bp-review`
+   - Has DataTables → suggest `cortex-data`
+   - Has Blueprints → suggest `cortex-blueprint`
    - Nothing detected → suggest `cortex-start`
 
 ### Output Format
@@ -111,26 +111,17 @@ Setup & Infrastructure
   cortex-init              Initialize project configuration
   cortex-editor            Open Unreal Editor
   cortex-build             Build the project
-  cortex-status            Check editor connection and module status
-  cortex-reconnect         Reconnect to editor after restart
+  cortex-status            Check editor connection, module status, and connection recovery
   cortex-restart           Restart the Unreal Editor
   cortex-schema-refresh    Regenerate project schema from live editor
 
-Create
-  cortex-bp-create         Create Blueprints from description or spec
-  cortex-data-create       Create DataTables, DataAssets, GameplayTags
-  cortex-material-create   Create materials and material instances
-  cortex-ui-create         Create UMG widget screens
-  cortex-level-edit        Place and organize actors in levels
-
-Review & Analyze
-  cortex-bp-review         Blueprint health check and improvement suggestions
-  cortex-data-review       DataTable schema review and validation
-  cortex-material-review   Material graph analysis
-  cortex-ui-review         Widget hierarchy and property review
-  cortex-level-review      Level organization and performance review
-  cortex-impact            Analyze cross-system impact before making changes
-  cortex-reflect           Query C++ and Blueprint class hierarchies
+Domains
+  cortex-blueprint         Create, modify, review, or debug Blueprints — structure, graphs, variables, functions, best practices
+  cortex-data              Create, populate, or review DataTables, DataAssets, CurveTables, or StringTables — including balance and integrity checks
+  cortex-material          Create or review materials, instances, parameter collections, or material graphs
+  cortex-ui                Create or review UMG widgets, screens, or UI components
+  cortex-level             Place, organize, or review actors in a level
+  cortex-reflect           Assess blast radius before breaking changes, or analyze class architecture and cross-references
 
 Test & QA
   cortex-test              Run Unreal or Python tests
@@ -138,7 +129,7 @@ Test & QA
   cortex-qa-run            Execute automated QA scenarios
   cortex-qa-interactive    Interactive game testing session
 
-Learn
+Learn & Migrate
   cortex-start             Guided onboarding with a real task
   cortex-bp-migrate        Migrate Blueprints to C++ — 4-stage pipeline with hard gates (ANALYZE → PLAN → EXECUTE → COMPLETE)
 
@@ -162,33 +153,33 @@ For the requested domain, gather:
 ### Domain Definitions
 
 **data:**
-- Skills: `cortex-data-create`, `cortex-data-review`, `cortex-reflect`, `cortex-schema-refresh`
+- Skills: `cortex-data`, `cortex-reflect`, `cortex-schema-refresh`
 - Content path: `Content/Data/`
 - Schema files: `.cortex/schema/datatables.md`, `.cortex/schema/structs.md`, `.cortex/schema/tags.md`
 - Domain context: `.cortex/domains/data.md`
 - Agents: Data Architect, Data Balancer
 
 **blueprint (bp):**
-- Skills: `cortex-bp-create`, `cortex-bp-review`, `cortex-bp-migrate`, `cortex-reflect`
+- Skills: `cortex-blueprint`, `cortex-bp-migrate`, `cortex-reflect`
 - Content path: `Content/Blueprints/`
 - Schema files: `.cortex/schema/blueprints.md`
 - Domain context: `.cortex/domains/blueprints.md`
 - Agents: Blueprint Developer, Blueprint Debugger, C++ Migration Specialist
 
 **material (mat):**
-- Skills: `cortex-material-create`, `cortex-material-review`
+- Skills: `cortex-material`
 - Content path: `Content/Materials/`
 - Domain context: `.cortex/domains/material.md`
 - Agents: Material Developer
 
 **ui (umg):**
-- Skills: `cortex-ui-create`, `cortex-ui-review`
+- Skills: `cortex-ui`
 - Content path: `Content/UI/`
 - Domain context: `.cortex/domains/umg.md`
 - Agents: UI Developer
 
 **level:**
-- Skills: `cortex-level-edit`, `cortex-level-review`
+- Skills: `cortex-level`
 - Content path: `Content/Maps/`
 - Domain context: `.cortex/domains/level.md`
 - Agents: Level Designer
@@ -199,7 +190,7 @@ For the requested domain, gather:
 - Agents: QA Engineer, Test Debugger
 
 **setup (infra):**
-- Skills: `cortex-init`, `cortex-editor`, `cortex-build`, `cortex-status`, `cortex-reconnect`, `cortex-restart`, `cortex-schema-refresh`
+- Skills: `cortex-init`, `cortex-editor`, `cortex-build`, `cortex-status`, `cortex-restart`, `cortex-schema-refresh`
 - Agents: Project Analyzer
 - Note: No content path or schema. "Your Project" section should show infrastructure status instead: config exists/missing, editor connected/not, schema freshness.
 

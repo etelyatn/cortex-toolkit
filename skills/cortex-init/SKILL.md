@@ -128,7 +128,6 @@ Create `.cortex/domains/` with a template for each detected domain:
 - `umg.md`: widget conventions, screen inventory, UI style guide
 - `level.md`: actor conventions, level structure, streaming setup, organization rules
 - `qa.md`: test scenarios, assertion patterns, gameplay test conventions
-- `reflect.md`: class hierarchy notes, cross-reference patterns, scan conventions
 
 ### 5. Configure MCP
 

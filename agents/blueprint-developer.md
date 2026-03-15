@@ -77,31 +77,26 @@ All Blueprint operations require the Cortex MCP server connected to a running Un
    - **Wait for editor to fully start** (typically 30-60 seconds for cold start)
    - Editor must complete initialization before MCP server becomes available
 
-### Step 2: Verify MCP Connection (Automatic Reconnection)
+### Step 2: Verify MCP Connection
 
 **Unreal Editor typically starts in 30-60 seconds. Use this connection strategy:**
 
 1. **First attempt** (immediately after editor starts OR if editor was already running):
    - Use the `Skill` tool to invoke `/cortex-status` to check MCP connectivity
 
-2. **If MCP unavailable, trigger automatic reconnection:**
-   - Use the `Skill` tool to invoke `/cortex-reconnect`
-   - This skill will:
-     - Verify editor is running
-     - Attempt reconnection automatically (4 retries over ~60 seconds)
-     - Report success if connection restored
-     - Request user intervention if all attempts fail
+2. **If MCP unavailable:**
+   - Use the `Skill` tool to invoke `/cortex-status` again after a brief wait
+   - `/cortex-status` will report connection state and suggest next steps
+   - If all attempts fail, request user intervention (user may need to run `/mcp` manually)
 
-3. **After reconnection completes:**
+3. **After connection confirmed:**
    - If successful: proceed to Step 3
-   - If failed: follow the instructions from `/cortex-reconnect` (may require user to run `/mcp` manually)
-
-**Maximum automatic retry: ~60 seconds.** The `/cortex-reconnect` skill handles all retry logic and timing.
+   - If failed: follow the instructions from `/cortex-status` (may require user to run `/mcp` manually)
 
 **Important Notes:**
 - The MCP server starts automatically with Unreal Editor
-- `/cortex-reconnect` attempts automatic reconnection by calling MCP tools
-- If automatic reconnection fails, user may need to run `/mcp` command manually
+- `/cortex-status` checks editor and MCP connectivity in one call
+- If connectivity fails after editor starts, user may need to run `/mcp` command manually
 - Never wait longer than ~60 seconds - always timeout and request user help
 
 ### Step 3: Test MCP Tools

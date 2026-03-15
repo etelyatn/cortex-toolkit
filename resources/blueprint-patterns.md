@@ -18,20 +18,20 @@ Use the `parent_class` parameter to inherit from project-specific C++ base class
 
 **Short name (recommended for project classes):**
 ```python
-create_blueprint(
-    name="BP_SpecializedActor",
-    path="/Game/Blueprints",
-    parent_class="MyGameActor"  # Resolves to project's C++ class
-)
+blueprint_cmd(command="create_blueprint", params={
+    "name": "BP_SpecializedActor",
+    "path": "/Game/Blueprints",
+    "parent_class": "MyGameActor"  # Resolves to project's C++ class
+})
 ```
 
 **Full class path (for disambiguation):**
 ```python
-create_blueprint(
-    name="BP_SpecializedActor",
-    path="/Game/Blueprints",
-    parent_class="/Script/MyGame.MyGameActor"
-)
+blueprint_cmd(command="create_blueprint", params={
+    "name": "BP_SpecializedActor",
+    "path": "/Game/Blueprints",
+    "parent_class": "/Script/MyGame.MyGameActor"
+})
 ```
 
 **Auto-detection:** Widget subclasses are automatically detected and create WidgetBlueprints. Interface and FunctionLibrary types are also inferred from parent class hierarchy.
@@ -74,25 +74,25 @@ create_blueprint(
 ### Create Blueprint with Custom C++ Parent
 ```python
 # Create Blueprint inheriting from custom C++ base class
-create_blueprint(
-    name="BP_CustomEnemy",
-    path="/Game/Blueprints/Enemies",
-    parent_class="AEnemyBase"  # Your C++ base class
-)
+blueprint_cmd(command="create_blueprint", params={
+    "name": "BP_CustomEnemy",
+    "path": "/Game/Blueprints/Enemies",
+    "parent_class": "AEnemyBase"  # Your C++ base class
+})
 # Returns: {"asset_path": "/Game/Blueprints/Enemies/BP_CustomEnemy", "parent_class": "EnemyBase", "type": "Actor"}
 
 # Add Blueprint-specific variables
-add_blueprint_variable(
-    asset_path="/Game/Blueprints/Enemies/BP_CustomEnemy",
-    name="PatrolRadius",
-    type="float",
-    default_value="500.0",
-    category="AI"
-)
+blueprint_cmd(command="add_blueprint_variable", params={
+    "asset_path": "/Game/Blueprints/Enemies/BP_CustomEnemy",
+    "name": "PatrolRadius",
+    "type": "float",
+    "default_value": "500.0",
+    "category": "AI"
+})
 
 # Compile and save
-compile_blueprint(asset_path="/Game/Blueprints/Enemies/BP_CustomEnemy")
-save_blueprint(asset_path="/Game/Blueprints/Enemies/BP_CustomEnemy")
+blueprint_cmd(command="compile_blueprint", params={"asset_path": "/Game/Blueprints/Enemies/BP_CustomEnemy"})
+blueprint_cmd(command="save_blueprint", params={"asset_path": "/Game/Blueprints/Enemies/BP_CustomEnemy"})
 ```
 
 **Why use custom C++ parents:**
@@ -102,7 +102,7 @@ save_blueprint(asset_path="/Game/Blueprints/Enemies/BP_CustomEnemy")
 
 ### Create Blueprint with Structure
 ```
-create_blueprint → add_blueprint_variable (×N) → add_blueprint_function (×N) → compile_blueprint → save_blueprint
+blueprint_cmd(create_blueprint) → blueprint_cmd(add_blueprint_variable) ×N → blueprint_cmd(add_blueprint_function) ×N → blueprint_cmd(compile_blueprint) → blueprint_cmd(save_blueprint)
 ```
 
 ### Create Fully Functional Blueprint (Automated)
@@ -110,19 +110,19 @@ create_blueprint → add_blueprint_variable (×N) → add_blueprint_function (×
 Prefer `blueprint_compose` for creating from scratch — it runs all steps atomically.
 For manual step-by-step construction:
 ```
-create_blueprint
-  → add_blueprint_variable (×N)
-  → graph_add_node (×N)        # Add function call nodes
-  → graph_connect (×N)          # Wire execution and data flow
-  → graph_set_pin_value (×N)    # Set input values on nodes
-  → graph_auto_layout           # Auto-arrange node positions
-  → compile_blueprint
-  → save_blueprint
+blueprint_cmd(create_blueprint)
+  → blueprint_cmd(add_blueprint_variable) ×N
+  → blueprint_cmd(graph_add_node) ×N        # Add function call nodes
+  → blueprint_cmd(graph_connect) ×N          # Wire execution and data flow
+  → blueprint_cmd(graph_set_pin_value) ×N    # Set input values on nodes
+  → blueprint_cmd(graph_auto_layout)         # Auto-arrange node positions
+  → blueprint_cmd(compile_blueprint)
+  → blueprint_cmd(save_blueprint)
 ```
 
 ### graph_add_node — Node Class Short Names
 
-When calling `graph_add_node` or specifying nodes in `blueprint_compose`, use these short names:
+When calling `blueprint_cmd(command="graph_add_node")` or specifying nodes in `blueprint_compose`, use these short names:
 
 | Short Name | UK2Node Class | Params Required |
 |-----------|--------------|-----------------|
@@ -155,107 +155,107 @@ When calling `graph_add_node` or specifying nodes in `blueprint_compose`, use th
 **Example: Hello World Blueprint**
 ```python
 # 1. Create Actor Blueprint
-create_blueprint(name="BP_HelloWorld", path="/Game/Blueprints", type="Actor")
+blueprint_cmd(command="create_blueprint", params={"name": "BP_HelloWorld", "path": "/Game/Blueprints", "type": "Actor"})
 
 # 2. Add Delay node
-graph_add_node(
-    asset_path="/Game/Blueprints/BP_HelloWorld",
-    node_class="UK2Node_CallFunction",
-    params={"function_name": "KismetSystemLibrary.Delay"},
-    position={"x": 300, "y": 0}
-)
+blueprint_cmd(command="graph_add_node", params={
+    "asset_path": "/Game/Blueprints/BP_HelloWorld",
+    "node_class": "CallFunction",
+    "params": {"function_name": "KismetSystemLibrary.Delay"},
+    "position": {"x": 300, "y": 0}
+})
 # Returns: {"node_id": "K2Node_CallFunction_0"}
 
 # 3. Add Print String node
-graph_add_node(
-    asset_path="/Game/Blueprints/BP_HelloWorld",
-    node_class="UK2Node_CallFunction",
-    params={"function_name": "KismetSystemLibrary.PrintString"},
-    position={"x": 600, "y": 0}
-)
+blueprint_cmd(command="graph_add_node", params={
+    "asset_path": "/Game/Blueprints/BP_HelloWorld",
+    "node_class": "CallFunction",
+    "params": {"function_name": "KismetSystemLibrary.PrintString"},
+    "position": {"x": 600, "y": 0}
+})
 # Returns: {"node_id": "K2Node_CallFunction_1"}
 
 # 4. Connect nodes: BeginPlay → Delay → PrintString
-graph_connect(
-    asset_path="/Game/Blueprints/BP_HelloWorld",
-    source_node="K2Node_Event_0", source_pin="then",
-    target_node="K2Node_CallFunction_0", target_pin="execute"
-)
+blueprint_cmd(command="graph_connect", params={
+    "asset_path": "/Game/Blueprints/BP_HelloWorld",
+    "source_node": "K2Node_Event_0", "source_pin": "then",
+    "target_node": "K2Node_CallFunction_0", "target_pin": "execute"
+})
 
-graph_connect(
-    asset_path="/Game/Blueprints/BP_HelloWorld",
-    source_node="K2Node_CallFunction_0", source_pin="then",
-    target_node="K2Node_CallFunction_1", target_pin="execute"
-)
+blueprint_cmd(command="graph_connect", params={
+    "asset_path": "/Game/Blueprints/BP_HelloWorld",
+    "source_node": "K2Node_CallFunction_0", "source_pin": "then",
+    "target_node": "K2Node_CallFunction_1", "target_pin": "execute"
+})
 
 # 5. Set input values (makes Blueprint functional!)
-graph_set_pin_value(
-    asset_path="/Game/Blueprints/BP_HelloWorld",
-    node_id="K2Node_CallFunction_0",
-    pin_name="Duration",
-    value="5.0"
-)
+blueprint_cmd(command="graph_set_pin_value", params={
+    "asset_path": "/Game/Blueprints/BP_HelloWorld",
+    "node_id": "K2Node_CallFunction_0",
+    "pin_name": "Duration",
+    "value": "5.0"
+})
 
-graph_set_pin_value(
-    asset_path="/Game/Blueprints/BP_HelloWorld",
-    node_id="K2Node_CallFunction_1",
-    pin_name="InString",
-    value="Hello World"
-)
+blueprint_cmd(command="graph_set_pin_value", params={
+    "asset_path": "/Game/Blueprints/BP_HelloWorld",
+    "node_id": "K2Node_CallFunction_1",
+    "pin_name": "InString",
+    "value": "Hello World"
+})
 
 # 6. Compile and save
-compile_blueprint(asset_path="/Game/Blueprints/BP_HelloWorld")
-save_blueprint(asset_path="/Game/Blueprints/BP_HelloWorld")
+blueprint_cmd(command="compile_blueprint", params={"asset_path": "/Game/Blueprints/BP_HelloWorld"})
+blueprint_cmd(command="save_blueprint", params={"asset_path": "/Game/Blueprints/BP_HelloWorld"})
 ```
 
 **Result:** Fully functional Blueprint that prints "Hello World" 5 seconds after BeginPlay — no manual editing required!
 
 ### Configure Class Defaults (CDO)
 ```
-get_class_defaults (blueprint_path)                 ← discover all settable properties
-→ set_class_defaults (blueprint_path, properties)   ← set defaults with auto-compile + auto-save
+blueprint_cmd(get_class_defaults, blueprint_path)                 ← discover all settable properties
+→ blueprint_cmd(set_class_defaults, blueprint_path, properties)   ← set defaults with auto-compile + auto-save
 ```
 
 **Example: Configure a Character Blueprint**
 ```python
 # 1. Discover available properties
-get_class_defaults(blueprint_path="/Game/Blueprints/BP_Enemy")
+blueprint_cmd(command="get_class_defaults", params={"blueprint_path": "/Game/Blueprints/BP_Enemy"})
 
 # 2. Set multiple defaults in one call
-set_class_defaults(
-    blueprint_path="/Game/Blueprints/BP_Enemy",
-    properties={
+blueprint_cmd(command="set_class_defaults", params={
+    "blueprint_path": "/Game/Blueprints/BP_Enemy",
+    "properties": {
         "MaxHealth": 100.0,
         "MovementSpeed": 400.0,
         "AttackDamage": 25.0,
         "DefaultInputAction": "/Game/Input/IA_EnemyAI"
     }
-)
+})
 # Returns per-property results: type, previous_value, new_value, success
 # Auto-compiles and auto-saves by default
 ```
 
 **Example: Read specific defaults**
 ```python
-get_class_defaults(
-    blueprint_path="/Game/Blueprints/BP_Enemy",
-    properties=["MaxHealth", "MovementSpeed"]
-)
+blueprint_cmd(command="get_class_defaults", params={
+    "blueprint_path": "/Game/Blueprints/BP_Enemy",
+    "properties": ["MaxHealth", "MovementSpeed"]
+})
 ```
 
 ### Configure Timeline
 ```
-blueprint_compose (with Timeline node) → configure_timeline (tracks + keyframes) → compile_blueprint
+blueprint_compose (with Timeline node) → blueprint_cmd(configure_timeline, tracks + keyframes) → blueprint_cmd(compile_blueprint)
 ```
 
 **Example: Float track for door open animation**
 ```python
-configure_timeline(
-    asset_path="/Game/Blueprints/BP_Door",
-    timeline_name="OpenTimeline",
-    length=1.5,
-    loop=False,
-    tracks=[
+blueprint_cmd(command="configure_timeline", params={
+    "asset_path": "/Game/Blueprints/BP_Door",
+    "timeline_name": "OpenTimeline",
+    "length": 1.5,
+    "loop": False,
+    "tracks": [
         {
             "type": "float",
             "name": "OpenAmount",
@@ -266,24 +266,24 @@ configure_timeline(
             ]
         }
     ]
-)
+})
 ```
 
 ### Configure Component Defaults
 ```
-create_blueprint (with parent that has components) → set_component_defaults → compile_blueprint
+blueprint_compose (with parent that has components) → blueprint_cmd(set_component_defaults) → blueprint_cmd(compile_blueprint)
 ```
 
 **Example: Set mesh and material on a StaticMeshActor Blueprint**
 ```python
-set_component_defaults(
-    asset_path="/Game/Blueprints/BP_Barrel",
-    component_name="StaticMeshComponent0",
-    properties={
+blueprint_cmd(command="set_component_defaults", params={
+    "asset_path": "/Game/Blueprints/BP_Barrel",
+    "component_name": "StaticMeshComponent0",
+    "properties": {
         "StaticMesh": "/Game/Meshes/SM_Barrel",
         "OverrideMaterials[0]": "/Game/Materials/MI_Barrel_Rusty"
     }
-)
+})
 # Returns: {"component_name": "StaticMeshComponent0", "properties_set": 2, "errors": []}
 ```
 
@@ -291,48 +291,48 @@ set_component_defaults(
 
 ### Edit Level Script Blueprint
 
-Level Script Blueprints live inside map packages. Use `get_level_blueprint` to obtain a synthetic path, then use it with all graph and bp commands:
+Level Script Blueprints live inside map packages. Use `blueprint_cmd(command="get_level_blueprint")` to obtain a synthetic path, then use it with all graph and bp commands:
 
 ```python
 # 1. Get synthetic asset path
-result = get_level_blueprint(map_path="/Game/Maps/TestMap")
+result = blueprint_cmd(command="get_level_blueprint", params={"map_path": "/Game/Maps/TestMap"})
 # result["asset_path"] == "__level_bp__:/Game/Maps/TestMap"
 # result["save_warning"] — reminder to use save_level, not bp.save
 
 # 2. List graphs in the Level Blueprint
-graph_list_graphs(asset_path="__level_bp__:/Game/Maps/TestMap")
+blueprint_cmd(command="graph_list_graphs", params={"asset_path": "__level_bp__:/Game/Maps/TestMap"})
 
 # 3. Add a node to EventGraph
-graph_add_node(
-    asset_path="__level_bp__:/Game/Maps/TestMap",
-    node_class="CustomEvent",
-    graph_name="EventGraph",
-    position='{"x": 200, "y": 0}'
-)
+blueprint_cmd(command="graph_add_node", params={
+    "asset_path": "__level_bp__:/Game/Maps/TestMap",
+    "node_class": "CustomEvent",
+    "graph_name": "EventGraph",
+    "position": {"x": 200, "y": 0}
+})
 
 # 4. Compile the Level Blueprint
-compile_blueprint(asset_path="__level_bp__:/Game/Maps/TestMap")
+blueprint_cmd(command="compile_blueprint", params={"asset_path": "__level_bp__:/Game/Maps/TestMap"})
 
-# 5. Save — must use save_level, NOT save_blueprint
-save_level(map_path="/Game/Maps/TestMap")
+# 5. Save — must use save_level, NOT blueprint_cmd(save_blueprint)
+blueprint_cmd(command="save_level", params={"map_path": "/Game/Maps/TestMap"})
 ```
 
 **Supported commands with `__level_bp__:` paths:**
-All `graph_*` commands, `compile_blueprint`, and other `bp.*` commands.
+All `graph_*` commands, `blueprint_cmd(compile_blueprint)`, and other `blueprint_cmd` commands.
 
-**Not supported:** `save_blueprint` / `bp.save` — returns `LevelBlueprintSaveError`. Use `save_level` instead.
+**Not supported:** `blueprint_cmd(save_blueprint)` — returns `LevelBlueprintSaveError`. Use `blueprint_cmd(command="save_level")` instead.
 
 ### Remove an SCS Component
 
-Use `remove_scs_component` to delete a component from a Blueprint's Components panel (SCS). Typical use: after migrating a Blueprint-layer component to a C++ `CreateDefaultSubobject` declaration.
+Use `blueprint_cmd(command="remove_scs_component")` to delete a component from a Blueprint's Components panel (SCS). Typical use: after migrating a Blueprint-layer component to a C++ `CreateDefaultSubobject` declaration.
 
 ```python
 # Remove a component by its variable name
-remove_scs_component(
-    asset_path="/Game/Blueprints/BP_JumpPad",
-    component_name="StaticMeshComponent0",
-    compile=True
-)
+blueprint_cmd(command="remove_scs_component", params={
+    "asset_path": "/Game/Blueprints/BP_JumpPad",
+    "component_name": "StaticMeshComponent0",
+    "compile": True
+})
 # Returns: {"removed_component": "StaticMeshComponent0", "compiled": true, "compile_status": "UpToDate"}
 ```
 
@@ -348,18 +348,20 @@ remove_scs_component(
 compile_new_cpp_class
   → rebuild_project
   → cleanup_migration (reparent BP to new C++ class, remove migrated variables/functions)
-  → remove_scs_component (for each component now declared in C++ constructor)
-  → compile_blueprint
+  → blueprint_cmd(remove_scs_component) (for each component now declared in C++ constructor)
+  → blueprint_cmd(compile_blueprint)
 ```
 
 ### Review Blueprint
 ```
-get_blueprint_info → graph_list_graphs → graph_list_nodes (per graph) → assess complexity
+blueprint_cmd(get_blueprint_info) → blueprint_cmd(graph_list_graphs) → blueprint_cmd(graph_list_nodes) per graph → assess complexity
 ```
+
+**`get_blueprint_info` limitation:** The `functions` array only includes functions *defined on the Blueprint itself*. Inherited C++ functions (e.g. from a custom C++ base class) are **not listed**. To discover inherited C++ functions, use `query_class_detail(class_name, detail="full")` from the Reflect domain instead.
 
 ### Modify Existing Blueprint
 ```
-get_blueprint_info → add/remove variables/functions → compile_blueprint → save_blueprint
+blueprint_cmd(get_blueprint_info) → blueprint_cmd(add/remove variables/functions) → blueprint_cmd(compile_blueprint) → blueprint_cmd(save_blueprint)
 ```
 
 ## Benchmark Tests

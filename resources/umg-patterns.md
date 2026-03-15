@@ -76,35 +76,50 @@ Root: VerticalBox
 
 ## MCP Tool Workflows
 
-### Build a Screen
+### Build a New Screen (widget_compose — mandatory for new Widget Blueprints)
+```python
+widget_compose(asset_path="/Game/UI/WBP_YourScreen", root_class="CanvasPanel", widgets=[...], animations=[...])
 ```
-add_widget (root panel) → add_widget (sections) → add_widget (content)
-→ set_anchor (all) → set_padding (all) → set_text/color/font (content)
-→ create_animation (transitions)
+Creates the Widget Blueprint, adds the full hierarchy, applies styling, compiles, and saves — all in one atomic call.
+
+### Build a Screen Incrementally (modifying existing widgets)
+```python
+umg_cmd(command="add_widget", params={"asset_path": "/Game/UI/WBP_Screen", "parent": "PnlContent", "class": "TextBlock", "name": "TxtTitle"})
+umg_cmd(command="set_anchor", params={"asset_path": "/Game/UI/WBP_Screen", "widget_name": "TxtTitle", "anchor": "top_center"})
+umg_cmd(command="set_text",   params={"asset_path": "/Game/UI/WBP_Screen", "widget_name": "TxtTitle", "text": "Hello"})
+umg_cmd(command="create_animation", params={"asset_path": "/Game/UI/WBP_Screen", "name": "FadeIn"})
 ```
 
 ### Control Slot Layout
-```
-get_schema (discover slot properties) → get_property / set_property with "slot." prefix
-Read:  get_property(property_path="slot.Padding.Left") → returns current value
-Write: set_property(property_path="slot.HorizontalAlignment", value="Center")
+```python
+# Discover slot properties first
+umg_cmd(command="get_schema", params={"asset_path": "/Game/UI/WBP_Screen", "widget_name": "TxtTitle"})
+
+# Read a slot property
+umg_cmd(command="get_property", params={"asset_path": "/Game/UI/WBP_Screen", "widget_name": "TxtTitle", "property_path": "slot.Padding.Left"})
+
+# Write a slot property
+umg_cmd(command="set_property", params={"asset_path": "/Game/UI/WBP_Screen", "widget_name": "TxtTitle", "property_path": "slot.HorizontalAlignment", "value": "Center"})
 ```
 
 ### Modify Existing Screen
-```
-get_tree → identify target widgets → set_property / add_widget / remove_widget
-→ get_tree (verify)
+```python
+umg_cmd(command="get_tree",       params={"asset_path": "/Game/UI/WBP_Screen"})
+# identify target widgets, then:
+umg_cmd(command="set_property",   params={"asset_path": "/Game/UI/WBP_Screen", "widget_name": "TxtTitle", "property_path": "ColorAndOpacity.R", "value": 1.0})
+umg_cmd(command="add_widget",     params={"asset_path": "/Game/UI/WBP_Screen", "parent": "PnlRoot", "class": "Button", "name": "BtnConfirm"})
+umg_cmd(command="remove_widget",  params={"asset_path": "/Game/UI/WBP_Screen", "widget_name": "BtnOld"})
+umg_cmd(command="get_tree",       params={"asset_path": "/Game/UI/WBP_Screen"})  # verify
 ```
 
 ### Inspect Widget Layout (get_widget)
 
-`get_widget` returns full widget state. Key fields added in Group A:
+`get_widget` returns full widget state including render transform and slot details:
 
 ```python
-result = get_widget(asset_path="/Game/UI/WBP_HUD", widget_name="TxtScore")
-
+umg_cmd(command="get_widget", params={"asset_path": "/Game/UI/WBP_HUD", "widget_name": "TxtScore"})
+# Response includes:
 # render_transform — always present
-result["render_transform"]
 # {
 #   "translation": {"x": 0.0, "y": 0.0},
 #   "scale":       {"x": 1.0, "y": 1.0},
@@ -112,12 +127,11 @@ result["render_transform"]
 #   "angle":       0.0,
 #   "pivot":       {"x": 0.5, "y": 0.5}
 # }
-
+#
 # slot_type — always present, null for root widget
-result["slot_type"]  # e.g. "CanvasPanelSlot", "HorizontalBoxSlot", null
-
+# e.g. "CanvasPanelSlot", "HorizontalBoxSlot", null
+#
 # slot — layout details, depends on slot_type
-result["slot"]
 # CanvasPanelSlot example:
 # {
 #   "anchors":   {"min": {"x": 1.0, "y": 0.0}, "max": {"x": 1.0, "y": 0.0}},
@@ -136,8 +150,10 @@ result["slot"]
 **Tip:** Check `slot_type` before reading `slot` to know which fields to expect.
 
 ### Duplicate and Customize
-```
-duplicate_widget → set_text / set_color (customize copy)
+```python
+umg_cmd(command="duplicate_widget", params={"asset_path": "/Game/UI/WBP_Screen", "widget_name": "BtnTemplate", "new_name": "BtnVariant"})
+umg_cmd(command="set_text",  params={"asset_path": "/Game/UI/WBP_Screen", "widget_name": "BtnVariant", "text": "Variant"})
+umg_cmd(command="set_color", params={"asset_path": "/Game/UI/WBP_Screen", "widget_name": "BtnVariant", "r": 0.2, "g": 0.8, "b": 0.2})
 ```
 
 ### Vertical Fill Child Pattern

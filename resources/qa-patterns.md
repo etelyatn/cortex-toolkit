@@ -22,19 +22,23 @@ Bug detection patterns and classification for exploratory and scenario-driven ga
 
 **Hold mechanics (charge, sprint, aim):**
 ```
-run_input_sequence: [
-  {at_ms: 0,    kind: "key", key: "LeftShift", action: "press"},
-  {at_ms: 2000, kind: "key", key: "LeftShift", action: "release"}
-]
+editor_cmd(command="inject_input_sequence", params={
+  steps: [
+    {at_ms: 0,    kind: "key", key: "LeftShift", action: "press"},
+    {at_ms: 2000, kind: "key", key: "LeftShift", action: "release"}
+  ]
+})
 ```
 Follow with `observe_game_state` to confirm stamina drain, sprint state, etc.
 
 **Combo / timed sequence:**
 ```
-run_input_sequence: [
-  {at_ms: 0,   kind: "key", key: "R",         action: "tap"},
-  {at_ms: 500, kind: "key", key: "LeftMouseButton", action: "tap"}
-]
+editor_cmd(command="inject_input_sequence", params={
+  steps: [
+    {at_ms: 0,   kind: "key", key: "R",              action: "tap"},
+    {at_ms: 500, kind: "key", key: "LeftMouseButton", action: "tap"}
+  ]
+})
 ```
 
 **Input failure signatures:**
@@ -43,7 +47,7 @@ run_input_sequence: [
 - `INVALID_FIELD` error → bad key name or action string (fix the scenario)
 - `wait_for_condition` timeout after input → mechanic not responding; file as MAJOR
 
-**Known limitation:** Direct input tools (`press_key`, `run_input_sequence`) only confirm Slate dispatch, not game receipt. Always verify effects with `observe_game_state` or `wait_for_condition` after injecting input.
+**Known limitation:** `editor_cmd(command="inject_key", ...)` and `editor_cmd(command="inject_input_sequence", ...)` only confirm Slate dispatch, not game receipt. Always verify effects with `observe_game_state` or `wait_for_condition` after injecting input.
 
 ## Benchmark Tests
 
