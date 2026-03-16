@@ -65,30 +65,26 @@ Skills are invoked with `/skill-name` in Claude Code. Skills launch specialized 
 
 | Skill | Description |
 |-------|-------------|
-| `/cortex-bp-create` | Create Blueprint assets, add variables, and implement functions |
-| `/cortex-bp-review` | Review Blueprint graph for structure, naming, complexity, and UE best practices |
+| `/cortex-blueprint` | Create, modify, review, or debug Blueprints — structure, graphs, variables, functions, best practices |
 | `/cortex-bp-migrate` | Migrate Blueprints to C++ using the V7 migration pipeline |
 
 ### Data
 
 | Skill | Description |
 |-------|-------------|
-| `/cortex-data-create` | Create and populate DataTables, DataAssets, and related data assets from specs |
-| `/cortex-data-review` | Review DataTables, DataAssets, and data for quality and balance issues |
+| `/cortex-data` | Create, populate, or review DataTables, DataAssets, CurveTables, or StringTables — including balance and integrity checks |
 
 ### Level
 
 | Skill | Description |
 |-------|-------------|
-| `/cortex-level-edit` | Edit level actors, transforms, and organization using the batch-first methodology |
-| `/cortex-level-review` | Review level content and organization |
+| `/cortex-level` | Place, organize, or review actors in a level |
 
 ### Material
 
 | Skill | Description |
 |-------|-------------|
-| `/cortex-material-create` | Create materials, instances, and parameter collections from specifications |
-| `/cortex-material-review` | Review materials, instances, and parameter collections for structure and performance |
+| `/cortex-material` | Create or review materials, instances, parameter collections, or material graphs |
 
 ### QA
 
@@ -102,15 +98,13 @@ Skills are invoked with `/skill-name` in Claude Code. Skills launch specialized 
 
 | Skill | Description |
 |-------|-------------|
-| `/cortex-impact` | Analyze cross-system impact of changes before making them |
-| `/cortex-reflect` | Analyze project class architecture and cross-references |
+| `/cortex-reflect` | Assess blast radius before breaking changes, or analyze class architecture and cross-references |
 
 ### UI
 
 | Skill | Description |
 |-------|-------------|
-| `/cortex-ui-create` | Create UMG widget screens using the composite widget creation tool |
-| `/cortex-ui-review` | Review UMG widget hierarchies for structure, layout patterns, and best practices |
+| `/cortex-ui` | Create or review UMG widgets, screens, or UI components |
 
 ### Core
 
@@ -127,10 +121,9 @@ Skills are invoked with `/skill-name` in Claude Code. Skills launch specialized 
 |-------|-------------|
 | `/cortex-build` | Build the Unreal project after modifying C++ source files |
 | `/cortex-editor` | Open the Unreal Editor when it needs to be running |
-| `/cortex-reconnect` | Reconnect to the Cortex MCP server when connection is lost |
 | `/cortex-restart` | Restart the Unreal Editor after C++ changes need recompilation |
 | `/cortex-schema-refresh` | Refresh `.cortex/schema/` project snapshot files |
-| `/cortex-status` | Check MCP connection health and editor status |
+| `/cortex-status` | Check MCP connection health, editor status, and connection recovery |
 
 ## Agents
 
@@ -163,9 +156,11 @@ Cortex Toolkit reads project-specific knowledge from `.cortex/`:
 ├── context.md           # Project-specific conventions (read every session)
 ├── domains/             # Domain-specific knowledge files
 │   ├── blueprints.md
-│   ├── core.md
 │   ├── data.md
-│   └── ...
+│   ├── level.md
+│   ├── material.md
+│   ├── qa.md
+│   └── umg.md
 └── schema/              # LLM-readable project snapshots
     ├── _catalog.md      # Index of all schema files
     └── ...

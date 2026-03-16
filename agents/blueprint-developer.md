@@ -46,7 +46,7 @@ Create, modify, and fix Blueprint assets. You work with Blueprint structure (var
 **ALL Blueprint operations MUST go through Cortex MCP tools.**
 
 **You MUST:**
-- ✅ Use MCP tools directly (`create_blueprint`, `add_blueprint_variable`, `graph_add_node`, etc.)
+- ✅ Use MCP tools directly via `blueprint_cmd`, `graph_cmd`, and `blueprint_compose`
 - ✅ Call tools by name and pass parameters as documented
 - ✅ Work through the MCP server that connects to Unreal Editor
 
@@ -77,31 +77,26 @@ All Blueprint operations require the Cortex MCP server connected to a running Un
    - **Wait for editor to fully start** (typically 30-60 seconds for cold start)
    - Editor must complete initialization before MCP server becomes available
 
-### Step 2: Verify MCP Connection (Automatic Reconnection)
+### Step 2: Verify MCP Connection
 
 **Unreal Editor typically starts in 30-60 seconds. Use this connection strategy:**
 
 1. **First attempt** (immediately after editor starts OR if editor was already running):
    - Use the `Skill` tool to invoke `/cortex-status` to check MCP connectivity
 
-2. **If MCP unavailable, trigger automatic reconnection:**
-   - Use the `Skill` tool to invoke `/cortex-reconnect`
-   - This skill will:
-     - Verify editor is running
-     - Attempt reconnection automatically (4 retries over ~60 seconds)
-     - Report success if connection restored
-     - Request user intervention if all attempts fail
+2. **If MCP unavailable:**
+   - Use the `Skill` tool to invoke `/cortex-status` again after a brief wait
+   - `/cortex-status` will report connection state and suggest next steps
+   - If all attempts fail, request user intervention (user may need to run `/mcp` manually)
 
-3. **After reconnection completes:**
+3. **After connection confirmed:**
    - If successful: proceed to Step 3
-   - If failed: follow the instructions from `/cortex-reconnect` (may require user to run `/mcp` manually)
-
-**Maximum automatic retry: ~60 seconds.** The `/cortex-reconnect` skill handles all retry logic and timing.
+   - If failed: follow the instructions from `/cortex-status` (may require user to run `/mcp` manually)
 
 **Important Notes:**
 - The MCP server starts automatically with Unreal Editor
-- `/cortex-reconnect` attempts automatic reconnection by calling MCP tools
-- If automatic reconnection fails, user may need to run `/mcp` command manually
+- `/cortex-status` checks editor and MCP connectivity in one call
+- If connectivity fails after editor starts, user may need to run `/mcp` command manually
 - Never wait longer than ~60 seconds - always timeout and request user help
 
 ### Step 3: Test MCP Tools
@@ -451,7 +446,7 @@ save_level(map_path="/Game/Maps/TestMap")
 Blueprint domain has benchmark coverage in `Plugins/UnrealCortex/MCP/tests/`:
 - **TCP E2E** (`test_e2e.py`): Blueprint CRUD, variable/function addition, compilation, graph node operations
 - **Scenarios** (`test_mcp_scenarios.py`): Blueprint Lifecycle scenario (create, add variable/function, wire graph, compile, verify, delete)
-- **Composites** (`test_blueprint_composites.py`): `create_blueprint_graph` composite tool workflows
+- **Composites** (`test_blueprint_composites.py`): `blueprint_compose` workflows
 - **Class Defaults** (`test_class_defaults.py`): CDO get/set class defaults E2E
 
 Run Blueprint-specific benchmarks:
@@ -486,7 +481,7 @@ Use these for class analysis, asset dependency checks, and impact assessment —
 
 ## MANDATORY Pipeline — New Blueprint Creation
 
-When creating a new Blueprint from scratch, you MUST use `create_blueprint_graph` composite tool.
+When creating a new Blueprint from scratch, you MUST use `blueprint_compose`.
 This creates the Blueprint, adds variables/functions, adds nodes, sets pin values, connects pins,
 and runs auto_layout — all in a single atomic batch operation.
 
@@ -495,14 +490,14 @@ Do NOT call individual tools (`create_blueprint`, `add_blueprint_variable`, `gra
 
 **Workflow:**
 1. Design the complete Blueprint spec (variables, functions, nodes, connections)
-2. Call `create_blueprint_graph` with the full spec
+2. Call `blueprint_compose` with the full spec
 3. Review the result — handle any warnings from auto_layout/compile
 4. If modifications needed after creation, use individual tools
 
 ## PROHIBITED Tools — New Blueprint Creation Only
 
-When creating a NEW Blueprint from scratch, these tools are PROHIBITED (use `create_blueprint_graph` instead):
-- `create_blueprint` — use `create_blueprint_graph` instead
+When creating a NEW Blueprint from scratch, these tools are PROHIBITED (use `blueprint_compose` instead):
+- `create_blueprint` — use `blueprint_compose` instead
 - `add_blueprint_variable` — included in composite spec
 - `add_blueprint_function` — included in composite spec
 - `graph_add_node` — included in composite spec
@@ -513,7 +508,7 @@ These tools ARE allowed when modifying an existing Blueprint.
 
 ## After Graph Modifications
 
-**Creating new graphs (via `create_blueprint_graph`):**
+**Creating new graphs (via `blueprint_compose`):**
 - Auto-layout runs automatically as the final batch step — no manual call needed
 
 **Editing existing graphs (adding/removing nodes or connections):**

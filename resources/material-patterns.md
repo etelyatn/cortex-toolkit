@@ -110,7 +110,7 @@ Vectors:
 
 ### Composite Tool Creation Pattern (Primary Method)
 
-The `create_material_graph` composite tool is the **recommended** way to build materials. It leverages UnrealCortex's batch pipeline for atomic, reliable creation.
+The `material_compose` composite tool is the **recommended** way to build materials. It leverages UnrealCortex's batch pipeline for atomic, reliable creation.
 
 #### Why Use Composite Tools
 
@@ -122,7 +122,7 @@ The `create_material_graph` composite tool is the **recommended** way to build m
 - 90% failure rate on large graphs
 
 **NEW approach (atomic, fast):**
-- Single `create_material_graph` call
+- Single `material_compose` call
 - Atomic batch execution with stop-on-error
 - Auto-cleanup on failure (deletes partial .uasset)
 - <2 minutes, reliable
@@ -131,7 +131,7 @@ The `create_material_graph` composite tool is the **recommended** way to build m
 #### Usage
 
 ```python
-create_material_graph(
+material_compose(
     name="M_PBR",
     path="/Game/Materials/",
     nodes=[
@@ -207,6 +207,8 @@ create_material_graph(
 
 #### $ref Wiring Patterns
 
+See `batch-pipeline-guide.md` for $ref syntax and resolution rules.
+
 The composite tool auto-generates $ref strings between steps:
 
 **Pattern 1: Asset path propagation**
@@ -264,15 +266,80 @@ timeout = max(60, len(commands) * 2)  # 60s minimum, 2s per command
 
 A 127-step batch gets 254s timeout instead of the default 60s.
 
-### Manual Batch Construction (Advanced)
+### Modifying Existing Materials
 
-For updating existing materials or edge cases not covered by composite tools, construct batches manually.
+For updating existing materials, use manual batches with the pattern: **validate → read → batch(mutate) → auto_layout**.
 
-#### When to Use Manual Batches
+```
+1. AI calls material_cmd(command="get_material", ...)          ← validate material exists
+2. AI calls material_cmd(command="list_nodes", ...) +
+           material_cmd(command="list_connections", ...)       ← read current state (2 TCP calls)
+3. AI validates the diff                                       ← pre-flight checks (see below)
+4. AI builds a batch of low-level commands                     ← mix of literals + $ref for new nodes
+5. auto_layout as final batch step                             ← repositions everything cleanly
+```
 
-- Modifying existing materials (add/remove nodes, rewire connections)
-- Complex updates requiring atomicity but not full graph recreation
-- Operations not yet supported by composite tools
+**Key difference from creation:** For updates, the AI already knows `asset_path` and existing `node_id` values as **literals** from the read step. Only newly added nodes need `$ref`.
+
+#### Pre-flight Validation (before sending batch)
+
+The AI MUST validate before constructing the batch. These checks prevent wasted operations and partial state:
+
+| Check | How | Failure action |
+|-------|-----|----------------|
+| Material exists | `material_cmd(command="get_material", params={asset_path})` | **Stop.** Ask user: wrong path? create new material instead? |
+| Referenced nodes exist | Compare node_ids against `material_cmd(command="list_nodes")` result | **Stop.** Show user which nodes are missing |
+| Connections to disconnect exist | Compare against `material_cmd(command="list_connections")` result | **Warn.** Skip the disconnect (connection may have been removed already) |
+| Expression class valid | Check class name against known UE classes | **Stop.** Show user the invalid class name |
+| Pin indices valid | Check against known pin counts for the expression class | **Stop.** Show user valid pin range |
+
+If pre-flight fails, present the error to the user with options:
+
+```
+Cannot update material: /Game/Materials/M_PulsatingGradient
+
+   Material not found at this path.
+
+   Options:
+   1. Check the correct path (material_cmd(command="list_materials") to see available materials)
+   2. Create a new material with material_compose
+   3. Provide the correct asset path
+```
+
+```
+Cannot update material: node "MaterialExpressionLinearInterpolate_0" not found
+
+   The Gradient (Lerp) node referenced in the disconnect step does not exist
+   in the current graph. Available Lerp nodes: MaterialExpressionLinearInterpolate_1
+
+   Options:
+   1. Use the correct node ID (MaterialExpressionLinearInterpolate_1)
+   2. Skip this modification
+   3. Re-read the graph to get fresh node IDs
+```
+
+#### Command Ordering for Safe Updates
+
+The batch command order matters for updates. Place operations in **dependency-safe order**:
+
+```
+1. add_node          ← new nodes first (no side effects if batch fails here)
+2. set_node_property ← configure new nodes (still no graph impact)
+3. disconnect        ← break old connections (graph changes start here — DANGER ZONE)
+4. connect           ← wire new connections (must follow disconnect)
+5. auto_layout       ← cosmetic, always last
+```
+
+**Why this order:** If the batch fails during `add_node` or `set_node_property` (steps 1-2), the existing graph is untouched — just orphan nodes were added. The risky part is `disconnect` → `connect` (steps 3-4), because a failure between them leaves the graph partially rewired.
+
+#### $ref Usage in Updates
+
+| Param | Source | Example |
+|-------|--------|---------|
+| `asset_path` | Literal (known) | `"/Game/Materials/M_PulsatingGradient"` |
+| Existing `node_id` | Literal (from `list_nodes`) | `"MaterialExpressionLinearInterpolate_0"` |
+| New `node_id` | `$ref` (from `add_node` in this batch) | `"$steps[0].data.node_id"` |
+| `"MaterialResult"` | Literal (always) | `"MaterialResult"` |
 
 #### Example: Add Parameter to Existing Material
 
@@ -313,36 +380,67 @@ For updating existing materials or edge cases not covered by composite tools, co
 }
 ```
 
+#### Example: Add Circular Mask to Existing Material
+
+```json
+{"command": "batch", "params": {"stop_on_error": true, "commands": [
+  {"command": "material.add_node",          "params": {"asset_path": "/Game/Materials/M_PulsatingGradient", "expression_class": "MaterialExpressionSphereMask"}},
+  {"command": "material.add_node",          "params": {"asset_path": "...", "expression_class": "MaterialExpressionMultiply"}},
+  {"command": "material.set_node_property", "params": {"asset_path": "...", "node_id": "$steps[0].data.node_id", "property": "AttenuationRadius", "value": 0.5}},
+  {"command": "material.disconnect",        "params": {"asset_path": "...", "source_node": "MaterialExpressionLinearInterpolate_0", "target_node": "MaterialResult", "target_input": "BaseColor"}},
+  {"command": "material.connect",           "params": {"asset_path": "...", "source_node": "MaterialExpressionLinearInterpolate_0", "target_node": "$steps[1].data.node_id", "target_input": 0}},
+  {"command": "material.connect",           "params": {"asset_path": "...", "source_node": "$steps[0].data.node_id", "target_node": "$steps[1].data.node_id", "target_input": 1}},
+  {"command": "material.connect",           "params": {"asset_path": "...", "source_node": "$steps[1].data.node_id", "target_node": "MaterialResult", "target_input": "BaseColor"}},
+  {"command": "material.auto_layout",       "params": {"asset_path": "/Game/Materials/M_PulsatingGradient"}}
+]}}
+```
+
 **Key differences from composite tools:**
 - Direct asset path (not a new material, so no create step)
 - Manual $ref wiring (Python layer doesn't auto-generate)
 - No spec validation (you're responsible for correctness)
 - No auto-cleanup on failure (partial changes remain)
 
-#### $ref Syntax Reference
+#### Update Error Recovery
 
-**Basic field reference:**
+Update errors are more dangerous than creation errors because the graph is in a **partially modified state**. Always inform the user when a disconnect+connect sequence fails partway through — the material is in a broken visual state until fixed.
+
+**Failure scenarios and recovery:**
+
+| Failed at | Graph state | Recovery options for user |
+|-----------|-------------|--------------------------|
+| `add_node` (step 0-1) | **Safe.** Existing graph untouched | Fix expression class and retry |
+| `set_node_property` (step 2) | **Safe.** New nodes exist but unconnected, graph works | Fix property and retry, or remove orphan nodes |
+| `disconnect` (step 3) | **Safe.** Connection doesn't exist (already removed?) | Skip disconnect and continue with connects |
+| `connect` after `disconnect` (step 4-6) | **BROKEN.** BaseColor unwired | **Ask user:** fix connection and retry, OR re-wire original connection as rollback |
+| `auto_layout` (step 7) | **Functional.** Graph works, just messy layout | Call `material_cmd(command="auto_layout")` separately, or ignore |
+
+**Example: connect fails after disconnect:**
+
 ```
-$steps[0].data.asset_path
-$steps[1].data.node_id
+Material update partially completed: /Game/Materials/M_PulsatingGradient
+
+   Step 4 of 8 failed: Connect Gradient → NewMultiply.A
+   Error: Input pin index 3 does not exist on MaterialExpressionMultiply_2
+
+   BaseColor is currently UNWIRED (disconnect at step 3 succeeded)
+
+   What would you like to do?
+   1. Fix the pin index and retry remaining connections (steps 4-7)
+   2. Rollback: re-wire original connection (Gradient → Material.BaseColor) and remove new nodes
+   3. Open the material in UE Editor and fix manually
 ```
 
-**Nested field reference:**
-```
-$steps[0].data.created.id
-$steps[2].data.connections[0].pin
-```
+This is why `stop_on_error: true` is critical for updates — continuing after a failed disconnect+connect could leave the graph in an even worse state.
 
-**Escape literal strings:**
-```
-"$$steps[0]"  →  resolves to "$steps[0]" (literal)
-```
+### Manual Batch Construction (Advanced)
 
-**Rules:**
-- Must be entire string value (no mid-string interpolation)
-- Only references to previous steps (N < current step index)
-- References to failed steps return error
-- Type-preserving (numbers stay numbers, bools stay bools)
+For edge cases not covered by the above patterns, construct batches manually.
+
+#### When to Use Manual Batches
+
+- Complex updates requiring atomicity but not full graph recreation
+- Operations not yet supported by composite tools
 
 #### Error Handling in Manual Batches
 
@@ -397,58 +495,58 @@ Executes all steps regardless of failures:
 
 ### Set Material-Level Properties
 ```
-get_material (asset_path) → check current settings
-→ set_material_property (asset_path, property_name, value) ×N
+material_cmd(command="get_material", params={asset_path}) → check current settings
+→ material_cmd(command="set_material_property", params={asset_path, property_name, value}) ×N
 ```
 
 **Example: Configure Post-Process Material**
 ```python
 # Set domain, blend mode, and shading model
-set_material_property("/Game/Materials/M_Outline", "MaterialDomain", "PostProcess")
-set_material_property("/Game/Materials/M_Outline", "ShadingModel", "Unlit")
-set_material_property("/Game/Materials/M_Outline", "BlendMode", "Translucent")
+material_cmd(command="set_material_property", params={"asset_path": "/Game/Materials/M_Outline", "property_name": "MaterialDomain", "value": "PostProcess"})
+material_cmd(command="set_material_property", params={"asset_path": "/Game/Materials/M_Outline", "property_name": "ShadingModel", "value": "Unlit"})
+material_cmd(command="set_material_property", params={"asset_path": "/Game/Materials/M_Outline", "property_name": "BlendMode", "value": "Translucent"})
 ```
 
 **Example: Make Foliage Material Two-Sided and Masked**
 ```python
-set_material_property("/Game/Materials/M_Leaves", "TwoSided", true)
-set_material_property("/Game/Materials/M_Leaves", "BlendMode", "Masked")
+material_cmd(command="set_material_property", params={"asset_path": "/Game/Materials/M_Leaves", "property_name": "TwoSided", "value": true})
+material_cmd(command="set_material_property", params={"asset_path": "/Game/Materials/M_Leaves", "property_name": "BlendMode", "value": "Masked"})
 ```
 
 **Enum aliases:** Use pretty names (`"Opaque"`, `"PostProcess"`, `"Unlit"`) or UE reflection names (`"BLEND_Opaque"`, `"MD_PostProcess"`, `"MSM_Unlit"`). The Python layer normalizes automatically.
 
 ### Set Expression Node Enum Properties
 ```
-set_material_node_property (asset_path, node_id, property_name, value)
+material_cmd(command="set_node_property", params={asset_path, node_id, property_name, value})
 ```
 
 Now supports FByteProperty and FEnumProperty (SceneTextureId, SamplerType, etc.):
 
 ```python
 # Configure SceneTexture for post-process input
-set_material_node_property("/Game/Materials/M_PP", "Expr_0", "SceneTextureId", "PPI_PostProcessInput0")
+material_cmd(command="set_node_property", params={"asset_path": "/Game/Materials/M_PP", "node_id": "Expr_0", "property_name": "SceneTextureId", "value": "PPI_PostProcessInput0"})
 
 # Set sampler type
-set_material_node_property("/Game/Materials/M_Mat", "Expr_1", "SamplerType", "SAMPLERTYPE_Color")
+material_cmd(command="set_node_property", params={"asset_path": "/Game/Materials/M_Mat", "node_id": "Expr_1", "property_name": "SamplerType", "value": "SAMPLERTYPE_Color"})
 ```
 
 ### Individual Tool Usage (Legacy, Not Recommended)
 
 ⚠️ Only use individual tools when modifying existing materials and a batch is unnecessary.
-   For new materials, always use `create_material_graph` composite tool.
+   For new materials, always use `material_compose` composite tool.
    For complex updates, use manual batch construction.
 
 ```
-add_node (asset_path, expression_class)
-→ set_node_property (asset_path, node_id, property_name, value)
-→ connect_material_nodes (asset_path, source_node, source_output, target_node, target_input)
-→ auto_layout (asset_path)
+material_cmd(command="add_node", params={asset_path, expression_class})
+→ material_cmd(command="set_node_property", params={asset_path, node_id, property_name, value})
+→ material_cmd(command="connect", params={asset_path, source_node, source_output, target_node, target_input})
+→ material_cmd(command="auto_layout", params={asset_path})
 ```
 
 ### Create Instance with Overrides
 ```
-create_instance (asset_path, name, parent_material)
-→ set_parameters ([
+material_instance_compose(asset_path, name, parent_material,
+  parameters=[
     {name: "BaseColor", value: "/Game/Textures/T_Brick_D"},
     {name: "Normal", value: "/Game/Textures/T_Brick_N"},
     {name: "TintColor", value: [0.9, 0.85, 0.8, 1.0]},
@@ -458,65 +556,66 @@ create_instance (asset_path, name, parent_material)
 
 ### Modify Instance Parameters
 ```
-list_parameters (instance path) → see current values
-→ set_parameter (name, new value) or set_parameters (batch)
-→ get_instance (verify overrides)
+material_cmd(command="list_parameters", params={instance_path}) → see current values
+→ material_cmd(command="set_parameter", params={name, value}) or
+  material_cmd(command="set_parameters", params={parameters: [...]}) for batch
+→ material_cmd(command="get_instance", params={asset_path}) to verify overrides
 ```
 
 ### Reset Instance to Parent Defaults
 ```
-list_parameters (instance path) → identify overridden params
-→ reset_parameter (name) for each override to clear
-→ get_instance (verify clean state)
+material_cmd(command="list_parameters", params={instance_path}) → identify overridden params
+→ material_cmd(command="reset_parameter", params={name}) for each override to clear
+→ material_cmd(command="get_instance", params={asset_path}) to verify clean state
 ```
 
 ### Set Up Parameter Collection
 ```
-create_collection (asset_path, name)
-→ add_collection_parameter (name: "TimeOfDay", type: "scalar", default: 12.0)
-→ add_collection_parameter (name: "SunColor", type: "vector", default: [1,0.95,0.8,1])
-→ set_collection_parameter (name, value) to adjust at runtime
+material_cmd(command="create_collection", params={asset_path, name})
+→ material_cmd(command="add_collection_parameter", params={name: "TimeOfDay", type: "scalar", default: 12.0})
+→ material_cmd(command="add_collection_parameter", params={name: "SunColor", type: "vector", default: [1,0.95,0.8,1]})
+→ material_cmd(command="set_collection_parameter", params={name, value}) to adjust at runtime
 ```
 
 ### Audit Material Graph
 ```
-list_materials (path, recursive) → find all materials
-→ get_material (each) → check node count, connections
-→ list_nodes (each) → identify unused nodes
-→ list_connections (each) → verify all outputs are connected (includes expression-to-expression)
-→ get_material_node_pins (each node) → verify pin usage
+material_cmd(command="list_materials", params={path, recursive}) → find all materials
+→ material_cmd(command="get_material", params={asset_path}) → check node count, connections
+→ material_cmd(command="list_nodes", params={asset_path}) → identify unused nodes
+→ material_cmd(command="list_connections", params={asset_path}) → verify all outputs are connected (includes expression-to-expression)
+→ material_cmd(command="get_material_node_pins", params={asset_path, node_id}) → verify pin usage
 ```
 
 ### Delete Materials and Instances (Improved: Actual File Deletion)
 ```
-delete_material (asset_path)
+material_cmd(command="delete_material", params={asset_path})
 → Uses ObjectTools::ForceDeleteObjects for proper reference cleanup
 → Deletes .uasset file from disk (not just MarkAsGarbage)
 → Returns error if material has references that prevent deletion
 → Returns {asset_path, deleted: true} on success
 
-delete_instance (asset_path)
+material_cmd(command="delete_instance", params={asset_path})
 → Same disk deletion behavior as delete_material
 → Cleanup is reliable — no orphaned files after deletion
 ```
 
 ### Set Node Properties (Improved: Struct + Enum Property Support)
 ```
-set_node_property (asset_path, node_id, property_name, value)
+material_cmd(command="set_node_property", params={asset_path, node_id, property_name, value})
 → Supports FLinearColor properties (e.g., VectorParameter.DefaultValue)
 → Supports FVector properties
 → Supports FByteProperty / FEnumProperty (e.g., SceneTextureId, SamplerType)
 → Format for FLinearColor: [R, G, B, A] as array of floats
 → Format for Enum: UE enum string ("PPI_PostProcessInput0") or integer value
-→ Example: set_node_property(..., "DefaultValue", [1.0, 0.0, 0.0, 1.0])
-→ Example: set_node_property(..., "SceneTextureId", "PPI_PostProcessInput0")
+→ Example: material_cmd(command="set_node_property", params={..., "property_name": "DefaultValue", "value": [1.0, 0.0, 0.0, 1.0]})
+→ Example: material_cmd(command="set_node_property", params={..., "property_name": "SceneTextureId", "value": "PPI_PostProcessInput0"})
 → Delegates to FCortexSerializer::JsonToProperty for all type resolution
 ```
 
 ## Pin Naming Reference
 
 ### Composite Tool Pin Validation
-The `create_material_graph` composite tool validates pin names against a comprehensive _PIN_MAP covering 30+ expression types before executing the batch. This catches pin name errors early and prevents cascading failures.
+The `material_compose` composite tool validates pin names against a comprehensive _PIN_MAP covering 30+ expression types before executing the batch. This catches pin name errors early and prevents cascading failures.
 
 Validated expression types include:
 - Parameters: ScalarParameter, VectorParameter, TextureParameter, StaticSwitchParameter, StaticBoolParameter
@@ -557,11 +656,11 @@ Validated expression types include:
 | MaterialResult | `"BaseColor"`, `"Metallic"`, `"Roughness"`, `"Normal"`, `"EmissiveColor"`, `"Specular"`, `"Opacity"`, `"OpacityMask"`, `"WorldPositionOffset"`, `"AmbientOcclusion"` |
 
 ### Discovering Pins at Runtime (New: get_material_node_pins)
-Use `get_material_node_pins(asset_path, node_id)` to query actual pin names on any node.
+Use `material_cmd(command="get_material_node_pins", params={asset_path, node_id})` to query actual pin names on any node.
 This is the definitive way to discover available pins and see what's currently connected.
 
 ```
-get_material_node_pins("/Game/Materials/M_Test", "Expr_0")
+material_cmd(command="get_material_node_pins", params={"asset_path": "/Game/Materials/M_Test", "node_id": "Expr_0"})
 → Returns: {
     "node_id": "Expr_0",
     "expression_class": "MaterialExpressionMultiply",
@@ -575,10 +674,10 @@ get_material_node_pins("/Game/Materials/M_Test", "Expr_0")
   }
 
 Use case:
-1. Add a node with add_material_node
+1. Add a node with material_cmd(command="add_node")
 2. Get its node_id from the response
-3. Call get_material_node_pins to discover exact pin names
-4. Use discovered pin names in connect_material_nodes
+3. Call material_cmd(command="get_material_node_pins") to discover exact pin names
+4. Use discovered pin names in material_cmd(command="connect")
 ```
 
 ## Benchmark Tests
@@ -587,7 +686,7 @@ Material domain workflows are validated by the benchmark testing framework in `P
 
 | Test File | Coverage |
 |-----------|----------|
-| `test_material_composites.py` | `create_material_graph` composite end-to-end, node/connection validation, failure recovery, auto-cleanup |
+| `test_material_composites.py` | `material_compose` composite end-to-end, node/connection validation, failure recovery, auto-cleanup |
 | `test_material_composites_e2e.py` | `set_material_property`, `set_material_node_property`, enum/byte property support |
 | `test_material_enum_aliases.py` | Pretty name to UE reflection name mapping (MaterialDomain, BlendMode, ShadingModel) |
 | `test_mcp_scenarios.py` | Material Create benchmark (create graph + create instance + set parameter) |

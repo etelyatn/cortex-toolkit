@@ -88,7 +88,7 @@ Widget `class` can also be a user Widget Blueprint asset path (for example
 
 ## MANDATORY Pipeline — New Widget Screen Creation
 
-When creating a new Widget Blueprint from scratch, you MUST use `create_widget_screen` composite tool.
+When creating a new Widget Blueprint from scratch, you MUST use `widget_compose`.
 This creates the Widget Blueprint, adds all widgets in hierarchy order, applies styling,
 and runs compile + save — all in a single atomic batch operation.
 
@@ -97,13 +97,13 @@ separately when creating from scratch.
 
 **Workflow:**
 1. Design the complete widget hierarchy with inline styling
-2. Call `create_widget_screen` with the full spec
+2. Call `widget_compose` with the full spec
 3. Review the result — handle any warnings from compile/save
 4. If modifications needed after creation, use individual tools
 
 ## PROHIBITED Tools — New Widget Creation Only
 
-When creating a NEW Widget Blueprint from scratch, these tools are PROHIBITED (use `create_widget_screen` instead):
+When creating a NEW Widget Blueprint from scratch, these tools are PROHIBITED (use `widget_compose` instead):
 - `add_widget`
 - `set_text`
 - `set_color`
@@ -135,7 +135,7 @@ Use these for class analysis, asset dependency checks, and impact assessment —
 
 UMG domain has benchmark coverage in `Plugins/UnrealCortex/MCP/tests/`:
 - **TCP E2E** (`test_e2e.py`): Widget class listing, widget tree CRUD, property setters (text, color, visibility, anchor), schema queries
-- **Composites** (`test_umg_composites.py`): `create_widget_screen` composite workflows
+- **Composites** (`test_umg_composites.py`): `widget_compose` workflows
 - **Scenarios** (`test_mcp_scenarios.py`): Widget Builder scenario (create widget BP, add panel hierarchy, set text/color/anchor, get tree, duplicate)
 - **Stress** (`test_mcp_scenarios.py -k stress`): Large widget tree (50+ widgets), hierarchy verification
 

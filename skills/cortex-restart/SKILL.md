@@ -48,7 +48,7 @@ Wait for build completion. If build fails, report error and do not restart.
 
 ### 4. Restart
 
-Call the `restart_editor` MCP composite tool. It handles:
+Call the `editor_restart` MCP tool. It handles:
 - Graceful shutdown via `core.shutdown`
 - Wait for process exit
 - Launch new editor instance

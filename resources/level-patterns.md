@@ -4,14 +4,14 @@ Common patterns and workflows for level design with UnrealCortex MCP tools.
 
 ## Actor Lifecycle Workflows
 
-### Spawn and Configure (use level_batch)
+### Spawn and Configure (use level_compose)
 ```
-level_batch(operations=[{"op": "spawn", ..., "folder": "...", "properties": {...}}])
+level_compose(operations=[{"op": "spawn", ..., "folder": "...", "properties": {...}}])
 ```
 
-### Spawn and Attach (use level_batch)
+### Spawn and Attach (use level_compose)
 ```
-level_batch(operations=[
+level_compose(operations=[
     {"op": "spawn", "id": "parent", ...},
     {"op": "spawn", "id": "child", ...},
     {"op": "attach", "actor": "$ops[child].name", "parent": "$ops[parent].name"}
@@ -20,88 +20,88 @@ level_batch(operations=[
 
 ### Single Actor Quick Edit (individual tools OK)
 ```
-set_transform -> set_actor_property -> save_level
+level_cmd("set_transform") → level_cmd("set_actor_property") → level_cmd("save_level")
 ```
 
 ### Duplicate and Offset
 ```
-find_actors("Wall*") → duplicate_actor (x N, with offset) → save_level
+level_cmd("find_actors", params={"pattern": "Wall*"}) → level_compose (duplicate × N, with offset) → level_cmd("save_level")
 ```
 
 ### Delete with Safety Check
 ```
-get_actor → delete_actor(actor, confirm_class="StaticMeshActor") → save_level
+level_cmd("get_actor") → level_cmd("delete_actor", params={"actor": "...", "confirm_class": "StaticMeshActor"}) → level_cmd("save_level")
 ```
 
 ## Query Workflows
 
 ### Find Actors by Type
 ```
-list_actors(class_filter="PointLight") → review results
+level_cmd("list_actors", params={"class_filter": "PointLight"}) → review results
 ```
 
 ### Spatial Query
 ```
-list_actors(region={"type": "sphere", "center": [0,0,0], "radius": 1000}) → review nearby actors
+level_cmd("list_actors", params={"region": {"type": "sphere", "center": [0,0,0], "radius": 1000}}) → review nearby actors
 ```
 
 ### Paginated Listing
 ```
-list_actors(limit=50, offset=0) → list_actors(limit=50, offset=50) → ...
+level_cmd("list_actors", params={"limit": 50, "offset": 0}) → level_cmd("list_actors", params={"limit": 50, "offset": 50}) → ...
 ```
 
 ### Wildcard Search
 ```
-find_actors("*Door*") → get_actor(match) → review details
+level_cmd("find_actors", params={"pattern": "*Door*"}) → level_cmd("get_actor") → review details
 ```
 
 ### Bounding Box Analysis
 ```
-get_bounds(folder="Geometry") → review spatial extent → plan new actor placement
+level_cmd("get_bounds", params={"folder": "Geometry"}) → review spatial extent → plan new actor placement
 ```
 
 ## Organization Workflows
 
 ### Folder Organization
 ```
-find_actors("Light*") → set_folder(actor, "Lighting") (x N) → save_level
+level_cmd("find_actors", params={"pattern": "Light*"}) → level_compose (modify × N, set folder "Lighting") → level_cmd("save_level")
 ```
 
 ### Actor Attachment
 ```
-spawn_actor (parent) → spawn_actor (child) → attach_actor(child, parent) → save_level
+level_compose (spawn parent + spawn child + attach child to parent) → level_cmd("save_level")
 ```
 
 ### Grouping (Non-WP Levels Only)
 ```
-list_actors(tags=["wall_section"]) → group_actors(actors) → save_level
+level_cmd("list_actors", params={"tags": ["wall_section"]}) → level_cmd("group_actors") → level_cmd("save_level")
 ```
 
 ### Ungrouping
 ```
-ungroup_actors(group="GroupActor_0") → save_level
+level_cmd("ungroup_actors", params={"group": "GroupActor_0"}) → level_cmd("save_level")
 ```
 
 ### Tagging
 ```
-find_actors("*Destructible*") → set_tags(actor, ["destructible", "physics"]) (x N) → save_level
+level_cmd("find_actors", params={"pattern": "*Destructible*"}) → level_compose (modify × N, set tags ["destructible", "physics"]) → level_cmd("save_level")
 ```
 
 ## Component Workflows
 
 ### Inspect Components
 ```
-list_components(actor) → get_component_property(actor, component, property)
+level_cmd("list_components", params={"actor": "..."}) → level_cmd("get_component_property", params={"actor": "...", "component": "...", "property_path": "..."})
 ```
 
 ### Add and Configure Component
 ```
-add_component(actor, "PointLightComponent") → set_component_property(actor, component, "Intensity", 5000) → save_level
+level_cmd("add_component", params={"actor": "...", "class_name": "PointLightComponent"}) → level_cmd("set_component_property", params={"actor": "...", "component": "...", "property_path": "Intensity", "value": 5000}) → level_cmd("save_level")
 ```
 
 ### Remove Instance Component
 ```
-list_components(actor) → remove_component(actor, component) → save_level
+level_cmd("list_components", params={"actor": "..."}) → level_cmd("remove_component", params={"actor": "...", "component": "..."}) → level_cmd("save_level")
 ```
 
 **Note:** Only `Instance` creation method components can be removed. `Native` and `SimpleConstructionScript` components are permanent.
@@ -110,30 +110,30 @@ list_components(actor) → remove_component(actor, component) → save_level
 
 ### Level Info and Sublevels
 ```
-get_info → list_sublevels → review level structure
+level_cmd("get_info") → level_cmd("list_sublevels") → review level structure
 ```
 
 ### Load/Unload Sublevel
 ```
-list_sublevels → load_sublevel(sublevel="SubLevel_Interior") → list_actors (verify loaded)
+level_cmd("list_sublevels") → level_cmd("load_sublevel", params={"sublevel": "SubLevel_Interior"}) → level_cmd("list_actors") (verify loaded)
 ```
 
 ### Toggle Sublevel Visibility
 ```
-set_sublevel_visibility(sublevel="SubLevel_Lighting", visible=false)
+level_cmd("set_sublevel_visibility", params={"sublevel": "SubLevel_Lighting", "visible": false})
 ```
 
 ### Data Layer Assignment (World Partition)
 ```
-list_data_layers → set_data_layer(actors=["Actor1", "Actor2"], data_layer="Gameplay") → save_level
+level_cmd("list_data_layers") → level_cmd("set_data_layer", params={"actors": ["Actor1", "Actor2"], "data_layer": "Gameplay"}) → level_cmd("save_level")
 ```
 
-## Scene Construction and Modification (level_batch)
+## Scene Construction and Modification (level_compose)
 
 ### Multi-Actor Scene Creation
 
 ```python
-level_batch(
+level_compose(
     operations=[
         {
             "op": "spawn",
@@ -170,7 +170,7 @@ level_batch(
 ### Scene with Attachments
 
 ```python
-level_batch(
+level_compose(
     operations=[
         {
             "op": "spawn",
@@ -200,7 +200,7 @@ level_batch(
 ### Bulk Modification of Existing Actors
 
 ```python
-level_batch(
+level_compose(
     operations=[
         {"op": "modify", "actor": "Wall_North", "folder": "Geometry/Walls", "tags": ["wall"]},
         {"op": "modify", "actor": "Wall_South", "folder": "Geometry/Walls", "tags": ["wall"]},
@@ -215,7 +215,7 @@ level_batch(
 ### Mixed Create, Modify, Delete
 
 ```python
-level_batch(
+level_compose(
     operations=[
         {"op": "spawn", "id": "fill", "class": "PointLight",
          "label": "FillLight", "folder": "Lighting",
@@ -232,7 +232,7 @@ level_batch(
 ### Duplicate and Offset (Repeated Geometry)
 
 ```python
-level_batch(
+level_compose(
     operations=[
         {"op": "duplicate", "actor": "Wall_Section_A", "id": "wall_b", "offset": [200, 0, 0]},
         {"op": "duplicate", "actor": "Wall_Section_A", "id": "wall_c", "offset": [400, 0, 0]},
@@ -247,7 +247,7 @@ level_batch(
 ### Spawn with Component Properties
 
 ```python
-level_batch(
+level_compose(
     operations=[
         {
             "op": "spawn",
@@ -355,7 +355,7 @@ Level domain workflows are validated by the benchmark testing framework in `Plug
 | Test File | Coverage |
 |-----------|----------|
 | `test_level_e2e.py` | Actor lifecycle, transforms, components, queries (list, find, bounds, selection), streaming (sublevels, data layers) |
-| `test_level_batch.py` | `level_batch` with spawn/modify/delete/duplicate/attach/detach, `$ops[]` refs, stop-on-error |
+| `test_level_batch.py` | `level_compose` with spawn/modify/delete/duplicate/attach/detach, `$ops[]` refs, stop-on-error |
 | `test_level_tools.py` | MCP tool wrappers for level operations |
 
 Run to validate after modifying Level MCP tools or C++ command handlers.

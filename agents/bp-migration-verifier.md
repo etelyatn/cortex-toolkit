@@ -68,7 +68,7 @@ For each event graph that was part of the migration:
 - If count > 0: report WARNING — "N orphaned nodes remain in {graph_name}"
 - If count == 0: report PASS — "No orphaned nodes in {graph_name}"
 
-Use the node list from `analyze_blueprint_for_migration` or `get_blueprint_graph_nodes` to count remaining non-event nodes after migration.
+Use the node list from `analyze_blueprint_for_migration` or `graph_list_nodes` to count remaining non-event nodes after migration.
 
 ### Task: Dependency Impact Check
 

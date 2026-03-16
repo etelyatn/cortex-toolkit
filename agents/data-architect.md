@@ -17,7 +17,7 @@ Design data schemas, create and populate DataTables/DataAssets/CurveTables, and 
 1. Read `.cortex/context.md` for project overview
 2. Read `.cortex/domains/data.md` for existing schemas and conventions
 3. Check `.cortex/schema/_catalog.md` for struct schemas, table inventory, and tag prefixes (fast, no editor needed)
-4. Use `list_datatables` and `list_data_assets` for live data if schema files are missing or stale
+4. Use `data_cmd(command="list_datatables")` and `data_cmd(command="list_data_assets")` for live data if schema files are missing or stale
 
 ## Methodology
 
@@ -27,18 +27,18 @@ Design data schemas, create and populate DataTables/DataAssets/CurveTables, and 
    - Define struct fields with appropriate types
    - Plan references between tables (FName keys, soft references)
    - Include GameplayTags for categorization where appropriate
-3. **Create assets** — use `create_datatable` to create new DataTables via MCP, or guide creation in editor
-4. **Populate data** — use `add_datatable_row`, `import_datatable_json`, `set_translation`
+3. **Create assets** — use `data_cmd(command="create_datatable")` to create new DataTables via MCP, or guide creation in editor
+4. **Populate data** — use `data_cmd(command="add_datatable_row")`, `data_cmd(command="import_datatable_json")`, `data_cmd(command="set_translation")`
 5. **Validate** — verify data integrity, reference resolution, tag validity
 
 ## Creating DataTables via MCP
 
-Use `create_datatable` to create a new DataTable asset programmatically:
+Use `data_cmd` to create a new DataTable asset programmatically:
 
 ```python
-create_datatable(
-    table_path="/Game/Data/DT_Weapons",
-    row_struct="WeaponDefinition"  # Short name of FTableRowBase-derived struct
+data_cmd(
+    command="create_datatable",
+    params={"table_path": "/Game/Data/DT_Weapons", "row_struct": "WeaponDefinition"}
 )
 # Returns: {"table_path": "/Game/Data/DT_Weapons.DT_Weapons", "row_struct": "WeaponDefinition", "created": true}
 ```
@@ -50,7 +50,7 @@ create_datatable(
 
 **Typical DataTable creation workflow:**
 ```
-create_datatable → add_datatable_row (×N) OR import_datatable_json → query_datatable (verify)
+data_cmd("create_datatable") → data_cmd("add_datatable_row") (×N) OR data_cmd("import_datatable_json") → data_cmd("query_datatable") (verify)
 ```
 
 ## Data Type Decision Framework
@@ -82,14 +82,14 @@ Reference these tests when extending Data MCP tools or debugging integration iss
 
 Use these for class analysis, asset dependency checks, and impact assessment — works on any asset type: Blueprints, Widget BPs, materials, DataTables, DataAssets, level assets, and C++ classes:
 
-| Tool | Use when |
-|------|----------|
-| `query_class_context` | Inspect a struct or class — properties, parent, children — before designing around it |
-| `query_class_hierarchy` | Discover all DataAsset or struct subclasses in the project |
-| `get_dependencies` | What does a DataAsset or DataTable import? |
-| `get_referencers` | What references this data asset? Before renaming or deleting a table or struct |
-| `impact_analysis` | Blast radius before changing a row struct used across many tables |
-| `query_usages` | Where is a data property or function referenced in Blueprint graphs |
+| Command | Use when |
+|---------|----------|
+| `reflect_cmd(command="query_class_context")` | Inspect a struct or class — properties, parent, children — before designing around it |
+| `reflect_cmd(command="query_class_hierarchy")` | Discover all DataAsset or struct subclasses in the project |
+| `reflect_cmd(command="get_dependencies")` | What does a DataAsset or DataTable import? |
+| `reflect_cmd(command="get_referencers")` | What references this data asset? Before renaming or deleting a table or struct |
+| `reflect_cmd(command="impact_analysis")` | Blast radius before changing a row struct used across many tables |
+| `reflect_cmd(command="query_usages")` | Where is a data property or function referenced in Blueprint graphs |
 
 ## Naming Conventions
 

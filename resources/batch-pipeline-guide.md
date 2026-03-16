@@ -295,7 +295,7 @@ Material operations check `FCortexCommandRouter::IsInBatch()` to defer expensive
 **DO:**
 ```json
 // Batch 1: Create material with nodes/connections
-create_material_graph(...)
+material_compose(...)
 
 // Batch 2: Create instance (depends on batch 1)
 material.create_instance(parent_path: result_from_batch_1)
@@ -406,5 +406,6 @@ Independent queries — partial success acceptable, so `stop_on_error: false`.
 ## See Also
 
 - **Material Composite Tools:** `resources/material-patterns.md`
-- **MCP Protocol Reference:** `resources/mcp-protocol.md`
+- **MCP Tool Reference:** `resources/mcp-tool-reference.md`
+- **MCP Architecture:** `resources/mcp-architecture.md`
 - **Testing Guide:** `resources/testing-guide.md`
