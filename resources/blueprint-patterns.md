@@ -352,6 +352,35 @@ compile_new_cpp_class
   → blueprint_cmd(compile_blueprint)
 ```
 
+### Reparent Blueprint
+```
+blueprint_cmd(reparent, asset_path, new_parent) → auto-compiles
+```
+
+**Example: Migrate to C++ base class**
+```python
+blueprint_cmd(command="reparent", params={
+    "asset_path": "/Game/Blueprints/BP_Enemy",
+    "new_parent": "AEnemyBase"  # C++ class short name
+})
+# Returns: {"asset_path": "...", "old_parent": "Actor", "new_parent": "EnemyBase", "reparented": true}
+```
+
+**Example: Reparent to another Blueprint**
+```python
+blueprint_cmd(command="reparent", params={
+    "asset_path": "/Game/Blueprints/BP_SpecialEnemy",
+    "new_parent": "/Game/Blueprints/BP_EnemyBase"  # Blueprint asset path
+})
+```
+
+**Resolution order:** Tries Blueprint asset path first, then C++ class name (full path or short name).
+
+**Validation:**
+- Returns error if Blueprint already has the specified parent
+- Returns `InvalidParentClass` if the class cannot be resolved
+- Returns `BlueprintNotFound` if the asset path is invalid
+
 ### Review Blueprint
 ```
 blueprint_cmd(get_blueprint_info) → blueprint_cmd(graph_list_graphs) → blueprint_cmd(graph_list_nodes) per graph → assess complexity

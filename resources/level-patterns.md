@@ -33,6 +33,38 @@ level_cmd("find_actors", params={"pattern": "Wall*"}) → level_compose (duplica
 level_cmd("get_actor") → level_cmd("delete_actor", params={"actor": "...", "confirm_class": "StaticMeshActor"}) → level_cmd("save_level")
 ```
 
+### Spawn into Sublevel
+```
+level_cmd("list_sublevels") → level_cmd("load_sublevel") (if needed) → level_cmd("spawn_actor", params={"class_name": "...", "level": "SublevelShortName"})
+```
+
+**Example: Spawn actor into a streaming sublevel**
+```python
+# Ensure sublevel is loaded
+level_cmd(command="load_sublevel", params={"sublevel": "LVL_Cubic_Campus_BPs"})
+
+# Spawn directly into the sublevel
+level_cmd(command="spawn_actor", params={
+    "class_name": "PointLight",
+    "location": [100, 200, 300],
+    "label": "CampusLight",
+    "level": "LVL_Cubic_Campus_BPs"
+})
+```
+
+**In level_compose:**
+```python
+level_compose(
+    operations=[
+        {"op": "spawn", "class": "PointLight", "label": "CampusLight",
+         "location": [100, 200, 300], "level": "LVL_Cubic_Campus_BPs"}
+    ],
+    save=True
+)
+```
+
+**Validation:** Sublevel must be loaded. Returns `InvalidValue` if sublevel not found or not loaded.
+
 ## Query Workflows
 
 ### Find Actors by Type

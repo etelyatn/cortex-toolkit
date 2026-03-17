@@ -161,7 +161,7 @@ impact_analysis(
 
 ## Blueprint Tools
 
-**Asset management:** `create_blueprint`, `list_blueprints`, `get_blueprint_info`, `delete_blueprint`, `duplicate_blueprint`, `compile_blueprint`, `save_blueprint`
+**Asset management:** `create_blueprint`, `list_blueprints`, `get_blueprint_info`, `delete_blueprint`, `duplicate_blueprint`, `compile_blueprint`, `save_blueprint`, `reparent_blueprint`
 
 **Structure:** `add_blueprint_variable`, `remove_blueprint_variable`, `add_blueprint_function`, `configure_timeline`, `set_component_defaults`, `remove_scs_component`
 
@@ -395,6 +395,33 @@ remove_scs_component(
 **Validation:**
 - Only Actor-based Blueprints have an SCS. Calling on a component or widget Blueprint returns `InvalidField`.
 - If the component name is not found, returns `ComponentNotFound`.
+
+## Reparenting Blueprints
+
+Use `reparent_blueprint` to change a Blueprint's parent class. Accepts both Blueprint asset paths and C++ class names.
+
+```python
+reparent_blueprint(
+    asset_path="/Game/Blueprints/BP_Enemy",
+    new_parent="AMyGameCharacter"  # C++ class name or Blueprint asset path
+)
+# Returns: {"asset_path": "...", "old_parent": "Actor", "new_parent": "MyGameCharacter", "reparented": true}
+```
+
+**Parameters:**
+- `asset_path`: Blueprint to reparent
+- `new_parent`: New parent class — can be a Blueprint asset path (e.g., `/Game/Blueprints/BP_BaseEnemy`) or a C++ class name (e.g., `AMyGameCharacter`, `MyGameCharacter`, or `/Script/MyGame.MyGameCharacter`)
+
+**Behavior:**
+- Resolves parent as Blueprint path first, falls back to C++ class
+- Auto-compiles after reparenting
+- Wraps in a transaction (supports undo/redo)
+- Returns error if the Blueprint already has the specified parent
+
+**Use cases:**
+- Migrating a Blueprint from `AActor` to a custom C++ base class after implementing shared logic in C++
+- Changing parent hierarchy during refactoring
+- Post-migration cleanup (reparent to new C++ class)
 
 ## Error Handling
 

@@ -140,7 +140,7 @@ Single tool for all level modifications. Pass an `operations` array:
 
 | `op` | Required fields | Optional fields |
 |------|----------------|----------------|
-| `spawn` | `class` | `id`, `label`, `location`, `rotation`, `scale`, `mesh`, `material`, `folder`, `tags`, `properties` |
+| `spawn` | `class` | `id`, `label`, `location`, `rotation`, `scale`, `mesh`, `material`, `folder`, `tags`, `properties`, `level` |
 | `modify` | `actor` | `label`, `folder`, `tags`, `data_layer`, `transform {location?,rotation?,scale?}`, `properties` |
 | `delete` | `actor` | `confirm_class` |
 | `duplicate` | `actor` | `id`, `offset [X,Y,Z]` |
@@ -206,7 +206,7 @@ Single tool for all level modifications. Pass an `operations` array:
 ## Individual Tools (for single-actor edits only)
 
 ### Actor Lifecycle
-- `spawn_actor(class_name, location?, rotation?, scale?, label?, folder?, mesh?, material?)`
+- `spawn_actor(class_name, location?, rotation?, scale?, label?, folder?, mesh?, material?, level?)`
 - `delete_actor(actor, confirm_class?)`
 - `duplicate_actor(actor, offset?)`
 - `rename_actor(actor, label)`
@@ -249,6 +249,30 @@ Single tool for all level modifications. Pass an `operations` array:
 - `list_data_layers()`
 - `save_level()`
 - `save_all()`
+
+## Sublevel-Targeted Spawning
+
+Use the optional `level` parameter on `spawn_actor` to place actors directly into a specific streaming sublevel instead of the persistent level.
+
+```python
+spawn_actor(
+    class_name="PointLight",
+    location=[100, 200, 300],
+    label="CampusLight",
+    level="LVL_Cubic_Campus_BPs"  # sublevel short name
+)
+```
+
+**Behavior:**
+- The `level` parameter is optional. When omitted, actors spawn into the persistent level (existing behavior).
+- The sublevel must be loaded (use `load_sublevel` first if needed).
+- Resolves by short name (e.g., `"LVL_Cubic_Campus_BPs"`) or package name suffix.
+- Returns `InvalidValue` error if the sublevel is not found or not loaded.
+
+**In `level_compose`:** The `level` parameter is also available on `spawn` operations:
+```json
+{"op": "spawn", "class": "PointLight", "label": "CampusLight", "level": "LVL_Cubic_Campus_BPs"}
+```
 
 ## Actor Identification
 

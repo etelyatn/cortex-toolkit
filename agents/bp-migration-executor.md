@@ -161,6 +161,7 @@ Do NOT write `03-node-mapping.json`. All execution data goes inline.
 
 - `duplicate_blueprint`
 - `compile_blueprint`
+- `reparent_blueprint` — change a Blueprint's parent class (alternative to `cleanup_blueprint_migration` for standalone reparent)
 - `cleanup_blueprint_migration`
 - `graph_disconnect`
 - `delete_orphaned_nodes`

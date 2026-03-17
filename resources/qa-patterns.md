@@ -49,6 +49,43 @@ editor_cmd(command="inject_input_sequence", params={
 
 **Known limitation:** `editor_cmd(command="inject_key", ...)` and `editor_cmd(command="inject_input_sequence", ...)` only confirm Slate dispatch, not game receipt. Always verify effects with `observe_game_state` or `wait_for_condition` after injecting input.
 
+## Session Recording and Replay
+
+Record player sessions during PIE and replay them for regression testing.
+
+### Record a Session
+```python
+qa_cmd(command="start_recording", params={"name": "smoke_test_01"})
+# ... perform test actions via move_to, interact, inject_key, etc. ...
+qa_cmd(command="stop_recording")
+# Returns: session file path and frame count
+```
+
+### Replay a Recorded Session
+```python
+qa_cmd(command="replay_session", params={
+    "path": "Saved/QASessions/smoke_test_01.json",
+    "on_failure": "continue"  # "continue" = keep going on assertion failure, "stop" = halt immediately
+})
+# Deferred response — completes when replay finishes
+```
+
+### Cancel an In-Progress Replay
+```python
+qa_cmd(command="cancel_replay")
+```
+
+**Constraints:**
+- PIE must be active for both recording and replay
+- Recording and replay are mutually exclusive (`SessionBusy` error)
+- `replay_session` is a deferred (async) command — it completes when replay finishes
+
+**Typical regression workflow:**
+```
+start_pie → start_recording → (perform test actions) → stop_recording
+→ restart_pie → replay_session → (verify assertions pass)
+```
+
 ## Benchmark Tests
 
 QA and Editor tool coverage in `Plugins/UnrealCortex/MCP/tests/`:

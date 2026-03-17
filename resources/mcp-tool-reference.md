@@ -52,7 +52,7 @@ Manage asset lifecycle. All commands accept a single path, a list of paths, or g
 
 ## Blueprint (`blueprint_cmd`)
 
-- **Assets:** `create_blueprint`, `list_blueprints`, `get_blueprint_info`, `delete_blueprint`, `duplicate_blueprint`, `compile_blueprint`, `save_blueprint`
+- **Assets:** `create_blueprint`, `list_blueprints`, `get_blueprint_info`, `delete_blueprint`, `duplicate_blueprint`, `compile_blueprint`, `save_blueprint`, `reparent_blueprint`
 - **Structure:** `add_blueprint_variable`, `remove_blueprint_variable`, `add_blueprint_function`
 - **Level Blueprint:** `get_level_blueprint(map_path)` — returns synthetic `__level_bp__:/Game/Maps/MapName` path for use with all `graph_*` and `bp.*` commands; save Level Blueprint changes with `save_level`, not `save_blueprint` (returns `LevelBlueprintSaveError`)
 
@@ -101,7 +101,7 @@ See `blueprint-patterns.md` for node class short names and full node type table.
 
 ## Level (`level_cmd`)
 
-- **Actors:** `spawn_actor`, `delete_actor`, `list_actors`, `get_actor`, `set_actor_transform`, `find_actors`
+- **Actors:** `spawn_actor` (optional `level` param for sublevel targeting), `delete_actor`, `list_actors`, `get_actor`, `set_actor_transform`, `find_actors`
 - **Organization:** `set_actor_label`, `set_actor_folder`, `list_folders`
 - **Level management:** `load_level`, `save_level`, `list_levels`
 
@@ -128,9 +128,10 @@ See `qa-patterns.md` for input injection documentation.
 
 ## QA (`qa_cmd`)
 
-- **World queries:** `get_world_state`, `find_actor`, `get_actor_properties`, `query_actors`
-- **Game actions:** `move_to`, `interact`, `assert_condition`
-- **Scenario engine:** `run_scenario`, `get_scenario_status`
+- **World queries:** `observe_state`, `get_actor_state`, `get_player_state`
+- **Game actions:** `look_at`, `interact`, `move_to`, `wait_for`, `teleport_player`, `set_actor_property`, `set_random_seed`
+- **Assertions:** `assert_state`
+- **Recording/Replay:** `start_recording`, `stop_recording`, `replay_session`, `cancel_replay`
 
 ### Standalone
 

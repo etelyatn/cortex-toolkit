@@ -49,6 +49,36 @@ For each scenario step:
 
 **Limitation:** `editor_cmd(command="inject_key", ...)` and `editor_cmd(command="inject_input_sequence", ...)` only confirm that the Slate event was dispatched — they cannot verify the game reacted. Always follow direct input with an `observe_game_state` or `wait_for_condition` to check the effect.
 
+## Session Recording and Replay
+
+Record player sessions and replay them for regression testing.
+
+**Record a session:**
+```python
+qa_cmd(command="start_recording", params={"name": "door_interaction_test"})
+# ... player performs actions during PIE ...
+qa_cmd(command="stop_recording")
+# Returns: {"path": "Saved/QASessions/door_interaction_test.json", "frame_count": N}
+```
+
+**Replay a recorded session:**
+```python
+qa_cmd(command="replay_session", params={
+    "path": "Saved/QASessions/door_interaction_test.json",
+    "on_failure": "continue"  # or "stop"
+})
+# Deferred response — returns when replay completes or fails
+```
+
+**Cancel an in-progress replay:**
+```python
+qa_cmd(command="cancel_replay")
+```
+
+**Constraints:**
+- Recording and replay are mutually exclusive — only one can be active at a time (`SessionBusy` error if violated).
+- Both require an active PIE session (`PIE_NOT_ACTIVE` if PIE is not running).
+
 ## Tooling Rules
 
 - Use MCP QA and Editor tools only; do not use script-based workarounds.
