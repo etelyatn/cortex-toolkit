@@ -16,7 +16,7 @@ Use skill names directly in instructions (for example `cortex-editor`).
 
 Look for a running UnrealEditor process. On Windows:
 ```bash
-tasklist | grep -i UnrealEditor
+MSYS_NO_PATHCONV=1 tasklist /FI "IMAGENAME eq UnrealEditor.exe" /FO CSV 2>/dev/null | grep -i UnrealEditor
 ```
 
 If not running → report "Editor not running" and suggest `cortex-editor`.
@@ -66,7 +66,7 @@ Activate ONLY if Step 3 (`get_status`) fails. The PreToolUse hook normally handl
 ### R1. Verify Editor Is Still Running
 
 ```bash
-tasklist | grep -i UnrealEditor
+MSYS_NO_PATHCONV=1 tasklist /FI "IMAGENAME eq UnrealEditor.exe" /FO CSV 2>/dev/null | grep -i UnrealEditor
 ```
 
 If NOT running → MCP server cannot run without editor. Inform user to start editor with `cortex-editor`. Exit.

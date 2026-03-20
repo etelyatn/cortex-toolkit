@@ -18,7 +18,7 @@ Use skill names directly in instructions (for example `cortex-editor`).
 
 Check if editor is running:
 ```bash
-tasklist | grep -i UnrealEditor
+MSYS_NO_PATHCONV=1 tasklist /FI "IMAGENAME eq UnrealEditor.exe" /FO CSV 2>/dev/null | grep -i UnrealEditor
 ```
 
 Check port file:
