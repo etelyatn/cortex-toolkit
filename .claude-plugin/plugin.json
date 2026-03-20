@@ -1,7 +1,7 @@
 {
   "name": "cortex-toolkit",
   "description": "AI-powered Unreal Engine development toolkit. Skills, agents, and domain knowledge for Claude Code, Codex, and Cursor — powered by UnrealCortex MCP.",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "author": {
     "name": "Eugene Telyatnik",
     "email": "etelyatn@gmail.com"

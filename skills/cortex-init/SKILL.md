@@ -31,9 +31,19 @@ Find the `.uproject` file in the project root and parse its `Plugins` array:
 ```bash
 UPROJECT=$(ls *.uproject 2>/dev/null | head -1)
 if [ -n "$UPROJECT" ]; then
-  PYTHON=$(command -v python3 2>/dev/null || command -v python 2>/dev/null || echo "")
-  if [ -n "$PYTHON" ]; then
-    PLUGIN_STATUS=$("$PYTHON" -c "
+  PLUGIN_STATUS=$(python3 -c "
+import json, sys
+with open(sys.argv[1], encoding='utf-8') as f:
+    data = json.load(f)
+plugins = data.get('Plugins', [])
+match = [p for p in plugins if p.get('Name') == 'UnrealCortex']
+if not match:
+    print('missing')
+elif not match[0].get('Enabled', False):
+    print('disabled')
+else:
+    print('enabled')
+" "$UPROJECT" 2>/dev/null || python -c "
 import json, sys
 with open(sys.argv[1], encoding='utf-8') as f:
     data = json.load(f)
@@ -46,9 +56,6 @@ elif not match[0].get('Enabled', False):
 else:
     print('enabled')
 " "$UPROJECT" 2>/dev/null || echo "parse_error")
-  else
-    PLUGIN_STATUS="parse_error"
-  fi
 fi
 ```
 

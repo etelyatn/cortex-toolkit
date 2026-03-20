@@ -15,7 +15,7 @@ Editor lifecycle management — detect, start, and verify the Unreal Editor.
 
 Check for UnrealEditor process and verify a `Saved/CortexPort-*.txt` port file exists:
 ```bash
-tasklist | grep -i UnrealEditor
+MSYS_NO_PATHCONV=1 tasklist /FI "IMAGENAME eq UnrealEditor.exe" /FO CSV 2>/dev/null | grep -i UnrealEditor
 ```
 
 If running and port file exists, read the port and verify TCP responds via `get_status` MCP tool. If healthy → report status and exit.
@@ -34,9 +34,19 @@ After finding the `.uproject` file, parse its `Plugins` array:
 
 ```bash
 UPROJECT=$(ls *.uproject 2>/dev/null | head -1)
-PYTHON=$(command -v python3 2>/dev/null || command -v python 2>/dev/null || echo "")
-if [ -n "$PYTHON" ]; then
-  PLUGIN_STATUS=$("$PYTHON" -c "
+PLUGIN_STATUS=$(python3 -c "
+import json, sys
+with open(sys.argv[1], encoding='utf-8') as f:
+    data = json.load(f)
+plugins = data.get('Plugins', [])
+match = [p for p in plugins if p.get('Name') == 'UnrealCortex']
+if not match:
+    print('missing')
+elif not match[0].get('Enabled', False):
+    print('disabled')
+else:
+    print('enabled')
+" "$UPROJECT" 2>/dev/null || python -c "
 import json, sys
 with open(sys.argv[1], encoding='utf-8') as f:
     data = json.load(f)
@@ -49,9 +59,6 @@ elif not match[0].get('Enabled', False):
 else:
     print('enabled')
 " "$UPROJECT" 2>/dev/null || echo "parse_error")
-else
-  PLUGIN_STATUS="parse_error"
-fi
 ```
 
 If `enabled` or `missing`: Continue to Step 2c. Local plugins placed in the project's `Plugins/` folder are enabled by default — no `.uproject` entry required.
