@@ -34,7 +34,9 @@ After finding the `.uproject` file, parse its `Plugins` array:
 
 ```bash
 UPROJECT=$(ls *.uproject 2>/dev/null | head -1)
-PLUGIN_STATUS=$(python3 -c "
+PYTHON=$(command -v python3 2>/dev/null || command -v python 2>/dev/null || echo "")
+if [ -n "$PYTHON" ]; then
+  PLUGIN_STATUS=$("$PYTHON" -c "
 import json, sys
 with open(sys.argv[1], encoding='utf-8') as f:
     data = json.load(f)
@@ -47,11 +49,16 @@ elif not match[0].get('Enabled', False):
 else:
     print('enabled')
 " "$UPROJECT" 2>/dev/null || echo "parse_error")
+else
+  PLUGIN_STATUS="parse_error"
+fi
 ```
 
-If `missing` or `disabled`: Print this message and STOP. Do not launch the editor.
+If `enabled` or `missing`: Continue to Step 2c. Local plugins placed in the project's `Plugins/` folder are enabled by default — no `.uproject` entry required.
+
+If `disabled`: Print this message and STOP. Do not launch the editor.
 ```
-UnrealCortex is not enabled in {UPROJECT}.
+UnrealCortex is explicitly disabled in {UPROJECT}.
 
 Enable it first:
 1. Open the editor manually
@@ -59,9 +66,7 @@ Enable it first:
 3. Accept the beta warning, then restart the editor
 4. Re-run cortex-editor
 
-Alternatively, edit {UPROJECT}:
-- If a "Plugins" array exists, add: { "Name": "UnrealCortex", "Enabled": true }
-- If no "Plugins" key exists, add: "Plugins": [{ "Name": "UnrealCortex", "Enabled": true }]
+Alternatively, edit {UPROJECT} and change "Enabled": false to "Enabled": true for the UnrealCortex entry.
 
 Without the plugin enabled, the editor will start but CortexCore won't initialize and no port file will be written.
 ```
