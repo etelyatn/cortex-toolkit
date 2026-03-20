@@ -15,9 +15,11 @@ Check for `UnrealCortex.uplugin` in any of these locations (in order):
 1. `Plugins/UnrealCortex/UnrealCortex.uplugin`
 2. `Plugins/Developer/UnrealCortex/UnrealCortex.uplugin`
 
-Use whichever path exists. Store it as `{plugin_root}` for use in Step 3.
+If neither exists, do a recursive glob search: `Plugins/**/UnrealCortex.uplugin` (catches any other subfolder layout).
 
-If not found in either location, tell the user to add the UnrealCortex submodule:
+Use whichever path exists. Store the **directory** containing the `.uplugin` file as `{plugin_root}` for use in Step 3.
+
+If not found in any location, tell the user to add the UnrealCortex submodule:
 ```
 git submodule add https://github.com/etelyatn/UnrealCortex Plugins/UnrealCortex
 ```
@@ -29,7 +31,9 @@ Find the `.uproject` file in the project root and parse its `Plugins` array:
 ```bash
 UPROJECT=$(ls *.uproject 2>/dev/null | head -1)
 if [ -n "$UPROJECT" ]; then
-  PLUGIN_STATUS=$(python3 -c "
+  PYTHON=$(command -v python3 2>/dev/null || command -v python 2>/dev/null || echo "")
+  if [ -n "$PYTHON" ]; then
+    PLUGIN_STATUS=$("$PYTHON" -c "
 import json, sys
 with open(sys.argv[1], encoding='utf-8') as f:
     data = json.load(f)
@@ -42,14 +46,17 @@ elif not match[0].get('Enabled', False):
 else:
     print('enabled')
 " "$UPROJECT" 2>/dev/null || echo "parse_error")
+  else
+    PLUGIN_STATUS="parse_error"
+  fi
 fi
 ```
 
-If `enabled`: Continue to Step 2.
+If `enabled` or `missing`: Continue to Step 2. Local plugins placed in the project's `Plugins/` folder are enabled by default in Unreal Engine — they don't need an explicit entry in the `.uproject` file.
 
-If `missing` or `disabled`: Print this message and STOP. Do not proceed to create `.cortex/` until the plugin is enabled.
+If `disabled`: Print this message and STOP. Do not proceed to create `.cortex/` until the plugin is enabled.
 ```
-UnrealCortex plugin is not enabled in {UPROJECT}.
+UnrealCortex plugin is explicitly disabled in {UPROJECT}.
 
 To enable it:
 1. Open the editor: Edit -> Plugins -> search "UnrealCortex" -> Enable
@@ -57,9 +64,7 @@ To enable it:
 3. Restart the editor
 4. Re-run cortex-init
 
-Alternatively, edit {UPROJECT}:
-- If a "Plugins" array exists, add to it: { "Name": "UnrealCortex", "Enabled": true }
-- If no "Plugins" key exists, add at the top level: "Plugins": [{ "Name": "UnrealCortex", "Enabled": true }]
+Alternatively, edit {UPROJECT} and change "Enabled": false to "Enabled": true for the UnrealCortex entry.
 Then restart the editor and re-run cortex-init.
 ```
 
