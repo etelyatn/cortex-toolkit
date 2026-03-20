@@ -442,6 +442,16 @@ Use `AskUserQuestion` to ask one question at a time:
 2. "Any constraints for this migration?" — options: Keep specific things in BP, Avoid adding module dependencies, No constraints
 3. "What scope are you thinking?" — options: Everything possible, Logic only (keep visual BP), Specific features (I'll choose), Not sure (recommend for me)
 
+### Logic vs Cosmetic Check
+
+Before recommending what to migrate, classify each element by intent — does game logic depend on the value?
+
+**Moves to C++ (logic-driven):** Any operation where the value affects game state or other logic depends on it. Even SetVisibility or SetLocation, if logic controls it (e.g., hiding during state change, positioning based on game rules).
+
+**Stays in BP (purely cosmetic):** Operations where NO other logic reads or reacts to the value — decorative colors, visual-only material swaps, spatial construction for decorative geometry (door frames, wall segments where no gameplay depends on positions).
+
+See `cpp-migration.md` "Logic vs Cosmetic" section for the full classification.
+
 ### Step 2: Run Blueprint Analysis (Technical — Via MCP Tools)
 
 Call these MCP tools in sequence:
@@ -494,8 +504,8 @@ Synthesize user goals (Step 1) with technical analysis (Step 2). Present:
 1. **Blueprint summary** — components, variables, functions, complexity, parent class
 2. **Functional groups** with coupling warnings (max 6 groups; merge small ones)
 3. **Dependency impact table** — SAFE/WARNING/BREAKING per public member
-4. **Scope recommendation** — based on user's stated goals
-5. **MIGRATING / STAYING / DEFERRED columns** — what moves to C++, what stays in BP, what's deferred
+4. **Scope recommendation** — based on user's stated goals. **Apply anti-over-engineering filter:** do NOT recommend migrating spatial construction, visual setup, or component configuration — these stay in BP regardless of scope setting. See "Anti-Over-Engineering Rule" in the cpp-migration-specialist agent and "When NOT to Migrate" in cpp-migration.md.
+5. **MIGRATING / STAYING / DEFERRED columns** — what moves to C++, what stays in BP, what's deferred. The STAYING column must explicitly list items kept in BP with reasons (not just "everything else").
 
 #### Extended Presentation (When Goal = "Redesign/restructure")
 
@@ -668,7 +678,22 @@ Optional `design.md` decision (make this decision NOW, during ANALYZE): Only cre
 
 Simple migrations (like BP_JumpPad: high confidence, 0 referencers, no timelines) should NOT generate `design.md`.
 
-**If `--audit` flag:** Stop here. Present design and exit.
+**If `--audit` flag:** Save the migration report to file (see below), then present design and exit.
+
+### Save Migration Report to File
+
+**After presenting the migration design (audit or full mode), always save the complete recommendations to a persistent file.** This ensures the analysis survives editor restarts and can be referenced in future sessions.
+
+Write to: `docs/migration/blueprint-to-cpp/{BP_Name}/migration-report.md`
+
+Contents:
+- Audit summary (outcome, reasoning)
+- Migration analysis table (what moves, what stays, why)
+- Blueprint integration guide (what to remove, what to keep, step-by-step integration)
+- Warnings and notes
+- Timestamp
+
+Report to user: "Migration report saved to `docs/migration/blueprint-to-cpp/{BP_Name}/migration-report.md`"
 
 ### Migration Complexity Classification
 
@@ -711,7 +736,7 @@ For each graph listed as "migrating" in the approved design:
    - Call `graph_get_node` to get full pin details
    - Extract the target function name from `display_name`
    - IMPORTANT: The display name is human-readable (for example, "Launch Character"), not the C++ function name. The actual C++ function may have a `K2_` prefix (for example, `K2_SetActorLocation` not `SetActorLocation`). Cross-reference with UE documentation or `reflect.class_detail` to get the exact C++ function signature when in doubt.
-   - Record: `{node_id, display_name, inferred_function_name, target_class, parameters}`
+   - Record: `{node_id, display_name, inferred_function_name, target_class, parameters}`. **Always use `display_name` for user-facing references** (e.g., "Launch Character", not "K2Node_CallFunction_19")
 3. For each `K2Node_DynamicCast`:
    - Record the target class being cast to
 4. For each `K2Node_VariableGet` or `K2Node_VariableSet`:
@@ -728,26 +753,28 @@ Build a "Ground Truth Table" and append to migration-plan.md after the Migration
 
 #### Unified Ground Truth Table Format
 
-The Ground Truth Table uses a single format for all migrations. For standard (non-redesign) migrations, `Target Class` defaults to the single target class and `Automated` defaults to `Yes`:
+The Ground Truth Table uses a single format for all migrations. For standard (non-redesign) migrations, `Target Class` defaults to the single target class and `Automated` defaults to `Yes`.
+
+**Node naming rule:** The `Display Name` column uses the human-readable name from `GetNodeTitle` (e.g., "Launch Character", "Set Actor Location"). The `Node ID` column stores the internal ID (e.g., "K2Node_CallFunction_19") for MCP tool calls only. When referencing nodes in user-facing output (chat, reports, tables), ALWAYS use `Display Name`, NEVER `Node ID`.
 
 ~~~markdown
 ## Ground Truth Table
 
-| Node ID | Type | Function/Property | Target | Parameters | Notes | Target Class | Automated |
-|---------|------|-------------------|--------|------------|-------|-------------|-----------|
-| N_123 | CallFunction | LaunchCharacter | ACharacter | FVector, bool, bool | | AMyCharacterBase | Yes |
-| N_456 | VariableGet | Velocity | Self | -- | | AMyCharacterBase | Yes |
-| N_789 | Cast | ACharacter | OtherActor | -- | | AMyCharacterBase | Yes |
-| N_012 | ComponentBoundEvent | OnComponentBeginOverlap | CollisionComp | -- | Needs AddDynamic | UCollisionComponent | Yes |
-| N_345 | CallDelegate | OnJumpComplete | Self | -- | DECLARE_DYNAMIC_MULTICAST_DELEGATE | AMyCharacterBase | Yes |
+| Node ID | Display Name | Type | Function/Property | Target | Parameters | Notes | Target Class | Automated |
+|---------|-------------|------|-------------------|--------|------------|-------|-------------|-----------|
+| K2Node_CallFunction_3 | Launch Character | CallFunction | LaunchCharacter | ACharacter | FVector, bool, bool | | AMyCharacterBase | Yes |
+| K2Node_VariableGet_7 | Get Velocity | VariableGet | Velocity | Self | -- | | AMyCharacterBase | Yes |
+| K2Node_DynamicCast_1 | Cast To ACharacter | Cast | ACharacter | OtherActor | -- | | AMyCharacterBase | Yes |
+| K2Node_ComponentBoundEvent_0 | OnComponentBeginOverlap (CollisionComp) | ComponentBoundEvent | OnComponentBeginOverlap | CollisionComp | -- | Needs AddDynamic | UCollisionComponent | Yes |
+| K2Node_CallDelegate_2 | Call OnJumpComplete | CallDelegate | OnJumpComplete | Self | -- | DECLARE_DYNAMIC_MULTICAST_DELEGATE | AMyCharacterBase | Yes |
 ~~~
 
 For redesign migrations, `Target Class` is set per-row based on the responsibility map. For Tier 3, rows targeting secondary actor classes have `Automated: No`.
 
 The executor acts on the `Automated` column: `Yes` = clean up automatically, `No` = leave with annotation.
 
-Flag unmappable nodes as WARNING:
-`WARNING: Node N_999 (UK2Node_MacroInstance: "ForEachLoop") has no direct C++ equivalent. Recommend: Replace with standard for-loop in C++ implementation.`
+Flag unmappable nodes as WARNING (use display name):
+`WARNING: "ForEachLoop" (MacroInstance) has no direct C++ equivalent. Recommend: Replace with standard for-loop in C++ implementation.`
 
 Feed this table into code generation. The generated C++ must use exactly the functions found in the graph — not assumed equivalents.
 

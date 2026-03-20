@@ -16,6 +16,39 @@ Decision framework and patterns for migrating Blueprint logic to C++.
 | Simple event handler (overlap → action) | Don't migrate |
 | Designer is actively iterating on logic | Don't migrate |
 
+## Logic vs Cosmetic — What to Migrate
+
+**The deciding factor is NOT the function name or node count. It is: does game logic depend on this value?**
+
+### Moves to C++ (logic-driven)
+
+Any operation where the value affects game state or other logic depends on it:
+- `SetVisibility(false)` to hide an object during a game state change — logic controls it
+- `SetLocation` to move an actor based on game state or player input — logic depends on position
+- `SetColor` where the color encodes game state (team color, damage flash) — logic depends on color
+- State machines, branching, data processing, tick-driven computation
+- Even a 2-node operation, if it's logic-driven, belongs in C++
+
+### Stays in Blueprint (purely cosmetic)
+
+Operations where NO other logic reads or reacts to the value:
+- `SetColor` for decorative appearance nothing else checks — artist-owned
+- `SetLocation/SetScale3D` to arrange mesh pieces for a door frame — decorative geometry
+- `SetMaterial`, `SetStaticMesh`, `SetLightColor` for visual appearance — artist-owned
+- `CreateDynamicMaterialInstance` + parameter setters — visual tuning
+- Procedural geometry (door frames, wall segments) where no gameplay depends on positions
+- Construction Script visual-sync nodes (see classification below)
+
+**Key:** Same function, different intent. `SetVisibility` that hides a game object as part of state → C++. `SetVisibility` for a cosmetic fade nobody reads → Blueprint.
+
+### Conversion Level Guidelines
+
+**Minimal level:** Only migrate what is actively broken or measured as slow.
+
+**Recommended level:** Migrate all logic-driven code. Keep purely cosmetic operations in BP.
+
+**Everything level:** Migrate everything. Still keep visual-sync construction script nodes in BP.
+
 ## Migration Outcomes
 
 Not every Blueprint should be migrated. After analysis, classify into one of these outcomes:

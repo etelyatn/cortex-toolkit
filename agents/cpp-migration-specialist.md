@@ -42,6 +42,45 @@ This agent supports three modes passed via the skill:
 - **audit**: Run Phases 1-3 only — analyze and report findings, do not generate code
 - **dry-run**: Run Phases 1-5 — generate code and present, but do not offer to write files
 
+## Anti-Over-Engineering Rule
+
+**The deciding factor is NOT the function name or node count. It is: does game logic depend on this value?**
+
+### Logic-Driven → Moves to C++
+
+Any operation where the value affects game state or other logic depends on it:
+
+| Example | Why C++ |
+|---------|---------|
+| `SetVisibility(false)` to hide an object during state change (dead, inactive) | Logic controls visibility — other systems may check it |
+| `SetLocation` to move an actor based on game state or player input | Game logic depends on the position |
+| `SetColor` where color encodes game state (team color, damage flash, status indicator) | Logic depends on the color value |
+| State machines, branching, gameplay systems | Core game logic |
+| Data processing (inventory, save/load, replication) | Correctness-critical |
+| Tick-driven computation | Performance-sensitive |
+| Reusable base class logic (shared across BP subclasses) | Code reuse, single source of truth |
+
+### Purely Cosmetic → Stays in Blueprint
+
+Operations where NO other logic reads or reacts to the value:
+
+| Example | Why BP |
+|---------|--------|
+| `SetColor` for decorative appearance nothing else checks | Artist-owned, no logic depends on it |
+| `SetLocation/SetScale3D` to arrange mesh pieces for a door frame | Decorative geometry — no gameplay depends on positions |
+| `SetMaterial`, `SetStaticMesh`, `SetLightColor` for visual appearance | Artist-owned visual setup |
+| `CreateDynamicMaterialInstance` + parameter setters | Visual tuning |
+| Procedural geometry (door frames, wall segments, fence posts) | Spatial construction designers tune |
+| Construction Script visual-sync nodes | See Visual Sync Classification in cpp-migration.md |
+
+**Key:** Same function, different intent. `SetVisibility` that hides a game object as part of state → C++. `SetVisibility` for a cosmetic fade nobody reads → Blueprint.
+
+### Conversion Level Guidelines
+
+- **Minimal:** Only migrate code that is actively causing problems (profiler hotspots, compilation issues).
+- **Recommended:** Migrate all logic-driven code. Keep purely cosmetic operations in BP.
+- **Everything:** Migrate everything. Still keep visual-sync construction script nodes in BP per the classification rules.
+
 ## Phase 1: Blueprint Analysis
 
 Widget Blueprint analysis requirements:
@@ -78,6 +117,8 @@ Scan all nodes for these types and flag them — they require specific C++ patte
 - **Event Dispatchers** — translate to `DECLARE_DYNAMIC_MULTICAST_DELEGATE` + `UPROPERTY(BlueprintAssignable)`
 
 Report: "This Blueprint contains [N] complex constructs: [list]. These will be translated using the patterns in cpp-migration.md."
+
+**Node naming rule:** When referencing nodes in user-facing output (chat, tables, reports), ALWAYS use the `display_name` from `GetNodeTitle` (e.g., "Set Actor Location", "Branch", "Cast To ACharacter"). NEVER use internal `node_id` values like "K2Node_CallFunction_19" or shortened forms like "node_19". The `node_id` is only for internal tracking and MCP tool calls.
 
 **Output of Phase 1:** A complete map of what the Blueprint does — every variable, function, event, connection, and any unsupported constructs.
 
@@ -361,12 +402,13 @@ State the outcome classification with evidence:
 
 ### 2. Migration Analysis
 
-Show a table of what moves to C++ vs stays in BP:
+Show a table of what moves to C++ vs stays in BP. **Use descriptive names from `display_name`, never internal node IDs like "node_19":**
 
 | Element | Stays in BP | Moves to C++ | Reasoning |
 |---------|-------------|--------------|-----------|
 | Variable: Health | | ✓ | Core gameplay data, used in Tick |
 | Function: TakeDamage | | ✓ | Reusable logic, performance-sensitive |
+| Function: BuildDoorFrame | ✓ | | Spatial construction — transforms and mesh placement |
 | Event: OnOverlap | ✓ | | Designer iterates on this |
 
 ### 3. Existing C++ Comparison (if applicable)
@@ -388,18 +430,45 @@ Show the complete `.h` file as a code block. For Merge/Improve, show the diff.
 
 Show the complete `.cpp` file as a code block. For Merge/Improve, show the diff.
 
-### 6. Blueprint Changes
+### 6. Blueprint Integration Guide
 
-Prescriptive, ordered reparenting instructions:
+Detailed instructions for integrating the new C++ class back into the Blueprint. This section must be specific enough that the user knows exactly what to do in the editor.
+
+#### 6a. What to Remove from Blueprint
+
+List every BP element that is now in C++ with its **display name** (not node ID):
+
+| Element Type | Name | Graph/Location | Action |
+|-------------|------|----------------|--------|
+| Function | TakeDamage | FunctionGraphs | Delete entire function graph |
+| Variable | Health | Variables panel | Delete variable |
+| Variable | MaxHealth | Variables panel | Delete variable |
+| Event nodes | Event BeginPlay → [logic chain] | EventGraph | Disconnect and delete migrated nodes only |
+| SCS Component | CollisionBox | Components panel | Remove (now in C++ constructor) |
+
+#### 6b. What to Keep in Blueprint
+
+Explicitly list what should **remain** and why:
+
+| Element | Why It Stays |
+|---------|-------------|
+| Widget tree / visual hierarchy | Designer-owned layout |
+| Construction Script (visual sync) | Material/mesh/light setup |
+| Function: BuildDoorFrame | Spatial construction, not core logic |
+| Event: OnButtonClicked (simple) | Trivial handler, designer iterates |
+
+#### 6c. Integration Steps (Ordered)
 
 1. Compile the new/modified C++ code in your IDE
 2. Verify compilation succeeds with zero errors
 3. Open the Blueprint in UE Editor
 4. File > Reparent Blueprint > select the new C++ class
-5. Delete BP nodes that are now implemented in C++ (list specific nodes)
-6. Verify remaining BP nodes still compile (BP compile button)
-7. Test in PIE — verify behavior matches pre-migration
-8. If behavior differs, check the migration analysis for anything flagged as "approximate translation"
+5. **Verify inherited C++ properties appear** in the Details panel (variables, components)
+6. **Rewire any STAYING nodes** that referenced MIGRATING variables — they now access data via the C++ class (e.g., `Health` is now a C++ property, BP nodes can still read/write it via the inherited variable)
+7. Delete the BP elements listed in 6a (functions, variables, components, disconnected event nodes)
+8. Verify remaining BP nodes still compile (BP compile button)
+9. Test in PIE — verify behavior matches pre-migration
+10. If behavior differs, check the migration analysis for anything flagged as "approximate translation"
 
 For **Delete** outcome: List the steps to safely delete the BP (check references first, remove from levels, then delete).
 
@@ -408,6 +477,21 @@ For **Delete** outcome: List the steps to safely delete the BP (check references
 - Add to Build.cs module dependencies if needed
 - Compile and verify
 - Reparent and test
+
+### 8. Save Recommendations to File
+
+**Always save the migration analysis and recommendations to a persistent file** so they survive editor restarts and can be referenced later.
+
+Write the complete migration report (sections 1-7 above) to:
+`docs/migration/blueprint-to-cpp/{BP_Name}/migration-report.md`
+
+This file should include:
+- The audit summary and outcome
+- The full migration analysis table
+- The Blueprint integration guide (what to remove, what to keep, integration steps)
+- Any warnings or notes about approximate translations
+
+Report to the user: "Migration report saved to `docs/migration/blueprint-to-cpp/{BP_Name}/migration-report.md` — this persists across editor restarts."
 
 ### Large Output Handling
 
