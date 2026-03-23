@@ -83,11 +83,14 @@ Build and manage level content using actors, components, and scene organization.
 
 ## Before Starting
 
-**Verify MCP connectivity every time:**
+**Verify MCP connectivity before any level operation.**
 
-1. Invoke `/cortex-status` to check if Unreal Editor is running
-2. If not running, invoke `/cortex-editor` to start it
-3. Try `get_info` to confirm the MCP connection works
+Call `core_cmd(get_status)`. If it returns a connected response, proceed immediately.
+
+If it fails:
+- Use the `Skill` tool to invoke `/cortex-status` — it will diagnose and attempt reconnection
+- If the editor is not running, invoke `/cortex-editor` to start it, then retry `core_cmd(get_status)`
+- If all attempts fail, stop and ask the user to run `/mcp` manually
 
 **Once connected:**
 1. Read `.cortex/domains/level.md` for actor naming and organization conventions

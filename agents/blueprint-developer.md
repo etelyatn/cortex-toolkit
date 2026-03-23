@@ -66,50 +66,20 @@ Create, modify, and fix Blueprint assets. You work with Blueprint structure (var
 
 ## Before Starting
 
-**CRITICAL: Verify MCP Connectivity (Required Every Time)**
+**Verify MCP connectivity before any Blueprint operation.**
 
-All Blueprint operations require the Cortex MCP server connected to a running Unreal Editor. **Follow this validation workflow:**
+Call `core_cmd(get_status)`. If it returns a connected response, proceed immediately.
 
-### Step 1: Check Unreal Editor Status
-1. Use the `Skill` tool to invoke `/cortex-status` to check if Unreal Editor is running
-2. **If Unreal is NOT running:**
-   - Use the `Skill` tool to invoke `/cortex-editor` to start Unreal Editor
-   - **Wait for editor to fully start** (typically 30-60 seconds for cold start)
-   - Editor must complete initialization before MCP server becomes available
+If it fails:
+- Use the `Skill` tool to invoke `/cortex-status` — it will diagnose and attempt reconnection
+- If the editor is not running, invoke `/cortex-editor` to start it, then retry `core_cmd(get_status)`
+- If all attempts fail, stop and ask the user to run `/mcp` manually
 
-### Step 2: Verify MCP Connection
-
-**Unreal Editor typically starts in 30-60 seconds. Use this connection strategy:**
-
-1. **First attempt** (immediately after editor starts OR if editor was already running):
-   - Use the `Skill` tool to invoke `/cortex-status` to check MCP connectivity
-
-2. **If MCP unavailable:**
-   - Use the `Skill` tool to invoke `/cortex-status` again after a brief wait
-   - `/cortex-status` will report connection state and suggest next steps
-   - If all attempts fail, request user intervention (user may need to run `/mcp` manually)
-
-3. **After connection confirmed:**
-   - If successful: proceed to Step 3
-   - If failed: follow the instructions from `/cortex-status` (may require user to run `/mcp` manually)
-
-**Important Notes:**
-- The MCP server starts automatically with Unreal Editor
-- `/cortex-status` checks editor and MCP connectivity in one call
-- If connectivity fails after editor starts, user may need to run `/mcp` command manually
-- Never wait longer than ~60 seconds - always timeout and request user help
-
-### Step 3: Test MCP Tools
-1. **Only after MCP status is confirmed**, try a simple MCP tool call (e.g., `list_blueprints`)
-2. If this succeeds, MCP is fully operational and you can proceed
-
-**Never** attempt to write Python scripts or manual workarounds. Always use MCP tools directly.
-
-**Once MCP is verified and operational:**
+**Once MCP is verified:**
 
 1. Read `.cortex/context.md` for project overview
 2. Read `.cortex/domains/blueprints.md` for BP conventions and class hierarchy
-3. Use `list_blueprints` to understand the existing Blueprint landscape
+3. For **create/modify tasks only**: Use `list_blueprints` or `get_blueprint_info` to check for existing assets before proceeding — skip this for review/analyze tasks
 4. Read `cortex-toolkit/resources/ue-api-recipes.md` — verified patterns for Blueprint creation, dynamic class resolution, and test asset lifecycle; check before generating any UE C++ code or test setup instructions
 
 ## Methodology
@@ -142,6 +112,16 @@ All Blueprint operations require the Cortex MCP server connected to a running Un
 4. **Set up structure** — variables, functions, components via MCP tools
 5. **Implement logic** — guide graph construction using `graph_*` tools
 6. **Compile and test** — `compile_blueprint`, verify no errors
+
+### Graph Analysis — Parallelize Queries
+
+When analyzing a Blueprint's graphs, call all graph reads in parallel — not sequentially:
+
+1. Call `graph_cmd(list_graphs)` once to get all graph names
+2. Call `graph_cmd(list_nodes)` for **all graphs in parallel** in a single message
+3. Call `graph_cmd(get_node)` for target nodes **in parallel** across graphs
+
+Never query graphs one-by-one in sequential tool calls.
 
 ### Before Destructive Operations
 

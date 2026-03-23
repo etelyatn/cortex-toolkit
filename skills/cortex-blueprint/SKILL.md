@@ -67,14 +67,16 @@ Review the following Blueprint(s):
 **Scope:** [specific Blueprint paths, or "all Blueprints in /Game/Blueprints/"]
 **Concerns:** [naming, complexity, compilation, variable organization, best practices]
 
+READ-ONLY MODE: Do NOT call list_blueprints, compile_blueprint, impact_analysis, or any write tools.
+Permitted tools: blueprint_cmd(get_info), graph_cmd(list_graphs), graph_cmd(list_nodes), graph_cmd(get_node), reflect_cmd(query_class_context).
+
 WORKFLOW:
 1. Read `.cortex/domains/blueprints.md` for project conventions
-2. List and inspect relevant Blueprints
+2. Use blueprint_cmd(get_info) to inspect relevant Blueprints — do NOT call list_blueprints
 3. Check structure (naming, type appropriateness, parent class)
-4. Analyze complexity (node counts per graph, variable counts)
-5. Verify compilation status
-6. Check variable organization (categories, exposure, naming)
-7. Cross-reference against project conventions
+4. Analyze graphs in parallel: call graph_cmd(list_nodes) for all graphs simultaneously
+5. Check variable organization (categories, exposure, naming)
+6. Cross-reference against project conventions
 
 Return findings grouped by severity: Errors, Warnings, Info.
 ```
