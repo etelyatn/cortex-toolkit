@@ -13,15 +13,15 @@ Determine mode from user intent:
 
 - **Create/Modify**: User wants to build or change something
   Examples: "create a blueprint", "add a variable to", "wire up BeginPlay", "add a component"
-  → Launch `blueprint-developer` agent with `max_turns: 25`
+  → Launch `cortex-toolkit:blueprint-developer` agent with `max_turns: 25`
 
 - **Review/Analyze**: User wants to understand or audit existing assets
   Examples: "review BP_Player", "check naming conventions", "audit complexity", "list all blueprints"
-  → Launch `blueprint-developer` agent with `max_turns: 15`
+  → Launch `cortex-toolkit:blueprint-developer` agent with `max_turns: 15`
 
 - **Debug**: User wants to trace or diagnose a problem
   Examples: "debug BP_Player", "why isn't this working", "trace execution", "investigate crash"
-  → Launch `blueprint-debugger` agent with `max_turns: 35`
+  → Launch `cortex-toolkit:blueprint-debugger` agent with `max_turns: 35`
 
 - **Ambiguous** → Default to Review (read-only, safe)
 
@@ -29,9 +29,9 @@ Determine mode from user intent:
 
 | Mode | Agent | max_turns |
 |------|-------|-----------|
-| Create/Modify | blueprint-developer | 25 |
-| Review/Analyze | blueprint-developer | 15 |
-| Debug | blueprint-debugger | 35 |
+| Create/Modify | cortex-toolkit:blueprint-developer | 25 |
+| Review/Analyze | cortex-toolkit:blueprint-developer | 15 |
+| Debug | cortex-toolkit:blueprint-debugger | 35 |
 
 ## Steps
 

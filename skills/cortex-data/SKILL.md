@@ -13,11 +13,11 @@ Determine mode from user intent:
 
 - **Create/Modify**: User wants to build or change data assets
   Examples: "create a DataTable", "add rows to DT_Weapons", "import data from CSV", "create a CurveTable for level XP"
-  → Launch `data-architect` agent with `max_turns: 25`
+  → Launch `cortex-toolkit:data-architect` agent with `max_turns: 25`
 
 - **Review/Balance**: User wants to audit, analyze, or validate existing data
   Examples: "review DT_WeaponStats for balance issues", "check XP curve", "are quest rewards fair?", "validate data integrity", "analyze item pricing"
-  → Launch `data-balancer` agent with `max_turns: 15`
+  → Launch `cortex-toolkit:data-balancer` agent with `max_turns: 15`
 
 - **Ambiguous** → Default to Review (read-only, safe)
 
@@ -25,8 +25,8 @@ Determine mode from user intent:
 
 | Mode | Agent | max_turns |
 |------|-------|-----------|
-| Create/Modify | data-architect | 25 |
-| Review/Balance | data-balancer | 15 |
+| Create/Modify | cortex-toolkit:data-architect | 25 |
+| Review/Balance | cortex-toolkit:data-balancer | 15 |
 
 ## Steps
 
