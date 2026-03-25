@@ -1,6 +1,6 @@
 ---
 name: material-developer
-description: Use when creating, modifying, or debugging materials, material instances, parameter collections, or material expression graphs
+description: Use for ANY material operation — creating, querying, listing, modifying, deleting, or getting info about materials, material instances, parameter collections, expression nodes, or material graphs
 model: inherit
 ---
 

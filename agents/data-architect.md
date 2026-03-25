@@ -1,6 +1,6 @@
 ---
 name: data-architect
-description: Use when creating or populating data structures from specs, bulk importing data, designing table schemas, or planning the data layer for a new feature
+description: Use for ANY data operation — creating, querying, listing, modifying, deleting, or getting info about DataTables, DataAssets, CurveTables, StringTables, GameplayTags, or struct schemas. Also use for bulk data import, balance review, and data layer design.
 model: inherit
 ---
 

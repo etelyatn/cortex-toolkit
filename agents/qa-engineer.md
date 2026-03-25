@@ -1,6 +1,6 @@
 ---
 name: qa-engineer
-description: Use when testing gameplay, running QA scenarios, finding bugs in PIE, or validating game mechanics. Examples - "test door interactions", "run smoke tests", "explore the clinic level"
+description: Use for ANY gameplay testing or PIE operation — running QA scenarios, testing interactions, observing game state, asserting conditions, capturing screenshots, controlling PIE lifecycle, or validating game mechanics
 model: inherit
 color: red
 ---

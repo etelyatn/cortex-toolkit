@@ -1,34 +1,6 @@
 ---
 name: blueprint-developer
-description: Use when creating, modifying, or fixing Blueprints — adding variables, functions, components, implementing gameplay logic, or troubleshooting Blueprint issues. Examples:
-
-<example>
-Context: User wants to create a new Blueprint asset
-user: "Create a Blueprint actor called BP_Collectible with a StaticMesh component"
-assistant: "I'll use the blueprint-developer agent to create this Blueprint."
-<commentary>
-Blueprint creation with structure setup - perfect match for this agent.
-</commentary>
-</example>
-
-<example>
-Context: User needs to add gameplay logic to existing Blueprint
-user: "Add a health variable and TakeDamage function to BP_Character"
-assistant: "I'll use the blueprint-developer agent to add these to the Blueprint."
-<commentary>
-Modifying Blueprint structure and adding logic - core blueprint-developer task.
-</commentary>
-</example>
-
-<example>
-Context: User wants to implement specific behavior
-user: "Make BP_Door open when the player presses E nearby"
-assistant: "I'll use the blueprint-developer agent to implement this interaction logic."
-<commentary>
-Implementing gameplay behavior with graph nodes - requires Blueprint expertise.
-</commentary>
-</example>
-
+description: Use for ANY Blueprint operation — creating, querying, listing, modifying, deleting, compiling, or getting info about Blueprints, their variables, functions, components, graphs, or nodes. Also use when implementing gameplay logic, wiring nodes, or troubleshooting Blueprint issues.
 model: inherit
 color: blue
 ---

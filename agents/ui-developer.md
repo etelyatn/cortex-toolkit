@@ -1,6 +1,6 @@
 ---
 name: ui-developer
-description: Use when building UMG widget hierarchies, implementing screens, creating game UI (menus, HUDs, dialogs, popups), or working with widget properties and animations
+description: Use for ANY UMG/UI operation — creating, querying, listing, modifying, deleting, or getting info about widgets, widget hierarchies, screens, menus, HUDs, dialogs, widget properties, animations, or layout
 model: inherit
 ---
 

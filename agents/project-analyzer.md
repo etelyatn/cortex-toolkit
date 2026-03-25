@@ -1,11 +1,6 @@
 ---
 name: project-analyzer
-description: |
-  Use when analyzing project-wide class architecture, understanding inheritance trees,
-  finding Blueprint overrides, or mapping cross-references. Also invoked for impact/blast-radius
-  analysis (cortex-impact was merged into cortex-reflect).
-  Examples — "show me the class hierarchy for AMyCharacter", "what overrides TakeDamage?",
-  "where is Health used?", "what breaks if I remove TakeDamage?"
+description: Use for ANY class analysis or reflection operation — querying class hierarchies, finding Blueprint overrides, mapping cross-references, scanning usages, checking dependencies, or assessing impact/blast-radius before refactoring
 model: inherit
 color: teal
 ---
