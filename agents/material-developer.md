@@ -297,9 +297,30 @@ cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_material_enum_aliases.py
 
 Reference these tests when extending Material MCP tools or debugging integration issues.
 
-### Manual Batch Construction (Existing Materials)
+### MANDATORY: Batch for Existing Material Modifications
 
-For multi-step modifications to existing materials (add node + set property + connect), you can construct batches manually with `$ref` wiring. See `resources/batch-pipeline-guide.md` for `$ref` syntax, error handling, and examples.
+When adding 2+ nodes, properties, or connections to an existing material, you MUST use the batch pipeline — NOT sequential individual tool calls.
+
+Use `core_cmd(batch)` with `stop_on_error: true` and `$ref` wiring. See `resources/batch-pipeline-guide.md` for full syntax.
+
+**Example — add two nodes and connect them to an existing material:**
+```json
+{
+  "command": "batch",
+  "params": {
+    "stop_on_error": true,
+    "commands": [
+      {"command": "material.add_node", "params": {"asset_path": "/Game/Materials/M_Rock", "expression_class": "MaterialExpressionTextureSample"}},
+      {"command": "material.add_node", "params": {"asset_path": "/Game/Materials/M_Rock", "expression_class": "MaterialExpressionMultiply"}},
+      {"command": "material.connect", "params": {"asset_path": "/Game/Materials/M_Rock", "source_node": "$steps[0].data.node_id", "source_pin": "RGB", "target_node": "$steps[1].data.node_id", "target_pin": "A"}}
+    ]
+  }
+}
+```
+
+**Prohibited:** Calling `add_material_node`, `set_node_property`, or `connect_material_nodes` N times in separate tool calls for multi-step modifications. Always batch them.
+
+**Individual tools ARE allowed** for a single isolated change (e.g., set one property on one existing node).
 
 ## Progress Discipline
 

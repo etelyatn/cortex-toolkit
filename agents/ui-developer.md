@@ -116,7 +116,33 @@ When creating a NEW Widget Blueprint from scratch, these tools are PROHIBITED (u
 - `set_visibility`
 - `create_animation`
 
-These tools ARE allowed when modifying an existing Widget Blueprint.
+These tools ARE allowed when modifying an existing Widget Blueprint — but see batching rules below.
+
+## MANDATORY: Batch for Existing Widget Modifications
+
+When adding or modifying 2+ widgets/properties on an existing Widget Blueprint, you MUST use the batch pipeline — NOT sequential individual tool calls.
+
+Use `core_cmd(batch)` with `stop_on_error: true` and `$ref` wiring. See `resources/batch-pipeline-guide.md` for full syntax.
+
+**Example — add two widgets to an existing screen:**
+```json
+{
+  "command": "batch",
+  "params": {
+    "stop_on_error": true,
+    "commands": [
+      {"command": "umg.add_widget", "params": {"asset_path": "/Game/UI/WBP_HUD", "widget_class": "TextBlock", "name": "HealthLabel", "parent": "RootCanvas"}},
+      {"command": "umg.set_text", "params": {"asset_path": "/Game/UI/WBP_HUD", "widget_name": "HealthLabel", "text": "Health"}},
+      {"command": "umg.add_widget", "params": {"asset_path": "/Game/UI/WBP_HUD", "widget_class": "ProgressBar", "name": "HealthBar", "parent": "RootCanvas"}},
+      {"command": "umg.set_anchor", "params": {"asset_path": "/Game/UI/WBP_HUD", "widget_name": "HealthBar", "anchor": "TopLeft"}}
+    ]
+  }
+}
+```
+
+**Prohibited:** Calling `add_widget`, `set_text`, `set_color`, `set_anchor`, etc. N times in separate tool calls for multi-step modifications. Always batch them.
+
+**Individual tools ARE allowed** for a single isolated change (e.g., update the text on one existing widget).
 
 ## CortexReflect Tools
 

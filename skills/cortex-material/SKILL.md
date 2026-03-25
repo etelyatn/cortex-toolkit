@@ -51,7 +51,10 @@ MANDATORY WORKFLOW:
 3. Call `material_compose(name, path, nodes, connections)` as a SINGLE call
 4. Create material instances if requested
 
-PROHIBITED: Do NOT call `material_cmd` for `create_material`, `add_node`, `connect`, `set_node_property`, or `auto_layout` individually. These are ONLY for modifying existing materials. For new materials, you MUST use `material_compose` exclusively.
+PROHIBITED:
+- For NEW materials: never call `create_material`, `add_node`, `connect`, `set_node_property`, or `auto_layout` individually — use `material_compose` exclusively.
+- For EXISTING materials with 2+ changes: never make N sequential individual tool calls — use `core_cmd(batch)` with `stop_on_error: true` and `$ref` wiring (see `resources/batch-pipeline-guide.md`).
+- Individual tools are only acceptable for a single isolated change on an existing asset.
 ```
 
 **For Review/Analyze**, pass the review scope and focus:
