@@ -11,6 +11,20 @@ Tools fall into three categories:
 
 Rule: New asset creation → composite. Modifications to existing assets → router.
 
+## Naming Convention
+
+Most domain commands are accessed through **router tools** (`{domain}_cmd`). A few domains also have standalone MCP tools with typed parameters.
+
+| Access Path | Pattern | Example |
+|-------------|---------|---------|
+| **Router tool** | `{domain}_cmd(command="name", params={...})` | `blueprint_cmd(command="get_info", params={"asset_path": "/Game/BP"})` |
+| **Composite tool** | `{domain}_compose(spec)` | `blueprint_compose(...)` for new asset creation |
+| **Standalone tool** (Reflect, some Editor/QA) | Direct function call | `query_class_hierarchy(class_name="AActor")` |
+
+Router commands use **bare names** — e.g., `get_info`, `create`, `list` (NOT `get_blueprint_info`, `create_blueprint`).
+
+**When in doubt:** Use the router tool `{domain}_cmd` with the bare command name from the lists below.
+
 ---
 
 ## Core (`core_cmd`)
@@ -52,9 +66,11 @@ Manage asset lifecycle. All commands accept a single path, a list of paths, or g
 
 ## Blueprint (`blueprint_cmd`)
 
-- **Assets:** `create_blueprint`, `list_blueprints`, `get_blueprint_info`, `delete_blueprint`, `duplicate_blueprint`, `compile_blueprint`, `save_blueprint`, `reparent_blueprint`
-- **Structure:** `add_blueprint_variable`, `remove_blueprint_variable`, `add_blueprint_function`
-- **Level Blueprint:** `get_level_blueprint(map_path)` — returns synthetic `__level_bp__:/Game/Maps/MapName` path for use with all `graph_*` and `bp.*` commands; save Level Blueprint changes with `save_level`, not `save_blueprint` (returns `LevelBlueprintSaveError`)
+- **Assets:** `create`, `list`, `get_info`, `delete`, `duplicate`, `compile`, `save`, `rename`, `reparent`
+- **Structure:** `add_variable`, `remove_variable`, `add_function`, `get_class_defaults`, `set_class_defaults`, `configure_timeline`, `set_component_defaults`
+- **Migration:** `analyze_for_migration`, `cleanup_migration`, `remove_scs_component`, `recompile_dependents`, `fixup_redirectors`, `compare_blueprints`
+- **Graph maintenance:** `delete_orphaned_nodes`, `search`
+- **Level Blueprint:** Use `get_level_blueprint(map_path)` (standalone tool) to get a synthetic path, then use `graph_cmd` commands. Save with `level_cmd(command="save_level")`, not `blueprint_cmd(command="save")`.
 
 ### Composite
 
@@ -64,9 +80,9 @@ Manage asset lifecycle. All commands accept a single path, a list of paths, or g
 
 ## Graph (`graph_cmd`)
 
-- `graph_list_graphs`, `graph_list_nodes`, `graph_get_node`, `graph_add_node`, `graph_remove_node`, `graph_connect`, `graph_disconnect`, `graph_set_pin_value`, `graph_auto_layout`
+- `list_graphs`, `list_nodes`, `get_node`, `search_nodes`, `add_node`, `remove_node`, `connect`, `disconnect`, `set_pin_value`, `auto_layout`
 
-`graph_auto_layout` — repositions nodes using execution-first left-to-right layout with parameter grouping. `mode`: `"full"` repositions all nodes; `"incremental"` only repositions nodes at position (0,0). Optional `graph_name`, `horizontal_spacing`, `vertical_spacing`.
+`auto_layout` — repositions nodes using execution-first left-to-right layout with parameter grouping. `mode`: `"full"` repositions all nodes; `"incremental"` only repositions nodes at position (0,0). Optional `graph_name`, `horizontal_spacing`, `vertical_spacing`.
 
 See `blueprint-patterns.md` for node class short names and full node type table.
 
@@ -74,9 +90,12 @@ See `blueprint-patterns.md` for node class short names and full node type table.
 
 ## Material (`material_cmd`)
 
-- **Asset:** `create_material`, `delete_material`, `list_materials`, `get_material_info`, `save_material`
-- **Graph:** `add_node`, `remove_node`, `list_nodes`, `get_node`, `connect`, `disconnect`, `set_node_property`, `auto_layout`
-- **Instances:** `create_instance`, `list_instances`, `get_instance`, `set_instance_parameter`
+- **Asset:** `list_materials`, `get_material`, `create_material`, `delete_material`, `set_material_property`
+- **Instances:** `list_instances`, `get_instance`, `create_instance`, `delete_instance`
+- **Parameters:** `list_parameters`, `get_parameter`, `set_parameter`, `set_parameters`, `reset_parameter`
+- **Graph:** `list_nodes`, `get_node`, `add_node`, `remove_node`, `list_connections`, `connect`, `disconnect`, `auto_layout`, `set_node_property`, `get_node_pins`
+- **Collections:** `list_collections`, `get_collection`, `create_collection`, `delete_collection`, `add_collection_parameter`, `remove_collection_parameter`, `set_collection_parameter`
+- **Dynamic Instances (PIE):** `list_dynamic_instances`, `get_dynamic_instance`, `create_dynamic_instance`, `destroy_dynamic_instance`, `set_dynamic_parameter`, `get_dynamic_parameter`, `list_dynamic_parameters`, `set_dynamic_parameters`, `reset_dynamic_parameter`
 
 ### Composites
 
@@ -101,9 +120,11 @@ See `blueprint-patterns.md` for node class short names and full node type table.
 
 ## Level (`level_cmd`)
 
-- **Actors:** `spawn_actor` (optional `level` param for sublevel targeting), `delete_actor`, `list_actors`, `get_actor`, `set_actor_transform`, `find_actors`
-- **Organization:** `set_actor_label`, `set_actor_folder`, `list_folders`
-- **Level management:** `load_level`, `save_level`, `list_levels`
+- **Actors:** `spawn_actor`, `delete_actor`, `duplicate_actor`, `rename_actor`, `get_actor`, `set_transform`, `set_actor_property`, `get_actor_property`, `list_actors`, `find_actors`, `get_bounds`, `select_actors`, `get_selection`
+- **Components:** `list_components`, `add_component`, `remove_component`, `get_component_property`, `set_component_property`
+- **Discovery:** `list_actor_classes`, `list_component_classes`, `describe_class`
+- **Organization:** `attach_actor`, `detach_actor`, `set_tags`, `set_folder`, `group_actors`, `ungroup_actors`
+- **Level management:** `get_info`, `list_sublevels`, `load_sublevel`, `unload_sublevel`, `set_sublevel_visibility`, `list_data_layers`, `set_data_layer`, `save_level`, `save_all`
 
 ### Composite
 
@@ -143,8 +164,9 @@ See `qa-patterns.md` for input injection documentation.
 
 ---
 
-## Reflect (`reflect_cmd`)
+## Reflect
 
+Reflect has **standalone MCP tools** (not accessed through `reflect_cmd`):
 - `query_class_hierarchy`, `query_class_detail`, `query_class_context`, `query_overrides`, `query_usages`
 - `get_dependencies`, `get_referencers`, `impact_analysis`
 - `rebuild_graph_cache`, `reflect_cache_status`, `scan_project`
@@ -153,4 +175,4 @@ See `qa-patterns.md` for input injection documentation.
 
 ## Convention
 
-Resources use full router syntax: `domain_cmd(command="name", params={...})`. Agent `.md` files use bare command names (e.g., `list_blueprints`) for readability.
+Resources use full router syntax: `domain_cmd(command="name", params={...})`. Agent `.md` files use bare command names (e.g., `list`) for readability.
