@@ -486,32 +486,63 @@ Use these for class analysis, asset dependency checks, and impact assessment —
 - Compile after structural changes to catch errors early
 - Always `save_blueprint` after modifications
 
-## MANDATORY Pipeline — New Blueprint Creation
+## MANDATORY Pipeline — Blueprint Compose for All Multi-Step Operations
 
-When creating a new Blueprint from scratch, you MUST use `blueprint_compose`.
-This creates the Blueprint, adds variables/functions, adds nodes, sets pin values, connects pins,
-and runs auto_layout — all in a single atomic batch operation.
+`blueprint_compose` is the REQUIRED tool for any operation involving 2+ graph changes. It sends everything as a single atomic batch — eliminating round-trips and preventing partial state.
 
-Do NOT call individual tools (`create_blueprint`, `add_blueprint_variable`, `graph_add_node`,
-`graph_set_pin_value`, `graph_connect`) separately when creating from scratch.
+### New Blueprint Creation
+
+Use `blueprint_compose` (default `mode: "create"`). Do NOT call individual tools separately.
 
 **Workflow:**
-1. Design the complete Blueprint spec (variables, functions, nodes, connections)
-2. Call `blueprint_compose` with the full spec
-3. Review the result — handle any warnings from auto_layout/compile
-4. If modifications needed after creation, use individual tools
+1. Design the complete spec (variables, functions, nodes, connections)
+2. Call `blueprint_compose` once with the full spec
+3. Review result — handle warnings from auto_layout/compile
 
-## PROHIBITED Tools — New Blueprint Creation Only
+### Modifying Existing Blueprints (2+ changes)
 
-When creating a NEW Blueprint from scratch, these tools are PROHIBITED (use `blueprint_compose` instead):
+Use `blueprint_compose(mode="update", asset_path="...")`. Specify only what is being added.
+
+**Workflow:**
+1. Inspect the existing Blueprint to understand current state
+2. Design the complete delta spec (only new nodes/connections/variables)
+3. Call `blueprint_compose(mode="update", asset_path="...", nodes=[...], connections=[...])`
+4. Review result
+
+**Example — adding nodes to EventGraph of an existing Blueprint:**
+```python
+blueprint_compose(
+    mode="update",
+    asset_path="/Game/Blueprints/BP_Door",
+    graph_name="EventGraph",
+    nodes=[
+        {"name": "OpenEvent", "class": "Event", "params": {"function_name": "RipLift.ReceiveOpenDoor"}},
+        {"name": "OpenDoors",  "class": "CallFunction", "params": {"function_name": "BP_Lift.OpenDoors"}},
+    ],
+    connections=[
+        {"from": "OpenEvent.then", "to": "OpenDoors.execute"},
+    ]
+)
+```
+
+**Connections to pre-existing nodes:** Use the existing node_id string directly as the source/target name (instead of a spec name).
+
+## PROHIBITED Patterns
+
+### For NEW Blueprints — individual tool calls are PROHIBITED:
 - `create_blueprint` — use `blueprint_compose` instead
-- `add_blueprint_variable` — included in composite spec
-- `add_blueprint_function` — included in composite spec
-- `graph_add_node` — included in composite spec
-- `graph_set_pin_value` — included in composite spec
-- `graph_connect` — included in composite spec
+- `add_blueprint_variable` — include in composite spec
+- `add_blueprint_function` — include in composite spec
+- `graph_add_node` — include in composite spec
+- `graph_set_pin_value` — include in composite spec
+- `graph_connect` — include in composite spec
 
-These tools ARE allowed when modifying an existing Blueprint.
+### For EXISTING Blueprints with 2+ changes — sequential individual calls are PROHIBITED:
+- Calling `graph_add_node` N times in separate tool calls — use `blueprint_compose(mode="update")` instead
+- Calling `graph_connect` N times in separate tool calls — include connections in the compose spec
+- Calling `graph_remove_node` N times for bulk deletion — batch them via `graph_cmd` batch or make a single composed pass
+
+**Individual tools ARE allowed for single-step changes** (e.g., renaming one variable, connecting one existing wire, setting one pin value) where the overhead of compose is not justified.
 
 ## After Graph Modifications
 

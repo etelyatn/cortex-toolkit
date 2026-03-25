@@ -54,9 +54,13 @@ MANDATORY WORKFLOW:
 1. Read `.cortex/domains/blueprints.md` for node class names and pin conventions
 2. Investigate existing Blueprints to avoid name collisions
 3. Design your variables[], functions[], nodes[], and connections[] as a JSON spec
-4. Call `blueprint_compose(name, path, ...)` as a SINGLE call
+4a. NEW Blueprint → `blueprint_compose(name, path, ...)` as a SINGLE call
+4b. MODIFYING EXISTING (2+ changes) → `blueprint_compose(mode="update", asset_path="...", nodes=[...], connections=[...])` as a SINGLE call
 
-PROHIBITED: Do NOT call `blueprint_cmd` for `create_blueprint`, `add_blueprint_variable` or `graph_cmd` for `graph_add_node` individually for new Blueprint creation. These are ONLY for modifying existing Blueprints. For new Blueprints, you MUST use `blueprint_compose` exclusively.
+PROHIBITED:
+- Never call `graph_add_node` or `graph_connect` individually N times for multi-node operations.
+- Always batch 2+ node additions/connections into a single `blueprint_compose(mode="update")` call.
+- Individual graph tools are only acceptable for a single isolated change (e.g., set one pin value, connect one existing wire).
 ```
 
 **For Review/Analyze**, pass the review scope and focus:
