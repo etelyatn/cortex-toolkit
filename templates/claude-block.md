@@ -2,15 +2,18 @@
 <!-- cortex-toolkit:v1 -->
 ## Cortex Toolkit
 
-AI-powered UE development via UnrealCortex MCP.
-Config: `.cortex/config.yaml` | Context: `.cortex/context.md` | Domain details: `.cortex/domains/`
+Requires running UE Editor. Read `.cortex/context.md` before first domain operation.
+Config: `.cortex/config.yaml` | Domain details: `.cortex/domains/`
 
-| Domain | Use when you need to... | Skills |
-|--------|-------------------------|--------|
-| Blueprint | ...create/edit BP logic, wire nodes, add variables, migrate to C++ | `/cortex-blueprint` `/cortex-bp-migrate` |
-| Data | ...create/query DataTables, balance data, manage GameplayTags | `/cortex-data` |
-| Level | ...place/move actors, organize level content, stream sublevels | `/cortex-level` |
-| Material | ...create/edit materials, tune parameters, build shader graphs | `/cortex-material` |
-| UI | ...build menus, HUDs, dialogs, or any UMG widget screen | `/cortex-ui` |
-| QA | ...run gameplay tests in PIE, assert game state, explore scenarios | `/cortex-qa-init` `/cortex-qa-interactive` `/cortex-qa-run` |
-| Reflect | ...scan class hierarchy, find usages, analyze refactor impact | `/cortex-reflect` |
+On MCP parameter errors, re-read the tool's docstring — never guess parameter names.
+Rule: new asset creation → `*_compose` tool. Modifications to existing assets → `*_cmd` router.
+
+| Domain | When to use | Skills |
+|--------|-------------|--------|
+| Blueprint | Create/edit BP logic, wire nodes, variables, migrate to C++ | `/cortex-blueprint` `/cortex-bp-migrate` |
+| Data | DataTables, GameplayTags, balance data | `/cortex-data` |
+| Level | Place/move actors, organize content, sublevels | `/cortex-level` |
+| Material | Materials, parameters, shader graphs | `/cortex-material` |
+| UI | UMG widgets — menus, HUDs, dialogs | `/cortex-ui` |
+| QA | PIE testing, assertions, scenario exploration | `/cortex-qa-init` `/cortex-qa-interactive` `/cortex-qa-run` |
+| Reflect | Class hierarchy, usages, refactor impact | `/cortex-reflect` |

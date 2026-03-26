@@ -25,6 +25,8 @@ Router commands use **bare names** — e.g., `get_info`, `create`, `list` (NOT `
 
 **When in doubt:** Use the router tool `{domain}_cmd` with the bare command name from the lists below.
 
+> Each router tool's docstring contains these same signatures. On parameter errors, re-read — never guess.
+
 ---
 
 ## Core (`core_cmd`)
