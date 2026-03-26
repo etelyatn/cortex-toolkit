@@ -322,6 +322,26 @@ All `graph_*` commands, `blueprint_cmd(compile_blueprint)`, and other `blueprint
 
 **Not supported:** `blueprint_cmd(save_blueprint)` — returns `LevelBlueprintSaveError`. Use `blueprint_cmd(command="save_level")` instead.
 
+### Add an SCS Component
+
+Use `blueprint_cmd(command="add_scs_component")` to add a component to a Blueprint's Components panel (SCS).
+
+```python
+# Add a StaticMeshComponent as a child of DefaultSceneRoot
+blueprint_cmd(command="add_scs_component", params={
+    "asset_path": "/Game/Blueprints/BP_JumpPad",
+    "component_class": "StaticMeshComponent",
+    "component_name": "JumpPadMesh",
+    "parent_component": "DefaultSceneRoot",
+    "compile": True
+})
+# Returns: {"variable_name": "JumpPadMesh", "component_class": "StaticMeshComponent", "is_scene_component": true, ...}
+```
+
+**Important:** Always use the returned `variable_name` for subsequent calls — the engine may deduplicate names. Only SceneComponent subclasses can specify `parent_component`.
+
+**Typical workflow:** `add_scs_component` → `set_component_defaults` (set object-reference properties like StaticMesh asset).
+
 ### Remove an SCS Component
 
 Use `blueprint_cmd(command="remove_scs_component")` to delete a component from a Blueprint's Components panel (SCS). Typical use: after migrating a Blueprint-layer component to a C++ `CreateDefaultSubobject` declaration.

@@ -115,7 +115,7 @@ impact_analysis(
 
 **Asset management:** `create_blueprint`, `list_blueprints`, `get_blueprint_info`, `delete_blueprint`, `duplicate_blueprint`, `compile_blueprint`, `save_blueprint`, `reparent_blueprint`
 
-**Structure:** `add_blueprint_variable`, `remove_blueprint_variable`, `add_blueprint_function`, `configure_timeline`, `set_component_defaults`, `remove_scs_component`
+**Structure:** `add_blueprint_variable`, `remove_blueprint_variable`, `add_blueprint_function`, `configure_timeline`, `set_component_defaults`, `add_scs_component`, `remove_scs_component`
 
 **Class Defaults (CDO):** `get_class_defaults`, `set_class_defaults`
 
@@ -324,9 +324,35 @@ set_component_defaults(
 
 **Note:** This sets defaults on the Blueprint class template, affecting all future instances. To override properties on a specific placed actor, use `set_actor_property` instead.
 
+## Adding SCS Components
+
+Use `add_scs_component` to add a component node to a Blueprint's Simple Construction Script (Components panel).
+
+```python
+add_scs_component(
+    asset_path="/Game/Blueprints/BP_JumpPad",
+    component_class="StaticMeshComponent",
+    component_name="JumpPadMesh",
+    parent_component="DefaultSceneRoot",
+    compile=True
+)
+# Returns: {"variable_name": "JumpPadMesh", "component_class": "StaticMeshComponent", "is_scene_component": true, "parent_component": "DefaultSceneRoot", "compiled": true, "compile_status": "UpToDate"}
+```
+
+**Parameters:**
+- `asset_path`: Blueprint asset path
+- `component_class`: Component class name (e.g. `StaticMeshComponent`, `PointLightComponent`, `BoxComponent`)
+- `component_name` (optional): Variable name. Auto-generated from class name if omitted
+- `parent_component` (optional): Parent SCS node to attach under. Only valid for SceneComponent subclasses. Adds to root if omitted
+- `compile` (optional, default `true`): Compile the Blueprint after adding
+
+**Important:** The returned `variable_name` may differ from `component_name` if the engine deduplicates. Always use the returned name for subsequent `set_component_defaults` calls.
+
+**Typical workflow:** `add_scs_component` → `set_component_defaults` (for object-reference properties like StaticMesh).
+
 ## Removing SCS Components
 
-Use `remove_scs_component` to delete a component node from a Blueprint's Simple Construction Script (Components panel). This is the inverse of `add_component` / `set_component_defaults` and is typically used after migrating a Blueprint-layer component to a C++ `UPROPERTY` member.
+Use `remove_scs_component` to delete a component node from a Blueprint's Simple Construction Script (Components panel). This is the inverse of `add_scs_component` and is typically used after migrating a Blueprint-layer component to a C++ `UPROPERTY` member.
 
 ```python
 remove_scs_component(
