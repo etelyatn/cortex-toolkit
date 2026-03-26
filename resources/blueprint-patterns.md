@@ -143,6 +143,10 @@ When calling `blueprint_cmd(command="graph_add_node")` or specifying nodes in `b
 | `SwitchEnum` | `UK2Node_SwitchEnum` | none |
 | `SwitchString` | `UK2Node_SwitchString` | none |
 | `SwitchInteger` | `UK2Node_SwitchInteger` | none |
+| `AddDelegate` / `BindEvent` | `UK2Node_AddDelegate` | `{"delegate_name": "OnTakeAnyDamage", "delegate_class": "Actor"}` — `delegate_class` optional (omit for self-context). Pins: execute, then, self (Target), Delegate (Event) |
+| `RemoveDelegate` / `UnbindEvent` | `UK2Node_RemoveDelegate` | same as AddDelegate. Pins: execute, then, self (Target), Delegate (Event) |
+| `ClearDelegate` / `UnbindAllEvents` | `UK2Node_ClearDelegate` | same as AddDelegate but no Delegate pin. Pins: execute, then, self (Target) |
+| `CreateDelegate` / `CreateEvent` | `UK2Node_CreateDelegate` | `{"function_name": "MyHandler"}` — bare name, NOT `ClassName.Function` format. Pins: self (Object), OutputDelegate (Event). Not a CustomEvent — creates a delegate object referencing a function |
 
 **Removed short names** — no longer accepted: `FunctionEntry`, `FunctionResult`, `ForEachLoop`. For ForEach loops use `CallFunction` with `function_name: "KismetArrayLibrary.Array_ForEach"`.
 

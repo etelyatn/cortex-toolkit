@@ -142,6 +142,10 @@ impact_analysis(
 | `SwitchEnum` | Switch on enum — no params required |
 | `SwitchString` | Switch on string — no params required |
 | `SwitchInteger` | Switch on integer — no params required |
+| `AddDelegate` / `BindEvent` | Bind event to delegate — requires `params: {"delegate_name": "OnTakeAnyDamage", "delegate_class": "Actor"}` (`delegate_class` optional for self-context). Pins: execute, then, self (Target), Delegate (Event) |
+| `RemoveDelegate` / `UnbindEvent` | Unbind event — same params as AddDelegate. Pins: execute, then, self (Target), Delegate (Event) |
+| `ClearDelegate` / `UnbindAllEvents` | Unbind all events — same params, no Delegate pin. Pins: execute, then, self (Target) |
+| `CreateDelegate` / `CreateEvent` | Create delegate object (NOT CustomEvent) — optional `params: {"function_name": "MyHandler"}` (bare name, not `ClassName.Function`). Pins: self (Object), OutputDelegate (Event) |
 
 **Removed short names** — no longer accepted: `FunctionEntry`, `FunctionResult`, `ForEachLoop`. Use `CallFunction` with `function_name: "KismetArrayLibrary.Array_ForEach"` for ForEach loops.
 
