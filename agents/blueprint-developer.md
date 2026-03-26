@@ -119,6 +119,8 @@ impact_analysis(
 
 **Class Defaults (CDO):** `get_class_defaults`, `set_class_defaults`
 
+**Class Settings:** `add_interface`, `remove_interface`, `set_tick_settings`, `set_replication_settings`
+
 **Graph (logic):** `graph_list_graphs`, `graph_list_nodes`, `graph_get_node`, `graph_add_node`, `graph_remove_node`, `graph_connect`, `graph_disconnect`, `graph_set_pin_value`, `graph_auto_layout`
 
 **graph_add_node node types** (use short name or full `UK2Node_*` name):
@@ -279,6 +281,92 @@ Set both to `false` when making multiple batches of changes, then manually compi
 |------|--------|----------|
 | `get_class_defaults` / `set_class_defaults` | Blueprint CDO (template) | Configuring default values for all future instances |
 | `get_actor_property` / `set_actor_property` | Placed actor in level | Overriding values on a specific placed instance |
+
+## Managing Interfaces
+
+Use `add_interface` and `remove_interface` to manage Blueprint interface implementations programmatically.
+
+### Adding an Interface
+
+```python
+add_blueprint_interface(
+    asset_path="/Game/Blueprints/BP_Door",
+    interface_path="BPI_Interactable",  # Blueprint interface path or C++ interface name
+    compile=True
+)
+# Returns: asset_path, interface_name, interface_path, compiled, stub_functions
+```
+
+**`interface_path` accepts:**
+- Blueprint interface asset paths: `/Game/Interfaces/BPI_Interactable`
+- C++ interface short names: `BlendableInterface`, `ActorTickableInterface`
+- I-prefixed names: `IBlendableInterface` (auto-strips the `I` prefix)
+
+**Stub functions:** When an interface defines methods, adding it auto-generates stub function graphs. The `stub_functions` array lists their names so you can wire them up.
+
+### Removing an Interface
+
+```python
+remove_blueprint_interface(
+    asset_path="/Game/Blueprints/BP_Door",
+    interface_path="BPI_Interactable",
+    compile=True
+)
+# Returns: asset_path, interface_name, interface_path, compiled, removed_graphs
+```
+
+**Validation:**
+- Adding an already-implemented interface returns `InvalidOperation`
+- Removing a non-implemented interface returns `InvalidOperation`
+- Non-interface classes return `InvalidOperation`
+- Unresolvable class names return `ClassNotFound`
+
+## Configuring Tick Settings
+
+Use `set_tick_settings` for Actor tick configuration instead of `set_class_defaults` — it auto-sets `bCanEverTick` when enabling tick and validates Actor type.
+
+```python
+set_blueprint_tick_settings(
+    asset_path="/Game/Blueprints/BP_Enemy",
+    start_with_tick_enabled=True,  # Also forces bCanEverTick=true
+    tick_interval=0.1,             # 10 ticks per second (0 = every frame)
+    compile=True,
+    save=False
+)
+# Returns: asset_path, start_with_tick_enabled, can_ever_tick, tick_interval, compiled, saved
+```
+
+**Parameters (all optional except `asset_path`):**
+- `start_with_tick_enabled`: When `true`, also forces `can_ever_tick=true`. When `false`, only clears start-with-tick (leaves `can_ever_tick` for runtime re-enable).
+- `can_ever_tick`: Independent control. Usually set automatically via `start_with_tick_enabled`.
+- `tick_interval`: Seconds between ticks. `0` means every frame.
+
+**Only Actor-based Blueprints** — returns `InvalidBlueprintType` on Component or Widget Blueprints.
+
+## Configuring Replication Settings
+
+Use `set_replication_settings` for Actor replication configuration instead of `set_class_defaults` — it validates Actor type and provides enum validation for dormancy.
+
+```python
+set_blueprint_replication_settings(
+    asset_path="/Game/Blueprints/BP_NetworkedActor",
+    replicates=True,
+    replicate_movement=True,
+    net_dormancy="DORM_Awake",
+    net_use_owner_relevancy=False,
+    compile=True,
+    save=False
+)
+# Returns: asset_path, replicates, replicate_movement, net_dormancy, net_use_owner_relevancy, compiled, saved
+```
+
+**Parameters (all optional except `asset_path`):**
+- `replicates`: Enable replication for this actor
+- `replicate_movement`: Replicate movement (requires `replicates=true`)
+- `net_dormancy`: One of `DORM_Never`, `DORM_Awake`, `DORM_DormantAll`, `DORM_DormantPartial`, `DORM_Initial`
+- `net_use_owner_relevancy`: Use owner relevancy for net culling
+
+**Only Actor-based Blueprints** — returns `InvalidBlueprintType` on Component or Widget Blueprints. Invalid `net_dormancy` values return `InvalidValue` with valid options listed.
 
 ## Configuring Timelines
 

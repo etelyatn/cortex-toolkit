@@ -376,6 +376,80 @@ compile_new_cpp_class
   → blueprint_cmd(compile_blueprint)
 ```
 
+### Add / Remove Interface
+
+```python
+# Add a Blueprint interface
+blueprint_cmd(command="add_interface", params={
+    "asset_path": "/Game/Blueprints/BP_Door",
+    "interface_path": "/Game/Interfaces/BPI_Interactable",
+    "compile": True
+})
+# Returns: {"interface_name": "BPI_Interactable_C", "stub_functions": ["ExecuteInteraction", "CanInteract"], ...}
+
+# Add a C++ interface (short name)
+blueprint_cmd(command="add_interface", params={
+    "asset_path": "/Game/Blueprints/BP_Door",
+    "interface_path": "BlendableInterface",
+    "compile": True
+})
+
+# Remove an interface
+blueprint_cmd(command="remove_interface", params={
+    "asset_path": "/Game/Blueprints/BP_Door",
+    "interface_path": "/Game/Interfaces/BPI_Interactable",
+    "compile": True
+})
+# Returns: {"interface_name": "BPI_Interactable_C", "removed_graphs": ["ExecuteInteraction", "CanInteract"], ...}
+```
+
+**Interface path formats:** Blueprint asset path (`/Game/Interfaces/BPI_X`), C++ short name (`BlendableInterface`), or I-prefixed (`IBlendableInterface`).
+
+**Validation:**
+- Adding an already-implemented interface → `InvalidOperation`
+- Removing a non-implemented interface → `InvalidOperation`
+- Non-interface class → `InvalidOperation`
+- Unresolvable class → `ClassNotFound`
+
+### Configure Tick Settings
+```
+blueprint_cmd(set_tick_settings, asset_path, start_with_tick_enabled, tick_interval) → auto-compiles
+```
+
+**Example: Enable tick on an Actor Blueprint**
+```python
+blueprint_cmd(command="set_tick_settings", params={
+    "asset_path": "/Game/Blueprints/BP_Enemy",
+    "start_with_tick_enabled": True,
+    "tick_interval": 0.1,
+    "compile": True,
+    "save": False
+})
+# Returns: {"can_ever_tick": true, "start_with_tick_enabled": true, "tick_interval": 0.1, "compiled": true, "saved": false}
+```
+
+**Smart auto-set:** Setting `start_with_tick_enabled: true` automatically forces `can_ever_tick: true`. Only Actor-based Blueprints support tick settings.
+
+### Configure Replication Settings
+```
+blueprint_cmd(set_replication_settings, asset_path, replicates, net_dormancy, ...) → auto-compiles
+```
+
+**Example: Enable replication on an Actor Blueprint**
+```python
+blueprint_cmd(command="set_replication_settings", params={
+    "asset_path": "/Game/Blueprints/BP_NetworkedActor",
+    "replicates": True,
+    "replicate_movement": True,
+    "net_dormancy": "DORM_Awake",
+    "compile": True,
+    "save": False
+})
+# Returns: {"replicates": true, "replicate_movement": true, "net_dormancy": "DORM_Awake", "net_use_owner_relevancy": false, ...}
+```
+
+**Valid `net_dormancy` values:** `DORM_Never`, `DORM_Awake`, `DORM_DormantAll`, `DORM_DormantPartial`, `DORM_Initial`. Invalid values return `InvalidValue` with the valid list.
+
 ### Reparent Blueprint
 ```
 blueprint_cmd(reparent, asset_path, new_parent) → auto-compiles

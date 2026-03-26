@@ -70,6 +70,7 @@ Manage asset lifecycle. All commands accept a single path, a list of paths, or g
 
 - **Assets:** `create`, `list`, `get_info`, `delete`, `duplicate`, `compile`, `save`, `rename`, `reparent`
 - **Structure:** `add_variable`, `remove_variable`, `add_function`, `get_class_defaults`, `set_class_defaults`, `configure_timeline`, `set_component_defaults`, `add_scs_component`
+- **Class Settings:** `add_interface`, `remove_interface`, `set_tick_settings`, `set_replication_settings`
 - **Migration:** `analyze_for_migration`, `cleanup_migration`, `remove_scs_component`, `recompile_dependents`, `fixup_redirectors`, `compare_blueprints`
 - **Graph maintenance:** `delete_orphaned_nodes`, `search`
 - **Level Blueprint:** Use `get_level_blueprint(map_path)` (standalone tool) to get a synthetic path, then use `graph_cmd` commands. Save with `level_cmd(command="save_level")`, not `blueprint_cmd(command="save")`.

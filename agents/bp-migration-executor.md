@@ -166,4 +166,5 @@ Do NOT write `03-node-mapping.json`. All execution data goes inline.
 - `graph_disconnect`
 - `delete_orphaned_nodes`
 - `remove_scs_component`
+- `add_interface` / `remove_interface` — add or remove interface implementations (use `remove_interface` to clean up stale interface references during migration)
 - `save_blueprint`
