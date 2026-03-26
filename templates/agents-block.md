@@ -6,7 +6,7 @@ Requires running UE Editor. Read `.cortex/context.md` before first domain operat
 Config: `.cortex/config.yaml` | Domain details: `.cortex/domains/`
 
 On MCP parameter errors, read `cortex-toolkit/resources/mcp-tool-reference.md` — never guess parameter names.
-Rule: new asset creation → `*_compose` tool. Modifications to existing assets → `*_cmd` router.
+Rule: multiple actions on one asset → `*_compose` (single batch call). Single operations → `*_cmd` router.
 
 | Domain | When to use | Tools |
 |--------|-------------|-------|
