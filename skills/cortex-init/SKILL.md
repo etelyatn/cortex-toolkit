@@ -145,15 +145,25 @@ Create `.cortex/domains/` with a template for each detected domain:
 
 Use `.mcp.json` as the assistant-agnostic MCP config for this project.
 
+Before writing, resolve two absolute paths:
+
+- `{project_root}` — the absolute path of the current working directory. Use:
+  ```bash
+  uv run python -c "import os; print(os.path.abspath('.').replace(chr(92), '/'))"
+  ```
+  This gives the OS-native path in forward-slash form (e.g. `D:/UnrealProjects/MyGame`), which works correctly for both Claude Code and native Windows MCP clients like Cursor or Windsurf. Do not use `pwd` — it returns POSIX paths (`/d/UnrealProjects/MyGame`) that native Windows processes cannot resolve.
+
+- `{mcp_dir}` — `{project_root}/{plugin_root}/MCP`, where `{plugin_root}` is the directory detected in Step 1 (e.g. `Plugins/UnrealCortex` or `Plugins/Developer/UnrealCortex`).
+
 If `.mcp.json` is missing, create it with:
 ```json
 {
   "mcpServers": {
     "cortex_mcp": {
       "command": "uv",
-      "args": ["run", "--directory", "Plugins/UnrealCortex/MCP", "cortex-mcp"],
+      "args": ["run", "--directory", "{mcp_dir}", "cortex-mcp"],
       "env": {
-        "CORTEX_PROJECT_DIR": "."
+        "CORTEX_PROJECT_DIR": "{project_root}"
       }
     }
   }
@@ -163,7 +173,7 @@ If `.mcp.json` is missing, create it with:
 If `.mcp.json` already exists:
 - Preserve all existing top-level keys.
 - Preserve all existing `mcpServers` entries.
-- Upsert only `mcpServers.cortex_mcp` with the expected value above.
+- Upsert only `mcpServers.cortex_mcp`, replacing the entire object with the resolved values above. Do not carry forward field values from the existing entry.
 - Do not remove or rewrite unrelated MCP server configs.
 
 ### 6. Inject LLM Context
@@ -221,6 +231,7 @@ Report:
 - Engine path and version
 - Detected domains
 - Created files
+- MCP configured: `CORTEX_PROJECT_DIR={project_root}`, `--directory={mcp_dir}`
 - Context injection:
   - CLAUDE.md: injected (N domain rows) / already present / skipped
   - AGENTS.md: injected (N domain rows) / already present / skipped / not requested
