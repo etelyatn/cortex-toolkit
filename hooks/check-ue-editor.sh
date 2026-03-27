@@ -10,18 +10,13 @@ set -uo pipefail
 
 LOCK_DIR="/tmp/cortex-ue-editor-starting.lock"
 
-# Resolve project root: prefer CLAUDE_PROJECT_DIR, then search upward from pwd for .uproject
-_find_project_dir() {
-    if [ -n "${CLAUDE_PROJECT_DIR:-}" ] && [ -d "$CLAUDE_PROJECT_DIR" ]; then
-        echo "$CLAUDE_PROJECT_DIR"; return 0
-    fi
-    local dir
-    dir=$(pwd)
+# Walk up from a starting directory looking for *.uproject
+_walk_up_for_uproject() {
+    local dir="$1" parent
     for _ in $(seq 1 20); do
         if ls "$dir"/*.uproject 2>/dev/null | head -1 | grep -q .; then
             echo "$dir"; return 0
         fi
-        local parent
         parent=$(dirname "$dir")
         [ "$parent" = "$dir" ] && break
         dir="$parent"
@@ -29,7 +24,28 @@ _find_project_dir() {
     return 1
 }
 
-PROJECT_DIR=$(_find_project_dir) || PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
+# Resolve project root: CLAUDE_PROJECT_DIR → walk-up from CWD → walk-up from script location
+# The third fallback handles subagents whose CWD differs from the project root.
+_find_project_dir() {
+    if [ -n "${CLAUDE_PROJECT_DIR:-}" ] && [ -d "$CLAUDE_PROJECT_DIR" ]; then
+        echo "$CLAUDE_PROJECT_DIR"; return 0
+    fi
+    _walk_up_for_uproject "$(pwd)" && return 0
+    local script_dir
+    script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd) || return 1
+    _walk_up_for_uproject "$script_dir"
+}
+
+PROJECT_DIR=$(_find_project_dir) || {
+    cat >&2 <<'EOF'
+Could not find the Unreal project root directory.
+Tell the user: the PreToolUse hook could not locate a .uproject file.
+Checked CLAUDE_PROJECT_DIR, walked up from CWD, and walked up from script location.
+Ask them to set CLAUDE_PROJECT_DIR or ensure the cortex-toolkit is inside the project tree.
+Do not proceed with MCP tool calls until the user resolves this.
+EOF
+    exit 2
+}
 RESTART_LOCK="$PROJECT_DIR/Saved/CortexRestarting.lock"
 
 # Find the best available port file.
