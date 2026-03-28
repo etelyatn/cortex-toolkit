@@ -148,6 +148,7 @@ impact_analysis(
 | `RemoveDelegate` / `UnbindEvent` | Unbind event — same params as AddDelegate. Pins: execute, then, self (Target), Delegate (Event) |
 | `ClearDelegate` / `UnbindAllEvents` | Unbind all events — same params, no Delegate pin. Pins: execute, then, self (Target) |
 | `CreateDelegate` / `CreateEvent` | Create delegate object (NOT CustomEvent) — optional `params: {"function_name": "MyHandler"}` (bare name, not `ClassName.Function`). Pins: self (Object), OutputDelegate (Event) |
+| `Composite` | Collapsed composite subgraph (`UK2Node_Composite`) — no params required. Creates a composite node with an empty `BoundGraph`. Use `graph_list_nodes` to read back the `subgraph_name` field, then pass it as `subgraph_path` on subsequent calls to edit nodes inside the composite. |
 
 **Removed short names** — no longer accepted: `FunctionEntry`, `FunctionResult`, `ForEachLoop`. Use `CallFunction` with `function_name: "KismetArrayLibrary.Array_ForEach"` for ForEach loops.
 
@@ -216,6 +217,89 @@ graph_set_pin_value(
 - Only input pins can have values set (output pins error with `INVALID_OPERATION`)
 - Pin must not be connected to another node
 - Value is provided as a string and cast to appropriate type by Unreal
+
+## Composite Subgraph Access
+
+All graph tools (`graph_list_nodes`, `graph_get_node`, `graph_search_nodes`, `graph_add_node`, `graph_remove_node`, `graph_connect`, `graph_disconnect`, `graph_set_pin_value`, `graph_auto_layout`) accept an optional `subgraph_path` parameter. `graph_list_graphs` accepts `include_subgraphs`.
+
+### Discovering Composites
+
+Two methods to find available composite subgraphs:
+
+**Method A — include_subgraphs on list_graphs:**
+```python
+graph_list_graphs(
+    asset_path="/Game/Blueprints/BP_Actor",
+    include_subgraphs=True
+)
+# Returns entries with parent_graph and subgraph_path fields for each composite
+```
+
+**Method B — read subgraph_name from list_nodes:**
+```python
+graph_list_nodes(asset_path="/Game/Blueprints/BP_Actor", graph_name="EventGraph")
+# Composite nodes appear with "subgraph_name": "CompositeGraphName"
+# Tunnel boundary nodes (entry/exit) appear with "is_tunnel_boundary": true
+```
+
+### Navigating Into a Composite
+
+Use the `subgraph_name` value from a `list_nodes` result as `subgraph_path` on subsequent calls:
+
+```python
+# Inspect inside a composite called "MyComposite" in EventGraph
+graph_list_nodes(
+    asset_path="/Game/Blueprints/BP_Actor",
+    graph_name="EventGraph",
+    subgraph_path="MyComposite"
+)
+
+# Add a node inside the composite
+graph_add_node(
+    asset_path="/Game/Blueprints/BP_Actor",
+    node_class="CallFunction",
+    params={"function_name": "KismetSystemLibrary.PrintString"},
+    graph_name="EventGraph",
+    subgraph_path="MyComposite"
+)
+```
+
+**Nested composites:** Append segments with a dot separator (max depth 5):
+```python
+graph_list_nodes(
+    asset_path="/Game/Blueprints/BP_Actor",
+    graph_name="EventGraph",
+    subgraph_path="OuterComposite.InnerComposite"
+)
+```
+
+### Composite Safety Rules
+
+- **Tunnel boundary nodes** (`is_tunnel_boundary: true`) are structural entry/exit nodes — **do not delete or rewire them**. They represent the composite's execution and data pin interface to the outer graph. Use `graph_get_node` to inspect their pins before connecting new nodes to the execution flow inside a composite.
+- **Composite names must not contain dots** (dots are the path separator).
+- **`subgraph_path` cannot be used with `blueprint_compose(mode="create")`** — the Blueprint does not exist yet. Use `mode="update"` after creation.
+- **Each `blueprint_compose` call targets one subgraph** — to add nodes to both the top-level graph and a composite, call twice: once without `subgraph_path` (top-level) and once with `mode="update"` and `subgraph_path` (inside composite).
+
+### Error Codes
+
+| Code | Meaning |
+|------|---------|
+| `SUBGRAPH_NOT_FOUND` | No composite node with the given name found in the graph |
+| `SUBGRAPH_DEPTH_EXCEEDED` | Subgraph path exceeds the 5-level depth limit |
+
+### search_nodes Composite Behavior
+
+`graph_search_nodes` recursively descends into composite subgraphs by default. Results include a `subgraph_path` field for nodes found inside composites, so you can navigate directly to them:
+
+```python
+graph_search_nodes(
+    asset_path="/Game/Blueprints/BP_Actor",
+    function_name="PrintString"
+)
+# Results inside composites include: "subgraph_path": "MyComposite"
+```
+
+To restrict search to a specific subgraph, provide both `graph_name` and `subgraph_path`.
 
 ## Configuring Class Defaults (CDO)
 

@@ -147,6 +147,7 @@ When calling `blueprint_cmd(command="graph_add_node")` or specifying nodes in `b
 | `RemoveDelegate` / `UnbindEvent` | `UK2Node_RemoveDelegate` | same as AddDelegate. Pins: execute, then, self (Target), Delegate (Event) |
 | `ClearDelegate` / `UnbindAllEvents` | `UK2Node_ClearDelegate` | same as AddDelegate but no Delegate pin. Pins: execute, then, self (Target) |
 | `CreateDelegate` / `CreateEvent` | `UK2Node_CreateDelegate` | `{"function_name": "MyHandler"}` — bare name, NOT `ClassName.Function` format. Pins: self (Object), OutputDelegate (Event). Not a CustomEvent — creates a delegate object referencing a function |
+| `Composite` | `UK2Node_Composite` | none — creates a collapsed composite subgraph. Read back `subgraph_name` from `list_nodes` output, then use it as `subgraph_path` to edit nodes inside the composite. |
 
 **Removed short names** — no longer accepted: `FunctionEntry`, `FunctionResult`, `ForEachLoop`. For ForEach loops use `CallFunction` with `function_name: "KismetArrayLibrary.Array_ForEach"`.
 
@@ -478,6 +479,118 @@ blueprint_cmd(command="reparent", params={
 - Returns error if Blueprint already has the specified parent
 - Returns `InvalidParentClass` if the class cannot be resolved
 - Returns `BlueprintNotFound` if the asset path is invalid
+
+### Navigate Composite Subgraphs
+
+Composite subgraphs (`UK2Node_Composite`) are collapsed regions inside a Blueprint graph. All graph tools accept an optional `subgraph_path` parameter to target nodes inside composites.
+
+**Discover composites in a Blueprint:**
+```python
+# Method A: include_subgraphs on list_graphs
+blueprint_cmd(command="graph_list_graphs", params={
+    "asset_path": "/Game/Blueprints/BP_Actor",
+    "include_subgraphs": True
+})
+# Returns top-level graphs plus composite entries with:
+#   "parent_graph": "EventGraph"
+#   "subgraph_path": "MyComposite"
+
+# Method B: read subgraph_name from list_nodes
+blueprint_cmd(command="graph_list_nodes", params={
+    "asset_path": "/Game/Blueprints/BP_Actor",
+    "graph_name": "EventGraph"
+})
+# Composite nodes include: "subgraph_name": "MyComposite"
+# Tunnel boundary nodes include: "is_tunnel_boundary": true
+```
+
+**Read nodes inside a composite:**
+```python
+blueprint_cmd(command="graph_list_nodes", params={
+    "asset_path": "/Game/Blueprints/BP_Actor",
+    "graph_name": "EventGraph",
+    "subgraph_path": "MyComposite"
+})
+```
+
+**Add a node inside a composite:**
+```python
+blueprint_cmd(command="graph_add_node", params={
+    "asset_path": "/Game/Blueprints/BP_Actor",
+    "node_class": "CallFunction",
+    "params": {"function_name": "KismetSystemLibrary.PrintString"},
+    "graph_name": "EventGraph",
+    "subgraph_path": "MyComposite"
+})
+```
+
+**Connect nodes inside a composite:**
+```python
+blueprint_cmd(command="graph_connect", params={
+    "asset_path": "/Game/Blueprints/BP_Actor",
+    "source_node": "<tunnel_entry_id>",
+    "source_pin": "then",
+    "target_node": "<print_node_id>",
+    "target_pin": "execute",
+    "graph_name": "EventGraph",
+    "subgraph_path": "MyComposite"
+})
+```
+
+**Nested composites** — append path segments with dots (max 5 levels):
+```python
+blueprint_cmd(command="graph_list_nodes", params={
+    "asset_path": "/Game/Blueprints/BP_Actor",
+    "graph_name": "EventGraph",
+    "subgraph_path": "OuterComposite.InnerComposite"
+})
+```
+
+**Search recursively across composites (default behavior):**
+```python
+blueprint_cmd(command="graph_search_nodes", params={
+    "asset_path": "/Game/Blueprints/BP_Actor",
+    "function_name": "PrintString"
+})
+# Results inside composites include "subgraph_path": "MyComposite"
+```
+
+**Use `blueprint_compose` to add nodes inside a composite:**
+```python
+# Step 1: create the Blueprint and add the Composite node to EventGraph
+blueprint_compose(
+    name="BP_CompositeActor", path="/Game/Blueprints/",
+    nodes=[
+        {"name": "BeginPlay", "class": "Event", "params": {"function_name": "Actor.ReceiveBeginPlay"}},
+        {"name": "MyComposite", "class": "Composite"},
+    ],
+    connections=[{"from": "BeginPlay.then", "to": "MyComposite.execute"}]
+)
+
+# Step 2: read back subgraph_name from list_nodes, then add nodes inside it
+blueprint_compose(
+    mode="update",
+    asset_path="/Game/Blueprints/BP_CompositeActor",
+    graph_name="EventGraph",
+    subgraph_path="<subgraph_name_from_list_nodes>",
+    nodes=[
+        {"name": "PrintMsg", "class": "CallFunction",
+         "params": {"function_name": "KismetSystemLibrary.PrintString"},
+         "pin_values": {"InString": "Inside composite!"}},
+    ],
+    connections=[{"from": "<tunnel_entry_id>.then", "to": "PrintMsg.execute"}]
+)
+```
+
+**Safety rules:**
+- Tunnel boundary nodes (`is_tunnel_boundary: true`) are structural — never delete or rewire them
+- Composite names must not contain dots (the path separator)
+- `subgraph_path` cannot be used with `blueprint_compose(mode="create")`
+- Each `blueprint_compose` call targets a single subgraph level
+
+**Error codes:**
+- `SUBGRAPH_NOT_FOUND` — no composite with that name found in the graph
+- `SUBGRAPH_DEPTH_EXCEEDED` — path exceeds the 5-level depth limit
 
 ### Review Blueprint
 ```
