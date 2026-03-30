@@ -96,7 +96,7 @@ Investigate the following Blueprint issue:
 
 WORKFLOW:
 1. Read `.cortex/domains/blueprints.md` for available tools and patterns
-2. Use graph_search_nodes and connected_to to trace execution flow
+2. Use graph_search_nodes and connections to trace execution flow
 3. Map the call chain and identify where behavior diverges from expectation
 4. Report findings with node-level detail
 ```
