@@ -29,6 +29,57 @@ Router commands use **bare names** — e.g., `get_info`, `create`, `list` (NOT `
 
 ---
 
+## Response Handling
+
+### Large Responses — Auto-Truncation
+
+When a response exceeds 40KB, the MCP layer finds the largest list with 10+ items, binary-searches for the max item count that fits, and returns `_truncated` metadata:
+
+```json
+{
+  "rows": [...],
+  "_truncated": {
+    "original_count": 500,
+    "returned_count": 42,
+    "suggestion": "Pass 'limit' parameter to paginate through results."
+  }
+}
+```
+
+If no truncatable list exists, the response is replaced with `{"_error": "RESPONSE_TOO_LARGE"}`.
+
+### Pagination
+
+All list commands support opt-in cursor-based pagination via two parameters:
+
+- **`limit`** (integer, 1–200) — triggers pagination; returns first page with `_pagination` metadata
+- **`cursor`** — opaque token from `_pagination.next_cursor`; returns next page without re-calling C++
+
+```json
+{
+  "rows": [...],
+  "_pagination": {
+    "returned": 20,
+    "total": 347,
+    "has_more": true,
+    "next_cursor": "eyJrZXkiOiAiYWJjMTIzIn0="
+  }
+}
+```
+
+Cache TTL is 60 seconds. On expiry, re-send the original command with `limit` to restart.
+
+### Error Codes
+
+| Code | Meaning | Recovery |
+|------|---------|----------|
+| `RESPONSE_TOO_LARGE` | Response too large, no truncatable list found | Add filters or use `fields` param |
+| `INVALID_LIMIT` | `limit` not an integer in [1, 200] | Pass an integer in range |
+| `INVALID_CURSOR` | Cursor token is malformed | Restart pagination with `limit` |
+| `CURSOR_EXPIRED` | Cached results expired (60s TTL) | Re-send original command with `limit` |
+
+---
+
 ## Core (`core_cmd`)
 
 - `get_status` — connection health, registered domains, engine/plugin versions
