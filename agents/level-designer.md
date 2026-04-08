@@ -229,12 +229,30 @@ Actors can be identified by:
 
 If a label matches multiple actors, tools return `AmbiguousActor` with a `matches` list. Use the full path.
 
+### Blueprint Naming Convention (`_C` / `_C_N`)
+
+Blueprint actors have three identifiers — understanding these prevents common lookup failures:
+
+| Identifier | Example | What it is | Use for |
+|-----------|---------|-----------|---------|
+| **Label** | `BP_Lift` | Display name in the Outliner | **Use this** for `actor` parameters |
+| **Internal name** | `BP_Lift_C_1` | Instance name (`_C` = compiled class, `_N` = instance index) | Appears in `list_actors` `name` field — do NOT use as `actor` param |
+| **Class** | `BP_Lift_C` | Compiled Blueprint class | Use for `class_filter` in `list_actors` |
+
+**Rule:** Always use the `label` field to target actors. The `name` field (with `_C_N` suffix) is the engine's internal instance name and will fail as an actor identifier.
+
+### Auto-Wildcard in `find_actors`
+
+`find_actors` automatically wraps plain keywords as `*keyword*` for substring matching. No need to add explicit wildcards:
+- `find_actors pattern:"Lift"` → matches `BP_Lift`, `LiftPlatform`, etc.
+- `find_actors pattern:"BP_Lift*"` → explicit wildcard still works as-is
+
 ## Error Handling
 
 | Error | Action |
 |-------|--------|
 | `Connection refused` / `TimeoutError` | Retry entire batch once |
-| `ActorNotFound` / `ClassNotFound` / `AmbiguousActor` | Do not retry - report to user, ask to clarify |
+| `ActorNotFound` / `ClassNotFound` / `AmbiguousActor` | Check `suggestions` in error response for similar names — use to self-correct. If no match, report to user |
 | `LabelAlreadyExists` / `InvalidOperation` | Call `find_actors`/`get_info` to assess state, then construct minimal corrective batch |
 | Spawn succeeded, subsequent step failed | Use `spawned_actors` from response to target fix batch - do not re-spawn |
 
