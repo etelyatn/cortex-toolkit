@@ -95,6 +95,23 @@ When analyzing a Blueprint's graphs, call all graph reads in parallel — not se
 
 Never query graphs one-by-one in sequential tool calls.
 
+### Compact vs Verbose Graph Reads
+
+`graph_list_nodes`, `graph_get_node`, `graph_search_nodes`, and `blueprint_cmd(get_info)` default to `compact=true`, which strips fields AI agents rarely need (~25-35% smaller responses):
+
+- `list_nodes` drops `position`, `node_class`, `pin_count`
+- `get_node` drops `position`, `node_class`, and hidden pins that have no connections and no non-default value/object; remaining pins omit `is_connected: false` and empty `default_value`
+- `search_nodes` drops `node_class`
+- `bp.get_info` drops empty `inputs`/`outputs` arrays and the `source` field on functions
+
+**Use the default (`compact: true`) for**: gameplay logic review, finding entry points, wiring new nodes, most debugging.
+
+**Pass `compact: false` explicitly when:**
+- You need node positions (visual layout debugging, auto-layout verification)
+- You need to inspect hidden pins (tunnel boundaries, world-context, self pins with defaults)
+- You need to distinguish inherited functions from Blueprint-defined functions in `bp.get_info`
+- You are generating C++ from a Blueprint graph (migration Ground Truth Table requires full fidelity)
+
 ### Before Destructive Operations
 
 Before **deleting a Blueprint**, **removing a public function or variable**, or **renaming a public API**, run `impact_analysis` (CortexReflect tool) to understand blast radius:
@@ -121,7 +138,9 @@ impact_analysis(
 
 **Class Settings:** `add_interface`, `remove_interface`, `set_tick_settings`, `set_replication_settings`
 
-**Graph (logic):** `graph_list_graphs`, `graph_list_nodes`, `graph_get_node`, `graph_add_node`, `graph_remove_node`, `graph_connect`, `graph_disconnect`, `graph_set_pin_value`, `graph_auto_layout`
+**Graph (logic):** `graph_list_graphs`, `graph_list_nodes`, `graph_get_node`, `graph_search_nodes`, `graph_add_node`, `graph_remove_node`, `graph_connect`, `graph_disconnect`, `graph_set_pin_value`, `graph_auto_layout`
+
+Read commands (`graph_list_nodes`, `graph_get_node`, `graph_search_nodes`) accept a `compact` boolean (default `true`). See "Compact vs Verbose Graph Reads" above.
 
 **graph_add_node node types** (use short name or full `UK2Node_*` name):
 

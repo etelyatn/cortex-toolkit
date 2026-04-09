@@ -599,6 +599,57 @@ blueprint_cmd(get_blueprint_info) → blueprint_cmd(graph_list_graphs) → bluep
 
 **`get_blueprint_info` limitation:** The `functions` array only includes functions *defined on the Blueprint itself*. Inherited C++ functions (e.g. from a custom C++ base class) are **not listed**. To discover inherited C++ functions, use `query_class_detail(class_name, detail="full")` from the Reflect domain instead.
 
+### Compact Serialization — Default Behavior of Graph Reads
+
+`graph_list_nodes`, `graph_get_node`, `graph_search_nodes`, and `bp.get_info` accept an optional `compact` boolean parameter, **default `true`**. Compact mode trims fields that AI agents rarely need, reducing response size by ~25-35% on a typical 30-node EventGraph.
+
+**What gets stripped with `compact=true`:**
+
+| Command | Stripped fields |
+|---------|-----------------|
+| `graph_list_nodes` | `position` object (x/y), `node_class` (duplicate of `class`), `pin_count` |
+| `graph_get_node` | `position`, `node_class`, hidden pins with no connections/defaults; surviving pins drop `is_connected: false` and empty `default_value` |
+| `graph_search_nodes` | `node_class` (search results never included positions) |
+| `bp.get_info` | empty `inputs` / `outputs` arrays on functions, `source` field on functions |
+
+**Pin skip predicate** (applies only to `graph_get_node`): a pin is excluded when ALL of these hold — `bHidden`, no `LinkedTo` connections, empty `DefaultValue`, empty `DefaultTextValue`, `DefaultObject == nullptr`. This preserves meaningful hidden class-reference pins (e.g. a hidden `WorldContextObject` pin with a non-null default).
+
+**Preserved in every mode:** node `id`/`name`, node `class`, `display_name`, `connections`, pin `name`/`direction`/`type`. Compact mode never strips information needed to understand graph semantics — only noise.
+
+**Examples:**
+```python
+# Default (compact=true) — use this for most reads
+blueprint_cmd(command="graph_list_nodes", params={
+    "asset_path": "/Game/Blueprints/BP_Door",
+    "graph_name": "EventGraph"
+})
+
+# Verbose (compact=false) — when you need positions or hidden pins
+blueprint_cmd(command="graph_list_nodes", params={
+    "asset_path": "/Game/Blueprints/BP_Door",
+    "graph_name": "EventGraph",
+    "compact": False
+})
+
+blueprint_cmd(command="graph_get_node", params={
+    "asset_path": "/Game/Blueprints/BP_Door",
+    "node_id": "K2Node_CallFunction_3",
+    "compact": False  # include hidden pins for full inspection
+})
+```
+
+**When to prefer `compact: false`:**
+- **BP→C++ migration Ground Truth Table** — need every pin (including hidden class references) to produce faithful C++
+- **Auto-layout verification** — need `position` x/y to check node placement after layout
+- **Functions inventory audit** — need `source` field to distinguish `"blueprint"` from `"inherited"` functions in `bp.get_info`
+- **Test assertions** — when a test explicitly checks for stripped fields
+
+**When `compact: true` (default) is correct:**
+- Tracing execution flow (connections are preserved)
+- Finding entry points with `search_nodes`
+- Counting nodes in a graph (total count is returned at top level, unaffected by compact)
+- Reading variable defaults and types via `bp.get_info` (variables are not affected — only functions)
+
 ### Modify Existing Blueprint
 ```
 blueprint_cmd(get_blueprint_info) → blueprint_cmd(add/remove variables/functions) → blueprint_cmd(compile_blueprint) → blueprint_cmd(save_blueprint)
