@@ -238,7 +238,10 @@ Check fast mode eligibility criteria (from section above).
 If not eligible -> fall back to full pipeline at ANALYZE Step 3.
 
 **Step A4: Graph Node Inspection**
-Call `graph_list_nodes` on each migrating graph, then `graph_get_node` on every node to capture pin values, connections, and logic. Build the Ground Truth Table mapping each BP node to its C++ equivalent. This step is NOT skipped in fast mode because it's critical for code accuracy.
+Call `graph_list_nodes` with `compact=false` on each migrating graph, then `graph_get_node` with `compact=false` on every node to capture pin values, connections, and logic. Build the Ground Truth Table mapping each BP node to its C++ equivalent. This step is NOT skipped in fast mode because it's critical for code accuracy.
+
+**`compact=false` is REQUIRED** — the default `compact=true` strips hidden pins (world-context, self, class-reference) and position data that the migration Ground Truth Table depends on. Missing hidden pins means missing world-context arguments in generated C++ latent function calls.
+
 (Full protocol: see PLAN Step 1. Key sub-steps: list all nodes per graph, inspect each node's pins/connections/defaults, build BP-node-to-C++-equivalent mapping table.)
 
 **Step A5: Generate C++ Code**
@@ -728,12 +731,14 @@ Before generating any C++ code, inspect the actual Blueprint graph nodes to unde
 
 Scope limitation: `graph_list_nodes` and `graph_get_node` query `UbergraphPages` and `FunctionGraphs` only. They do NOT reach macro graphs, delegate signature graphs, or collapsed subgraphs. If the pre-migration snapshot shows macro instances or collapsed graphs, flag them as requiring manual review.
 
+**Compact mode warning:** `graph_list_nodes` and `graph_get_node` default to `compact=true`, which strips positions, `node_class`, `pin_count`, and hidden pins with no connections or defaults. **Migration MUST pass `compact=false`** on every call in this section. The Ground Truth Table depends on full fidelity — missing hidden pins means missing world-context arguments in generated C++, and missing `position`/`pin_count` breaks downstream completeness checks.
+
 For each graph listed as "migrating" in the approved design:
 
-1. Call `graph_list_nodes` with the Blueprint path and graph name
-   - This returns: node_id, class, display_name, position, pin_count for every node
+1. Call `graph_list_nodes` with the Blueprint path, graph name, and `compact=false`
+   - This returns: node_id, class, node_class, display_name, position, pin_count for every node
 2. For each node that is or inherits from `K2Node_CallFunction` (including `K2Node_CallParentFunction`, `K2Node_CallArrayFunction`):
-   - Call `graph_get_node` to get full pin details
+   - Call `graph_get_node` with `compact=false` to get full pin details (including hidden class-reference and world-context pins)
    - Extract the target function name from `display_name`
    - IMPORTANT: The display name is human-readable (for example, "Launch Character"), not the C++ function name. The actual C++ function may have a `K2_` prefix (for example, `K2_SetActorLocation` not `SetActorLocation`). Cross-reference with UE documentation or `reflect.class_detail` to get the exact C++ function signature when in doubt.
    - Record: `{node_id, display_name, inferred_function_name, target_class, parameters}`. **Always use `display_name` for user-facing references** (e.g., "Launch Character", not "K2Node_CallFunction_19")

@@ -90,15 +90,18 @@ Widget Blueprint analysis requirements:
 
 Gather complete information about the target Blueprint:
 
-1. **Get Blueprint info:** Call `get_blueprint_info` with the asset path
-   - Captures: parent class, blueprint type, variables (with default values), functions, components
+1. **Get Blueprint info:** Call `get_blueprint_info` with `compact=false`
+   - Captures: parent class, blueprint type, variables (with default values), functions (with full `inputs`/`outputs` and `source` field), components
+   - **`compact=false` is REQUIRED** — migration must distinguish `source: "blueprint"` (functions to translate) from `source: "inherited"` (functions provided by the parent), and must see full parameter lists on inherited functions being overridden
    - **Read `parent_class` — do NOT assume AActor or UUserWidget**
 2. **List all graphs:** Call `graph_list_graphs` with the asset path
    - Captures: EventGraph, function graphs, macro graphs
-3. **Inspect each graph:** For each graph, call `graph_list_nodes`
-   - Captures: all nodes with types, connections, pin values
-4. **Deep inspect key nodes:** For complex nodes, call `graph_get_node` for full detail
+3. **Inspect each graph:** For each graph, call `graph_list_nodes` with `compact=false`
+   - Captures: all nodes with types, positions, connections, pin values
+   - **`compact=false` is REQUIRED** — migration Ground Truth Table needs `position`, `pin_count`, and full `node_class` for faithful C++ generation
+4. **Deep inspect key nodes:** For complex nodes, call `graph_get_node` with `compact=false`
    - Focus on: function calls, custom events, variable access, math operations
+   - **`compact=false` is REQUIRED** — hidden pins (world-context, self, class references) carry meaning that must survive into generated C++ (e.g., the world context object passed to latent functions)
 
 **Graph traversal rules:**
 - Walk execution pins (white wires) in order from event nodes to build sequential logic

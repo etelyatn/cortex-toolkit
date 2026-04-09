@@ -84,7 +84,7 @@ After the rename swap succeeds, delete all orphaned nodes from migrated graphs:
 1. Read the Node Mappings section from `migration-plan.md` — use the orphaned node IDs as the deletion list
 2. For each graph with orphaned nodes:
    - Call `delete_orphaned_nodes` with the list of node IDs for that graph
-   - Verify graph node count matches expected post-cleanup count via `graph_list_nodes`
+   - Verify graph node count matches expected post-cleanup count via `graph_list_nodes` (the default `compact=true` mode is fine here — you only need the total node count returned at the top level, which compact mode preserves)
 3. Compile Blueprint — must be 0 errors, 0 warnings
 4. Only proceed to Task 19c after compile succeeds
 

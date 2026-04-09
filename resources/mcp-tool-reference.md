@@ -120,6 +120,8 @@ Manage asset lifecycle. All commands accept a single path, a list of paths, or g
 ## Blueprint (`blueprint_cmd`)
 
 - **Assets:** `create`, `list`, `get_info`, `delete`, `duplicate`, `compile`, `save`, `rename`, `reparent`
+
+`get_info` accepts an optional `compact` boolean parameter, **default `true`**. In compact mode, empty `inputs`/`outputs` arrays and the `source` field are omitted from the functions list — this mostly reduces noise from inherited functions. Pass `compact: false` when you need to distinguish `"blueprint"` vs `"inherited"` sources or verify full parameter signatures (e.g., during BP→C++ migration analysis).
 - **Structure:** `add_variable`, `remove_variable`, `add_function`, `get_class_defaults`, `set_class_defaults`, `configure_timeline`, `set_component_defaults`, `add_scs_component`
 - **Class Settings:** `add_interface`, `remove_interface`, `set_tick_settings`, `set_replication_settings`
 - **Migration:** `analyze_for_migration`, `cleanup_migration`, `remove_scs_component`, `recompile_dependents`, `fixup_redirectors`, `compare_blueprints`
@@ -137,6 +139,24 @@ Manage asset lifecycle. All commands accept a single path, a list of paths, or g
 - `list_graphs`, `list_nodes`, `get_node`, `search_nodes`, `add_node`, `remove_node`, `connect`, `disconnect`, `set_pin_value`, `auto_layout`
 
 `auto_layout` — repositions nodes using execution-first left-to-right layout with parameter grouping. `mode`: `"full"` repositions all nodes; `"incremental"` only repositions nodes at position (0,0). Optional `graph_name`, `horizontal_spacing`, `vertical_spacing`.
+
+### Compact Serialization (default for read commands)
+
+`list_nodes`, `get_node`, and `search_nodes` accept an optional `compact` boolean parameter, **default `true`**. Compact mode strips fields AI agents rarely need, reducing response size by ~25-35% on typical graphs.
+
+| Command | `compact=true` strips |
+|---------|----------------------|
+| `list_nodes` | `position` object, `node_class` (duplicate of `class`), `pin_count` |
+| `get_node` | `position`, `node_class`, hidden pins with no connections/defaults, `is_connected: false`, empty `default_value` |
+| `search_nodes` | `node_class` (duplicate of `class`) — no positions in search results to begin with |
+
+**Pin skip predicate** (`get_node` only): a pin is excluded only when ALL of `bHidden`, no `LinkedTo`, empty `DefaultValue`, empty `DefaultTextValue`, AND `DefaultObject == nullptr`. Hidden class-reference pins with meaningful defaults are preserved.
+
+**Pass `compact: false` when:**
+- Debugging visual layout (need `position` x/y)
+- Inspecting every hidden pin (e.g., tunnel boundaries, world-context pins)
+- Generating C++ from a BP graph (migration correctness — Ground Truth Table needs full fidelity)
+- Running asserts against field presence in tests
 
 See `blueprint-patterns.md` for node class short names and full node type table.
 

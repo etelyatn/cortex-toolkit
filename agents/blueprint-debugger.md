@@ -45,6 +45,17 @@ Analyze Blueprint graphs to trace execution flow, identify logic errors, and dia
    - Event firing order assumptions
    - Tick vs event-driven confusion
 
+### Compact Mode — Default for Graph Reads
+
+`graph_list_nodes`, `graph_get_node`, and `graph_search_nodes` default to `compact=true`. For most debug scenarios (tracing execution, finding branches, identifying disconnected pins) the compact output is sufficient — connection info, pin `name`/`direction`/`type`, and `display_name` are all preserved.
+
+**Pass `compact: false` explicitly when your debug task needs:**
+- **Visual layout** — if you are diagnosing auto-layout bugs or need the `position` x/y of nodes
+- **Hidden pin inspection** — e.g., confirming a hidden class-reference pin has the expected default, checking self-context pins, or examining world-context pin wiring
+- **Field-level assertions** — when writing a diagnosis that references `node_class` or `pin_count` explicitly
+
+Note: `is_connected: false` and empty `default_value` are also stripped in compact mode. Absence of these fields in a compact response does NOT mean the pin is connected — it means the pin is disconnected. Use `connections` (the actual link array) as the source of truth.
+
 ## CortexReflect Tools
 
 Use these for class analysis, asset dependency checks, and impact assessment — works on any asset type: Blueprints, Widget BPs, materials, DataTables, DataAssets, level assets, and C++ classes:

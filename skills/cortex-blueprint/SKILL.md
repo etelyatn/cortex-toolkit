@@ -72,7 +72,7 @@ Review the following Blueprint(s):
 **Concerns:** [naming, complexity, compilation, variable organization, best practices]
 
 READ-ONLY MODE: Do NOT call list_blueprints, compile_blueprint, impact_analysis, or any write tools.
-Permitted tools: blueprint_cmd(get_info), graph_cmd(list_graphs), graph_cmd(list_nodes), graph_cmd(get_node), reflect_cmd(query_class_context).
+Permitted tools: blueprint_cmd(get_info), graph_cmd(list_graphs), graph_cmd(list_nodes), graph_cmd(get_node), graph_cmd(search_nodes), reflect_cmd(query_class_context).
 
 WORKFLOW:
 1. Read `.cortex/domains/blueprints.md` for project conventions
@@ -81,6 +81,8 @@ WORKFLOW:
 4. Analyze graphs in parallel: call graph_cmd(list_nodes) for all graphs simultaneously
 5. Check variable organization (categories, exposure, naming)
 6. Cross-reference against project conventions
+
+Note: graph_cmd(list_nodes|get_node|search_nodes) and blueprint_cmd(get_info) default to compact=true (positions, node_class, hidden pins, empty function inputs/outputs stripped). This is fine for review — pass compact=false only if you need position data or must distinguish inherited from blueprint-defined functions via the `source` field.
 
 Return findings grouped by severity: Errors, Warnings, Info.
 ```
@@ -99,6 +101,8 @@ WORKFLOW:
 2. Use graph_search_nodes and connections to trace execution flow
 3. Map the call chain and identify where behavior diverges from expectation
 4. Report findings with node-level detail
+
+Note: graph read commands default to compact=true — sufficient for execution tracing and branch analysis. Pass compact=false only if the bug involves visual layout (needs positions) or hidden pin wiring.
 ```
 
 ### 2. Handling Agent Results
