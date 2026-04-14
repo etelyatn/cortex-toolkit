@@ -77,18 +77,18 @@ Review the following Blueprint(s):
 **Prefetched state:** [embed the main-thread `prefetched_state` block here before launching]
 
 READ-ONLY MODE: Do NOT call list_blueprints, compile_blueprint, impact_analysis, or any write tools.
-Permitted tools: blueprint_cmd(get_info), graph_cmd(list_graphs), graph_cmd(list_nodes), graph_cmd(get_node), graph_cmd(search_nodes), reflect_cmd(query_class_context).
+Permitted tools: blueprint_cmd(get_info), graph_cmd(list_graphs), graph_cmd(get_subgraph), graph_cmd(trace_exec), graph_cmd(find_event_handler), graph_cmd(find_function_calls), reflect_cmd(query_class_context).
 
 WORKFLOW:
 1. Read `.cortex/domains/blueprints.md` for project conventions
 2. Use `prefetched_state` first; only fetch missing data
 3. Use blueprint_cmd(get_info) to inspect relevant Blueprints — do NOT call list_blueprints
 4. Check structure (naming, type appropriateness, parent class)
-5. Analyze graphs in parallel: call graph_cmd(list_nodes) for all graphs simultaneously
+5. Analyze graphs in parallel: call graph_cmd(get_subgraph) or graph_cmd(find_event_handler) across the relevant graphs simultaneously
 6. Check variable organization (categories, exposure, naming)
 7. Cross-reference against project conventions
 
-Note: graph_cmd(list_nodes|get_node|search_nodes) and blueprint_cmd(get_info) default to compact=true (positions, node_class, hidden pins, empty function inputs/outputs stripped). This is fine for review — pass compact=false only if you need position data or must distinguish inherited from blueprint-defined functions via the `source` field.
+Note: graph trace/subgraph reads and blueprint_cmd(get_info) default to compact=true (positions, node_class, hidden pins, empty function inputs/outputs stripped). This is fine for review — pass compact=false only if you need position data or must distinguish inherited from blueprint-defined functions via the `source` field.
 
 Return findings grouped by severity: Errors, Warnings, Info.
 ```

@@ -100,8 +100,8 @@ Independent read calls MUST be issued in parallel. Sequential reads are only all
 When analyzing a Blueprint's graphs, call all graph reads in parallel — not sequentially:
 
 1. Call `graph_cmd(list_graphs)` once to get all graph names
-2. Call `graph_cmd(list_nodes)` for **all graphs in parallel** in a single message
-3. Call `graph_cmd(get_node)` for target nodes **in parallel** across graphs
+2. Call `graph_cmd(get_subgraph)` or `graph_cmd(find_event_handler)` for **all relevant graphs in parallel** in a single message
+3. Call `graph_cmd(trace_exec)` or `graph_cmd(find_function_calls)` for target execution paths **in parallel** across graphs
 
 Never query graphs one-by-one in sequential tool calls.
 
