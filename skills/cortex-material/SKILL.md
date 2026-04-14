@@ -41,20 +41,26 @@ Create the following material using the MANDATORY pipeline:
 
 **Material:** [name, e.g. M_PulsatingRed]
 **Path:** [e.g. /Game/Materials/]
+**Prefetched state:** [embed the main-thread `prefetched_state` block here before launching]
 **Description:** [visual description of what the material should look like]
 **Parameters to expose:** [list of ScalarParameter/VectorParameter names and defaults]
 **Material instances:** [list of instances to derive, if any]
 
 MANDATORY WORKFLOW:
 1. Read `.cortex/domains/material.md` for pin conventions
-2. Design your nodes[] and connections[] arrays as a JSON spec
-3. Call `material_compose(name, path, nodes, connections)` as a SINGLE call
-4. Create material instances if requested
+2. Use `prefetched_state` first and avoid re-fetching the same baseline
+3. Run independent read calls in parallel
+4. Design your nodes[] and connections[] arrays as a JSON spec
+5. Call `material_compose(name, path, nodes, connections)` as a SINGLE call
+6. Include `expected_fingerprint` on every mutation that touches a prefetched asset
+7. Create material instances if requested
 
 PROHIBITED:
 - For NEW materials: never call `create_material`, `add_node`, `connect`, `set_node_property`, or `auto_layout` individually — use `material_compose` exclusively.
 - For EXISTING materials with 2+ changes: never make N sequential individual tool calls — use `core_cmd(batch)` with `stop_on_error: true` and `$ref` wiring (see `resources/batch-pipeline-guide.md`).
 - Individual tools are only acceptable for a single isolated change on an existing asset.
+
+**For Review/Analyze**, include the same `prefetched_state` block in the launch prompt, consume it before fresh reads, and keep independent reads parallel. Any follow-up mutation must carry `expected_fingerprint`.
 ```
 
 **For Review/Analyze**, pass the review scope and focus:

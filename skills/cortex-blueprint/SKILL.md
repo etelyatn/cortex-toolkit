@@ -46,16 +46,20 @@ Create the following Blueprint using the MANDATORY pipeline:
 
 **Blueprint:** [name and type, e.g. BP_PlayerCharacter (Actor)]
 **Path:** [e.g. /Game/Blueprints/]
+**Prefetched state:** [embed the main-thread `prefetched_state` block here before launching]
 **Variables:** [name, type, default value, category, exposed status]
 **Functions:** [name, inputs, outputs]
 **Graph:** [nodes and connections for BeginPlay, function graphs, etc.]
 
 MANDATORY WORKFLOW:
 1. Read `.cortex/domains/blueprints.md` for node class names and pin conventions
-2. Investigate existing Blueprints to avoid name collisions
-3. Design your variables[], functions[], nodes[], and connections[] as a JSON spec
-4a. NEW Blueprint → `blueprint_compose(name, path, ...)` as a SINGLE call
-4b. MODIFYING EXISTING (2+ changes) → `blueprint_compose(mode="update", asset_path="...", nodes=[...], connections=[...])` as a SINGLE call
+2. Use `prefetched_state` first. Do not re-fetch the same baseline if it is already present.
+3. Investigate existing Blueprints to avoid name collisions only when `prefetched_state` does not already answer the question
+4. Issue independent read calls in parallel
+5. Pass `expected_fingerprint` on every mutation that touches a prefetched asset
+6. Design your variables[], functions[], nodes[], and connections[] as a JSON spec
+7a. NEW Blueprint → `blueprint_compose(name, path, ...)` as a SINGLE call
+7b. MODIFYING EXISTING (2+ changes) → `blueprint_compose(mode="update", asset_path="...", nodes=[...], connections=[...])` as a SINGLE call
 
 PROHIBITED:
 - Never call `graph_add_node` or `graph_connect` individually N times for multi-node operations.
@@ -70,17 +74,19 @@ Review the following Blueprint(s):
 
 **Scope:** [specific Blueprint paths, or "all Blueprints in /Game/Blueprints/"]
 **Concerns:** [naming, complexity, compilation, variable organization, best practices]
+**Prefetched state:** [embed the main-thread `prefetched_state` block here before launching]
 
 READ-ONLY MODE: Do NOT call list_blueprints, compile_blueprint, impact_analysis, or any write tools.
 Permitted tools: blueprint_cmd(get_info), graph_cmd(list_graphs), graph_cmd(list_nodes), graph_cmd(get_node), graph_cmd(search_nodes), reflect_cmd(query_class_context).
 
 WORKFLOW:
 1. Read `.cortex/domains/blueprints.md` for project conventions
-2. Use blueprint_cmd(get_info) to inspect relevant Blueprints — do NOT call list_blueprints
-3. Check structure (naming, type appropriateness, parent class)
-4. Analyze graphs in parallel: call graph_cmd(list_nodes) for all graphs simultaneously
-5. Check variable organization (categories, exposure, naming)
-6. Cross-reference against project conventions
+2. Use `prefetched_state` first; only fetch missing data
+3. Use blueprint_cmd(get_info) to inspect relevant Blueprints — do NOT call list_blueprints
+4. Check structure (naming, type appropriateness, parent class)
+5. Analyze graphs in parallel: call graph_cmd(list_nodes) for all graphs simultaneously
+6. Check variable organization (categories, exposure, naming)
+7. Cross-reference against project conventions
 
 Note: graph_cmd(list_nodes|get_node|search_nodes) and blueprint_cmd(get_info) default to compact=true (positions, node_class, hidden pins, empty function inputs/outputs stripped). This is fine for review — pass compact=false only if you need position data or must distinguish inherited from blueprint-defined functions via the `source` field.
 
@@ -95,12 +101,16 @@ Investigate the following Blueprint issue:
 **Blueprint:** [asset path]
 **Goal:** [execution trace / find function / explain behavior / diagnose crash]
 **Starting point:** [specific node, event, or behavior to start from]
+**Prefetched state:** [embed the main-thread `prefetched_state` block here before launching]
 
 WORKFLOW:
 1. Read `.cortex/domains/blueprints.md` for available tools and patterns
-2. Use graph_search_nodes and connections to trace execution flow
-3. Map the call chain and identify where behavior diverges from expectation
-4. Report findings with node-level detail
+2. Use `prefetched_state` first and avoid re-fetching identical baseline reads
+3. Run independent graph reads in parallel
+4. Use graph_search_nodes and connections to trace execution flow
+5. Map the call chain and identify where behavior diverges from expectation
+6. If you make a fix, include `expected_fingerprint` on every mutation
+7. Report findings with node-level detail
 
 Note: graph read commands default to compact=true — sufficient for execution tracing and branch analysis. Pass compact=false only if the bug involves visual layout (needs positions) or hidden pin wiring.
 ```

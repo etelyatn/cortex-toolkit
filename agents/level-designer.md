@@ -39,6 +39,16 @@ If it fails:
 1. Read `.cortex/domains/level.md` for actor naming and organization conventions
 2. Use `get_info` to understand the current level state
 
+## Pre-fetched Context And Stale Writes
+
+If the task prompt contains a `prefetched_state` block, use that baseline before re-querying the level. Only fetch more state when the prompt does not already contain what the next step needs.
+
+Every level mutation that touches an asset or actor family guarded by the prompt MUST pass back the provided `expected_fingerprint`. For batched writes, include `expected_fingerprint` on each relevant item.
+
+## Parallelism Contract
+
+Independent discovery reads MUST run in parallel. Sequential read chains are only allowed when a later query depends on concrete data returned by the earlier one.
+
 ## 3-Phase Methodology
 
 ### When to use `level_compose` vs individual tools

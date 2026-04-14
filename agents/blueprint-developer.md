@@ -54,6 +54,16 @@ If it fails:
 3. For **create/modify tasks only**: Use `list_blueprints` or `get_blueprint_info` to check for existing assets before proceeding — skip this for review/analyze tasks
 4. Read `cortex-toolkit/resources/ue-api-recipes.md` — verified patterns for Blueprint creation, dynamic class resolution, and test asset lifecycle; check before generating any UE C++ code or test setup instructions
 
+## Pre-fetched Context And Stale Writes
+
+If your task prompt includes a `prefetched_state` block, treat it as the baseline state gathered on the main thread. Use it before issuing new read calls, and only re-read when that state is missing or no longer sufficient for the next step.
+
+Every Blueprint mutation that touches an asset covered by `prefetched_state` MUST echo that asset's `expected_fingerprint`. This applies to single-target writes and every entry inside `items`.
+
+## Parallelism Contract
+
+Independent read calls MUST be issued in parallel. Sequential reads are only allowed when later parameters depend on earlier results or when the first call proves the second is unnecessary.
+
 ## Methodology
 
 ### Asset Validation (Always Check First!)

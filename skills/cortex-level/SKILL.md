@@ -30,16 +30,20 @@ Use the Task tool with `subagent_type: "cortex-toolkit:level-designer"` and `max
 Make the following level changes using the 3-phase methodology:
 
 **Request:** [user's request verbatim]
+**Prefetched state:** [embed the main-thread `prefetched_state` block here before launching]
 
 MANDATORY WORKFLOW:
 0. VERIFY: call `get_info` to confirm MCP connectivity. If it fails, invoke `cortex-status`.
-1. Read `.cortex/domains/level.md` for level conventions
-2. PLAN: call `get_info`, then `list_actors` or `find_actors` to understand current state.
+1. Use `prefetched_state` first. Do not re-fetch the same baseline unless required for the next step.
+2. Read `.cortex/domains/level.md` for level conventions
+3. PLAN: call `get_info`, then `list_actors` or `find_actors` to understand current state.
    Design the complete `operations[]` array before touching anything.
-3. BATCH: call `level_compose` once with the full spec.
+4. Issue independent discovery reads in parallel.
+5. BATCH: call `level_compose` once with the full spec.
    - Use `stop_on_error: true` if any op references `$ops[...]` from another op in the batch
    - Use `stop_on_error: false` for independent bulk modifications
-4. VERIFY: check `completed_steps == total_steps`.
+   - Pass `expected_fingerprint` on each mutation guarded by `prefetched_state`
+6. VERIFY: check `completed_steps == total_steps`.
    If false, diff `spawned_actors` against plan, call `find_actors` if needed,
    then construct a MINIMAL fix batch for the gap only.
    Maximum one retry batch. If retry fails, stop and report.
@@ -83,17 +87,21 @@ Pass context about what to review:
 ```
 Review the current level and provide a report:
 
-1. Use `get_info` for level overview (name, actor count, world type, sublevels, is_world_partition)
-2. Use `list_actors` to enumerate actors (paginate if needed)
-3. Use `get_bounds` to understand spatial layout
-4. Check folder organization — are actors organized logically?
-5. Check for common issues:
+**Prefetched state:** [embed the main-thread `prefetched_state` block here before launching]
+
+1. Use `prefetched_state` first; only fetch missing data
+2. Use `get_info` for level overview (name, actor count, world type, sublevels, is_world_partition)
+3. Use `list_actors` to enumerate actors (paginate if needed)
+4. Run independent reads in parallel where possible
+5. Use `get_bounds` to understand spatial layout
+6. Check folder organization — are actors organized logically?
+7. Check for common issues:
    - Actors without folders
    - Duplicate labels
    - Actors at origin that shouldn't be
    - Unloaded sublevels
    - Missing data layer assignments (if World Partition)
-6. Summarize findings with recommendations
+8. Summarize findings with recommendations
 ```
 
 ### 2. Agent Workflow

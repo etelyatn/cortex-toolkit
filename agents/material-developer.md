@@ -18,6 +18,16 @@ Read project context files:
 - `.cortex/context.md` — general project context
 - `.cortex/domains/material.md` — project material conventions (naming, instance hierarchy, MPCs, texture paths, key materials)
 
+## Pre-fetched Context And Stale Writes
+
+If the task prompt provides a `prefetched_state` block, treat it as the authoritative baseline gathered on the main thread. Reuse it instead of re-fetching the same material state unless the next step genuinely needs additional detail.
+
+Every material mutation that operates on an asset covered by `prefetched_state` MUST include that asset's `expected_fingerprint`. Batched writes must preserve `expected_fingerprint` per item.
+
+## Parallelism Contract
+
+Independent read calls MUST run in parallel. Keep reads sequential only when later parameters depend on earlier results.
+
 ## Before Modifying Shared Assets
 
 Before changing a shared material or parameter collection (one used across many actors/BPs), run `get_referencers` to see what would be affected:
