@@ -97,7 +97,7 @@ Never query graphs one-by-one in sequential tool calls.
 
 ### Compact vs Verbose Graph Reads
 
-`graph_list_nodes`, `graph_get_node`, `graph_search_nodes`, and `blueprint_cmd(get_info)` default to `compact=true`, which strips fields AI agents rarely need (~25-35% smaller responses):
+`graph_get_subgraph`, `graph_get_subgraph`, `graph_search_nodes`, and `blueprint_cmd(get_info)` default to `compact=true`, which strips fields AI agents rarely need (~25-35% smaller responses):
 
 - `list_nodes` drops `position`, `node_class`, `pin_count`
 - `get_node` drops `position`, `node_class`, and hidden pins that have no connections and no non-default value/object; remaining pins omit `is_connected: false` and empty `default_value`
@@ -138,9 +138,9 @@ impact_analysis(
 
 **Class Settings:** `add_interface`, `remove_interface`, `set_tick_settings`, `set_replication_settings`
 
-**Graph (logic):** `graph_list_graphs`, `graph_list_nodes`, `graph_get_node`, `graph_search_nodes`, `graph_add_node`, `graph_remove_node`, `graph_connect`, `graph_disconnect`, `graph_set_pin_value`, `graph_auto_layout`
+**Graph (logic):** `graph_list_graphs`, `graph_get_subgraph`, `graph_get_subgraph`, `graph_search_nodes`, `graph_add_node`, `graph_remove_node`, `graph_connect`, `graph_disconnect`, `graph_set_pin_value`, `graph_auto_layout`
 
-Read commands (`graph_list_nodes`, `graph_get_node`, `graph_search_nodes`) accept a `compact` boolean (default `true`). See "Compact vs Verbose Graph Reads" above.
+Read commands (`graph_get_subgraph`, `graph_get_subgraph`, `graph_search_nodes`) accept a `compact` boolean (default `true`). See "Compact vs Verbose Graph Reads" above.
 
 **graph_add_node node types** (use short name or full `UK2Node_*` name):
 
@@ -167,7 +167,7 @@ Read commands (`graph_list_nodes`, `graph_get_node`, `graph_search_nodes`) accep
 | `RemoveDelegate` / `UnbindEvent` | Unbind event — same params as AddDelegate. Pins: execute, then, self (Target), Delegate (Event) |
 | `ClearDelegate` / `UnbindAllEvents` | Unbind all events — same params, no Delegate pin. Pins: execute, then, self (Target) |
 | `CreateDelegate` / `CreateEvent` | Create delegate object (NOT CustomEvent) — optional `params: {"function_name": "MyHandler"}` (bare name, not `ClassName.Function`). Pins: self (Object), OutputDelegate (Event) |
-| `Composite` | Collapsed composite subgraph (`UK2Node_Composite`) — no params required. Creates a composite node with an empty `BoundGraph`. Use `graph_list_nodes` to read back the `subgraph_name` field, then pass it as `subgraph_path` on subsequent calls to edit nodes inside the composite. |
+| `Composite` | Collapsed composite subgraph (`UK2Node_Composite`) — no params required. Creates a composite node with an empty `BoundGraph`. Use `graph_get_subgraph` to read back the `subgraph_name` field, then pass it as `subgraph_path` on subsequent calls to edit nodes inside the composite. |
 
 **Removed short names** — no longer accepted: `FunctionEntry`, `FunctionResult`, `ForEachLoop`. Use `CallFunction` with `function_name: "KismetArrayLibrary.Array_ForEach"` for ForEach loops.
 
@@ -239,7 +239,7 @@ graph_set_pin_value(
 
 ## Composite Subgraph Access
 
-All graph tools (`graph_list_nodes`, `graph_get_node`, `graph_search_nodes`, `graph_add_node`, `graph_remove_node`, `graph_connect`, `graph_disconnect`, `graph_set_pin_value`, `graph_auto_layout`) accept an optional `subgraph_path` parameter. `graph_list_graphs` accepts `include_subgraphs`.
+All graph tools (`graph_get_subgraph`, `graph_get_subgraph`, `graph_search_nodes`, `graph_add_node`, `graph_remove_node`, `graph_connect`, `graph_disconnect`, `graph_set_pin_value`, `graph_auto_layout`) accept an optional `subgraph_path` parameter. `graph_list_graphs` accepts `include_subgraphs`.
 
 ### Discovering Composites
 
@@ -256,7 +256,7 @@ graph_list_graphs(
 
 **Method B — read subgraph_name from list_nodes:**
 ```python
-graph_list_nodes(asset_path="/Game/Blueprints/BP_Actor", graph_name="EventGraph")
+graph_get_subgraph(asset_path="/Game/Blueprints/BP_Actor", graph_name="EventGraph")
 # Composite nodes appear with "subgraph_name": "CompositeGraphName"
 # Tunnel boundary nodes (entry/exit) appear with "is_tunnel_boundary": true
 ```
@@ -267,7 +267,7 @@ Use the `subgraph_name` value from a `list_nodes` result as `subgraph_path` on s
 
 ```python
 # Inspect inside a composite called "MyComposite" in EventGraph
-graph_list_nodes(
+graph_get_subgraph(
     asset_path="/Game/Blueprints/BP_Actor",
     graph_name="EventGraph",
     subgraph_path="MyComposite"
@@ -285,7 +285,7 @@ graph_add_node(
 
 **Nested composites:** Append segments with a dot separator (max depth 5):
 ```python
-graph_list_nodes(
+graph_get_subgraph(
     asset_path="/Game/Blueprints/BP_Actor",
     graph_name="EventGraph",
     subgraph_path="OuterComposite.InnerComposite"
@@ -294,7 +294,7 @@ graph_list_nodes(
 
 ### Composite Safety Rules
 
-- **Tunnel boundary nodes** (`is_tunnel_boundary: true`) are structural entry/exit nodes — **do not delete or rewire them**. They represent the composite's execution and data pin interface to the outer graph. Use `graph_get_node` to inspect their pins before connecting new nodes to the execution flow inside a composite.
+- **Tunnel boundary nodes** (`is_tunnel_boundary: true`) are structural entry/exit nodes — **do not delete or rewire them**. They represent the composite's execution and data pin interface to the outer graph. Use `graph_get_subgraph` to inspect their pins before connecting new nodes to the execution flow inside a composite.
 - **Composite names must not contain dots** (dots are the path separator).
 - **`subgraph_path` cannot be used with `blueprint_compose(mode="create")`** — the Blueprint does not exist yet. Use `mode="update"` after creation.
 - **Each `blueprint_compose` call targets one subgraph** — to add nodes to both the top-level graph and a composite, call twice: once without `subgraph_path` (top-level) and once with `mode="update"` and `subgraph_path` (inside composite).
@@ -633,7 +633,7 @@ save_level(map_path="/Game/Maps/TestMap")
 ```
 
 **Supported commands with `__level_bp__:` paths:**
-- `graph_list_graphs`, `graph_list_nodes`, `graph_get_node`
+- `graph_list_graphs`, `graph_get_subgraph`, `graph_get_subgraph`
 - `graph_add_node`, `graph_remove_node`
 - `graph_connect`, `graph_disconnect`, `graph_set_pin_value`
 - `graph_auto_layout`
@@ -766,3 +766,4 @@ When finishing (whether successful or not), always report:
 - **Summary:** what was done (2–5 bullets)
 - **Remaining:** what still needs to happen (if not completed)
 - **Artifacts:** asset paths created or modified
+

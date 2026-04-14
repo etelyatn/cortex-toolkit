@@ -496,7 +496,7 @@ blueprint_cmd(command="graph_list_graphs", params={
 #   "subgraph_path": "MyComposite"
 
 # Method B: read subgraph_name from list_nodes
-blueprint_cmd(command="graph_list_nodes", params={
+blueprint_cmd(command="graph_get_subgraph", params={
     "asset_path": "/Game/Blueprints/BP_Actor",
     "graph_name": "EventGraph"
 })
@@ -506,7 +506,7 @@ blueprint_cmd(command="graph_list_nodes", params={
 
 **Read nodes inside a composite:**
 ```python
-blueprint_cmd(command="graph_list_nodes", params={
+blueprint_cmd(command="graph_get_subgraph", params={
     "asset_path": "/Game/Blueprints/BP_Actor",
     "graph_name": "EventGraph",
     "subgraph_path": "MyComposite"
@@ -539,7 +539,7 @@ blueprint_cmd(command="graph_connect", params={
 
 **Nested composites** — append path segments with dots (max 5 levels):
 ```python
-blueprint_cmd(command="graph_list_nodes", params={
+blueprint_cmd(command="graph_get_subgraph", params={
     "asset_path": "/Game/Blueprints/BP_Actor",
     "graph_name": "EventGraph",
     "subgraph_path": "OuterComposite.InnerComposite"
@@ -594,44 +594,44 @@ blueprint_compose(
 
 ### Review Blueprint
 ```
-blueprint_cmd(get_blueprint_info) → blueprint_cmd(graph_list_graphs) → blueprint_cmd(graph_list_nodes) per graph → assess complexity
+blueprint_cmd(get_blueprint_info) → blueprint_cmd(graph_list_graphs) → blueprint_cmd(graph_get_subgraph) per graph → assess complexity
 ```
 
 **`get_blueprint_info` limitation:** The `functions` array only includes functions *defined on the Blueprint itself*. Inherited C++ functions (e.g. from a custom C++ base class) are **not listed**. To discover inherited C++ functions, use `query_class_detail(class_name, detail="full")` from the Reflect domain instead.
 
 ### Compact Serialization — Default Behavior of Graph Reads
 
-`graph_list_nodes`, `graph_get_node`, `graph_search_nodes`, and `bp.get_info` accept an optional `compact` boolean parameter, **default `true`**. Compact mode trims fields that AI agents rarely need, reducing response size by ~25-35% on a typical 30-node EventGraph.
+`graph_get_subgraph`, `graph_get_subgraph`, `graph_search_nodes`, and `bp.get_info` accept an optional `compact` boolean parameter, **default `true`**. Compact mode trims fields that AI agents rarely need, reducing response size by ~25-35% on a typical 30-node EventGraph.
 
 **What gets stripped with `compact=true`:**
 
 | Command | Stripped fields |
 |---------|-----------------|
-| `graph_list_nodes` | `position` object (x/y), `node_class` (duplicate of `class`), `pin_count` |
-| `graph_get_node` | `position`, `node_class`, hidden pins with no connections/defaults; surviving pins drop `is_connected: false` and empty `default_value` |
+| `graph_get_subgraph` | `position` object (x/y), `node_class` (duplicate of `class`), `pin_count` |
+| `graph_get_subgraph` | `position`, `node_class`, hidden pins with no connections/defaults; surviving pins drop `is_connected: false` and empty `default_value` |
 | `graph_search_nodes` | `node_class` (search results never included positions) |
 | `bp.get_info` | empty `inputs` / `outputs` arrays on functions, `source` field on functions |
 
-**Pin skip predicate** (applies only to `graph_get_node`): a pin is excluded when ALL of these hold — `bHidden`, no `LinkedTo` connections, empty `DefaultValue`, empty `DefaultTextValue`, `DefaultObject == nullptr`. This preserves meaningful hidden class-reference pins (e.g. a hidden `WorldContextObject` pin with a non-null default).
+**Pin skip predicate** (applies only to `graph_get_subgraph`): a pin is excluded when ALL of these hold — `bHidden`, no `LinkedTo` connections, empty `DefaultValue`, empty `DefaultTextValue`, `DefaultObject == nullptr`. This preserves meaningful hidden class-reference pins (e.g. a hidden `WorldContextObject` pin with a non-null default).
 
 **Preserved in every mode:** node `id`/`name`, node `class`, `display_name`, `connections`, pin `name`/`direction`/`type`. Compact mode never strips information needed to understand graph semantics — only noise.
 
 **Examples:**
 ```python
 # Default (compact=true) — use this for most reads
-blueprint_cmd(command="graph_list_nodes", params={
+blueprint_cmd(command="graph_get_subgraph", params={
     "asset_path": "/Game/Blueprints/BP_Door",
     "graph_name": "EventGraph"
 })
 
 # Verbose (compact=false) — when you need positions or hidden pins
-blueprint_cmd(command="graph_list_nodes", params={
+blueprint_cmd(command="graph_get_subgraph", params={
     "asset_path": "/Game/Blueprints/BP_Door",
     "graph_name": "EventGraph",
     "compact": False
 })
 
-blueprint_cmd(command="graph_get_node", params={
+blueprint_cmd(command="graph_get_subgraph", params={
     "asset_path": "/Game/Blueprints/BP_Door",
     "node_id": "K2Node_CallFunction_3",
     "compact": False  # include hidden pins for full inspection
@@ -667,3 +667,4 @@ Blueprint MCP workflows are validated by the benchmark testing framework in `Plu
 | `test_class_defaults.py` | CDO get/set with auto-compile and auto-save |
 
 Run to validate after modifying Blueprint MCP tools or C++ command handlers.
+

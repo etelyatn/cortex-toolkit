@@ -96,10 +96,10 @@ Gather complete information about the target Blueprint:
    - **Read `parent_class` — do NOT assume AActor or UUserWidget**
 2. **List all graphs:** Call `graph_list_graphs` with the asset path
    - Captures: EventGraph, function graphs, macro graphs
-3. **Inspect each graph:** For each graph, call `graph_list_nodes` with `compact=false`
+3. **Inspect each graph:** For each graph, call `graph_get_subgraph` with `compact=false`
    - Captures: all nodes with types, positions, connections, pin values
    - **`compact=false` is REQUIRED** — migration Ground Truth Table needs `position`, `pin_count`, and full `node_class` for faithful C++ generation
-4. **Deep inspect key nodes:** For complex nodes, call `graph_get_node` with `compact=false`
+4. **Deep inspect key nodes:** For complex nodes, call `graph_get_subgraph` with `compact=false`
    - Focus on: function calls, custom events, variable access, math operations
    - **`compact=false` is REQUIRED** — hidden pins (world-context, self, class references) carry meaning that must survive into generated C++ (e.g., the world context object passed to latent functions)
 
@@ -555,3 +555,4 @@ Report what was written/modified and remind about:
 2. Remove only migrated logic variables and function graphs
 3. Preserve widget tree, animations, and bind-widget variables
 4. Re-run analysis to confirm widget arrays and `entity_summary` remain valid
+
