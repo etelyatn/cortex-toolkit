@@ -45,7 +45,7 @@ Use the Task tool with the appropriate `subagent_type` and `max_turns` for the d
 Create the following Blueprint using the MANDATORY pipeline:
 
 **Blueprint:** [name and type, e.g. BP_PlayerCharacter (Actor)]
-**Path:** [e.g. /Game/Blueprints/]
+**Path:** [e.g. `/Game/Blueprints/` or a project-owned plugin root such as `/InventoryPlugin/Blueprints/`]
 **Prefetched state:** [embed the main-thread `prefetched_state` block here before launching]
 **Variables:** [name, type, default value, category, exposed status]
 **Functions:** [name, inputs, outputs]
@@ -72,11 +72,11 @@ PROHIBITED:
 ```
 Review the following Blueprint(s):
 
-**Scope:** [specific Blueprint paths, or "all Blueprints in /Game/Blueprints/"]
+**Scope:** [specific Blueprint paths, or "all Blueprints in `/Game/Blueprints/` or a project-owned plugin Blueprint root"]
 **Concerns:** [naming, complexity, compilation, variable organization, best practices]
 **Prefetched state:** [embed the main-thread `prefetched_state` block here before launching]
 
-READ-ONLY MODE: Do NOT call list_blueprints, compile_blueprint, impact_analysis, or any write tools.
+READ-ONLY MODE: Do NOT call list_blueprints, `blueprint_cmd(command="compile", params={...})`, impact_analysis, or any write tools.
 Permitted tools: blueprint_cmd(get_info), graph_cmd(list_graphs), graph_cmd(get_subgraph), graph_cmd(trace_exec), graph_cmd(find_event_handler), graph_cmd(find_function_calls), reflect_cmd(query_class_context).
 
 WORKFLOW:

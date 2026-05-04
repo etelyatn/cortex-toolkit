@@ -1089,7 +1089,7 @@ Complex migrations -- 3 dispatches (unchanged):
 When `complexity: simple`, the orchestrator handles VERIFY directly instead of dispatching the verifier agent:
 
 Task 16 -- Simplified Structural Verification:
-1. Call `compile_blueprint` on `BP_Name_Migration` -> must compile clean
+1. Call `blueprint_cmd(command="compile", params={"asset_path": "/Game/.../BP_Name_Migration"})` -> must compile clean
 2. Call `analyze_blueprint_for_migration` on `BP_Name_Migration`:
    - Verify parent class is the target C++ class
    - Check that migrated variables are gone

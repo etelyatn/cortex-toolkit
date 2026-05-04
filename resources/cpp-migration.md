@@ -352,7 +352,7 @@ When migrating Blueprint SCS components (Components panel) to C++ `CreateDefault
 2. Build project
 3. cleanup_migration — reparent Blueprint to new C++ class
 4. remove_scs_component — delete the now-redundant SCS node
-5. compile_blueprint — verify clean compile
+5. `blueprint_cmd(command="compile", params={"asset_path": "..."})` — verify clean compile
 ```
 
 **Example:**

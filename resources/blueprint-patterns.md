@@ -18,7 +18,7 @@ Use the `parent_class` parameter to inherit from project-specific C++ base class
 
 **Short name (recommended for project classes):**
 ```python
-blueprint_cmd(command="create_blueprint", params={
+blueprint_cmd(command="create", params={
     "name": "BP_SpecializedActor",
     "path": "/Game/Blueprints",
     "parent_class": "MyGameActor"  # Resolves to project's C++ class
@@ -27,7 +27,7 @@ blueprint_cmd(command="create_blueprint", params={
 
 **Full class path (for disambiguation):**
 ```python
-blueprint_cmd(command="create_blueprint", params={
+blueprint_cmd(command="create", params={
     "name": "BP_SpecializedActor",
     "path": "/Game/Blueprints",
     "parent_class": "/Script/MyGame.MyGameActor"
@@ -74,7 +74,7 @@ blueprint_cmd(command="create_blueprint", params={
 ### Create Blueprint with Custom C++ Parent
 ```python
 # Create Blueprint inheriting from custom C++ base class
-blueprint_cmd(command="create_blueprint", params={
+blueprint_cmd(command="create", params={
     "name": "BP_CustomEnemy",
     "path": "/Game/Blueprints/Enemies",
     "parent_class": "AEnemyBase"  # Your C++ base class
@@ -91,8 +91,8 @@ blueprint_cmd(command="add_blueprint_variable", params={
 })
 
 # Compile and save
-blueprint_cmd(command="compile_blueprint", params={"asset_path": "/Game/Blueprints/Enemies/BP_CustomEnemy"})
-blueprint_cmd(command="save_blueprint", params={"asset_path": "/Game/Blueprints/Enemies/BP_CustomEnemy"})
+blueprint_cmd(command="compile", params={"asset_path": "/Game/Blueprints/Enemies/BP_CustomEnemy"})
+blueprint_cmd(command="save", params={"asset_path": "/Game/Blueprints/Enemies/BP_CustomEnemy"})
 ```
 
 **Why use custom C++ parents:**
@@ -102,7 +102,7 @@ blueprint_cmd(command="save_blueprint", params={"asset_path": "/Game/Blueprints/
 
 ### Create Blueprint with Structure
 ```
-blueprint_cmd(create_blueprint) → blueprint_cmd(add_blueprint_variable) ×N → blueprint_cmd(add_blueprint_function) ×N → blueprint_cmd(compile_blueprint) → blueprint_cmd(save_blueprint)
+blueprint_cmd(command="create") -> blueprint_cmd(command="add_variable") xN -> blueprint_cmd(command="add_function") xN -> blueprint_cmd(command="compile") -> blueprint_cmd(command="save")
 ```
 
 ### Create Fully Functional Blueprint (Automated)
@@ -110,14 +110,14 @@ blueprint_cmd(create_blueprint) → blueprint_cmd(add_blueprint_variable) ×N �
 Prefer `blueprint_compose` for creating from scratch — it runs all steps atomically.
 For manual step-by-step construction:
 ```
-blueprint_cmd(create_blueprint)
-  → blueprint_cmd(add_blueprint_variable) ×N
-  → blueprint_cmd(graph_add_node) ×N        # Add function call nodes
-  → blueprint_cmd(graph_connect) ×N          # Wire execution and data flow
-  → blueprint_cmd(graph_set_pin_value) ×N    # Set input values on nodes
-  → blueprint_cmd(graph_auto_layout)         # Auto-arrange node positions
-  → blueprint_cmd(compile_blueprint)
-  → blueprint_cmd(save_blueprint)
+blueprint_cmd(command="create")
+  -> blueprint_cmd(command="add_variable") xN
+  -> blueprint_cmd(command="graph_add_node") xN        # Add function call nodes
+  -> blueprint_cmd(command="graph_connect") xN         # Wire execution and data flow
+  -> blueprint_cmd(command="graph_set_pin_value") xN   # Set input values on nodes
+  -> blueprint_cmd(command="graph_auto_layout")        # Auto-arrange node positions
+  -> blueprint_cmd(command="compile")
+  -> blueprint_cmd(command="save")
 ```
 
 ### graph_add_node — Node Class Short Names
@@ -160,7 +160,7 @@ When calling `blueprint_cmd(command="graph_add_node")` or specifying nodes in `b
 **Example: Hello World Blueprint**
 ```python
 # 1. Create Actor Blueprint
-blueprint_cmd(command="create_blueprint", params={"name": "BP_HelloWorld", "path": "/Game/Blueprints", "type": "Actor"})
+blueprint_cmd(command="create", params={"name": "BP_HelloWorld", "path": "/Game/Blueprints", "type": "Actor"})
 
 # 2. Add Delay node
 blueprint_cmd(command="graph_add_node", params={
@@ -209,8 +209,8 @@ blueprint_cmd(command="graph_set_pin_value", params={
 })
 
 # 6. Compile and save
-blueprint_cmd(command="compile_blueprint", params={"asset_path": "/Game/Blueprints/BP_HelloWorld"})
-blueprint_cmd(command="save_blueprint", params={"asset_path": "/Game/Blueprints/BP_HelloWorld"})
+blueprint_cmd(command="compile", params={"asset_path": "/Game/Blueprints/BP_HelloWorld"})
+blueprint_cmd(command="save", params={"asset_path": "/Game/Blueprints/BP_HelloWorld"})
 ```
 
 **Result:** Fully functional Blueprint that prints "Hello World" 5 seconds after BeginPlay — no manual editing required!
@@ -250,7 +250,7 @@ blueprint_cmd(command="get_class_defaults", params={
 
 ### Configure Timeline
 ```
-blueprint_compose (with Timeline node) → blueprint_cmd(configure_timeline, tracks + keyframes) → blueprint_cmd(compile_blueprint)
+blueprint_compose (with Timeline node) -> blueprint_cmd(command="configure_timeline", params={...}) -> blueprint_cmd(command="compile")
 ```
 
 **Example: Float track for door open animation**
@@ -276,56 +276,49 @@ blueprint_cmd(command="configure_timeline", params={
 
 ### Configure Component Defaults
 ```
-blueprint_compose (with parent that has components) → blueprint_cmd(set_component_defaults) → blueprint_cmd(compile_blueprint)
+blueprint_cmd(command="create", params={...}) → blueprint_cmd(command="add_scs_component", params={...}) → blueprint_cmd(command="set_component_defaults", params={...})
 ```
 
-**Example: Set mesh and material on a StaticMeshActor Blueprint**
+**Example: Create an owned StaticMeshComponent, then set mesh, material, transform, and visibility**
 ```python
-blueprint_cmd(command="set_component_defaults", params={
+create_result = blueprint_cmd(command="create", params={
+    "name": "BP_Barrel",
+    "path": "/Game/Blueprints",
+    "type": "Actor"
+})
+
+component_result = blueprint_cmd(command="add_scs_component", params={
     "asset_path": "/Game/Blueprints/BP_Barrel",
-    "component_name": "StaticMeshComponent0",
+    "component_class": "StaticMeshComponent",
+    "component_name": "OwnedStaticMesh",
+    "parent_component": "DefaultSceneRoot",
+    "compile": False
+})
+
+owned_component_name = component_result["variable_name"]
+
+defaults_result = blueprint_cmd(command="set_component_defaults", params={
+    "asset_path": "/Game/Blueprints/BP_Barrel",
+    "component_name": owned_component_name,
     "properties": {
-        "StaticMesh": "/Game/Meshes/SM_Barrel",
-        "OverrideMaterials[0]": "/Game/Materials/MI_Barrel_Rusty"
-    }
+        "StaticMesh": "/Game/Meshes/SM_Barrel.SM_Barrel",
+        "OverrideMaterials[0]": "/Game/Materials/MI_Barrel_Rusty.MI_Barrel_Rusty",
+        "RelativeLocation": {"X": 100, "Y": 0, "Z": 50},
+        "RelativeRotation": {"Pitch": 0, "Yaw": 90, "Roll": 0},
+        "bVisible": False
+    },
+    "compile": True,
+    "save": False
 })
-# Returns: {"component_name": "StaticMeshComponent0", "properties_set": 2, "errors": []}
 ```
 
-**Array property syntax:** `PropertyName[N]` for indexed array slots (e.g., `OverrideMaterials[0]`).
+`set_component_defaults` only mutates owned SCS component templates, such as components created
+with `add_scs_component`. It does not mutate inherited or native parent components. Inspect
+`partial_failure` and `errors[]` even when the command succeeds. Relative Blueprint paths default
+to `/Game`; absolute mounted paths are valid when the root is project-owned and writable.
 
-### Edit Level Script Blueprint
-
-Level Script Blueprints live inside map packages. Use `blueprint_cmd(command="get_level_blueprint")` to obtain a synthetic path, then use it with all graph and bp commands:
-
-```python
-# 1. Get synthetic asset path
-result = blueprint_cmd(command="get_level_blueprint", params={"map_path": "/Game/Maps/TestMap"})
-# result["asset_path"] == "__level_bp__:/Game/Maps/TestMap"
-# result["save_warning"] — reminder to use save_level, not bp.save
-
-# 2. List graphs in the Level Blueprint
-blueprint_cmd(command="graph_list_graphs", params={"asset_path": "__level_bp__:/Game/Maps/TestMap"})
-
-# 3. Add a node to EventGraph
-blueprint_cmd(command="graph_add_node", params={
-    "asset_path": "__level_bp__:/Game/Maps/TestMap",
-    "node_class": "CustomEvent",
-    "graph_name": "EventGraph",
-    "position": {"x": 200, "y": 0}
-})
-
-# 4. Compile the Level Blueprint
-blueprint_cmd(command="compile_blueprint", params={"asset_path": "__level_bp__:/Game/Maps/TestMap"})
-
-# 5. Save — must use save_level, NOT blueprint_cmd(save_blueprint)
-blueprint_cmd(command="save_level", params={"map_path": "/Game/Maps/TestMap"})
-```
-
-**Supported commands with `__level_bp__:` paths:**
-All `graph_*` commands, `blueprint_cmd(compile_blueprint)`, and other `blueprint_cmd` commands.
-
-**Not supported:** `blueprint_cmd(save_blueprint)` — returns `LevelBlueprintSaveError`. Use `blueprint_cmd(command="save_level")` instead.
+**Array property syntax:** `PropertyName[N]` is supported for indexed object-reference array slots
+such as `OverrideMaterials[0]`; it is not generic arbitrary-array editing.
 
 ### Add an SCS Component
 
@@ -373,8 +366,8 @@ blueprint_cmd(command="remove_scs_component", params={
 compile_new_cpp_class
   → rebuild_project
   → cleanup_migration (reparent BP to new C++ class, remove migrated variables/functions)
-  → blueprint_cmd(remove_scs_component) (for each component now declared in C++ constructor)
-  → blueprint_cmd(compile_blueprint)
+  -> blueprint_cmd(command="remove_scs_component") (for each component now declared in C++ constructor)
+  -> blueprint_cmd(command="compile")
 ```
 
 ### Add / Remove Interface
@@ -652,7 +645,7 @@ blueprint_cmd(command="graph_get_subgraph", params={
 
 ### Modify Existing Blueprint
 ```
-blueprint_cmd(get_blueprint_info) → blueprint_cmd(add/remove variables/functions) → blueprint_cmd(compile_blueprint) → blueprint_cmd(save_blueprint)
+blueprint_cmd(command="get_info") -> blueprint_cmd(command="add_variable"/"remove_variable"/"add_function") -> blueprint_cmd(command="compile") -> blueprint_cmd(command="save")
 ```
 
 ## Benchmark Tests
