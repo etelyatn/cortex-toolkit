@@ -510,22 +510,29 @@ configure_timeline(
 
 ## Configuring Component Defaults
 
-Use `set_component_defaults` to set object-reference defaults on a Blueprint's component templates (the SCS — Simple Construction Script). This configures values like `StaticMesh`, `OverrideMaterials`, or other asset references on components in the Blueprint's Components panel.
+Use `set_component_defaults` to set JSON-valued defaults on owned Blueprint component templates (the SCS — Simple Construction Script). This configures values like `StaticMesh`, `OverrideMaterials`, relative transforms, visibility, and other editable reflected properties on components in the Blueprint's Components panel.
 
 ```python
 set_component_defaults(
     asset_path="/Game/Blueprints/BP_Prop",
     component_name="StaticMeshComponent0",
     properties={
-        "StaticMesh": "/Game/Meshes/SM_Rock",
-        "OverrideMaterials[0]": "/Game/Materials/MI_Rock_Wet"
-    }
+        "StaticMesh": "/Game/Meshes/SM_Rock.SM_Rock",
+        "OverrideMaterials[0]": "/Game/Materials/MI_Rock_Wet.MI_Rock_Wet",
+        "RelativeLocation": {"X": 100, "Y": 0, "Z": 50},
+        "RelativeRotation": {"Pitch": 0, "Yaw": 90, "Roll": 0},
+        "bVisible": False
+    },
+    compile=True,
+    save=False
 )
 ```
 
-**Array element syntax:** Use `PropertyName[N]` for indexed array elements (e.g., `OverrideMaterials[0]`).
+**Array element syntax:** Use `PropertyName[N]` for indexed object-reference array elements such as `OverrideMaterials[0]`; this is not generic arbitrary-array editing.
 
-**Returns:** `component_name`, `properties_set` (count), `errors` (per-property failures if any)
+**Returns:** `component_name`, `properties_set` (count), `partial_failure`, `errors` (per-property failures if any), `compiled`, `saved`.
+
+**Important:** Inspect `partial_failure` and `errors[]` even when the command succeeds. The command only mutates owned SCS component templates; inherited or native parent components are rejected. Instanced-reference properties are reported as per-property failures.
 
 **Note:** This sets defaults on the Blueprint class template, affecting all future instances. To override properties on a specific placed actor, use `set_actor_property` instead.
 
