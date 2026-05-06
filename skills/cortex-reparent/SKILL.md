@@ -84,29 +84,51 @@ After reparent, the Blueprint and all placed instances have wrong component valu
 from the new parent's CDO. Restore in two layers:
 
 **Layer 1 — BP defaults** (so new instances get correct values):
-```
-set_component_defaults(asset_path, "StaticMesh", {
-    "StaticMesh": "original/mesh/path"
+```python
+blueprint_cmd(command="set_component_defaults", params={
+    "asset_path": asset_path,
+    "component_name": "CapturedOwnedMesh",
+    "properties": {
+        "StaticMesh": "/Game/Meshes/SM_Original.SM_Original",
+        "RelativeLocation": {"X": 0, "Y": 0, "Z": 0},
+        "RelativeRotation": {"Pitch": 0, "Yaw": 0, "Roll": 0},
+        "bVisible": True
+    },
+    "compile": True,
+    "save": False
 })
 ```
 
+Check `partial_failure` and `errors[]` after restoring component defaults. This command can only
+restore owned SCS components on the reparented Blueprint; inherited/native parent components
+cannot be restored through `set_component_defaults`.
+
 **Layer 2 — Fix placed instances** (existing instances have baked overrides):
-Use `level_batch` modify to restore ALL captured properties on EACH instance:
-```json
-{"op": "modify", "actor": "InstanceLabel", "properties": {
-    "StaticMesh.StaticMesh": "original/mesh/path",
-    "StaticMesh.RelativeLocation": {"X": 0, "Y": 0, "Z": 0},
-    "StaticMesh.RelativeRotation": {"Pitch": 0, "Yaw": 0, "Roll": 0},
-    "Enter.RelativeLocation": {"X": 0, "Y": 105, "Z": -1.88},
-    "Enter.RelativeRotation": {"Pitch": 0, "Yaw": 90, "Roll": 0},
-    "Exit.RelativeLocation": {"X": 0, "Y": 55, "Z": 90},
-    "Exit.RelativeRotation": {"Pitch": 0, "Yaw": 90, "Roll": 0}
-}}
+Use `level_compose` modify operations to restore ALL captured properties on EACH instance:
+```python
+level_compose(operations=[{
+    "op": "modify",
+    "actor": "InstanceLabel",
+    "properties": {
+        "StaticMesh.StaticMesh": "original/mesh/path",
+        "StaticMesh.RelativeLocation": {"X": 0, "Y": 0, "Z": 0},
+        "StaticMesh.RelativeRotation": {"Pitch": 0, "Yaw": 0, "Roll": 0},
+        "Enter.RelativeLocation": {"X": 0, "Y": 105, "Z": -1.88},
+        "Enter.RelativeRotation": {"Pitch": 0, "Yaw": 90, "Roll": 0},
+        "Exit.RelativeLocation": {"X": 0, "Y": 55, "Z": 90},
+        "Exit.RelativeRotation": {"Pitch": 0, "Yaw": 90, "Roll": 0}
+    }
+}])
 ```
 
 ### 6. Compile and Save
 
-Call `compile_blueprint` then `save_blueprint` for each reparented Blueprint.
+Compile and save each reparented Blueprint with the router command names:
+
+```python
+blueprint_cmd(command="compile", params={"asset_path": asset_path})
+blueprint_cmd(command="save", params={"asset_path": asset_path})
+```
 
 ### 7. Report Results
 

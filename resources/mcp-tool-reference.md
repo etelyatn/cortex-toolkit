@@ -21,7 +21,7 @@ Most domain commands are accessed through **router tools** (`{domain}_cmd`). A f
 | **Composite tool** | `{domain}_compose(spec)` | `blueprint_compose(...)` for new asset creation |
 | **Standalone tool** (Reflect, some Editor/QA) | Direct function call | `query_class_hierarchy(class_name="AActor")` |
 
-Router commands use **bare names** — e.g., `get_info`, `create`, `list` (NOT `get_blueprint_info`, `create_blueprint`).
+Router commands use **bare names** — e.g., `get_info`, `create`, `list` (NOT `get_blueprint_info`, `unknown_blueprint_command`).
 
 **When in doubt:** Use the router tool `{domain}_cmd` with the bare command name from the lists below.
 
