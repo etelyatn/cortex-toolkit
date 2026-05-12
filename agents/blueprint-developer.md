@@ -99,7 +99,7 @@ Independent read calls MUST be issued in parallel. Sequential reads are only all
 
 When analyzing a Blueprint's graphs, call all graph reads in parallel — not sequentially:
 
-1. Call `graph_cmd(list_graphs)` once to get all graph names
+1. Call `graph_cmd(list_graphs)` once to get graph names and top-level graph `kind` metadata
 2. Call `graph_cmd(get_subgraph)` or `graph_cmd(find_event_handler)` for **all relevant graphs in parallel** in a single message
 3. Call `graph_cmd(trace_exec)` or `graph_cmd(find_function_calls)` for target execution paths **in parallel** across graphs
 
@@ -149,6 +149,8 @@ impact_analysis(
 **Class Settings:** `add_interface`, `remove_interface`, `set_tick_settings`, `set_replication_settings`
 
 **Graph (logic):** `graph_list_graphs`, `graph_get_subgraph`, `graph_get_subgraph`, `graph_search_nodes`, `graph_add_node`, `graph_remove_node`, `graph_connect`, `graph_disconnect`, `graph_set_pin_value`, `graph_auto_layout`
+
+`graph_list_graphs` top-level entries include `kind` (`ubergraph`, `function`, `macro`, `delegate`, or `interface_impl`). `interface_impl` entries also include `owning_interface`. Delegate graphs are readable but not mutable through generic write/layout graph tools.
 
 Read commands (`graph_get_subgraph`, `graph_get_subgraph`, `graph_search_nodes`) accept a `compact` boolean (default `true`). See "Compact vs Verbose Graph Reads" above.
 
@@ -250,6 +252,8 @@ graph_set_pin_value(
 ## Composite Subgraph Access
 
 All graph tools (`graph_get_subgraph`, `graph_get_subgraph`, `graph_search_nodes`, `graph_add_node`, `graph_remove_node`, `graph_connect`, `graph_disconnect`, `graph_set_pin_value`, `graph_auto_layout`) accept an optional `subgraph_path` parameter. `graph_list_graphs` accepts `include_subgraphs`.
+
+Graph targeting is name-based. If top-level names collide across graph kinds, commands resolve the first matching graph. Prefer unique graph names and use `kind`/`owning_interface` from `graph_list_graphs` to understand what you are targeting before mutating.
 
 ### Discovering Composites
 

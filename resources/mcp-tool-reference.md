@@ -138,6 +138,15 @@ Manage asset lifecycle. All commands accept a single path, a list of paths, or g
 
 - `list_graphs`, `list_nodes`, `get_node`, `search_nodes`, `add_node`, `remove_node`, `connect`, `disconnect`, `set_pin_value`, `auto_layout`
 
+`list_graphs` returns user-visible Blueprint graphs. Top-level entries include `kind`
+(`ubergraph`, `function`, `macro`, `delegate`, or `interface_impl`); `interface_impl`
+entries also include `owning_interface`. Delegate graphs are readable but not mutable
+through generic graph commands.
+
+Graph targeting is currently name-based. If graph names collide across categories,
+commands resolve the first matching graph. Prefer unique graph names until a stable
+`graph_ref` or graph-kind disambiguator exists.
+
 `auto_layout` — repositions nodes using execution-first left-to-right layout with parameter grouping. `mode`: `"full"` repositions all nodes; `"incremental"` only repositions nodes at position (0,0). Optional `graph_name`, `horizontal_spacing`, `vertical_spacing`.
 
 ### Compact Serialization (default for read commands)

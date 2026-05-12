@@ -120,6 +120,10 @@ blueprint_cmd(command="create")
   -> blueprint_cmd(command="save")
 ```
 
+Before editing an existing graph, call `graph_cmd(command="list_graphs")` and check
+the returned top-level `kind`. Delegate graphs are readable but not mutable through
+generic graph edit commands. Interface implementation graphs are mutable.
+
 ### graph_add_node — Node Class Short Names
 
 When calling `blueprint_cmd(command="graph_add_node")` or specifying nodes in `blueprint_compose`, use these short names:
@@ -485,6 +489,8 @@ blueprint_cmd(command="graph_list_graphs", params={
     "include_subgraphs": True
 })
 # Returns top-level graphs plus composite entries with:
+#   "kind": "ubergraph" | "function" | "macro" | "delegate" | "interface_impl"
+#   "owning_interface": "InterfaceClassName"  # interface_impl only
 #   "parent_graph": "EventGraph"
 #   "subgraph_path": "MyComposite"
 
@@ -496,6 +502,10 @@ blueprint_cmd(command="graph_get_subgraph", params={
 # Composite nodes include: "subgraph_name": "MyComposite"
 # Tunnel boundary nodes include: "is_tunnel_boundary": true
 ```
+
+Graph targeting is currently name-based. If names collide across graph kinds, graph
+commands resolve the first match. Prefer unique graph names until graph commands
+support a stable graph reference or graph-kind discriminator.
 
 **Read nodes inside a composite:**
 ```python
