@@ -5,8 +5,8 @@ Flat catalog of all UnrealCortex MCP tools organized by domain.
 ## Tool Architecture
 
 Tools fall into three categories:
-- **Routers (10):** `core_cmd`, `data_cmd`, `blueprint_cmd`, `graph_cmd`, `level_cmd`, `material_cmd`, `umg_cmd`, `qa_cmd`, `reflect_cmd`, `editor_cmd` — dispatch named commands to existing assets
-- **Composites (6):** `blueprint_compose`, `material_compose`, `material_instance_compose`, `widget_compose`, `level_compose`, `scenario_compose` — atomic creation of new assets in a single batch round-trip
+- **Routers (11):** `core_cmd`, `data_cmd`, `blueprint_cmd`, `graph_cmd`, `level_cmd`, `material_cmd`, `umg_cmd`, `qa_cmd`, `reflect_cmd`, `editor_cmd`, `statetree_cmd` — dispatch named commands to existing assets
+- **Composites (7):** `blueprint_compose`, `material_compose`, `material_instance_compose`, `widget_compose`, `level_compose`, `scenario_compose`, `statetree_compose` — atomic creation of new assets or workflows in a single batch round-trip
 - **Standalone (3):** `editor_restart`, `schema_generate`, `qa_test_step`
 
 Rule: New asset creation → composite. Modifications to existing assets → router.
@@ -212,6 +212,24 @@ See `blueprint-patterns.md` for node class short names and full node type table.
 ### Composite
 
 - `level_compose` — atomic placement of multiple actors with transforms in a single batch
+
+---
+
+## StateTree (`statetree_cmd`)
+
+- **Assets:** `list_assets`, `create_asset`, `duplicate_asset`, `delete_asset`
+- **Inspection:** `dump_tree`, `get_state`, `check_structure`
+- **Validation/Compile:** `validate_asset`, `compile`
+- **States:** `add_state`, `remove_state`, `rename_state`, `move_state`, `set_state_properties`
+- **Transitions:** `add_transition`, `remove_transition`, `set_transition_properties`
+
+Mutating commands require `expected_fingerprint` for existing assets. Use `dump_tree` or `check_structure` to get the current fingerprint before mutation. `validate_asset` and `compile` can dirty assets, so do not call them during read-only review.
+
+### Composite
+
+- `statetree_compose` — create or update one StateTree from declarative states and transitions, with fingerprint threading, update-mode preflight, optional validation, optional compile, optional save, and create-mode cleanup on failure.
+
+Current boundary: StateTree support is structure-level. It does not author arbitrary tasks, conditions, evaluators, parameter bags, or property bindings.
 
 ---
 

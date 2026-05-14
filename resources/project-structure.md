@@ -14,6 +14,8 @@ ProjectRoot/
 ├── Config/                     ← UE config files
 │   └── Tags/                   ← GameplayTag .ini files
 ├── Content/                    ← UE assets
+│   ├── AI/                      ← AI-facing content
+│   │   └── StateTrees/          ← StateTree assets
 │   ├── Blueprints/             ← Blueprint assets
 │   ├── Data/                   ← DataTables, DataAssets, CurveTables
 │   ├── Materials/              ← Materials, instances
@@ -31,7 +33,8 @@ ProjectRoot/
 │       │   ├── CortexLevel/
 │       │   ├── CortexUMG/
 │       │   ├── CortexReflect/
-│       │   └── CortexQA/
+│       │   ├── CortexQA/
+│       │   └── CortexStateTree/
 │       └── MCP/
 │           ├── src/cortex_mcp/
 │           ├── tools/{domain}/
@@ -60,4 +63,5 @@ ProjectRoot/
 - DataTables go in `Content/Data/` with `DT_` prefix
 - Test-generated assets go in `Content/Temp/` (git-ignored)
 - Each domain has its own content subdirectory
+- StateTree assets should live in `Content/AI/StateTrees/` or `Content/StateTrees/` with `ST_` prefix
 - GameplayTags stored in `Config/Tags/*.ini`, not in DataTables

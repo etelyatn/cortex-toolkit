@@ -31,6 +31,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& { Set-Location 'cl
 - `Cortex.Reflect+` — CortexReflect domain
 - `Cortex.Editor+` — CortexEditor shared infrastructure (requires rendering, no `-NullRHI`)
 - `Cortex.QA+` — CortexQA domain (requires rendering and test level content)
+- `Cortex.StateTree+` — CortexStateTree domain
 
 Note: Use `+` wildcard, never `*`.
 
@@ -104,6 +105,9 @@ cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_mcp_scenarios.py -v -k "
 
 # Stress tests only
 cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_mcp_scenarios.py -v -k stress
+
+# StateTree composites
+cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_statetree_composites.py -v
 ```
 
 **Scenarios:** Blueprint Lifecycle, Widget Builder, Data Pipeline, Graph Wiring, GameplayTag Workflow, Localization Pipeline
@@ -136,6 +140,7 @@ Claude Code skill that calls real MCP tools in sequence and reports pass/fail wi
 | `test_blueprint_composites.py` | 2 | Blueprint composite tool workflows |
 | `test_material_composites.py` | 2 | Material composite tool workflows |
 | `test_umg_composites.py` | 2 | UMG composite tool workflows |
+| `test_statetree_composites.py` | 2 | StateTree composite create/update, cleanup, and preflight |
 | `test_qa_tools.py` | 2 | QA domain tool integration |
 | `test_reflect_tools.py` | 2 | Reflect domain tool integration |
 | `conftest.py` | -- | Shared fixtures (TCP connection, MCP client, temp assets) |

@@ -64,8 +64,8 @@ Three-layer integration testing validates the full pipeline from AI agent throug
 
 | Layer | File(s) | What It Tests |
 |-------|---------|---------------|
-| 1: TCP E2E | `test_e2e.py`, `test_level_e2e.py`, `test_editor_e2e.py`, `test_class_defaults.py`, `test_material_composites_e2e.py` | Direct TCP commands per domain (CRUD + error cases) |
-| 2: MCP Scenarios | `test_mcp_scenarios.py`, `test_blueprint_composites.py`, `test_material_composites.py`, `test_umg_composites.py` | Cross-domain workflows via FastMCP client |
+| 1: TCP E2E | `test_e2e.py`, `test_level_e2e.py`, `test_editor_e2e.py`, `test_class_defaults.py`, `test_material_composites_e2e.py` | Direct TCP commands per domain (CRUD + error cases), including StateTree asset CRUD, dump/check, state edits, transitions, validation, and compile |
+| 2: MCP Scenarios | `test_mcp_scenarios.py`, `test_blueprint_composites.py`, `test_material_composites.py`, `test_umg_composites.py`, `test_statetree_composites.py` | Cross-domain workflows via FastMCP client |
 | 3: Claude Skill | `/mcp-benchmark` | AI-driven real-world validation with timing |
 
 Tests live in `Plugins/UnrealCortex/MCP/tests/`. Run with:
@@ -76,6 +76,9 @@ cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_e2e.py tests/test_level_
 
 # Layer 2 — cross-domain scenarios
 cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_mcp_scenarios.py -v
+
+# StateTree composites
+cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_statetree_composites.py -v
 
 # Layer 3 — Claude Code skill
 /mcp-benchmark
