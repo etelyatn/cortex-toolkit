@@ -51,8 +51,15 @@ When the C++ constructor creates components via `CreateDefaultSubobject` (Tier 1
 
 1. Read the primary class constructor from the generated C++ source to extract `CreateDefaultSubobject` name strings (the `TEXT("...")` arguments — these are the SCS instance names, not the class names from `target_classes`)
 2. Compare these instance names against BP SCS component names from the pre-migration snapshot
-3. If any names match (for example, both C++ constructor and BP SCS create "HealthComp"):
-   - **Remove the conflicting SCS component from the BP BEFORE reparent** using `remove_scs_component`
+3. Inspect `analyze_for_migration.scs_collisions` before mutating:
+   - For `severity: "adoptable"`, run the emitted `recommended_params` through
+     `set_class_defaults`; qualified values such as `HealthComp@self` are intentional.
+   - For blocking collisions, run `rename_scs_component` using the recommended new name.
+4. If a C++ constructor name exactly replaces a BP-owned SCS node after the collision pass:
+   - Remove the redundant SCS component using `remove_scs_component`.
+   - If it returns `POTENTIAL_DATA_LOSS`, stop and surface `dirty_details` plus
+     `required_acknowledgment`; retry with `acknowledged_losses` only after explicit user
+     confirmation.
    - Log: "Removed SCS component '{Name}' (will be replaced by C++ CreateDefaultSubobject)"
    - Verify BP still compiles after each removal
 
@@ -166,5 +173,6 @@ Do NOT write `03-node-mapping.json`. All execution data goes inline.
 - `graph_disconnect`
 - `delete_orphaned_nodes`
 - `remove_scs_component`
+- `rename_scs_component`
 - `add_interface` / `remove_interface` — add or remove interface implementations (use `remove_interface` to clean up stale interface references during migration)
 - `save_blueprint`

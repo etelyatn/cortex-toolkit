@@ -142,7 +142,7 @@ impact_analysis(
 
 **Asset management:** `create_blueprint`, `list_blueprints`, `get_blueprint_info`, `delete_blueprint`, `duplicate_blueprint`, `compile_blueprint`, `save_blueprint`, `reparent_blueprint`
 
-**Structure:** `add_blueprint_variable`, `remove_blueprint_variable`, `add_blueprint_function`, `configure_timeline`, `set_component_defaults`, `add_scs_component`, `remove_scs_component`
+**Structure:** `add_blueprint_variable`, `remove_blueprint_variable`, `add_blueprint_function`, `configure_timeline`, `set_component_defaults`, `add_scs_component`, `remove_scs_component`, `rename_scs_component`
 
 **Class Defaults (CDO):** `get_class_defaults`, `set_class_defaults`
 
@@ -373,14 +373,18 @@ set_class_defaults(
 
 ### Object Reference Properties
 
-Object references accept asset path strings:
+Object references accept asset path strings. Component object-reference properties also
+accept component names discovered from the Blueprint. When a component name is ambiguous,
+the command returns `AMBIGUOUS_COMPONENT_REFERENCE` with candidates such as `OpenSeq@self`
+or `OpenSeq@ParentClass`; pass the qualified candidate to select the intended component.
 
 ```python
 set_class_defaults(
     blueprint_path="/Game/Blueprints/BP_Player",
     properties={
         "DefaultInputAction": "/Game/Input/IA_Move",
-        "DefaultMesh": "/Game/Meshes/SM_Player"
+        "DefaultMesh": "/Game/Meshes/SM_Player",
+        "OpenSeq": "OpenSeq@self"
     }
 )
 ```
@@ -583,12 +587,40 @@ remove_scs_component(
 - `asset_path`: Blueprint asset path
 - `component_name`: Variable name of the SCS node (as shown in the Components panel)
 - `compile` (optional, default `true`): Compile the Blueprint after removal
+- `acknowledged_losses` (optional): Exact string array echoed from `required_acknowledgment`
+  when the first call returns `POTENTIAL_DATA_LOSS`
+- `force` (optional, default `false`): Override dirty sub-object loss protection; use only
+  when the user explicitly accepts the loss
 
 **Child promotion:** When removing a component that has child components attached, the children are automatically re-parented to the removed component's parent. No children are lost.
 
 **Validation:**
 - Only Actor-based Blueprints have an SCS. Calling on a component or widget Blueprint returns `InvalidField`.
 - If the component name is not found, returns `ComponentNotFound`.
+- If dirty instanced sub-object data would be lost, returns `POTENTIAL_DATA_LOSS` with
+  `required_acknowledgment`; retry with that exact array as `acknowledged_losses` after
+  surfacing the risk to the user.
+- If `compile=True` and the post-removal compile fails, returns `COMPILE_FAILED` and rolls
+  back the removal before saving.
+
+## Renaming SCS Components
+
+Use `rename_scs_component` to resolve blocking SCS name collisions before migration or
+reparenting. Prefer this when `analyze_for_migration` reports an `scs_collisions` entry
+with `recommended_tool: "blueprint.rename_scs_component"`.
+
+```python
+rename_scs_component(
+    asset_path="/Game/Blueprints/BP_JumpPad",
+    old_name="StaticMeshComponent0",
+    new_name="JumpPadMesh",
+    compile=True
+)
+```
+
+The command refuses inherited targets, timeline components/references, owned or inherited
+name collisions, and dependent Blueprint shadowing. If `compile=True` and the compile
+fails, the rename is rolled back before returning `COMPILE_FAILED`.
 
 ## Reparenting Blueprints
 
