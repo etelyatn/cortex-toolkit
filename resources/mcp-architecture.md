@@ -60,7 +60,7 @@ MCP tools implement intelligent caching:
 
 ## MCP Benchmark Testing
 
-Three-layer integration testing validates the full pipeline from AI agent through MCP to Unreal Editor. All layers require a running editor.
+Three-layer integration testing covers both live editor-backed validation and Python-side tool tests. Layers 1 and 3 require a running editor; Layer 2 mixes editor-backed FastMCP scenarios with mocked StateTree composite coverage.
 
 StateTree coverage:
 - Router domain: `statetree_cmd`

@@ -94,7 +94,7 @@ cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_material_composites_e2e.
 
 ### Layer 2: MCP Scenario Tests (cross-domain)
 
-Multi-step workflow tests via FastMCP test client. Tests the full Python MCP stack: tool registration, parameter validation, response formatting.
+Layer 2 mixes two kinds of Python-side coverage: cross-domain scenario tests via FastMCP test client, plus mocked StateTree composite wrapper tests. The FastMCP scenarios exercise the Python MCP stack for registered tools; `test_statetree_composites.py` focuses on wrapper registration and command translation without a live editor connection.
 
 ```bash
 # All scenarios
