@@ -9,7 +9,7 @@ Tools fall into three categories:
 - **Composites (7):** `blueprint_compose`, `material_compose`, `material_instance_compose`, `widget_compose`, `level_compose`, `scenario_compose`, `statetree_compose` — atomic creation of new assets or workflows in a single batch round-trip
 - **Standalone (3):** `editor_restart`, `schema_generate`, `qa_test_step`
 
-Rule: New asset creation → composite. Modifications to existing assets → router.
+Rule: New asset creation → composite. Isolated edits to existing assets → router. Multi-step or structure-wide updates to existing assets can use composite update mode.
 
 ## Naming Convention
 
