@@ -14,6 +14,7 @@ Rule: multiple actions on one asset → `*_compose` (single batch call). Single 
 | Data | DataTables, GameplayTags, balance data | `data_cmd` |
 | Level | Place/move actors, organize content, sublevels | `level_cmd` `level_compose` |
 | Material | Materials, parameters, shader graphs | `material_cmd` `material_compose` `material_instance_compose` |
+| StateTree | AI behavior trees and state machines — states, transitions, tags, validation | `statetree_cmd` `statetree_compose` |
 | UI | UMG widgets — menus, HUDs, dialogs | `umg_cmd` `widget_compose` |
 | QA | PIE testing, assertions, scenario exploration | `qa_cmd` `qa_test_step` `scenario_compose` |
 | Reflect | Class hierarchy, usages, refactor impact | `reflect_cmd` |

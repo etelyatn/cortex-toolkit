@@ -86,6 +86,12 @@ Skills are invoked with `/skill-name` in Claude Code. Skills launch specialized 
 |-------|-------------|
 | `/cortex-material` | Create or review materials, instances, parameter collections, or material graphs |
 
+### StateTree
+
+| Skill | Description |
+|-------|-------------|
+| `/cortex-statetree` | Create, update, review, validate, or compile StateTree assets — structure, hierarchy, tags, and simple transitions |
+
 ### QA
 
 | Skill | Description |
@@ -142,6 +148,7 @@ Specialized agents launched by skills. Each agent has deep knowledge of a specif
 | `level-designer` | Level | Design and edit levels, spawn actors, manage transforms and organization |
 | `material-developer` | Material | Create and modify materials, expression graphs, and parameter collections |
 | `project-analyzer` | Reflect | Analyze project architecture, class hierarchies, and cross-class symbol references |
+| `statetree-developer` | StateTree | Create, inspect, validate, compile, and modify StateTree structure through UnrealCortex |
 | `qa-engineer` | QA | Run and verify game QA scenarios in PIE |
 | `test-debugger` | Core | Debug failing Unreal C++ and Python MCP tests |
 | `ui-developer` | UI | Develop UMG widget hierarchies, set properties, and create animations |
@@ -159,6 +166,7 @@ Cortex Toolkit reads project-specific knowledge from `.cortex/`:
 │   ├── data.md
 │   ├── level.md
 │   ├── material.md
+│   ├── statetree.md
 │   ├── qa.md
 │   └── umg.md
 └── schema/              # LLM-readable project snapshots
