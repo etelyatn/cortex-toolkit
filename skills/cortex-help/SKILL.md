@@ -48,6 +48,7 @@ Gather these signals via file reads only — no MCP calls:
    - `Content/Blueprints/` → count `.uasset` files
    - `Content/Materials/` → count `.uasset` files
    - `Content/UI/` → count `.uasset` files
+   - `Content/AI/StateTrees/` or `Content/StateTrees/` → count `.uasset` files
    - `Content/Maps/` → note map files
 5. **Conversation context?** Review the current conversation for domain keywords or recent task context.
 
@@ -67,6 +68,7 @@ Generate 2-3 suggestions in this priority order:
 4. **No context** → suggest exploration
    - Has DataTables → suggest `cortex-data`
    - Has Blueprints → suggest `cortex-blueprint`
+   - Has StateTrees → suggest `cortex-statetree`
    - Nothing detected → suggest `cortex-start`
 
 ### Output Format
@@ -260,6 +262,9 @@ QA
 
 Reflect
   Project Analyzer     — Class hierarchy analysis, cross-references
+
+StateTree
+  StateTree Developer  — StateTree hierarchy, transitions, Gameplay Tags, validation
 
 UI
   UI Developer         — Widget hierarchy, screen building, UMG properties
