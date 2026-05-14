@@ -12,11 +12,15 @@ Creates, updates, reviews, validates, and compiles StateTree assets using the St
 Determine mode from user intent:
 
 - **Create/Modify**: User wants to build or change a StateTree asset
-  Examples: "create a StateTree", "add a Patrol state", "wire a transition", "compile this StateTree"
+  Examples: "create a StateTree", "add a Patrol state", "wire a transition", "compile after structural edits"
   → Launch `cortex-toolkit:statetree-developer` agent with `max_turns: 25`
 
-- **Review/Analyze**: User wants to inspect structure, validate, or understand an existing StateTree
-  Examples: "review ST_Guard", "dump this StateTree", "check transitions", "validate StateTree structure"
+- **Review/Analyze**: User wants to inspect structure or understand an existing StateTree without mutating it
+  Examples: "review ST_Guard", "dump this StateTree", "check transitions", "check StateTree structure"
+  → Launch `cortex-toolkit:statetree-developer` agent with `max_turns: 15`
+
+- **Validate/Compile**: User wants to run mutating validation fixups or compile an existing StateTree
+  Examples: "validate this StateTree", "run validation fixups", "compile ST_Guard"
   → Launch `cortex-toolkit:statetree-developer` agent with `max_turns: 15`
 
 - **Ambiguous** → Default to Review (read-only, safe)
@@ -27,6 +31,7 @@ Determine mode from user intent:
 |------|-------|-----------|
 | Create/Modify | cortex-toolkit:statetree-developer | 25 |
 | Review/Analyze | cortex-toolkit:statetree-developer | 15 |
+| Validate/Compile | cortex-toolkit:statetree-developer | 15 |
 
 ## Steps
 
@@ -69,7 +74,7 @@ PROHIBITED:
 Review the following StateTree(s):
 
 **Scope:** [specific StateTree asset paths, or path prefix such as /Game/AI/StateTrees]
-**Concerns:** [structure, transitions, tags, validation, compile readiness]
+**Concerns:** [structure, transitions, tags, check_structure findings, compile readiness]
 **Prefetched state:** [embed the main-thread prefetched_state block here before launching]
 
 READ-ONLY MODE:
@@ -82,6 +87,25 @@ WORKFLOW:
 3. Inspect target assets with `dump_tree`
 4. Run `check_structure`
 5. Report findings grouped by Errors, Warnings, Info
+```
+
+**For Validate/Compile**, pass the mutation scope explicitly:
+
+```text
+Run validation fixups or compile for the following StateTree:
+
+**StateTree:** [asset path, e.g. /Game/AI/StateTrees/ST_Guard]
+**Operation:** [validate_asset, compile, or both]
+**Prefetched state:** [embed the main-thread prefetched_state block here before launching]
+**Expected fingerprint:** [required fingerprint from prefetched_state or a fresh dump_tree/check_structure result]
+**Save:** [true or false]
+
+MUTATING MODE:
+1. Read `.cortex/domains/statetree.md` if present, then read `cortex-toolkit/resources/statetree-patterns.md`
+2. Use `prefetched_state` first. Do not re-fetch the same baseline if it is already present.
+3. Pass `expected_fingerprint` on every mutating call.
+4. Run only the requested `validate_asset` and/or `compile` operations.
+5. Report structured diagnostics and the latest returned fingerprint.
 ```
 
 ### 2. Handling Agent Results

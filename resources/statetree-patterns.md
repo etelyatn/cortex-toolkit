@@ -23,22 +23,22 @@ Inspection:
 
 Validation and compile:
 
-- `validate_asset(asset_path, save?, expected_fingerprint?)`
-- `compile(asset_path, save?, expected_fingerprint?)`
+- `validate_asset(asset_path, save?, expected_fingerprint)`
+- `compile(asset_path, save?, expected_fingerprint)`
 
 State mutation:
 
-- `add_state(asset_path, parent_state_id?, parent_state_path?, name, type?, tag?, enabled?, selection_behavior?, index?, compile?, save?, expected_fingerprint?)`
-- `remove_state(asset_path, state_id? | state_path?, remove_children?, compile?, save?, expected_fingerprint?)`
-- `rename_state(asset_path, state_id? | state_path?, name, compile?, save?, expected_fingerprint?)`
-- `move_state(asset_path, state_id? | state_path?, new_parent_state_id?, new_parent_state_path?, index?, compile?, save?, expected_fingerprint?)`
-- `set_state_properties(asset_path, state_id? | state_path?, properties, compile?, save?, expected_fingerprint?)`
+- `add_state(asset_path, parent_state_id?, parent_state_path?, name, type?, tag?, enabled?, selection_behavior?, index?, compile?, save?, expected_fingerprint)`
+- `remove_state(asset_path, state_id? | state_path?, remove_children?, compile?, save?, expected_fingerprint)`
+- `rename_state(asset_path, state_id? | state_path?, name, compile?, save?, expected_fingerprint)`
+- `move_state(asset_path, state_id? | state_path?, new_parent_state_id?, new_parent_state_path?, index?, compile?, save?, expected_fingerprint)`
+- `set_state_properties(asset_path, state_id? | state_path?, properties, compile?, save?, expected_fingerprint)`
 
 Transition mutation:
 
-- `add_transition(asset_path, source_state_id? | source_state_path?, target_state_id? | target_state_path?, trigger?, event_tag?, priority?, compile?, save?, expected_fingerprint?)`
-- `remove_transition(asset_path, state_id? | state_path?, transition_id, compile?, save?, expected_fingerprint?)`
-- `set_transition_properties(asset_path, state_id? | state_path?, transition_id, properties, compile?, save?, expected_fingerprint?)`
+- `add_transition(asset_path, source_state_id? | source_state_path?, target_state_id? | target_state_path?, trigger?, event_tag?, priority?, compile?, save?, expected_fingerprint)`
+- `remove_transition(asset_path, state_id? | state_path?, transition_id, compile?, save?, expected_fingerprint)`
+- `set_transition_properties(asset_path, state_id? | state_path?, transition_id, properties, compile?, save?, expected_fingerprint)`
 
 ## Compose First
 
@@ -96,6 +96,8 @@ statetree_compose(
 ## Fingerprints
 
 Use the fingerprint returned by `dump_tree`, `check_structure`, `validate_asset`, `compile`, or any mutation. Pass it back as `expected_fingerprint` before every later mutation.
+
+For runtime mutations, `expected_fingerprint` is required on `validate_asset`, `compile`, all state mutation commands, and all transition mutation commands. For `delete_asset`, it is required whenever `dry_run` is false.
 
 If a fingerprint mismatch occurs, re-read with `dump_tree`, compare the changed structure, and retry only after reconciling the user-visible difference.
 

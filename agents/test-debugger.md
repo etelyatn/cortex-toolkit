@@ -45,7 +45,7 @@ Analyze test failures, identify root causes, and suggest fixes. You understand b
 
 ### MCP Benchmark Tests (Layer 1-3)
 
-The benchmark testing framework in `Plugins/UnrealCortex/MCP/tests/` has three layers. Layers 1 and 3 require a running Unreal Editor; Layer 2 also includes mocked StateTree composite coverage that does not.
+The benchmark testing framework in `Plugins/UnrealCortex/MCP/tests/` has three layers. Layers 1 and 3 require a running Unreal Editor; Layer 2 now includes a live StateTree scenario plus separate mocked StateTree composite coverage that does not require the editor.
 
 1. **Layer 1: TCP E2E** (`test_e2e.py`, `test_level_e2e.py`, `test_editor_e2e.py`, etc.)
    - Direct TCP commands per domain
@@ -53,7 +53,7 @@ The benchmark testing framework in `Plugins/UnrealCortex/MCP/tests/` has three l
    - Check `conftest.py` for fixture setup (TCP connection, temp blueprint creation)
 
 2. **Layer 2: MCP Scenarios** (`test_mcp_scenarios.py`, `test_*_composites.py`)
-   - Cross-domain workflows via FastMCP test client, plus mocked composite wrapper coverage such as `test_statetree_composites.py`
+   - Cross-domain workflows via FastMCP test client, including live StateTree structure coverage, plus mocked composite wrapper coverage such as `test_statetree_composites.py`
    - Common failures: tool parameter validation, $ref resolution in batch steps, MCP server registration issues
    - Scenarios assert intermediate state — failure pinpoints which step broke
 
@@ -65,6 +65,7 @@ The benchmark testing framework in `Plugins/UnrealCortex/MCP/tests/` has three l
 ```bash
 cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_e2e.py -v           # Layer 1
 cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_mcp_scenarios.py -v  # Layer 2
+cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_statetree_composites.py -v  # Layer 2 mocked StateTree composite coverage
 cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_mcp_scenarios.py -v -k stress  # Stress only
 ```
 

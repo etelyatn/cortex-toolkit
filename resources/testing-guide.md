@@ -73,7 +73,7 @@ uv run pytest tests/test_e2e.py -v
 
 ## Track 3: MCP Benchmark Tests
 
-Three-layer integration testing framework that validates the AI-to-Unreal pipeline across editor-backed and mocked Python coverage. Layers 1 and 3 require a running Unreal Editor; Layer 2 also includes mocked StateTree composite coverage that does not.
+Three-layer integration testing framework that validates the AI-to-Unreal pipeline across editor-backed and mocked Python coverage. Layers 1 and 3 require a running Unreal Editor; Layer 2 now includes a live StateTree scenario plus separate mocked StateTree composite coverage that does not.
 
 ### Layer 1: TCP E2E Tests (per-domain)
 
@@ -94,7 +94,7 @@ cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_material_composites_e2e.
 
 ### Layer 2: MCP Scenario Tests (cross-domain)
 
-Layer 2 mixes two kinds of Python-side coverage: cross-domain scenario tests via FastMCP test client, plus mocked StateTree composite wrapper tests. The FastMCP scenarios exercise the Python MCP stack for registered tools; `test_statetree_composites.py` focuses on wrapper registration and command translation without a live editor connection.
+Layer 2 mixes two kinds of Python-side coverage: cross-domain scenario tests via FastMCP test client, plus mocked StateTree composite wrapper tests. The FastMCP scenarios now include a live StateTree structure workflow; `test_statetree_composites.py` still focuses on wrapper registration and command translation without a live editor connection.
 
 ```bash
 # All scenarios
@@ -110,7 +110,7 @@ cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_mcp_scenarios.py -v -k s
 cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_statetree_composites.py -v
 ```
 
-**Scenarios:** Blueprint Lifecycle, Widget Builder, Data Pipeline, Graph Wiring, GameplayTag Workflow, Localization Pipeline
+**Scenarios:** Blueprint Lifecycle, Widget Builder, Data Pipeline, Graph Wiring, StateTree Structure Workflow, GameplayTag Workflow, Localization Pipeline
 
 **Stress tests:** Bulk blueprint create, large widget trees, many graph nodes, rapid data operations, concurrent batch
 
@@ -123,7 +123,7 @@ Claude Code skill that calls real MCP tools in sequence and reports pass/fail wi
 /mcp-benchmark --cleanup    # auto-delete test assets after verification
 ```
 
-**Benchmark checks:** Connection, Data Catalog, Blueprint CRUD, Graph Wiring, Widget Build, Material Create, Batch Pipeline, Data Operations, Tag Validation, Editor Domain, Level Operations, Reflect
+**Benchmark checks:** Connection, Data Catalog, Blueprint CRUD, Graph Wiring, StateTree Structure, Widget Build, Material Create, Batch Pipeline, Data Operations, Tag Validation, Editor Domain, Level Operations, Reflect
 
 ### Test File Map
 
@@ -136,7 +136,7 @@ Claude Code skill that calls real MCP tools in sequence and reports pass/fail wi
 | `test_class_defaults.py` | 1 | CDO get/set class defaults |
 | `test_material_composites_e2e.py` | 1 | Material property setters, enum aliases |
 | `test_graph_layout.py` | 1 | Graph layout engine stress |
-| `test_mcp_scenarios.py` | 2 | Cross-domain scenarios + stress tests |
+| `test_mcp_scenarios.py` | 2 | Cross-domain scenarios + stress tests, including live StateTree structure workflow |
 | `test_blueprint_composites.py` | 2 | Blueprint composite tool workflows |
 | `test_material_composites.py` | 2 | Material composite tool workflows |
 | `test_umg_composites.py` | 2 | UMG composite tool workflows |

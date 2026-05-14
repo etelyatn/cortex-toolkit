@@ -14,7 +14,7 @@ Rule: multiple actions on one asset → `*_compose` (single batch call). Single 
 | Data | DataTables, GameplayTags, balance data | `/cortex-data` |
 | Level | Place/move actors, organize content, sublevels | `/cortex-level` |
 | Material | Materials, parameters, shader graphs | `/cortex-material` |
-| StateTree | AI behavior trees and state machines — states, transitions, tags, validation | `/cortex-statetree` |
+| StateTree | Unreal StateTree assets — states, transitions, tags, validation | `/cortex-statetree` |
 | UI | UMG widgets — menus, HUDs, dialogs | `/cortex-ui` |
 | QA | PIE testing, assertions, scenario exploration | `/cortex-qa-init` `/cortex-qa-interactive` `/cortex-qa-run` |
 | Reflect | Class hierarchy, usages, refactor impact | `/cortex-reflect` |

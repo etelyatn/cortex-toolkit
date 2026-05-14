@@ -60,17 +60,19 @@ MCP tools implement intelligent caching:
 
 ## MCP Benchmark Testing
 
-Three-layer integration testing covers both live editor-backed validation and Python-side tool tests. Layers 1 and 3 require a running editor; Layer 2 mixes editor-backed FastMCP scenarios with mocked StateTree composite coverage.
+Three-layer integration testing covers both live editor-backed validation and Python-side tool tests. Layers 1 and 3 require a running editor; Layer 2 now includes a live editor-backed StateTree scenario plus separate mocked StateTree composite coverage.
 
 StateTree coverage:
 - Router domain: `statetree_cmd`
 - Composite: `statetree_compose`
-- Coverage: mocked Python composite wrapper/registration and command translation for StateTree update flows
+- Coverage:
+  - live FastMCP scenario for StateTree create/inspect/validate/compile flow
+  - mocked Python composite wrapper/registration and command translation for StateTree update flows
 
 | Layer | File(s) | What It Tests |
 |-------|---------|---------------|
 | 1: TCP E2E | `test_e2e.py`, `test_level_e2e.py`, `test_editor_e2e.py`, `test_class_defaults.py`, `test_material_composites_e2e.py` | Direct TCP commands per domain (CRUD + error cases) |
-| 2: MCP Scenarios | `test_mcp_scenarios.py`, `test_blueprint_composites.py`, `test_material_composites.py`, `test_umg_composites.py`, `test_statetree_composites.py` | Cross-domain workflows via FastMCP client; `test_statetree_composites.py` covers mocked wrapper registration and translation, not live TCP/editor E2E |
+| 2: MCP Scenarios | `test_mcp_scenarios.py`, `test_blueprint_composites.py`, `test_material_composites.py`, `test_umg_composites.py`, `test_statetree_composites.py` | Cross-domain workflows via FastMCP client, including live StateTree structure coverage; `test_statetree_composites.py` separately covers mocked wrapper registration and translation |
 | 3: Claude Skill | `/mcp-benchmark` | AI-driven real-world validation with timing |
 
 Tests live in `Plugins/UnrealCortex/MCP/tests/`. Run with:
