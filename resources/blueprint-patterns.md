@@ -142,7 +142,7 @@ When calling `blueprint_cmd(command="graph_add_node")` or specifying nodes in `b
 | `VariableSet` | `UK2Node_VariableSet` | `{"variable_name": "X"}`, `variable_class` optional |
 | `Timeline` | `UK2Node_Timeline` | `{"timeline_name": "MyTimeline"}` — required, returns `TimelineNameRequired` if missing |
 | `SpawnActor` | `UK2Node_SpawnActorFromClass` | none |
-| `CastTo` | `UK2Node_DynamicCast` | none |
+| `CastTo` | `UK2Node_DynamicCast` | `{"class": "Pawn"}` — required for usable automated cast nodes. `{"target_class": "Pawn"}` is accepted as a compatibility alias, but new callers should use `class`. |
 | `MacroInstance` | `UK2Node_MacroInstance` | `{"macro_path": "/Game/Path/MacroLibrary.MacroName"}` — required, returns `MacroPathRequired` if missing |
 | `SwitchEnum` | `UK2Node_SwitchEnum` | none |
 | `SwitchString` | `UK2Node_SwitchString` | none |

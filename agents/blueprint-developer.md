@@ -170,7 +170,7 @@ Read commands (`graph_get_subgraph`, `graph_get_subgraph`, `graph_search_nodes`)
 | `MakeArray` | Create array — no params required |
 | `Timeline` | Timeline node — requires `params: {"timeline_name": "MyTimeline"}` — error `TimelineNameRequired` if missing |
 | `SpawnActor` | Spawn actor from class (`UK2Node_SpawnActorFromClass`) |
-| `CastTo` | Dynamic cast (`UK2Node_DynamicCast`) |
+| `CastTo` | Dynamic cast (`UK2Node_DynamicCast`) — use `params: {"class": "Pawn"}`. `target_class` is accepted only as a compatibility alias for older callers. |
 | `MacroInstance` | Macro instance — requires `params: {"macro_path": "/Game/Path/MacroLibrary.MacroName"}` — error `MacroPathRequired` if missing |
 | `SwitchEnum` | Switch on enum — no params required |
 | `SwitchString` | Switch on string — no params required |
