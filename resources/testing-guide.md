@@ -73,7 +73,7 @@ uv run pytest tests/test_e2e.py -v
 
 ## Track 3: MCP Benchmark Tests
 
-Three-layer integration testing framework that validates the full AI-to-Unreal pipeline. All layers require a running Unreal Editor.
+Three-layer integration testing framework that validates the AI-to-Unreal pipeline across editor-backed and mocked Python coverage. Layers 1 and 3 require a running Unreal Editor; Layer 2 also includes mocked StateTree composite coverage that does not.
 
 ### Layer 1: TCP E2E Tests (per-domain)
 
