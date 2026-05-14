@@ -52,7 +52,7 @@ Format as a diagnostic chain:
 Editor:  ✓ Running (PID 12345)
 Port:    ✓ 8742
 MCP:     ✓ Connected
-Domains: ✓ data, blueprint, graph, umg
+Domains: ✓ data, blueprint, graph, umg, material, level, qa, reflect, statetree
 ```
 
 If any step fails, stop and report the failure. If `get_status` fails, proceed to the **Reconnect Protocol** below before giving up.
@@ -99,7 +99,7 @@ Report:
 ```
 ✓ MCP connection restored
   Port:    {port}
-  Domains: {list of registered domains}
+  Domains: {list of registered domains, including statetree when CortexStateTree is loaded}
   Server:  {version}
 ```
 

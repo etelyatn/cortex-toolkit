@@ -28,6 +28,7 @@ Check the arguments passed to this skill:
 | `material`, `mat` | material |
 | `ui`, `umg` | ui |
 | `level` | level |
+| `statetree`, `st` | statetree |
 | `qa`, `test` | qa |
 | `setup`, `infra` | setup |
 
@@ -121,6 +122,7 @@ Domains
   cortex-material          Create or review materials, instances, parameter collections, or material graphs
   cortex-ui                Create or review UMG widgets, screens, or UI components
   cortex-level             Place, organize, or review actors in a level
+  cortex-statetree         Create, update, review, validate, or compile StateTree assets
   cortex-reflect           Assess blast radius before breaking changes, or analyze class architecture and cross-references
 
 Test & QA
@@ -134,7 +136,7 @@ Learn & Migrate
   cortex-bp-migrate        Migrate Blueprints to C++ — 4-stage pipeline with hard gates (ANALYZE → PLAN → EXECUTE → COMPLETE)
 
 ---
-Domain help: cortex-help <domain> (data, bp, mat, ui, level, qa, setup)
+Domain help: cortex-help <domain> (data, bp, mat, ui, level, statetree, qa, setup)
 ```
 
 No signal gathering needed. Print the catalog and stop.
@@ -183,6 +185,12 @@ For the requested domain, gather:
 - Content path: `Content/Maps/`
 - Domain context: `.cortex/domains/level.md`
 - Agents: Level Designer
+
+**statetree:**
+- Skills: `cortex-statetree`, `cortex-reflect`
+- Content path: `Content/AI/StateTrees/` or `Content/StateTrees/`
+- Domain context: `.cortex/domains/statetree.md`
+- Agents: StateTree Developer
 
 **qa (test):**
 - Skills: `cortex-qa-init`, `cortex-qa-run`, `cortex-qa-interactive`, `cortex-test`

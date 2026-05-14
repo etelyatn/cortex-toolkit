@@ -91,7 +91,7 @@ Cortex Toolkit — AI-Assisted Unreal Engine Development
 You have skills and specialist agents across multiple domains.
 
   Quick actions:    cortex-status, cortex-build, cortex-schema-refresh
-  Domains:          cortex-blueprint, cortex-data, cortex-material, cortex-ui, cortex-level, cortex-reflect
+  Domains:          cortex-blueprint, cortex-data, cortex-material, cortex-ui, cortex-level, cortex-statetree, cortex-reflect
   Testing:          cortex-qa-run, cortex-test
   Need help?        cortex-help
 
@@ -128,6 +128,7 @@ Call:
 - `list_blueprints` with `path="/Game"` and `type="Widget"`
 - `list_actors` with `limit=1`
 - `list_materials` with `path="/Game"`
+- `statetree_cmd(command="list_assets", params={"path_filter": "/Game"})`
 
 Record counts from each response. If a call fails, treat that category as 0.
 
@@ -174,19 +175,23 @@ What's next?
      -> "Review my Blueprints for structure and naming issues"
      I'll check class hierarchy, graph complexity, and naming conventions.
 
-  5. Review your materials                 (8 materials detected)
+  5. Review your StateTrees                (7 StateTrees detected)
+     -> "Review my StateTrees for structure, transition, and tag issues"
+     I'll check hierarchy, transitions, Gameplay Tags, validation, and compile readiness.
+
+  6. Review your materials                 (8 materials detected)
      -> "Review my materials for parameter usage and instance hierarchy"
      I'll check parameter collections, instance chains, and naming patterns.
 
-  6. Review your UI                        (5 Widget Blueprints detected)
+  7. Review your UI                        (5 Widget Blueprints detected)
      -> "Review my UMG widgets for hierarchy and layout issues"
      I'll check widget trees, anchor usage, and naming patterns.
 
-  7. Explore the current level             (42 actors in TestMap)
+  8. Explore the current level             (42 actors in TestMap)
      -> "Review the level content and actor organization"
      I'll audit actor placement, folder structure, and lighting setup.
 
-  8. Document your project domains         (.cortex/domains/ files are empty)
+  9. Document your project domains         (.cortex/domains/ files are empty)
      -> "Update .cortex/domains/ with the actual project schemas"
      Agents will use this as context in every future session.
 
