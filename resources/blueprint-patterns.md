@@ -244,6 +244,11 @@ blueprint_cmd(command="set_class_defaults", params={
 # Auto-compiles and auto-saves by default
 ```
 
+For component object-reference properties, bare component names are accepted when
+unambiguous. If a name collides with inherited members, use the qualified candidate from
+`AMBIGUOUS_COMPONENT_REFERENCE`, for example `"OpenSeq": "OpenSeq@self"`. Adoptable
+`analyze_for_migration.scs_collisions` recommendations already emit this qualified form.
+
 **Example: Read specific defaults**
 ```python
 blueprint_cmd(command="get_class_defaults", params={
@@ -363,6 +368,29 @@ blueprint_cmd(command="remove_scs_component", params={
 **Validation:**
 - Only valid on Actor-based Blueprints (those with a SimpleConstructionScript). Component and Widget Blueprints have no SCS and return `InvalidField`.
 - If `component_name` is not found in the SCS, returns `ComponentNotFound`.
+- Dirty top-level template differences are reported in `diff`.
+- Dirty instanced sub-object loss returns `POTENTIAL_DATA_LOSS` with `required_acknowledgment`.
+  Retry only after user confirmation by passing that exact array as `acknowledged_losses`;
+  use `force: True` only as an explicit override.
+- Compile failure returns `COMPILE_FAILED` and rolls back the removal before save.
+
+### Rename an SCS Component
+
+Use `blueprint_cmd(command="rename_scs_component")` when SCS migration analysis reports a
+blocking name collision or a C++ constructor name would collide with an existing SCS node.
+
+```python
+blueprint_cmd(command="rename_scs_component", params={
+    "asset_path": "/Game/Blueprints/BP_JumpPad",
+    "old_name": "StaticMeshComponent0",
+    "new_name": "JumpPadMesh",
+    "compile": True
+})
+```
+
+The command validates owned/inherited SCS nodes, Blueprint variables, inherited UPROPERTY
+names, timeline references, and dependent Blueprint shadowing. Compile failure returns
+`COMPILE_FAILED` and rolls back the rename.
 
 **Typical post-migration workflow:**
 

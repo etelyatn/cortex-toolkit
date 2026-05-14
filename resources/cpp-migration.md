@@ -343,16 +343,21 @@ Cross-family reparenting (e.g., Actor → Component) returns `InvalidField`.
 
 ## SCS Component Migration
 
-When migrating Blueprint SCS components (Components panel) to C++ `CreateDefaultSubobject` declarations, the Blueprint's SCS entry must be removed after the C++ class is created. Use `remove_scs_component` for this step.
+When migrating Blueprint SCS components (Components panel) to C++ `CreateDefaultSubobject` declarations, first inspect `analyze_for_migration.scs_collisions`. Adoptable collisions can be resolved by setting the inherited C++ property default to the owned SCS template with `set_class_defaults` using the recommended qualified value such as `OpenSeq@self`. Blocking collisions should be renamed with `rename_scs_component` before reparenting or cleanup.
+
+After the C++ class is created and the Blueprint is reparented, remove redundant SCS entries with `remove_scs_component`.
 
 ### Workflow: Migrate a Blueprint Component to C++
 
 ```
-1. Generate C++ class with CreateDefaultSubobject in constructor
-2. Build project
-3. cleanup_migration — reparent Blueprint to new C++ class
-4. remove_scs_component — delete the now-redundant SCS node
-5. `blueprint_cmd(command="compile", params={"asset_path": "..."})` — verify clean compile
+1. Run analyze_for_migration and inspect scs_collisions
+2. For adoptable collisions, run set_class_defaults with recommended_params (often Name@self)
+3. For blocking collisions, run rename_scs_component with the recommended new_name
+4. Generate C++ class with CreateDefaultSubobject in constructor
+5. Build project
+6. cleanup_migration — reparent Blueprint to new C++ class
+7. remove_scs_component — delete the now-redundant SCS node
+8. `blueprint_cmd(command="compile", params={"asset_path": "..."})` — verify clean compile
 ```
 
 **Example:**
@@ -371,10 +376,16 @@ remove_scs_component(
 - `asset_path`: Blueprint asset path
 - `component_name`: Variable name shown in the Components panel (matches the SCS node's variable name)
 - `compile` (default `true`): Compile after removal
+- `acknowledged_losses`: Echo the exact `required_acknowledgment` array after a
+  `POTENTIAL_DATA_LOSS` refusal and explicit user confirmation.
+- `force`: Explicit override for dirty instanced sub-object loss; avoid unless requested.
 
 **Error cases:**
 - `ComponentNotFound`: The component name was not found in the SCS — check the exact variable name via `get_blueprint_info`
 - `InvalidField` (code): Blueprint has no SCS — only Actor-based Blueprints have SCS; component and widget Blueprints do not
+- `POTENTIAL_DATA_LOSS`: Dirty instanced sub-object state would be lost. Surface the
+  `dirty_details` and `required_acknowledgment` to the user before retrying.
+- `COMPILE_FAILED`: The post-removal compile failed; the command rolls back and does not save.
 
 **Child component handling:** If the removed component has children in the hierarchy, they are automatically re-parented to the removed node's parent. No manual child re-wiring is needed.
 
