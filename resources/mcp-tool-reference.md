@@ -6,7 +6,7 @@ Flat catalog of all UnrealCortex MCP tools organized by domain.
 
 Tools fall into three categories:
 - **Routers (11):** `core_cmd`, `data_cmd`, `blueprint_cmd`, `graph_cmd`, `level_cmd`, `material_cmd`, `umg_cmd`, `qa_cmd`, `reflect_cmd`, `editor_cmd`, `statetree_cmd` — dispatch named commands to existing assets
-- **Composites (7):** `blueprint_compose`, `material_compose`, `material_instance_compose`, `widget_compose`, `level_compose`, `scenario_compose`, `statetree_compose` — atomic creation of new assets or workflows in a single batch round-trip
+- **Composites (7):** `blueprint_compose`, `material_compose`, `material_instance_compose`, `widget_compose`, `level_compose`, `scenario_compose`, `statetree_compose` — declarative creation workflows, with some composites also supporting update-mode orchestration
 - **Standalone (3):** `editor_restart`, `schema_generate`, `qa_test_step`
 
 Rule: New asset creation → composite. Isolated edits to existing assets → router. Multi-step or structure-wide updates to existing assets can use composite update mode.

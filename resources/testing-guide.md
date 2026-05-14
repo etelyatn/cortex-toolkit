@@ -140,7 +140,7 @@ Claude Code skill that calls real MCP tools in sequence and reports pass/fail wi
 | `test_blueprint_composites.py` | 2 | Blueprint composite tool workflows |
 | `test_material_composites.py` | 2 | Material composite tool workflows |
 | `test_umg_composites.py` | 2 | UMG composite tool workflows |
-| `test_statetree_composites.py` | 2 | StateTree composite create/update, cleanup, and preflight |
+| `test_statetree_composites.py` | 2 | StateTree mocked wrapper registration and command translation coverage |
 | `test_qa_tools.py` | 2 | QA domain tool integration |
 | `test_reflect_tools.py` | 2 | Reflect domain tool integration |
 | `conftest.py` | -- | Shared fixtures (TCP connection, MCP client, temp assets) |
