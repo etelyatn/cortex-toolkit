@@ -62,6 +62,11 @@ MCP tools implement intelligent caching:
 
 Three-layer integration testing validates the full pipeline from AI agent through MCP to Unreal Editor. All layers require a running editor.
 
+StateTree coverage:
+- Router domain: `statetree_cmd`
+- Composite: `statetree_compose`
+- E2E coverage: StateTree asset CRUD, dump/check, state edits, transitions, validation, compile
+
 | Layer | File(s) | What It Tests |
 |-------|---------|---------------|
 | 1: TCP E2E | `test_e2e.py`, `test_level_e2e.py`, `test_editor_e2e.py`, `test_class_defaults.py`, `test_material_composites_e2e.py` | Direct TCP commands per domain (CRUD + error cases), including StateTree asset CRUD, dump/check, state edits, transitions, validation, and compile |

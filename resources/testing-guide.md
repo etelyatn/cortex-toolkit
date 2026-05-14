@@ -90,7 +90,7 @@ cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_class_defaults.py -v
 cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_material_composites_e2e.py -v
 ```
 
-**Covered domains:** Core, Data, Blueprint, Graph, Level, Editor, Material, CDO/Class Defaults
+**Covered domains:** Core, Data, Blueprint, Graph, Level, Editor, Material, CDO/Class Defaults, StateTree
 
 ### Layer 2: MCP Scenario Tests (cross-domain)
 
@@ -123,7 +123,7 @@ Claude Code skill that calls real MCP tools in sequence and reports pass/fail wi
 /mcp-benchmark --cleanup    # auto-delete test assets after verification
 ```
 
-**Benchmark checks:** Connection, Data Catalog, Blueprint CRUD, Graph Wiring, Widget Build, Material Create, Batch Pipeline, Data Operations, Tag Validation, Editor Domain, Level Operations, Reflect
+**Benchmark checks:** Connection, Data Catalog, Blueprint CRUD, Graph Wiring, Widget Build, Material Create, Batch Pipeline, Data Operations, Tag Validation, Editor Domain, Level Operations, Reflect, StateTree
 
 ### Test File Map
 
