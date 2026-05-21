@@ -177,6 +177,8 @@ Cortex Toolkit reads project-specific knowledge from `.cortex/`:
 
 Check `.cortex/config.yaml` into version control for shared defaults. Put machine-specific values such as a local Unreal Engine source-build path in `.cortex/config.local.yaml`; toolkit loaders merge it over the shared config when present.
 
+`config.local.yaml` uses the same shape as `config.yaml`. Dictionaries merge recursively, while lists and scalar values replace the shared value. Keep `config.local.yaml` out of version control; use it for fields that differ per workstation, especially `engine.path`. If no effective `engine.path` is configured, editor helpers fall back to `UE_PATH`.
+
 Fill the domain files with your project's specifics. Agents use this context to work without repeated questions. Run `/cortex-schema-refresh` to regenerate schema snapshots from live editor data.
 
 ## Migration from v0.1.x
