@@ -6,9 +6,9 @@ AI-powered Unreal Engine development toolkit. Skills, agents, and domain knowled
 
 | Feature | Claude Code | Codex | Cursor |
 |---------|-------------|-------|--------|
-| Skills (`skills/`) | ✅ | ✅ via symlink | ✅ |
+| Skills (`skills/`) | ✅ | ✅ via Codex plugin | ✅ |
 | Agents (`agents/`) | ✅ | ❌ | ✅ |
-| Hooks (`hooks/`) | ✅ | ❌ | ⚠️ |
+| Hooks (`hooks/`) | ✅ | ❌ not packaged | ⚠️ |
 | MCP tools | ✅ | ✅ | ✅ |
 
 ## Prerequisites
@@ -33,10 +33,12 @@ Then open your project and run `/cortex-init` to configure MCP and project memor
 See [`.codex/INSTALL.md`](.codex/INSTALL.md) for full instructions.
 
 ```bash
-git clone https://github.com/etelyatn/cortex-toolkit.git ~/.cortex-toolkit
-# Create a symlink in your project root
-ln -s ~/.cortex-toolkit/skills skills
+codex plugin marketplace add etelyatn/cortex-toolkit
+codex plugin add cortex-toolkit@cortex-toolkit
 ```
+
+Then restart Codex if it was already running.
+Your Unreal project still needs a project-local `.mcp.json` pointing to the UnrealCortex MCP server.
 
 ### Cursor
 
@@ -49,7 +51,7 @@ If you prefer not to use `/cortex-init`, add the context block manually:
 - **Claude Code:** Append [`templates/claude-block.md`](templates/claude-block.md) to your project's `CLAUDE.md`
 - **Codex:** Append [`templates/agents-block.md`](templates/agents-block.md) to your project's `AGENTS.md`
 
-Then create `.cortex/` manually following the structure in [Project Memory](#project-memory).
+Then create `.cortex/` manually following the structure in [Project Memory](#project-memory). Codex users can also install the packaged plugin and keep the same AGENTS.md context block for project-specific rules.
 
 ## Getting Started
 
