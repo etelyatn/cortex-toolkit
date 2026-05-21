@@ -36,7 +36,10 @@ _find_project_dir() {
     _walk_up_for_uproject "$script_dir"
 }
 
-PROJECT_DIR=$(_find_project_dir) || {
+if [ -n "${CORTEX_CONFIG_TEST_MODE:-}" ] && [ -n "${PROJECT_DIR:-}" ]; then
+    PROJECT_DIR="$PROJECT_DIR"
+else
+    PROJECT_DIR=$(_find_project_dir) || {
     cat >&2 <<'EOF'
 Could not find the Unreal project root directory.
 Tell the user: the PreToolUse hook could not locate a .uproject file.
@@ -44,9 +47,66 @@ Checked CLAUDE_PROJECT_DIR, walked up from CWD, and walked up from script locati
 Ask them to set CLAUDE_PROJECT_DIR or ensure the cortex-toolkit is inside the project tree.
 Do not proceed with MCP tool calls until the user resolves this.
 EOF
-    exit 2
-}
+        exit 2
+    }
+fi
 RESTART_LOCK="$PROJECT_DIR/Saved/CortexRestarting.lock"
+TOOLKIT_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." 2>/dev/null && pwd)
+CORTEX_CONFIG_LOADER="$TOOLKIT_ROOT/lib/cortex_config.py"
+
+_python_bin() {
+    if command -v python >/dev/null 2>&1; then
+        echo "python"; return 0
+    fi
+    if command -v python3 >/dev/null 2>&1; then
+        echo "python3"; return 0
+    fi
+    return 1
+}
+
+_read_effective_config_value() {
+    local key="$1"
+    local py
+    py=$(_python_bin) || {
+        echo "python or python3 is required to read Cortex config" >&2
+        return 2
+    }
+    if [ ! -f "$CORTEX_CONFIG_LOADER" ]; then
+        echo "Cortex config loader not found: $CORTEX_CONFIG_LOADER" >&2
+        return 2
+    fi
+    "$py" "$CORTEX_CONFIG_LOADER" --project-dir "$PROJECT_DIR" --get "$key"
+}
+
+resolve_engine_path() {
+    local engine_path config_error_file config_error status
+    engine_path=""
+    if [ -f "$PROJECT_DIR/.cortex/config.yaml" ]; then
+        config_error_file=$(mktemp)
+        if engine_path=$(_read_effective_config_value "engine.path" 2>"$config_error_file"); then
+            engine_path=$(printf '%s' "$engine_path" | tr -d '\r')
+        else
+            status=$?
+            config_error=$(cat "$config_error_file" 2>/dev/null)
+            rm -f "$config_error_file"
+            if [ -n "$config_error" ] || [ "$status" -ne 1 ]; then
+                echo "Failed to read Cortex config: $config_error" >&2
+                return 2
+            fi
+            engine_path=""
+        fi
+        rm -f "$config_error_file"
+    fi
+    if [ -z "$engine_path" ]; then
+        engine_path="${UE_PATH:-}"
+    fi
+    printf '%s\n' "$engine_path"
+}
+
+if [ "${CORTEX_CONFIG_TEST_MODE:-}" = "resolve_engine_path" ]; then
+    resolve_engine_path
+    exit $?
+fi
 
 # Find the best available port file.
 # Priority: CORTEX_EDITOR_PID pin → any per-PID file (most recent) → legacy CortexPort.txt
@@ -158,19 +218,16 @@ EOF
 fi
 
 # ── Resolve engine path ────────────────────────────────────────────────────
-ENGINE_PATH="${UE_56_PATH:-}"
-if [ -z "$ENGINE_PATH" ] && [ -f "$PROJECT_DIR/.cortex/config.yaml" ]; then
-    ENGINE_PATH=$(grep -E '^\s+path:' "$PROJECT_DIR/.cortex/config.yaml" \
-        | head -1 | sed 's/.*path:[[:space:]]*//' | tr -d '"'"'" | tr -d '\r')
-fi
+ENGINE_PATH=$(resolve_engine_path) || exit 2
 
 if [ -z "$ENGINE_PATH" ] || [ ! -d "$ENGINE_PATH" ]; then
     cat >&2 <<'EOF'
 Unreal Editor is not running and the engine path could not be determined.
 Tell the user: MCP tools require the Unreal Editor. Ask them to choose:
-1. Set the UE_56_PATH environment variable and retry
-2. Start the editor manually (see CLAUDE.md), then retry
-3. Abort the current task
+1. Run cortex-init to create .cortex/config.yaml, then configure .cortex/config.local.yaml with engine.path if this machine needs a local override
+2. Set the UE_PATH environment variable and retry
+3. Start the editor manually (see CLAUDE.md), then retry
+4. Abort the current task
 Do not proceed with MCP tool calls until the user chooses.
 EOF
     exit 2

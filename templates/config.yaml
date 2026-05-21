@@ -5,6 +5,11 @@ engine:
   path: "{{ENGINE_PATH}}"
   version: "{{ENGINE_VERSION}}"
 
+# Per-machine overrides belong in .cortex/config.local.yaml, which should be
+# ignored by VCS. Example:
+# engine:
+#   path: "C:/Path/To/This/Machine/UE"
+
 # Active domains (based on enabled UnrealCortex modules)
 domains:
 {{DOMAINS}}

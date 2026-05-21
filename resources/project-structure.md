@@ -8,6 +8,7 @@ Standard layout for UnrealCortex-powered projects.
 ProjectRoot/
 ├── .cortex/                    ← project memory (AI context)
 │   ├── config.yaml
+│   ├── config.local.yaml        ← optional per-machine overrides (git-ignored)
 │   ├── context.md
 │   └── domains/
 ├── .mcp.json                   ← MCP server configuration
@@ -50,7 +51,8 @@ ProjectRoot/
 
 | File | Purpose |
 |------|---------|
-| `.cortex/config.yaml` | Engine path, active domains, doc references |
+| `.cortex/config.yaml` | Shared engine defaults, active domains, doc references |
+| `.cortex/config.local.yaml` | Optional per-machine overrides merged over shared config |
 | `.cortex/context.md` | Shared project knowledge for all agents |
 | `.mcp.json` | MCP server connection config |
 | `Saved/CortexPort-{PID}.txt` | TCP port for MCP ↔ editor communication (one per editor instance) |

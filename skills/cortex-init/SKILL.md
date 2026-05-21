@@ -82,8 +82,8 @@ If no `.uproject` file found: Warn ("No .uproject file found - you may be runnin
 ### 2. Detect Unreal Engine
 
 Find the engine installation in order:
-1. Check `$UE_56_PATH` environment variable
-2. Check common paths: `C:/Program Files/Epic Games/UE_5.*`
+1. Check common paths: `C:/Program Files/Epic Games/UE_5.*`
+2. Check `$UE_PATH` environment variable
 3. Ask the user for the path
 
 Verify the path exists and contains `Engine/Binaries/Win64/UnrealEditor.exe`.
@@ -112,12 +112,26 @@ engine:
   path: "<detected path>"
   version: "<detected version>"
 
+# Per-machine overrides belong in .cortex/config.local.yaml.
+# Keep config.yaml for shared project defaults.
+
 domains:
   - data
   # add detected domains
 
 references:
   # game_design: docs/design/gdd.md
+```
+
+Ensure `.gitignore` contains:
+```gitignore
+.cortex/config.local.yaml
+```
+
+Do not create `.cortex/config.local.yaml` during init unless the user explicitly asks for a local override. The file is for each developer's private machine-specific values, most commonly:
+```yaml
+engine:
+  path: "C:/Path/To/This/Machine/UE"
 ```
 
 `.cortex/context.md`:
@@ -229,6 +243,7 @@ Remove any row whose label is not matched by a detected domain key. Always keep 
 
 Report:
 - Engine path and version
+- Local override support: `.cortex/config.local.yaml` ignored by VCS
 - Detected domains
 - Created files
 - MCP configured: `CORTEX_PROJECT_DIR={project_root}`, `--directory={mcp_dir}`

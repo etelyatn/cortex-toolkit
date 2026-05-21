@@ -11,7 +11,15 @@ Builds the UE project with proper configuration.
 
 ### 1. Read Configuration
 
-Read `.cortex/config.yaml` to get the engine path. Fall back to `$UE_56_PATH` env var.
+Read the effective Cortex config to get the engine path:
+1. Start with `.cortex/config.yaml`
+2. If present, merge `.cortex/config.local.yaml` over it for per-machine overrides
+3. Fall back to `$UE_PATH` only when project config does not provide `engine.path`
+
+Use the shared loader when available:
+```bash
+python cortex-toolkit/lib/cortex_config.py --project-dir . --get engine.path
+```
 
 Find the `.uproject` file in the project root.
 

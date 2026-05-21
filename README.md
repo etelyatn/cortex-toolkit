@@ -160,6 +160,7 @@ Cortex Toolkit reads project-specific knowledge from `.cortex/`:
 ```
 .cortex/
 ├── config.yaml          # Engine path, active domains, doc references
+├── config.local.yaml    # Optional per-machine overrides (git-ignored)
 ├── context.md           # Project-specific conventions (read every session)
 ├── domains/             # Domain-specific knowledge files
 │   ├── blueprints.md
@@ -173,6 +174,8 @@ Cortex Toolkit reads project-specific knowledge from `.cortex/`:
     ├── _catalog.md      # Index of all schema files
     └── ...
 ```
+
+Check `.cortex/config.yaml` into version control for shared defaults. Put machine-specific values such as a local Unreal Engine source-build path in `.cortex/config.local.yaml`; toolkit loaders merge it over the shared config when present.
 
 Fill the domain files with your project's specifics. Agents use this context to work without repeated questions. Run `/cortex-schema-refresh` to regenerate schema snapshots from live editor data.
 

@@ -38,8 +38,8 @@ The `cortex-core` plugin includes a PreToolUse hook that gates every `cortex_mcp
 
 **Auto-start path:** If the editor is not running, the hook:
 1. Acquires a lock file to prevent parallel startup races (Claude batches MCP calls)
-2. Resolves the engine path from `UE_56_PATH` or `.cortex/config.yaml`
-3. Launches the editor with `-nosplash -unattended -nopause`
+2. Resolves the engine path from the effective Cortex config (`.cortex/config.yaml` plus optional `.cortex/config.local.yaml`), falling back to `UE_PATH` only if project config has no `engine.path`
+3. Launches the editor with `-nosplash -nopause -AutoDeclinePackageRecovery`
 4. Two-phase polls for up to 180s (silent wait → process-alive checks)
 5. Exits 0 once `CortexPort-{PID}.txt` is written and TCP responds
 

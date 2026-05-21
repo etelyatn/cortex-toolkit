@@ -38,10 +38,15 @@ If yes, call `save_all` MCP tool (via `core.save_asset` with `path: "/Game/"` or
 
 Ask the user: "Build C++ before restart?"
 
-If yes, run the project's documented UnrealBuildTool command (substitute your project name/uproject as needed):
+If yes, resolve `ENGINE_PATH` from the effective Cortex config (`.cortex/config.yaml` plus optional `.cortex/config.local.yaml`), falling back to `$UE_PATH` only when project config does not provide `engine.path`. Use the shared loader when available:
+```bash
+ENGINE_PATH=$(python cortex-toolkit/lib/cortex_config.py --project-dir . --get engine.path)
+```
+
+Then run the project's documented UnrealBuildTool command (substitute your project name/uproject as needed):
 ```bash
 # Replace CortexSandboxEditor / CortexSandbox.uproject with your project
-"$UE_56_PATH/Engine/Binaries/DotNET/UnrealBuildTool/UnrealBuildTool.exe" CortexSandboxEditor Win64 Development -Project="$(pwd)/CortexSandbox.uproject" -WaitMutex -FromMsBuild
+"$ENGINE_PATH/Engine/Binaries/DotNET/UnrealBuildTool/UnrealBuildTool.exe" CortexSandboxEditor Win64 Development -Project="$(pwd)/CortexSandbox.uproject" -WaitMutex -FromMsBuild
 ```
 
 Wait for build completion. If build fails, report error and do not restart.

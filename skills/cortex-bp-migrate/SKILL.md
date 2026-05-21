@@ -99,7 +99,7 @@ If user picks [2] Manual: wait for user to confirm editor is ready, then run `/c
 
 **Note:** Do NOT use inline bash commands (`tasklist`, `grep`, port file globbing) for editor lifecycle operations. Always delegate to the Cortex core skills which handle edge cases (stale port files, PID validation, multiple editor instances) consistently.
 
-**Never launch or restart the editor with raw bash commands** (e.g., `start "" "$UE_56_PATH/..."` or `UnrealEditor.exe &`). Use the Skill tool with `cortex-editor` or `cortex-restart` instead. Raw launch bypasses graceful shutdown, port file management, and MCP verification.
+**Never launch or restart the editor with raw bash commands** (e.g., `start "" "$ENGINE_PATH/..."` or `UnrealEditor.exe &`). Use the Skill tool with `cortex-editor` or `cortex-restart` instead. Raw launch bypasses graceful shutdown, port file management, and MCP verification.
 
 ### Pipeline-Wide Restart Limit
 
