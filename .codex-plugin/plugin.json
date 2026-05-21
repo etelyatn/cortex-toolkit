@@ -1,0 +1,39 @@
+{
+  "name": "cortex-toolkit",
+  "version": "0.6.3",
+  "description": "AI-powered Unreal Engine development toolkit for UnrealCortex.",
+  "author": {
+    "name": "Eugene Telyatnik",
+    "email": "etelyatn@gmail.com",
+    "url": "https://github.com/etelyatn"
+  },
+  "homepage": "https://github.com/etelyatn/cortex-toolkit",
+  "repository": "https://github.com/etelyatn/cortex-toolkit",
+  "license": "MIT",
+  "keywords": [
+    "unreal-engine",
+    "unrealcortex",
+    "mcp",
+    "codex",
+    "skills"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Cortex Toolkit",
+    "shortDescription": "Unreal Engine skills and MCP workflows for UnrealCortex.",
+    "longDescription": "Bundle Codex skills and UnrealCortex project guidance for Blueprint, Data, Level, Material, UMG, QA, Reflect, StateTree, and editor workflows.",
+    "developerName": "Eugene Telyatnik",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/etelyatn/cortex-toolkit",
+    "defaultPrompt": [
+      "Use Cortex Toolkit to inspect my Unreal project.",
+      "Help me edit Blueprints through UnrealCortex.",
+      "Run Cortex status and explain any MCP issues."
+    ],
+    "brandColor": "#0F766E"
+  }
+}

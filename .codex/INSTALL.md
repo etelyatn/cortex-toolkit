@@ -4,38 +4,50 @@
 
 1. **Git** — required to clone the toolkit
 2. **UnrealCortex plugin** — must be installed in your Unreal Engine project
-3. **MCP configuration** — your project must have `.mcp.json` pointing to the `cortex_mcp` server
+3. **MCP configuration for live tools** — your project must have `.mcp.json` pointing to the `cortex_mcp` server before using UnrealCortex MCP tools
 
 ## Installation
 
-### Windows (PowerShell as Administrator)
-
-```powershell
-# 1. Clone the toolkit
-git clone https://github.com/etelyatn/cortex-toolkit.git ~/.cortex-toolkit
-
-# 2. Create a symlink in your project root
-New-Item -ItemType SymbolicLink -Path "skills" -Target "$HOME\.cortex-toolkit\skills"
-```
-
-### macOS/Linux
-
 ```bash
-# 1. Clone the toolkit
-git clone https://github.com/etelyatn/cortex-toolkit.git ~/.cortex-toolkit
-
-# 2. Create a symlink in your project root
-ln -s ~/.cortex-toolkit/skills skills
+codex plugin marketplace add etelyatn/cortex-toolkit
+codex plugin add cortex-toolkit@cortex-toolkit
 ```
+
+Restart Codex if it was already running.
 
 ## Verify Installation
 
-After installation, Codex should discover skills from the `skills/` symlink in your project root.
+After installation, Codex should discover Cortex Toolkit skills from the installed plugin.
+
+Your Unreal project still needs a project-local `.mcp.json` because the UnrealCortex MCP server path depends on where the plugin is installed in that project:
+
+Replace the UnrealCortex path with your actual plugin location, for example `Plugins/UnrealCortex/MCP` or `Plugins/Developer/UnrealCortex/MCP`.
+
+```json
+{
+  "mcpServers": {
+    "cortex_mcp": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "D:/UnrealProjects/YourProject/Plugins/Developer/UnrealCortex/MCP",
+        "cortex-mcp"
+      ],
+      "env": {
+        "CORTEX_PROJECT_DIR": "D:/UnrealProjects/YourProject"
+      }
+    }
+  }
+}
+```
+
+Open the Unreal Editor before using live MCP tools. CortexCore writes the port file during editor startup, and the MCP server discovers it automatically.
 
 ## Limitations
 
-- **No hooks support** — Codex does not execute shell hooks. The `hooks/` directory is not used.
-- **No operational skills** — Skills like `/cortex-editor`, `/cortex-restart`, and `/cortex-build` require a local Unreal Editor and are not functional in Codex cloud environments.
+- **Hooks are not packaged for Codex** — the `hooks/` directory remains for Claude Code and Cursor workflows.
+- **Operational skills need a local editor** — Skills like `/cortex-editor`, `/cortex-restart`, and `/cortex-build` require a local Unreal Editor and are not functional in Codex cloud environments.
 - **MCP tools only** — Use the `cortex_mcp` server tools directly (configured in `.mcp.json`).
 
 ## Project Memory
