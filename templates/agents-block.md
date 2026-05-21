@@ -3,7 +3,7 @@
 ## Cortex Toolkit
 
 Requires running UE Editor. Read `.cortex/context.md` before first domain operation.
-Config: `.cortex/config.yaml` | Domain details: `.cortex/domains/`
+Config: `.cortex/config.yaml` plus optional local `.cortex/config.local.yaml` | Domain details: `.cortex/domains/`
 
 On MCP parameter errors, read `cortex-toolkit/resources/mcp-tool-reference.md` — never guess parameter names.
 Rule: multiple actions on one asset → `*_compose` (single batch call). Single operations → `*_cmd` router.

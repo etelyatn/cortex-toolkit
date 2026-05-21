@@ -22,9 +22,14 @@ If running and port file exists, read the port and verify TCP responds via `get_
 
 ### 2. Read Configuration
 
-Read engine path from `.cortex/config.yaml` under `engine.path`.
+Read engine path from the effective Cortex config under `engine.path`: load `.cortex/config.yaml`, then merge `.cortex/config.local.yaml` over it if present. Use `$UE_PATH` only as a fallback when project config does not provide an engine path.
 
-If no config → tell user to run `cortex-init` first, or ask for the engine path directly.
+Use the shared loader when available:
+```bash
+python cortex-toolkit/lib/cortex_config.py --project-dir . --get engine.path
+```
+
+If no `.cortex/config.yaml` and no `$UE_PATH` → tell user to run `cortex-init` first, then configure `.cortex/config.local.yaml` if this machine needs a local override, or provide the engine path directly.
 
 Find the `.uproject` file in the project root.
 

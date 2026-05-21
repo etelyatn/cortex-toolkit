@@ -39,5 +39,6 @@ CONFIG_FILE="$CORTEX_DIR/config.yaml"
 if [ -f "$CONFIG_FILE" ]; then
   echo "## Project Configuration"
   echo ""
-  echo "See \`.cortex/config.yaml\` for engine path, active domains, and doc references."
+  echo "See \`.cortex/config.yaml\` for shared engine defaults, active domains, and doc references."
+  echo "Optional per-machine overrides live in ignored \`.cortex/config.local.yaml\`."
 fi
