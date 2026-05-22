@@ -8,6 +8,8 @@ Config: `.cortex/config.yaml` plus optional local `.cortex/config.local.yaml` | 
 On MCP parameter errors, re-read the tool's docstring — never guess parameter names.
 Rule: multiple actions on one asset → `*_compose` (single batch call). Single operations → `*_cmd` router.
 
+Editor lifecycle: users should run `/cortex-editor` to start/verify the UE editor and `/cortex-status` for MCP/domain health. After init or structural content changes, recommend `/cortex-schema-refresh` to regenerate `.cortex/schema/`. Agents may use `editor_cmd` for editor/PIE interaction and `core_cmd` for asset lifecycle operations.
+
 | Domain | When to use | Skills |
 |--------|-------------|--------|
 | Blueprint | Create/edit BP logic, wire nodes, variables, migrate to C++ | `/cortex-blueprint` `/cortex-bp-migrate` |

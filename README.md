@@ -26,7 +26,7 @@ claude plugin marketplace add etelyatn/cortex-toolkit
 claude plugin install cortex-toolkit
 ```
 
-Then open your project and run `/cortex-init` to configure MCP and project memory.
+Then open your project and run `/cortex-start`. It will verify the editor/MCP connection and guide you through setup. If you only need the project configuration step, run `/cortex-init` directly.
 
 ### Codex
 
@@ -40,6 +40,7 @@ codex plugin add cortex-toolkit@cortex-toolkit
 Then restart Codex if it was already running.
 Your Unreal project still needs a project-local `.mcp.json` pointing to the UnrealCortex MCP server.
 Codex discovers the toolkit hooks automatically and asks you to trust them before they run.
+Start with `cortex-start` for guided onboarding, or use `cortex-init` directly when you only want MCP and `.cortex/` setup.
 
 ### Cursor
 
@@ -56,9 +57,10 @@ Then create `.cortex/` manually following the structure in [Project Memory](#pro
 
 ## Getting Started
 
-1. Open your Unreal project in the editor (CortexCore writes a port file on startup)
-2. Run `/cortex-start` to verify the connection and get a guided introduction
-3. Run `/cortex-help` anytime to discover available skills or get contextual suggestions
+1. Start with `/cortex-start` (or `cortex-start` in Codex) for guided onboarding, editor/MCP verification, and next-step recommendations.
+2. If you want only setup without the full guided flow, run `/cortex-init` or `cortex-init` to configure MCP and `.cortex/` project memory.
+3. After init or structural content changes, run `/cortex-schema-refresh` or `cortex-schema-refresh` so `.cortex/schema/` contains current project data.
+4. Run `/cortex-help` anytime to discover available skills or get contextual suggestions.
 
 ## Skills
 
