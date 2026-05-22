@@ -8,7 +8,7 @@ AI-powered Unreal Engine development toolkit. Skills, agents, and domain knowled
 |---------|-------------|-------|--------|
 | Skills (`skills/`) | ✅ | ✅ via Codex plugin | ✅ |
 | Agents (`agents/`) | ✅ | ❌ | ✅ |
-| Hooks (`hooks/`) | ✅ | ❌ not packaged | ⚠️ |
+| Hooks (`hooks/`) | ✅ | ✅ requires trust | ⚠️ |
 | MCP tools | ✅ | ✅ | ✅ |
 
 ## Prerequisites
@@ -39,6 +39,7 @@ codex plugin add cortex-toolkit@cortex-toolkit
 
 Then restart Codex if it was already running.
 Your Unreal project still needs a project-local `.mcp.json` pointing to the UnrealCortex MCP server.
+Codex discovers the toolkit hooks automatically and asks you to trust them before they run.
 
 ### Cursor
 
