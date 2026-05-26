@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-1. **Git** — required to clone the toolkit
+1. **Git for Windows** — required to clone the toolkit and run packaged hook scripts on Windows
 2. **UnrealCortex plugin** — must be installed in your Unreal Engine project
 3. **MCP configuration for live tools** — your project must have `.mcp.json` pointing to the `cortex_mcp` server before using UnrealCortex MCP tools
 

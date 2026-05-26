@@ -32,6 +32,7 @@ root = Path(sys.argv[1])
 manifest_path = root / ".codex-plugin" / "plugin.json"
 marketplace_path = root / ".agents" / "plugins" / "marketplace.json"
 hooks_path = root / "hooks" / "hooks.json"
+hook_wrapper_path = root / "hooks" / "run-hook.cmd"
 
 if not manifest_path.exists():
     raise SystemExit(f"missing Codex plugin manifest: {manifest_path}")
@@ -82,6 +83,8 @@ if source.get("ref") != "main":
 
 if not hooks_path.exists():
     raise SystemExit(f"missing Codex-discovered hooks config: {hooks_path}")
+if not hook_wrapper_path.exists():
+    raise SystemExit(f"missing Codex hook wrapper: {hook_wrapper_path}")
 
 hooks_manifest = json.loads(hooks_path.read_text(encoding="utf-8"))
 hooks = hooks_manifest.get("hooks") or {}
@@ -93,6 +96,15 @@ if len(session_start) != 1:
     raise SystemExit("hooks.json must define one SessionStart hook group")
 if pre_tool_use[0].get("matcher") != "mcp__cortex_mcp__.*":
     raise SystemExit("PreToolUse hook must guard cortex_mcp tool calls")
+
+pre_tool_command = pre_tool_use[0]["hooks"][0].get("command", "")
+session_start_command = session_start[0]["hooks"][0].get("command", "")
+if "run-hook.cmd" not in pre_tool_command or "check-ue-editor.sh" not in pre_tool_command:
+    raise SystemExit("PreToolUse hook must run check-ue-editor.sh through run-hook.cmd")
+if "run-hook.cmd" not in session_start_command or "session-start.sh" not in session_start_command:
+    raise SystemExit("SessionStart hook must run session-start.sh through run-hook.cmd")
+if pre_tool_command.lstrip().startswith("bash ") or session_start_command.lstrip().startswith("bash "):
+    raise SystemExit("Codex hooks must not call bash directly on Windows")
 
 docs_to_check = [
     root / "README.md",
