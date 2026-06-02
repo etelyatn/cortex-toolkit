@@ -112,8 +112,85 @@ Manage asset lifecycle. All commands accept a single path, a list of paths, or g
 - **GameplayTags:** `list_gameplay_tags`, `validate_gameplay_tag`, `register_gameplay_tag`, `register_gameplay_tags`, `resolve_tags`
 - **DataAssets:** `list_data_assets`, `get_data_asset`, `update_data_asset`
 - **CurveTables:** `list_curve_tables`, `get_curve_table`, `update_curve_table_row`
-- **StringTables:** `list_string_tables`, `get_translations`, `set_translation`
+- **StringTables:** `list_string_tables`, `get_translations`, `set_translation`, `update_string_table`
 - **Search:** `search_assets`
+
+### Data Localization Migration Examples
+
+Generic router dry-run prefix migration:
+
+```json
+{
+  "tool": "data_cmd",
+  "command": "update_string_table",
+  "params": {
+    "string_table_path": "/Game/Data/ST_CodexEntries.ST_CodexEntries",
+    "dry_run": true,
+    "verbose": false,
+    "operations": [
+      {"type": "replace_all", "old_prefix": "entry.", "new_prefix": ""}
+    ]
+  }
+}
+```
+
+Dry-run `operation_results` are preview-only: successful operations report `applied=false`, `would_apply=true`, and `status="would_apply"`. Apply with `dry_run=false` only after the preview is clean or after intentionally setting `allow_partial=true`.
+
+Optional direct compatibility wrapper, only if still registered:
+
+```text
+update_string_table(
+  string_table_path="/Game/Data/ST_CodexEntries.ST_CodexEntries",
+  operations_json="[{\"type\":\"replace_all\",\"old_prefix\":\"entry.\",\"new_prefix\":\"\"}]",
+  dry_run=true,
+  verbose=false
+)
+```
+
+Scan DataTable `FText` references:
+
+```json
+{
+  "tool": "data_cmd",
+  "command": "search_datatable_content",
+  "params": {
+    "table_path": "/Game/Data/DT_CodexEntries.DT_CodexEntries",
+    "search_mode": "string_table_refs",
+    "string_table_path": "/Game/Data/ST_CodexEntries.ST_CodexEntries",
+    "key_pattern": "entry.*",
+    "limit": 100
+  }
+}
+```
+
+For `search_mode="string_table_refs"`, the generic `data_cmd` router forwards `limit` to C++ so scans can return more than the normal default batch size. Use `limit` as the scan cap; cursor pagination is not used for this mode.
+
+Update nested `TArray<UStruct>` table-backed `FText` fields:
+
+```json
+{
+  "tool": "data_cmd",
+  "command": "update_datatable_row",
+  "params": {
+    "table_path": "/Game/Data/DT_CodexEntries.DT_CodexEntries",
+    "row_name": "fireball",
+    "row_data": {
+      "Steps": [
+        {
+          "Description": {
+            "value": "Charge flame.",
+            "string_table": {
+              "table_id": "/Game/Data/ST_CodexEntries.ST_CodexEntries",
+              "key": "fireball.step_0"
+            }
+          }
+        }
+      ]
+    },
+    "dry_run": true
+  }
+}
+```
 
 ---
 

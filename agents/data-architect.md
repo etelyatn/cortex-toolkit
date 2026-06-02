@@ -28,7 +28,7 @@ Design data schemas, create and populate DataTables/DataAssets/CurveTables, and 
    - Plan references between tables (FName keys, soft references)
    - Include GameplayTags for categorization where appropriate
 3. **Create assets** — use `data_cmd(command="create_datatable")` to create new DataTables via MCP, or guide creation in editor
-4. **Populate data** — use `data_cmd(command="add_datatable_row")`, `data_cmd(command="import_datatable_json")`, `data_cmd(command="set_translation")`
+4. **Populate data** — use `data_cmd(command="add_datatable_row")`, `data_cmd(command="import_datatable_json")`, `data_cmd(command="set_translation")`, or `data_cmd(command="update_string_table")`
 5. **Validate** — verify data integrity, reference resolution, tag validity
 
 ## Creating DataTables via MCP
@@ -52,6 +52,54 @@ data_cmd(
 ```
 data_cmd("create_datatable") → data_cmd("add_datatable_row") (×N) OR data_cmd("import_datatable_json") → data_cmd("query_datatable") (verify)
 ```
+
+## Localization Migration Workflow
+
+Use `data_cmd(command="update_string_table")` for bulk StringTable edits. Always run a dry-run first, inspect `operation_results`, then apply with the same ordered operations only after the preview is clean.
+
+```python
+data_cmd(
+    command="update_string_table",
+    params={
+        "string_table_path": "/Game/Data/ST_CodexEntries.ST_CodexEntries",
+        "dry_run": True,
+        "operations": [
+            {"type": "replace_all", "old_prefix": "entry.", "new_prefix": ""}
+        ]
+    }
+)
+```
+
+For DataTable rows containing table-backed `FText`, write the object shape so key metadata is preserved:
+
+```json
+{
+  "Title": {
+    "value": "Fireball",
+    "string_table": {
+      "table_id": "/Game/Data/ST_CodexEntries.ST_CodexEntries",
+      "key": "fireball.title"
+    }
+  }
+}
+```
+
+Before renaming or deleting StringTable keys, audit DataTable references:
+
+```python
+data_cmd(
+    command="search_datatable_content",
+    params={
+        "table_path": "/Game/Data/DT_CodexEntries.DT_CodexEntries",
+        "search_mode": "string_table_refs",
+        "string_table_path": "/Game/Data/ST_CodexEntries.ST_CodexEntries",
+        "key_pattern": "entry.*",
+        "limit": 100
+    }
+)
+```
+
+Reference scan results include `field_path` values such as `Steps[0].Description`. The generic `data_cmd` router forwards `limit` to this C++ scan mode, so use `limit` for scan size rather than cursor pagination.
 
 ## Data Type Decision Framework
 

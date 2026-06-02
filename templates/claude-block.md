@@ -11,7 +11,7 @@ Rule: multiple actions on one asset → `*_compose` (single batch call). Single 
 | Domain | When to use | Skills |
 |--------|-------------|--------|
 | Blueprint | Create/edit BP logic, wire nodes, variables, migrate to C++ | `/cortex-blueprint` `/cortex-bp-migrate` |
-| Data | DataTables, GameplayTags, balance data | `/cortex-data` |
+| Data | DataTables, StringTables/localization, GameplayTags, balance data | `/cortex-data` |
 | Level | Place/move actors, organize content, sublevels | `/cortex-level` |
 | Material | Materials, parameters, shader graphs | `/cortex-material` |
 | StateTree | Unreal StateTree assets — states, transitions, tags, validation | `/cortex-statetree` |

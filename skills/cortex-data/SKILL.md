@@ -12,7 +12,7 @@ Creates, populates, and reviews data assets using the Data Architect and Data Ba
 Determine mode from user intent:
 
 - **Create/Modify**: User wants to build or change data assets
-  Examples: "create a DataTable", "add rows to DT_Weapons", "import data from CSV", "create a CurveTable for level XP"
+  Examples: "create a DataTable", "add rows to DT_Weapons", "import data from CSV", "create a CurveTable for level XP", "rename StringTable keys", "migrate localized text references"
   → Launch `cortex-toolkit:data-architect` agent with `max_turns: 25`
 
 - **Review/Balance**: User wants to audit, analyze, or validate existing data
@@ -44,6 +44,7 @@ Create/populate the following data asset:
 **Struct/schema:** [field names and types, e.g. Name (FString), Damage (float)]
 **Initial data:** [rows, values, or translations to populate]
 **GameplayTags:** [any tags that need registration]
+**Localization:** [StringTable keys or table-backed FText references to add/migrate, if relevant]
 
 WORKFLOW:
 1. Read `.cortex/domains/data.md` for project conventions, existing schemas, and balance rules
@@ -51,7 +52,9 @@ WORKFLOW:
 3. Register any required GameplayTags before use
 4. Create the asset via data_cmd(command="create_datatable") or equivalent
 5. Populate via data_cmd(command="add_datatable_row") or data_cmd(command="import_datatable_json")
-6. Validate structure and data integrity
+6. For bulk localization edits, use data_cmd(command="update_string_table") with explicit dry_run=true first, inspect operation_results, then apply the same ordered operations
+7. For table-backed FText migrations, audit references with data_cmd(command="search_datatable_content", params={"search_mode":"string_table_refs", ...})
+8. Validate structure and data integrity
 ```
 
 **For Review/Balance**, pass the review scope and focus:
@@ -70,7 +73,8 @@ WORKFLOW:
 5. Perform balance analysis against rules defined in .cortex/domains/data.md
 6. Cross-reference related tables for consistency
 7. Validate GameplayTags used in rows
-8. Flag outliers, missing data, broken references
+8. For localization reviews, use search_datatable_content with search_mode="string_table_refs" to find DataTable FText references to StringTable keys
+9. Flag outliers, missing data, broken references
 
 Return findings grouped by severity: Errors, Warnings, Info.
 ```

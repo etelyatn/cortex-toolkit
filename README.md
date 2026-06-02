@@ -145,8 +145,8 @@ Specialized agents launched by skills. Each agent has deep knowledge of a specif
 | `bp-migration-verifier` | Blueprint | Verify migration results for correctness |
 | `bp-migration-finalizer` | Blueprint | Finalize migration and clean up source assets |
 | `cpp-migration-specialist` | Blueprint | Specialist for analyzing and migrating complex Blueprint logic to C++ |
-| `data-architect` | Data | Design and build data structures, schemas, and GameplayTag hierarchies |
-| `data-balancer` | Data | Analyze and balance game data, tune DataTables, validate progression curves |
+| `data-architect` | Data | Design and build data structures, schemas, GameplayTags, and StringTable localization migrations |
+| `data-balancer` | Data | Analyze and balance game data, tune DataTables, validate progression curves and localized data references |
 | `level-designer` | Level | Design and edit levels, spawn actors, manage transforms and organization |
 | `material-developer` | Material | Create and modify materials, expression graphs, and parameter collections |
 | `project-analyzer` | Reflect | Analyze project architecture, class hierarchies, and cross-class symbol references |
