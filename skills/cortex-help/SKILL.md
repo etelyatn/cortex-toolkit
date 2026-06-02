@@ -248,8 +248,8 @@ Blueprint
   BP Migration Verifier    — Verify migration results against plan (internal, used by cortex-bp-migrate)
   BP Migration Finalizer   — Rename swap, fix redirectors, final cleanup (internal, used by cortex-bp-migrate)
 Data
-  Data Architect       — DataTable creation, schema design, bulk data import
-  Data Balancer        — Balance analysis, progression curves, reward scaling
+  Data Architect       — DataTable creation, schema design, bulk import, StringTable localization migration
+  Data Balancer        — Balance analysis, progression curves, reward scaling, localized data reference checks
 
 Level
   Level Designer       — Actor placement, level organization, streaming

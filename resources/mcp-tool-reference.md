@@ -134,6 +134,8 @@ Generic router dry-run prefix migration:
 }
 ```
 
+Dry-run `operation_results` are preview-only: successful operations report `applied=false`, `would_apply=true`, and `status="would_apply"`. Apply with `dry_run=false` only after the preview is clean or after intentionally setting `allow_partial=true`.
+
 Optional direct compatibility wrapper, only if still registered:
 
 ```text
@@ -160,6 +162,8 @@ Scan DataTable `FText` references:
   }
 }
 ```
+
+For `search_mode="string_table_refs"`, the generic `data_cmd` router forwards `limit` to C++ so scans can return more than the normal default batch size. Use `limit` as the scan cap; cursor pagination is not used for this mode.
 
 Update nested `TArray<UStruct>` table-backed `FText` fields:
 

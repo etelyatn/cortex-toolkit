@@ -34,6 +34,7 @@ Analyze DataTables, CurveTables, and DataAssets for balance issues — stat curv
 - **Economy check:** sum all income sources vs all sinks per level bracket
 - **Stat scaling:** compare player stats to enemy stats at each level tier
 - **Drop rates:** verify probability distributions sum correctly
+- **Localization reference audit:** use `data_cmd(command="search_datatable_content", params={"search_mode":"string_table_refs", ...})` to find DataTable `FText` fields that reference StringTable keys before recommending key renames, deletes, or text migrations
 
 ## MCP Benchmark Tests
 

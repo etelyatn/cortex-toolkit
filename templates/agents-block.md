@@ -11,7 +11,7 @@ Rule: multiple actions on one asset → `*_compose` (single batch call). Single 
 | Domain | When to use | Tools |
 |--------|-------------|-------|
 | Blueprint | Create/edit BP logic, wire nodes, variables, migrate to C++ | `blueprint_cmd` `graph_cmd` `blueprint_compose` |
-| Data | DataTables, GameplayTags, balance data | `data_cmd` |
+| Data | DataTables, StringTables/localization, GameplayTags, balance data | `data_cmd` |
 | Level | Place/move actors, organize content, sublevels | `level_cmd` `level_compose` |
 | Material | Materials, parameters, shader graphs | `material_cmd` `material_compose` `material_instance_compose` |
 | StateTree | Unreal StateTree assets — states, transitions, tags, validation | `statetree_cmd` `statetree_compose` |

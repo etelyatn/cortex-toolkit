@@ -92,6 +92,7 @@ Data domain workflows are validated by the benchmark testing framework in `Plugi
 |-----------|----------|
 | `test_e2e.py` | DataTable CRUD, schema queries, row operations, GameplayTag validation, CurveTable/StringTable/DataAsset ops, batch queries, search |
 | `test_mcp_scenarios.py` | Data Pipeline (query + add + search + batch + delete), GameplayTag Workflow (register + validate + bulk), Localization Pipeline (get/set translations) |
+| MCP benchmark Data Localization Migration check | `update_string_table` dry-run/apply workflow, preview-only operation results, `search_mode="string_table_refs"` reference scan with forwarded `limit` |
 | `test_mcp_scenarios.py -k stress` | 100 rapid add/update/delete cycles, 20-command concurrent batch |
 
 Run to validate after modifying Data MCP tools or C++ command handlers.
@@ -102,4 +103,6 @@ Run to validate after modifying Data MCP tools or C++ command handlers.
 - Use `core_cmd(command="search_assets")` to find assets by name when path is unknown
 - GameplayTags must be registered before use in DataTable rows
 - `data_cmd(command="import_datatable_json")` overwrites existing rows with same key
+- Use `data_cmd(command="update_string_table")` for bulk StringTable edits; run `dry_run=true` first and apply only after inspecting `operation_results`
+- Use `search_datatable_content` with `search_mode="string_table_refs"` before renaming/deleting StringTable keys referenced by DataTable `FText` fields
 - Soft references in DataAssets must point to valid asset paths
