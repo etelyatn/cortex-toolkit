@@ -31,6 +31,7 @@ from pathlib import Path
 root = Path(sys.argv[1])
 manifest_path = root / ".codex-plugin" / "plugin.json"
 marketplace_path = root / ".agents" / "plugins" / "marketplace.json"
+hooks_path = root / "hooks" / "hooks.json"
 
 if not manifest_path.exists():
     raise SystemExit(f"missing Codex plugin manifest: {manifest_path}")
@@ -78,6 +79,32 @@ if source.get("url") != "https://github.com/etelyatn/cortex-toolkit.git":
     raise SystemExit("marketplace source.url must point to cortex-toolkit")
 if source.get("ref") != "main":
     raise SystemExit("marketplace source.ref must be main")
+
+if not hooks_path.exists():
+    raise SystemExit(f"missing Codex-discovered hooks config: {hooks_path}")
+
+hooks_manifest = json.loads(hooks_path.read_text(encoding="utf-8"))
+hooks = hooks_manifest.get("hooks") or {}
+pre_tool_use = hooks.get("PreToolUse") or []
+session_start = hooks.get("SessionStart") or []
+if len(pre_tool_use) != 1:
+    raise SystemExit("hooks.json must define one PreToolUse hook group")
+if len(session_start) != 1:
+    raise SystemExit("hooks.json must define one SessionStart hook group")
+if pre_tool_use[0].get("matcher") != "mcp__cortex_mcp__.*":
+    raise SystemExit("PreToolUse hook must guard cortex_mcp tool calls")
+
+docs_to_check = [
+    root / "README.md",
+    root / ".codex" / "INSTALL.md",
+    root / "docs" / "codex-setup.md",
+]
+for doc_path in docs_to_check:
+    contents = doc_path.read_text(encoding="utf-8")
+    if "not packaged for Codex" in contents:
+        raise SystemExit(f"{doc_path.relative_to(root)} must not say hooks are not packaged")
+    if "trust" not in contents.lower():
+        raise SystemExit(f"{doc_path.relative_to(root)} must explain Codex hook trust")
 
 print("codex plugin tests passed")
 PY

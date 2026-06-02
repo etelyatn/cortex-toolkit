@@ -99,6 +99,7 @@ Map modules to domains:
 - `CortexLevel` → `level`
 - `CortexQA` → `qa`
 - `CortexReflect` → `reflect`
+- `CortexStateTree` → `statetree`
 - `CortexCore` → (foundation, no domain file needed)
 - `CortexEditor` → (shared infrastructure, no domain file needed)
 
@@ -154,6 +155,7 @@ Create `.cortex/domains/` with a template for each detected domain:
 - `umg.md`: widget conventions, screen inventory, UI style guide
 - `level.md`: actor conventions, level structure, streaming setup, organization rules
 - `qa.md`: test scenarios, assertion patterns, gameplay test conventions
+- `statetree.md`: StateTree hierarchy conventions, schema choices, transition/tag rules
 
 ### 5. Configure MCP
 
@@ -227,6 +229,7 @@ Filter the table rows to only the domains detected in Step 3, using this key-to-
 | `data`              | `Data`          |
 | `level`             | `Level`         |
 | `material`          | `Material`      |
+| `statetree`         | `StateTree`     |
 | `umg`               | `UI`            |
 | `qa`                | `QA`            |
 | `reflect`           | `Reflect`       |
@@ -250,4 +253,9 @@ Report:
 - Context injection:
   - CLAUDE.md: injected (N domain rows) / already present / skipped
   - AGENTS.md: injected (N domain rows) / already present / skipped / not requested
-- Next steps: "Fill in .cortex/context.md with your project details"
+- Recommended next actions:
+  1. Fill in `.cortex/context.md` with project-specific goals and conventions.
+  2. Start/verify the editor with the Cortex editor workflow (`cortex-editor` or `/cortex-editor`), then check health with `cortex-status` or `/cortex-status`.
+  3. Generate project knowledge with `cortex-schema-refresh` / `/cortex-schema-refresh` and a CortexReflect scan/rebuild workflow.
+  4. Review each `.cortex/domains/*.md` file and add domain-specific conventions, asset locations, and safety rules.
+  5. If any detected domain is missing at runtime, compare `.cortex/config.yaml`, `UnrealCortex.uplugin`, and registered runtime domains from the status workflow.
