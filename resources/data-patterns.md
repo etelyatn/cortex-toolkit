@@ -48,6 +48,48 @@ reflect_cmd("get_struct_schema") → prepare JSON → data_cmd("import_datatable
 core_cmd("batch") (multiple tables) → correlate by shared keys (FName, tags)
 ```
 
+### Large Raw Exports
+
+For large DataTable, StringTable, or DataAsset reviews, export raw payloads to files and inspect them locally instead of returning full rows or properties through chat. Export commands return compact summaries with counts, output paths, byte sizes, warnings, and errors.
+
+```json
+{
+  "tool": "data_cmd",
+  "command": "export_bulk_json",
+  "params": {
+    "out_dir": "Saved/CortexExports/Quests",
+    "items": [
+      {
+        "type": "datatable",
+        "name": "quests",
+        "table_path": "/Game/Ripper/Quests/CQT_Quests",
+        "out_path": "quests.json"
+      },
+      {
+        "type": "string_table",
+        "name": "quest_text",
+        "string_table_path": "/Game/Ripper/Quests/Localization/ST_Quests",
+        "out_path": "quest_text.json"
+      },
+      {
+        "type": "data_assets",
+        "name": "patient_assets",
+        "class_name": "RipPatientData",
+        "path_filter": "/Game/Ripper/Patients/Data",
+        "include_properties": true,
+        "out_path": "patient_assets.json"
+      }
+    ]
+  }
+}
+```
+
+Use individual exports when only one resource is needed:
+
+- `export_datatable_json`
+- `export_string_table_json`
+- `export_data_assets_json`
+
 ## DataAsset Workflows
 
 ### Inspect

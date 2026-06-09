@@ -109,6 +109,7 @@ Manage asset lifecycle. All commands accept a single path, a list of paths, or g
 ## Data (`data_cmd`)
 
 - **DataTables:** `list_datatables`, `get_datatable_schema`, `query_datatable`, `get_datatable_row`, `add_datatable_row`, `update_datatable_row`, `delete_datatable_row`, `search_datatable_content`, `import_datatable_json`, `get_struct_schema`
+- **Raw file exports:** `export_datatable_json`, `export_string_table_json`, `export_data_assets_json`, `export_bulk_json`
 - **GameplayTags:** `list_gameplay_tags`, `validate_gameplay_tag`, `register_gameplay_tag`, `register_gameplay_tags`, `resolve_tags`
 - **DataAssets:** `list_data_assets`, `get_data_asset`, `update_data_asset`
 - **CurveTables:** `list_curve_tables`, `get_curve_table`, `update_curve_table_row`
