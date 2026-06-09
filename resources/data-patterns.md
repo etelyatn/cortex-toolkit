@@ -57,27 +57,27 @@ For large DataTable, StringTable, or DataAsset reviews, export raw payloads to f
   "tool": "data_cmd",
   "command": "export_bulk_json",
   "params": {
-    "out_dir": "Saved/CortexExports/Quests",
+    "out_dir": "Saved/CortexExports/DataAudit",
     "items": [
       {
         "type": "datatable",
-        "name": "quests",
-        "table_path": "/Game/Ripper/Quests/CQT_Quests",
-        "out_path": "quests.json"
+        "name": "items",
+        "table_path": "/Game/Data/DT_Items",
+        "out_path": "items.json"
       },
       {
         "type": "string_table",
-        "name": "quest_text",
-        "string_table_path": "/Game/Ripper/Quests/Localization/ST_Quests",
-        "out_path": "quest_text.json"
+        "name": "item_text",
+        "string_table_path": "/Game/Data/ST_ItemText",
+        "out_path": "item_text.json"
       },
       {
         "type": "data_assets",
-        "name": "patient_assets",
-        "class_name": "RipPatientData",
-        "path_filter": "/Game/Ripper/Patients/Data",
+        "name": "item_assets",
+        "class_name": "PrimaryDataAsset",
+        "path_filter": "/Game/Data/Assets",
         "include_properties": true,
-        "out_path": "patient_assets.json"
+        "out_path": "item_assets.json"
       }
     ]
   }
