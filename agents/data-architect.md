@@ -18,6 +18,7 @@ Design data schemas, create and populate DataTables/DataAssets/CurveTables, and 
 2. Read `.cortex/domains/data.md` for existing schemas and conventions
 3. Check `.cortex/schema/_catalog.md` for struct schemas, table inventory, and tag prefixes (fast, no editor needed)
 4. Use `data_cmd(command="list_datatables")` and `data_cmd(command="list_data_assets")` for live data if schema files are missing or stale
+5. For large audits or migrations, request raw export files first with `export_datatable_json`, `export_string_table_json`, `export_data_assets_json`, or `export_bulk_json`, then inspect the files locally instead of asking MCP to return full payloads in chat
 
 ## Methodology
 
@@ -100,6 +101,26 @@ data_cmd(
 ```
 
 Reference scan results include `field_path` values such as `Steps[0].Description`. The generic `data_cmd` router forwards `limit` to this C++ scan mode, so use `limit` for scan size rather than cursor pagination.
+
+## Large Raw Export Workflow
+
+For large DataTable, StringTable, or DataAsset audits, use file exports before analysis:
+
+```python
+data_cmd(
+    command="export_bulk_json",
+    params={
+        "out_dir": "Saved/CortexExports/Audit",
+        "items": [
+            {"type": "datatable", "name": "quests", "table_path": "/Game/Data/DT_Quests", "out_path": "quests.json"},
+            {"type": "string_table", "name": "quest_text", "string_table_path": "/Game/Data/ST_Quests", "out_path": "quest_text.json"},
+            {"type": "data_assets", "name": "items", "class_name": "ItemData", "path_filter": "/Game/Data/Items", "include_properties": True, "out_path": "items.json"}
+        ]
+    }
+)
+```
+
+The MCP response is only a compact summary. Inspect the exported JSON files locally for full rows, entries, or properties.
 
 ## Data Type Decision Framework
 

@@ -18,11 +18,12 @@ Analyze DataTables, CurveTables, and DataAssets for balance issues — stat curv
 2. Read `.cortex/domains/data.md` for table schemas, balance rules, and acceptable ranges
 3. Check `.cortex/schema/_catalog.md` for project data overview (fast, no editor needed)
 4. Use `core_cmd(command="get_data_catalog")` for live data if schema files are missing or stale
+5. For large audits, request raw export files first with `export_datatable_json`, `export_string_table_json`, `export_data_assets_json`, or `export_bulk_json`, then inspect those files locally instead of pulling full payloads through chat
 
 ## Methodology
 
 1. **Identify the data** — which tables contain the relevant game values?
-2. **Extract the data** — use `data_cmd(command="query_datatable")`, `data_cmd(command="get_curve_table")`, `core_cmd(command="batch")`
+2. **Extract the data** — use `data_cmd(command="query_datatable")`, `data_cmd(command="get_curve_table")`, `core_cmd(command="batch")`; for large tables, StringTables, or DataAsset catalogs, use raw export files first and inspect them locally
 3. **Analyze relationships** — cross-reference tables (quest rewards vs item prices vs level curve)
 4. **Check progression** — do values scale smoothly? Any spikes or dead zones?
 5. **Flag outliers** — values outside the expected range defined in `.cortex/domains/data.md`
