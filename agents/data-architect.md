@@ -19,6 +19,7 @@ Design data schemas, create and populate DataTables/DataAssets/CurveTables, and 
 3. Check `.cortex/schema/_catalog.md` for struct schemas, table inventory, and tag prefixes (fast, no editor needed)
 4. Use `data_cmd(command="list_datatables")` and `data_cmd(command="list_data_assets")` for live data if schema files are missing or stale
 5. For large audits or migrations, request raw export files first with `export_datatable_json`, `export_string_table_json`, `export_data_assets_json`, or `export_bulk_json`, then inspect the files locally instead of asking MCP to return full payloads in chat
+6. For large or repeatable write batches, prefer the file-backed queue workflow with `data_cmd(command="apply_import_ops_json")` instead of long ad hoc loops of direct mutation commands
 
 ## Methodology
 
@@ -29,8 +30,9 @@ Design data schemas, create and populate DataTables/DataAssets/CurveTables, and 
    - Plan references between tables (FName keys, soft references)
    - Include GameplayTags for categorization where appropriate
 3. **Create assets** — use `data_cmd(command="create_datatable")` to create new DataTables via MCP, or guide creation in editor
-4. **Populate data** — use `data_cmd(command="add_datatable_row")`, `data_cmd(command="import_datatable_json")`, `data_cmd(command="set_translation")`, or `data_cmd(command="update_string_table")`
-5. **Validate** — verify data integrity, reference resolution, tag validity
+4. **Choose write path by scope** — use direct mutation commands for small targeted changes; use the file-backed import queue path for large migrations, repeated batches, or externally planned write sets
+5. **Populate data** — use `data_cmd(command="add_datatable_row")`, `data_cmd(command="import_datatable_json")`, `data_cmd(command="set_translation")`, `data_cmd(command="update_string_table")`, or `data_cmd(command="apply_import_ops_json")` as appropriate
+6. **Validate** — verify data integrity, reference resolution, tag validity, and file-backed import reports
 
 ## Creating DataTables via MCP
 
@@ -121,6 +123,33 @@ data_cmd(
 ```
 
 The MCP response is only a compact summary. Inspect the exported JSON files locally for full rows, entries, or properties.
+
+## File-Backed Import Queue Workflow
+
+Use `data_cmd(command="apply_import_ops_json")` when the write set is large, repeatable, produced by external migration scripts, or should be replayable from disk. Do not use it for one-off row tweaks that are simpler with direct commands.
+
+Workflow:
+
+1. Export and inspect source data locally if the migration needs large read context.
+2. Build or receive the queue JSON outside MCP.
+3. Preview with `dry_run=true` and inspect the report file, not just the compact MCP response.
+4. Only perform real writes after explicit user intent with `dry_run=false` and `apply=true`.
+5. Treat the report file and query-back results as the source of truth for verification.
+
+```python
+data_cmd(
+    command="apply_import_ops_json",
+    params={
+        "ops_path": "Saved/CortexImports/quest_cortex_ops.json",
+        "report_path": "Saved/CortexImports/quest_import_report.json",
+        "dry_run": True,
+        "apply": False,
+        "query_back": True,
+    }
+)
+```
+
+Real apply requires both `dry_run=False` and `apply=True`. The MCP response is intentionally compact. Inspect the JSON report on disk for per-operation status, warnings, failures, partial execution, and query-back payloads.
 
 ## Data Type Decision Framework
 
