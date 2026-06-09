@@ -12,7 +12,7 @@ Creates, populates, and reviews data assets using the Data Architect and Data Ba
 Determine mode from user intent:
 
 - **Create/Modify**: User wants to build or change data assets
-  Examples: "create a DataTable", "add rows to DT_Weapons", "import data from CSV", "create a CurveTable for level XP", "rename StringTable keys", "migrate localized text references"
+  Examples: "create a DataTable", "add rows to DT_Weapons", "import data from CSV", "create a CurveTable for level XP", "rename StringTable keys", "migrate localized text references", "apply a file-backed import plan", "run a migration queue"
   → Launch `cortex-toolkit:data-architect` agent with `max_turns: 25`
 
 - **Review/Balance**: User wants to audit, analyze, or validate existing data
@@ -45,16 +45,20 @@ Create/populate the following data asset:
 **Initial data:** [rows, values, or translations to populate]
 **GameplayTags:** [any tags that need registration]
 **Localization:** [StringTable keys or table-backed FText references to add/migrate, if relevant]
+**Migration inputs:** [optional exported JSON files, queue JSON path, report path, or external planning artifacts]
 
 WORKFLOW:
 1. Read `.cortex/domains/data.md` for project conventions, existing schemas, and balance rules
 2. Check `.cortex/schema/_catalog.md` for existing assets to avoid duplicates
 3. Register any required GameplayTags before use
-4. Create the asset via data_cmd(command="create_datatable") or equivalent
-5. Populate via data_cmd(command="add_datatable_row") or data_cmd(command="import_datatable_json")
-6. For bulk localization edits, use data_cmd(command="update_string_table") with explicit dry_run=true first, inspect operation_results, then apply the same ordered operations
-7. For table-backed FText migrations, audit references with data_cmd(command="search_datatable_content", params={"search_mode":"string_table_refs", ...})
-8. Validate structure and data integrity
+4. Choose mutation path by scope:
+   - small targeted edits: use direct commands such as data_cmd(command="add_datatable_row"), data_cmd(command="update_datatable_row"), data_cmd(command="update_string_table"), or data_cmd(command="update_data_asset")
+   - large/repeatable migrations or externally planned batches: prefer the file-backed workflow with raw exports plus data_cmd(command="apply_import_ops_json")
+5. If using the file-backed workflow, export and inspect large source payloads locally first, then build or receive the queue JSON outside MCP
+6. For direct bulk localization edits, use data_cmd(command="update_string_table") with explicit dry_run=true first, inspect operation_results, then apply the same ordered operations
+7. For file-backed imports, run data_cmd(command="apply_import_ops_json") with dry_run=true first, inspect the report file, and only perform a real apply after explicit user intent with dry_run=false and apply=true
+8. For table-backed FText migrations, audit references with data_cmd(command="search_datatable_content", params={"search_mode":"string_table_refs", ...})
+9. Validate structure and data integrity, using query-back and the report file as the source of truth for file-backed imports
 ```
 
 **For Review/Balance**, pass the review scope and focus:

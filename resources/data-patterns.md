@@ -90,6 +90,33 @@ Use individual exports when only one resource is needed:
 - `export_string_table_json`
 - `export_data_assets_json`
 
+### File-Backed Import Queues
+
+For large, repeatable, or externally planned write batches, prefer a queue file plus `apply_import_ops_json` over long chat-driven loops of direct mutations. This keeps write intent explicit and makes preview, apply, and verification replayable from disk.
+
+```
+export_* or export_bulk_json → inspect local files → build queue JSON outside MCP → data_cmd("apply_import_ops_json", dry_run=true) → inspect report file → data_cmd("apply_import_ops_json", dry_run=false, apply=true) → inspect report/query_back
+```
+
+**Example:**
+```json
+{
+  "tool": "data_cmd",
+  "command": "apply_import_ops_json",
+  "params": {
+    "ops_path": "Saved/CortexImports/quest_cortex_ops.json",
+    "report_path": "Saved/CortexImports/quest_import_report.json",
+    "dry_run": true,
+    "apply": false,
+    "query_back": true,
+    "stop_on_error": true,
+    "allow_partial": false
+  }
+}
+```
+
+The MCP response is only a compact summary. The report file on disk is the source of truth for per-operation status, warnings, failures, partial execution state, and query-back payloads.
+
 ## DataAsset Workflows
 
 ### Inspect
@@ -146,5 +173,6 @@ Run to validate after modifying Data MCP tools or C++ command handlers.
 - GameplayTags must be registered before use in DataTable rows
 - `data_cmd(command="import_datatable_json")` overwrites existing rows with same key
 - Use `data_cmd(command="update_string_table")` for bulk StringTable edits; run `dry_run=true` first and apply only after inspecting `operation_results`
+- Use `data_cmd(command="apply_import_ops_json")` for large/repeatable write batches; preview with `dry_run=true` first and do not rely on the compact MCP response alone
 - Use `search_datatable_content` with `search_mode="string_table_refs"` before renaming/deleting StringTable keys referenced by DataTable `FText` fields
 - Soft references in DataAssets must point to valid asset paths

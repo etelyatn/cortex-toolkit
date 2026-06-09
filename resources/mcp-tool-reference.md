@@ -110,11 +110,14 @@ Manage asset lifecycle. All commands accept a single path, a list of paths, or g
 
 - **DataTables:** `list_datatables`, `get_datatable_schema`, `query_datatable`, `get_datatable_row`, `add_datatable_row`, `update_datatable_row`, `delete_datatable_row`, `search_datatable_content`, `import_datatable_json`, `get_struct_schema`
 - **Raw file exports:** `export_datatable_json`, `export_string_table_json`, `export_data_assets_json`, `export_bulk_json`
+- **File-backed imports:** `apply_import_ops_json`
 - **GameplayTags:** `list_gameplay_tags`, `validate_gameplay_tag`, `register_gameplay_tag`, `register_gameplay_tags`, `resolve_tags`
 - **DataAssets:** `list_data_assets`, `get_data_asset`, `update_data_asset`
 - **CurveTables:** `list_curve_tables`, `get_curve_table`, `update_curve_table_row`
 - **StringTables:** `list_string_tables`, `get_translations`, `set_translation`, `update_string_table`
 - **Search:** `search_assets`
+
+For large or repeatable data migrations, use raw export commands for large reads and `apply_import_ops_json` for the corresponding file-backed write phase. Small targeted edits should still use direct mutation commands.
 
 ### Data Localization Migration Examples
 
@@ -192,6 +195,28 @@ Update nested `TArray<UStruct>` table-backed `FText` fields:
   }
 }
 ```
+
+### File-Backed Import Queue Example
+
+Preview a migration queue:
+
+```json
+{
+  "tool": "data_cmd",
+  "command": "apply_import_ops_json",
+  "params": {
+    "ops_path": "Saved/CortexImports/quest_cortex_ops.json",
+    "report_path": "Saved/CortexImports/quest_import_report.json",
+    "dry_run": true,
+    "apply": false,
+    "query_back": true,
+    "stop_on_error": true,
+    "allow_partial": false
+  }
+}
+```
+
+Real apply requires `dry_run=false` and `apply=true`. The MCP response is intentionally compact; inspect the JSON report on disk for per-operation results, warnings, failures, and query-back payloads.
 
 ---
 
