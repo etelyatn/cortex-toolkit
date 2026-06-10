@@ -53,12 +53,13 @@ WORKFLOW:
 3. Register any required GameplayTags before use
 4. Choose read/write path by scope:
    - small targeted edits: use direct commands such as data_cmd(command="add_datatable_row"), data_cmd(command="update_datatable_row"), data_cmd(command="update_string_table"), or data_cmd(command="update_data_asset")
-   - offline schema validation or migration-planning inputs: prefer data_cmd(command="export_schema_json") so agents/scripts can work from one deterministic schema artifact on disk
-   - reconcile, audit, or migration planning from exported files: prefer the file-backed review workflow with raw exports plus data_cmd(command="compare_data_json")
-   - large/repeatable migrations or externally planned batches: prefer the file-backed workflow with raw exports, optional compare_data_json review, then data_cmd(command="apply_import_ops_json")
+   - offline schema validation inputs: use data_cmd(command="export_schema_json")
+   - large raw reads or migration-planning inputs: use data_cmd(command="export_datatable_json"), data_cmd(command="export_string_table_json"), data_cmd(command="export_data_assets_json"), or data_cmd(command="export_bulk_json")
+   - reconcile/audit between exported snapshots: use data_cmd(command="compare_data_json")
+   - large/repeatable writes or externally prepared batches: use data_cmd(command="apply_import_ops_json")
 5. If using the file-backed workflow, export and inspect large source payloads locally first, then use data_cmd(command="compare_data_json") when you need a deterministic diff between two exported snapshots before building or applying write operations
 6. For direct bulk localization edits, use data_cmd(command="update_string_table") with explicit dry_run=true first, inspect operation_results, then apply the same ordered operations
-7. For file-backed imports, run data_cmd(command="apply_import_ops_json") with dry_run=true first, inspect the report file, and only perform a real apply after explicit user intent with dry_run=false and apply=true. Treat the MCP response as a compact envelope plus nested aggregate `counts`, not as the per-operation source of truth
+7. For file-backed imports, run data_cmd(command="apply_import_ops_json") with dry_run=true first, inspect the report file, and only perform a real apply after explicit user intent with dry_run=false and apply=true. Treat file-backed MCP responses as compact envelopes. Read aggregate counts from nested `counts`, and inspect the exported payload or durable report file for details
 8. For table-backed FText migrations, audit references with data_cmd(command="search_datatable_content", params={"search_mode":"string_table_refs", ...})
 9. Validate structure and data integrity, using compare_data_json for exported snapshot diffs and query-back plus the report file as the source of truth for file-backed imports
 ```

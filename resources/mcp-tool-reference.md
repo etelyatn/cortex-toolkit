@@ -118,9 +118,9 @@ Manage asset lifecycle. All commands accept a single path, a list of paths, or g
 - **StringTables:** `list_string_tables`, `get_translations`, `set_translation`, `update_string_table`
 - **Search:** `search_assets`
 
-For large or repeatable data migrations, use raw export commands for large reads, `compare_data_json` when you need a deterministic exported-snapshot diff, and `apply_import_ops_json` for the corresponding file-backed write phase. Small targeted edits should still use direct mutation commands.
+For large or repeatable data migrations, use raw export commands for large reads, `export_schema_json` for offline validation inputs, `compare_data_json` for exported-snapshot review, and `apply_import_ops_json` for the guarded write phase. Small targeted edits should still use direct mutation commands.
 
-File-backed Data command responses use a compact summary envelope: `success`, `partial`, `warnings`, `errors`, `files_written`, `targets_touched`, and nested `counts`. Raw export payload files and durable import reports on disk remain the detailed sources of truth. For `apply_import_ops_json`, queue counts are exposed under normalized nested keys such as `operations`, `validated`, `previewed`, `attempted`, `applied`, `failed`, and `save_failed` rather than top-level `*_count` summary fields.
+File-backed Data command responses use a compact summary envelope: `success`, `partial`, `warnings`, `errors`, `files_written`, `targets_touched`, and nested `counts`. Raw export payload files and durable import reports on disk remain the detailed sources of truth. For `apply_import_ops_json`, queue counts are exposed under normalized nested keys such as `operations`, `validated`, `previewed`, `attempted`, `applied`, `failed`, and `save_failed` instead of legacy summary aliases.
 
 Use `export_schema_json` when the job is offline schema validation rather than raw payload review. It writes DataTable row schemas, transitive struct closure, DataAsset class property schemas, and StringTable metadata to disk while keeping the MCP response compact.
 
