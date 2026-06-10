@@ -119,6 +119,10 @@ Manage asset lifecycle. All commands accept a single path, a list of paths, or g
 
 For large or repeatable data migrations, use raw export commands for large reads and `apply_import_ops_json` for the corresponding file-backed write phase. Small targeted edits should still use direct mutation commands.
 
+`get_data_asset` returns a deep reflected property payload. Inspect additive `partial` and `issues` fields before assuming every nested field serialized cleanly.
+
+`export_data_assets_json(include_properties=true)` performs deep property export. In partial mode it can report `partial`, `issue_count`, and `omitted_assets`; in strict mode (`allow_partial=false`) blocking serialization issues fail the export instead of writing an incomplete asset set.
+
 ### Data Localization Migration Examples
 
 Generic router dry-run prefix migration:

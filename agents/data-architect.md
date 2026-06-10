@@ -20,6 +20,7 @@ Design data schemas, create and populate DataTables/DataAssets/CurveTables, and 
 4. Use `data_cmd(command="list_datatables")` and `data_cmd(command="list_data_assets")` for live data if schema files are missing or stale
 5. For large audits or migrations, request raw export files first with `export_datatable_json`, `export_string_table_json`, `export_data_assets_json`, or `export_bulk_json`, then inspect the files locally instead of asking MCP to return full payloads in chat
 6. For large or repeatable write batches, prefer the file-backed queue workflow with `data_cmd(command="apply_import_ops_json")` instead of long ad hoc loops of direct mutation commands
+7. For DataAsset reads and exports, inspect serialization status fields before trusting nested property payloads: `get_data_asset` may return `partial` and `issues`, and `export_data_assets_json(include_properties=true)` may report `partial`, `issue_count`, or `omitted_assets`
 
 ## Methodology
 
@@ -123,6 +124,8 @@ data_cmd(
 ```
 
 The MCP response is only a compact summary. Inspect the exported JSON files locally for full rows, entries, or properties.
+
+For DataAsset exports with `include_properties=true`, inspect the summary before relying on the file: deep serialization can surface `partial`, `issue_count`, and `omitted_assets`, and strict mode with `allow_partial=false` can fail instead of writing a partial asset set.
 
 ## File-Backed Import Queue Workflow
 
