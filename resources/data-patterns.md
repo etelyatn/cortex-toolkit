@@ -146,7 +146,7 @@ export_* or export_bulk_json → inspect local files → optional data_cmd("comp
 }
 ```
 
-The MCP response is only the compact summary envelope. The report file on disk is the source of truth for per-operation status, warnings, failures, partial execution state, and query-back payloads.
+The MCP response is only the compact summary envelope. The report file on disk is the source of truth for per-operation status, warnings, failures, partial execution state, and query-back payloads. For import queues, read aggregate execution counts from nested `counts` keys like `operations`, `previewed`, `attempted`, `applied`, `failed`, `skipped`, and `save_failed` instead of expecting top-level `*_count` summary aliases.
 
 ## DataAsset Workflows
 
@@ -207,7 +207,7 @@ Run to validate after modifying Data MCP tools or C++ command handlers.
 - `data_cmd(command="import_datatable_json")` overwrites existing rows with same key
 - Use `data_cmd(command="update_string_table")` for bulk StringTable edits; run `dry_run=true` first and apply only after inspecting `operation_results`
 - Use `data_cmd(command="compare_data_json")` for deterministic exported-file diffs instead of manual line-by-line review or chat-sized payload comparisons
-- Use `data_cmd(command="apply_import_ops_json")` for large/repeatable write batches; preview with `dry_run=true` first and do not rely on the compact MCP response alone
+- Use `data_cmd(command="apply_import_ops_json")` for large/repeatable write batches; preview with `dry_run=true` first, treat the compact MCP response as envelope-only status plus nested aggregate counts, and use the report file for per-operation detail
 - Use `search_datatable_content` with `search_mode="string_table_refs"` before renaming/deleting StringTable keys referenced by DataTable `FText` fields
 - Soft references in DataAssets must point to valid asset paths
 - `get_data_asset` can succeed with `partial=true`; inspect `issues` before assuming every nested property was serialized

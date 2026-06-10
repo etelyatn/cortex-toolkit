@@ -58,7 +58,7 @@ WORKFLOW:
    - large/repeatable migrations or externally planned batches: prefer the file-backed workflow with raw exports, optional compare_data_json review, then data_cmd(command="apply_import_ops_json")
 5. If using the file-backed workflow, export and inspect large source payloads locally first, then use data_cmd(command="compare_data_json") when you need a deterministic diff between two exported snapshots before building or applying write operations
 6. For direct bulk localization edits, use data_cmd(command="update_string_table") with explicit dry_run=true first, inspect operation_results, then apply the same ordered operations
-7. For file-backed imports, run data_cmd(command="apply_import_ops_json") with dry_run=true first, inspect the report file, and only perform a real apply after explicit user intent with dry_run=false and apply=true
+7. For file-backed imports, run data_cmd(command="apply_import_ops_json") with dry_run=true first, inspect the report file, and only perform a real apply after explicit user intent with dry_run=false and apply=true. Treat the MCP response as a compact envelope plus nested aggregate `counts`, not as the per-operation source of truth
 8. For table-backed FText migrations, audit references with data_cmd(command="search_datatable_content", params={"search_mode":"string_table_refs", ...})
 9. Validate structure and data integrity, using compare_data_json for exported snapshot diffs and query-back plus the report file as the source of truth for file-backed imports
 ```
