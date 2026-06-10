@@ -19,9 +19,10 @@ Design data schemas, create and populate DataTables/DataAssets/CurveTables, and 
 3. Check `.cortex/schema/_catalog.md` for struct schemas, table inventory, and tag prefixes (fast, no editor needed)
 4. Use `data_cmd(command="list_datatables")` and `data_cmd(command="list_data_assets")` for live data if schema files are missing or stale
 5. For large audits or migrations, request raw export files first with `export_datatable_json`, `export_string_table_json`, `export_data_assets_json`, or `export_bulk_json`, then inspect the files locally instead of asking MCP to return full payloads in chat
-6. Use `data_cmd(command="compare_data_json")` when you need a deterministic diff between two exported snapshots, especially before generating or approving reconcile queues
-7. For large or repeatable write batches, prefer the file-backed queue workflow with `data_cmd(command="apply_import_ops_json")` instead of long ad hoc loops of direct mutation commands
-8. For DataAsset reads and exports, inspect serialization status fields before trusting nested property payloads: `get_data_asset` may return `partial` and `issues`, and `export_data_assets_json(include_properties=true)` may report `partial`, `issue_count`, or `omitted_assets`
+6. For offline schema validation inputs, use `data_cmd(command="export_schema_json")` so migration scripts and agents can work from one deterministic snapshot file
+7. Use `data_cmd(command="compare_data_json")` when you need a deterministic diff between two exported snapshots, especially before generating or approving reconcile queues
+8. For large or repeatable write batches, prefer the file-backed queue workflow with `data_cmd(command="apply_import_ops_json")` instead of long ad hoc loops of direct mutation commands
+9. For DataAsset reads and exports, inspect serialization status fields before trusting nested property payloads: `get_data_asset` may return `partial` and `issues`, and `export_data_assets_json(include_properties=true)` may report `partial`, `issue_count`, or `omitted_assets`
 
 ## Methodology
 
