@@ -73,7 +73,7 @@ WORKFLOW:
 1. Read `.cortex/domains/data.md` for table schemas, balance rules, and acceptable ranges
 2. Discover relevant data assets via data_cmd(command="list_datatables") etc.
 3. Extract small data via data_cmd(command="query_datatable"), data_cmd(command="get_curve_table")
-   For large DataTable, StringTable, or DataAsset reviews, first use data_cmd(command="export_datatable_json"), data_cmd(command="export_string_table_json"), data_cmd(command="export_data_assets_json"), or data_cmd(command="export_bulk_json") to write raw files, then inspect those files locally instead of returning raw payloads through chat.
+   For large DataTable, StringTable, or DataAsset reviews, first use data_cmd(command="export_datatable_json"), data_cmd(command="export_string_table_json"), data_cmd(command="export_data_assets_json"), or data_cmd(command="export_bulk_json") to write raw files, then inspect those files locally instead of returning raw payloads through chat. For DataAsset deep reads and exports, explicitly inspect `partial`, `issues`, `issue_count`, and `omitted_assets` when present.
 4. Check naming conventions and structure
 5. Perform balance analysis against rules defined in .cortex/domains/data.md
 6. Cross-reference related tables for consistency

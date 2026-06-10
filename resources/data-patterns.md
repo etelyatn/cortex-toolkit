@@ -52,6 +52,8 @@ core_cmd("batch") (multiple tables) → correlate by shared keys (FName, tags)
 
 For large DataTable, StringTable, or DataAsset reviews, export raw payloads to files and inspect them locally instead of returning full rows or properties through chat. Export commands return compact summaries with counts, output paths, byte sizes, warnings, and errors.
 
+When exporting DataAssets with `include_properties=true`, inspect serialization status fields in the MCP response before trusting the file contents. Deep property export can now report `partial=true`, `issue_count`, and `omitted_assets`; strict mode with `allow_partial=false` can fail instead of writing a partial asset set.
+
 ```json
 {
   "tool": "data_cmd",
@@ -124,6 +126,8 @@ The MCP response is only a compact summary. The report file on disk is the sourc
 data_cmd("list_data_assets") → data_cmd("get_data_asset") → review properties
 ```
 
+`get_data_asset` is a deep read. Always inspect `partial` and `issues` alongside `properties`, especially when the asset contains nested structs, instanced structs, sets, maps, or unsupported reflected property types.
+
 ### Modify
 ```
 data_cmd("get_data_asset") → data_cmd("update_data_asset") → data_cmd("get_data_asset") (verify)
@@ -176,3 +180,5 @@ Run to validate after modifying Data MCP tools or C++ command handlers.
 - Use `data_cmd(command="apply_import_ops_json")` for large/repeatable write batches; preview with `dry_run=true` first and do not rely on the compact MCP response alone
 - Use `search_datatable_content` with `search_mode="string_table_refs"` before renaming/deleting StringTable keys referenced by DataTable `FText` fields
 - Soft references in DataAssets must point to valid asset paths
+- `get_data_asset` can succeed with `partial=true`; inspect `issues` before assuming every nested property was serialized
+- `export_data_assets_json(include_properties=true)` can omit assets with blocking serialization issues; inspect `partial`, `issue_count`, and `omitted_assets`, and use `allow_partial=false` when you want strict failure instead of a partial export
