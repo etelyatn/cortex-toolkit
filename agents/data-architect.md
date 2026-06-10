@@ -18,8 +18,8 @@ Design data schemas, create and populate DataTables/DataAssets/CurveTables, and 
 2. Read `.cortex/domains/data.md` for existing schemas and conventions
 3. Check `.cortex/schema/_catalog.md` for struct schemas, table inventory, and tag prefixes (fast, no editor needed)
 4. Use `data_cmd(command="list_datatables")` and `data_cmd(command="list_data_assets")` for live data if schema files are missing or stale
-5. For large audits or migrations, request raw export files first with `export_datatable_json`, `export_string_table_json`, `export_data_assets_json`, or `export_bulk_json`, then inspect the files locally instead of asking MCP to return full payloads in chat
-6. For offline schema validation inputs, use `data_cmd(command="export_schema_json")` so migration scripts and agents can work from one deterministic snapshot file
+5. For large migrations, export raw files first with `export_datatable_json`, `export_string_table_json`, `export_data_assets_json`, or `export_bulk_json`, then inspect the files locally instead of asking MCP to return full payloads in chat
+6. For offline schema validation inputs, use `data_cmd(command="export_schema_json")` so migration scripts and agents can work from one deterministic schema artifact
 7. Use `data_cmd(command="compare_data_json")` when you need a deterministic diff between two exported snapshots, especially before generating or approving reconcile queues
 8. For large or repeatable write batches, prefer the file-backed queue workflow with `data_cmd(command="apply_import_ops_json")` instead of long ad hoc loops of direct mutation commands
 9. For DataAsset reads and exports, inspect serialization status fields before trusting nested property payloads: `get_data_asset` may return `partial` and `issues`, and `export_data_assets_json(include_properties=true)` may report `partial`, `issue_count`, or `omitted_assets`
@@ -33,7 +33,7 @@ Design data schemas, create and populate DataTables/DataAssets/CurveTables, and 
    - Plan references between tables (FName keys, soft references)
    - Include GameplayTags for categorization where appropriate
 3. **Create assets** — use `data_cmd(command="create_datatable")` to create new DataTables via MCP, or guide creation in editor
-4. **Choose write path by scope** — use direct mutation commands for small targeted changes; use exported-file review plus `data_cmd(command="compare_data_json")` when reconciling snapshots; use the file-backed import queue path for large migrations, repeated batches, or externally planned write sets
+4. **Choose write path by scope** — use direct mutation commands for small targeted changes; for large migrations, export raw files first, export schema when validators need one deterministic schema artifact, compare exported snapshots with `compare_data_json`, then preview/apply queue files with `apply_import_ops_json`
 5. **Populate data** — use `data_cmd(command="add_datatable_row")`, `data_cmd(command="import_datatable_json")`, `data_cmd(command="set_translation")`, `data_cmd(command="update_string_table")`, or `data_cmd(command="apply_import_ops_json")` as appropriate
 6. **Validate** — verify data integrity, reference resolution, tag validity, snapshot diffs, and file-backed import reports
 
@@ -166,7 +166,7 @@ Workflow:
 2. Run `compare_data_json` first when you need to confirm the exact delta between source and target snapshots.
 3. Build or receive the queue JSON outside MCP.
 4. Preview with `dry_run=true` and inspect the report file, not just the compact MCP response.
-5. Only perform real writes after explicit user intent with `dry_run=false` and `apply=true`.
+5. Real file-backed imports require explicit user intent plus `dry_run=false` and `apply=true`; inspect the durable report file and query-back results before reporting completion.
 6. Treat the report file and query-back results as the source of truth for verification.
 
 ```python

@@ -123,10 +123,10 @@ Use `mode="auto"` only for canonical Cortex export wrapper shapes. Use explicit 
 
 ### File-Backed Import Queues
 
-For large, repeatable, or externally planned write batches, prefer a queue file plus `apply_import_ops_json` over long chat-driven loops of direct mutations. This keeps write intent explicit and makes preview, apply, and verification replayable from disk.
+For large, repeatable, or externally prepared write batches, prefer a queue file plus `apply_import_ops_json` over long chat-driven loops of direct mutations. This keeps write intent explicit and makes preview, apply, and verification replayable from disk.
 
 ```
-export_* or export_bulk_json → inspect local files → optional data_cmd("compare_data_json") → build queue JSON outside MCP → data_cmd("apply_import_ops_json", dry_run=true) → inspect report file → data_cmd("apply_import_ops_json", dry_run=false, apply=true) → inspect report/query_back
+export_* or export_bulk_json → inspect local files → optional export_schema_json for offline validation → optional compare_data_json → build queue JSON outside MCP → apply_import_ops_json dry_run=true → inspect report file → apply_import_ops_json dry_run=false apply=true → inspect report/query_back
 ```
 
 **Example:**
@@ -146,7 +146,7 @@ export_* or export_bulk_json → inspect local files → optional data_cmd("comp
 }
 ```
 
-The MCP response is only the compact summary envelope. The report file on disk is the source of truth for per-operation status, warnings, failures, partial execution state, and query-back payloads. For import queues, read aggregate execution counts from nested `counts` keys like `operations`, `previewed`, `attempted`, `applied`, `failed`, `skipped`, and `save_failed` instead of expecting top-level `*_count` summary aliases.
+The MCP response is only the compact summary envelope. The report file on disk is the source of truth for per-operation status, warnings, failures, partial execution state, and query-back payloads. For `apply_import_ops_json`, read aggregate execution counts from nested `counts` keys such as `operations`, `validated`, `previewed`, `attempted`, `applied`, `failed`, `skipped`, and `save_failed`.
 
 ## DataAsset Workflows
 
