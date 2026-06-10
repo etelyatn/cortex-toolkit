@@ -120,6 +120,8 @@ Manage asset lifecycle. All commands accept a single path, a list of paths, or g
 
 For large or repeatable data migrations, use raw export commands for large reads, `compare_data_json` when you need a deterministic exported-snapshot diff, and `apply_import_ops_json` for the corresponding file-backed write phase. Small targeted edits should still use direct mutation commands.
 
+File-backed Data command responses use a compact summary envelope: `success`, `partial`, `warnings`, `errors`, `files_written`, `targets_touched`, and nested `counts`. Raw export payload files and durable import reports on disk remain the detailed sources of truth.
+
 Use `export_schema_json` when the job is offline schema validation rather than raw payload review. It writes DataTable row schemas, transitive struct closure, DataAsset class property schemas, and StringTable metadata to disk while keeping the MCP response compact.
 
 `get_data_asset` returns a deep reflected property payload. Inspect additive `partial` and `issues` fields before assuming every nested field serialized cleanly.

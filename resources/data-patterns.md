@@ -52,7 +52,7 @@ core_cmd("batch") (multiple tables) → correlate by shared keys (FName, tags)
 
 ### Large Raw Exports
 
-For large DataTable, StringTable, or DataAsset reviews, export raw payloads to files and inspect them locally instead of returning full rows or properties through chat. Export commands return compact summaries with counts, output paths, byte sizes, warnings, and errors.
+For large DataTable, StringTable, or DataAsset reviews, export raw payloads to files and inspect them locally instead of returning full rows or properties through chat. File-backed Data commands return a compact summary envelope with `success`, `partial`, `warnings`, `errors`, `files_written`, `targets_touched`, and nested `counts`; use the written files for full rows, entries, properties, and per-operation details.
 
 When exporting DataAssets with `include_properties=true`, inspect serialization status fields in the MCP response before trusting the file contents. Deep property export can now report `partial=true`, `issue_count`, and `omitted_assets`; strict mode with `allow_partial=false` can fail instead of writing a partial asset set.
 
@@ -146,7 +146,7 @@ export_* or export_bulk_json → inspect local files → optional data_cmd("comp
 }
 ```
 
-The MCP response is only a compact summary. The report file on disk is the source of truth for per-operation status, warnings, failures, partial execution state, and query-back payloads.
+The MCP response is only the compact summary envelope. The report file on disk is the source of truth for per-operation status, warnings, failures, partial execution state, and query-back payloads.
 
 ## DataAsset Workflows
 
