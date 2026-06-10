@@ -53,12 +53,13 @@ WORKFLOW:
 3. Register any required GameplayTags before use
 4. Choose mutation path by scope:
    - small targeted edits: use direct commands such as data_cmd(command="add_datatable_row"), data_cmd(command="update_datatable_row"), data_cmd(command="update_string_table"), or data_cmd(command="update_data_asset")
-   - large/repeatable migrations or externally planned batches: prefer the file-backed workflow with raw exports plus data_cmd(command="apply_import_ops_json")
-5. If using the file-backed workflow, export and inspect large source payloads locally first, then build or receive the queue JSON outside MCP
+   - reconcile, audit, or migration planning from exported files: prefer the file-backed review workflow with raw exports plus data_cmd(command="compare_data_json")
+   - large/repeatable migrations or externally planned batches: prefer the file-backed workflow with raw exports, optional compare_data_json review, then data_cmd(command="apply_import_ops_json")
+5. If using the file-backed workflow, export and inspect large source payloads locally first, then use data_cmd(command="compare_data_json") when you need a deterministic diff between two exported snapshots before building or applying write operations
 6. For direct bulk localization edits, use data_cmd(command="update_string_table") with explicit dry_run=true first, inspect operation_results, then apply the same ordered operations
 7. For file-backed imports, run data_cmd(command="apply_import_ops_json") with dry_run=true first, inspect the report file, and only perform a real apply after explicit user intent with dry_run=false and apply=true
 8. For table-backed FText migrations, audit references with data_cmd(command="search_datatable_content", params={"search_mode":"string_table_refs", ...})
-9. Validate structure and data integrity, using query-back and the report file as the source of truth for file-backed imports
+9. Validate structure and data integrity, using compare_data_json for exported snapshot diffs and query-back plus the report file as the source of truth for file-backed imports
 ```
 
 **For Review/Balance**, pass the review scope and focus:
@@ -73,7 +74,7 @@ WORKFLOW:
 1. Read `.cortex/domains/data.md` for table schemas, balance rules, and acceptable ranges
 2. Discover relevant data assets via data_cmd(command="list_datatables") etc.
 3. Extract small data via data_cmd(command="query_datatable"), data_cmd(command="get_curve_table")
-   For large DataTable, StringTable, or DataAsset reviews, first use data_cmd(command="export_datatable_json"), data_cmd(command="export_string_table_json"), data_cmd(command="export_data_assets_json"), or data_cmd(command="export_bulk_json") to write raw files, then inspect those files locally instead of returning raw payloads through chat. For DataAsset deep reads and exports, explicitly inspect `partial`, `issues`, `issue_count`, and `omitted_assets` when present.
+   For large DataTable, StringTable, or DataAsset reviews, first use data_cmd(command="export_datatable_json"), data_cmd(command="export_string_table_json"), data_cmd(command="export_data_assets_json"), or data_cmd(command="export_bulk_json") to write raw files, then inspect those files locally instead of returning raw payloads through chat. Use data_cmd(command="compare_data_json") when you need a deterministic diff between two exported snapshots. For DataAsset deep reads and exports, explicitly inspect `partial`, `issues`, `issue_count`, and `omitted_assets` when present.
 4. Check naming conventions and structure
 5. Perform balance analysis against rules defined in .cortex/domains/data.md
 6. Cross-reference related tables for consistency

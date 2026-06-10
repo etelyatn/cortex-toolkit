@@ -110,6 +110,7 @@ Manage asset lifecycle. All commands accept a single path, a list of paths, or g
 
 - **DataTables:** `list_datatables`, `get_datatable_schema`, `query_datatable`, `get_datatable_row`, `add_datatable_row`, `update_datatable_row`, `delete_datatable_row`, `search_datatable_content`, `import_datatable_json`, `get_struct_schema`
 - **Raw file exports:** `export_datatable_json`, `export_string_table_json`, `export_data_assets_json`, `export_bulk_json`
+- **Snapshot diff:** `compare_data_json`
 - **File-backed imports:** `apply_import_ops_json`
 - **GameplayTags:** `list_gameplay_tags`, `validate_gameplay_tag`, `register_gameplay_tag`, `register_gameplay_tags`, `resolve_tags`
 - **DataAssets:** `list_data_assets`, `get_data_asset`, `update_data_asset`
@@ -117,7 +118,7 @@ Manage asset lifecycle. All commands accept a single path, a list of paths, or g
 - **StringTables:** `list_string_tables`, `get_translations`, `set_translation`, `update_string_table`
 - **Search:** `search_assets`
 
-For large or repeatable data migrations, use raw export commands for large reads and `apply_import_ops_json` for the corresponding file-backed write phase. Small targeted edits should still use direct mutation commands.
+For large or repeatable data migrations, use raw export commands for large reads, `compare_data_json` when you need a deterministic exported-snapshot diff, and `apply_import_ops_json` for the corresponding file-backed write phase. Small targeted edits should still use direct mutation commands.
 
 `get_data_asset` returns a deep reflected property payload. Inspect additive `partial` and `issues` fields before assuming every nested field serialized cleanly.
 
@@ -199,6 +200,27 @@ Update nested `TArray<UStruct>` table-backed `FText` fields:
   }
 }
 ```
+
+### Snapshot Diff Example
+
+Compare two exported snapshots and write the canonical diff report to disk:
+
+```json
+{
+  "tool": "data_cmd",
+  "command": "compare_data_json",
+  "params": {
+    "left_path": "Saved/CortexExports/baseline/quests.json",
+    "right_path": "Saved/CortexExports/proposed/quests.json",
+    "report_path": "Saved/CortexExports/diff/quests_diff.json",
+    "mode": "datatable_rows",
+    "ignore_fields": ["LastModified"],
+    "include_equal": false
+  }
+}
+```
+
+Use `mode="auto"` only for canonical Cortex export wrappers. Use explicit modes for top-level arrays or custom wrappers, and inspect the report file on disk for the full added/removed/changed summary.
 
 ### File-Backed Import Queue Example
 

@@ -92,12 +92,38 @@ Use individual exports when only one resource is needed:
 - `export_string_table_json`
 - `export_data_assets_json`
 
+### Snapshot Diff and Reconcile Review
+
+When you already have two exported snapshots, use `compare_data_json` to produce a deterministic report before planning writes or presenting audit findings. This is the preferred review step for exported DataTable rows, StringTable entries, and DataAsset property snapshots.
+
+```
+export_* → inspect local files → data_cmd("compare_data_json") → inspect diff report → decide whether to stop, hand-review, or build import queue
+```
+
+**Example:**
+```json
+{
+  "tool": "data_cmd",
+  "command": "compare_data_json",
+  "params": {
+    "left_path": "Saved/CortexExports/Baseline/items.json",
+    "right_path": "Saved/CortexExports/Proposed/items.json",
+    "report_path": "Saved/CortexExports/Diff/items_diff.json",
+    "mode": "data_assets",
+    "ignore_fields": ["LastModified"],
+    "include_equal": false
+  }
+}
+```
+
+Use `mode="auto"` only for canonical Cortex export wrapper shapes. Use explicit modes for top-level arrays, custom wrappers, or when you need to force DataTable rows vs StringTable entries vs DataAssets semantics.
+
 ### File-Backed Import Queues
 
 For large, repeatable, or externally planned write batches, prefer a queue file plus `apply_import_ops_json` over long chat-driven loops of direct mutations. This keeps write intent explicit and makes preview, apply, and verification replayable from disk.
 
 ```
-export_* or export_bulk_json → inspect local files → build queue JSON outside MCP → data_cmd("apply_import_ops_json", dry_run=true) → inspect report file → data_cmd("apply_import_ops_json", dry_run=false, apply=true) → inspect report/query_back
+export_* or export_bulk_json → inspect local files → optional data_cmd("compare_data_json") → build queue JSON outside MCP → data_cmd("apply_import_ops_json", dry_run=true) → inspect report file → data_cmd("apply_import_ops_json", dry_run=false, apply=true) → inspect report/query_back
 ```
 
 **Example:**
@@ -177,6 +203,7 @@ Run to validate after modifying Data MCP tools or C++ command handlers.
 - GameplayTags must be registered before use in DataTable rows
 - `data_cmd(command="import_datatable_json")` overwrites existing rows with same key
 - Use `data_cmd(command="update_string_table")` for bulk StringTable edits; run `dry_run=true` first and apply only after inspecting `operation_results`
+- Use `data_cmd(command="compare_data_json")` for deterministic exported-file diffs instead of manual line-by-line review or chat-sized payload comparisons
 - Use `data_cmd(command="apply_import_ops_json")` for large/repeatable write batches; preview with `dry_run=true` first and do not rely on the compact MCP response alone
 - Use `search_datatable_content` with `search_mode="string_table_refs"` before renaming/deleting StringTable keys referenced by DataTable `FText` fields
 - Soft references in DataAssets must point to valid asset paths
