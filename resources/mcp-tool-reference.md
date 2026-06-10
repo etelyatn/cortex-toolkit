@@ -109,7 +109,7 @@ Manage asset lifecycle. All commands accept a single path, a list of paths, or g
 ## Data (`data_cmd`)
 
 - **DataTables:** `list_datatables`, `get_datatable_schema`, `query_datatable`, `get_datatable_row`, `add_datatable_row`, `update_datatable_row`, `delete_datatable_row`, `search_datatable_content`, `import_datatable_json`, `get_struct_schema`
-- **Raw file exports:** `export_datatable_json`, `export_string_table_json`, `export_data_assets_json`, `export_bulk_json`
+- **Raw/schema file exports:** `export_datatable_json`, `export_string_table_json`, `export_data_assets_json`, `export_schema_json`, `export_bulk_json`
 - **Snapshot diff:** `compare_data_json`
 - **File-backed imports:** `apply_import_ops_json`
 - **GameplayTags:** `list_gameplay_tags`, `validate_gameplay_tag`, `register_gameplay_tag`, `register_gameplay_tags`, `resolve_tags`
@@ -119,6 +119,8 @@ Manage asset lifecycle. All commands accept a single path, a list of paths, or g
 - **Search:** `search_assets`
 
 For large or repeatable data migrations, use raw export commands for large reads, `compare_data_json` when you need a deterministic exported-snapshot diff, and `apply_import_ops_json` for the corresponding file-backed write phase. Small targeted edits should still use direct mutation commands.
+
+Use `export_schema_json` when the job is offline schema validation rather than raw payload review. It writes DataTable row schemas, transitive struct closure, DataAsset class property schemas, and StringTable metadata to disk while keeping the MCP response compact.
 
 `get_data_asset` returns a deep reflected property payload. Inspect additive `partial` and `issues` fields before assuming every nested field serialized cleanly.
 

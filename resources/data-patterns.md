@@ -10,6 +10,8 @@ Check `.cortex/schema/_catalog.md` first for project overview, struct schemas, a
 core_cmd("schema_status") → (if stale) schema_generate → read _catalog.md → read data.md
 ```
 
+When a workflow needs one deterministic schema artifact on disk for offline validation or migration tooling, use `data_cmd(command="export_schema_json")` instead of piecing together repeated `get_datatable_schema`, `get_struct_schema`, or DataAsset class reads.
+
 ## DataTable Workflows
 
 ### Create New DataTable
@@ -91,6 +93,7 @@ Use individual exports when only one resource is needed:
 - `export_datatable_json`
 - `export_string_table_json`
 - `export_data_assets_json`
+- `export_schema_json`
 
 ### Snapshot Diff and Reconcile Review
 

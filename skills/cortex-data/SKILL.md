@@ -51,8 +51,9 @@ WORKFLOW:
 1. Read `.cortex/domains/data.md` for project conventions, existing schemas, and balance rules
 2. Check `.cortex/schema/_catalog.md` for existing assets to avoid duplicates
 3. Register any required GameplayTags before use
-4. Choose mutation path by scope:
+4. Choose read/write path by scope:
    - small targeted edits: use direct commands such as data_cmd(command="add_datatable_row"), data_cmd(command="update_datatable_row"), data_cmd(command="update_string_table"), or data_cmd(command="update_data_asset")
+   - offline schema validation or migration-planning inputs: prefer data_cmd(command="export_schema_json") so agents/scripts can work from one deterministic schema artifact on disk
    - reconcile, audit, or migration planning from exported files: prefer the file-backed review workflow with raw exports plus data_cmd(command="compare_data_json")
    - large/repeatable migrations or externally planned batches: prefer the file-backed workflow with raw exports, optional compare_data_json review, then data_cmd(command="apply_import_ops_json")
 5. If using the file-backed workflow, export and inspect large source payloads locally first, then use data_cmd(command="compare_data_json") when you need a deterministic diff between two exported snapshots before building or applying write operations
@@ -75,6 +76,7 @@ WORKFLOW:
 2. Discover relevant data assets via data_cmd(command="list_datatables") etc.
 3. Extract small data via data_cmd(command="query_datatable"), data_cmd(command="get_curve_table")
    For large DataTable, StringTable, or DataAsset reviews, first use data_cmd(command="export_datatable_json"), data_cmd(command="export_string_table_json"), data_cmd(command="export_data_assets_json"), or data_cmd(command="export_bulk_json") to write raw files, then inspect those files locally instead of returning raw payloads through chat. Use data_cmd(command="compare_data_json") when you need a deterministic diff between two exported snapshots. For DataAsset deep reads and exports, explicitly inspect `partial`, `issues`, `issue_count`, and `omitted_assets` when present.
+   For offline validation inputs without raw payloads, prefer data_cmd(command="export_schema_json") and inspect the written snapshot locally.
 4. Check naming conventions and structure
 5. Perform balance analysis against rules defined in .cortex/domains/data.md
 6. Cross-reference related tables for consistency
