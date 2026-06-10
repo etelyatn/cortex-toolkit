@@ -54,7 +54,7 @@ WORKFLOW:
 4. Choose read/write path by scope:
    - small targeted edits: use direct commands such as data_cmd(command="add_datatable_row"), data_cmd(command="update_datatable_row"), data_cmd(command="update_string_table"), or data_cmd(command="update_data_asset")
    - offline schema validation inputs: use data_cmd(command="export_schema_json")
-   - large raw reads or migration-planning inputs: use export_datatable_json, export_string_table_json, export_data_assets_json, or export_bulk_json
+   - large raw reads or migration-planning inputs: use data_cmd(command="export_datatable_json"), data_cmd(command="export_string_table_json"), data_cmd(command="export_data_assets_json"), or data_cmd(command="export_bulk_json")
    - reconcile/audit between exported snapshots: use data_cmd(command="compare_data_json")
    - large/repeatable writes or externally prepared batches: use data_cmd(command="apply_import_ops_json")
 5. If using the file-backed workflow, export and inspect large source payloads locally first, then use data_cmd(command="compare_data_json") when you need a deterministic diff between two exported snapshots before building or applying write operations
