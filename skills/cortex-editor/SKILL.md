@@ -21,15 +21,53 @@ Use this when the editor is down and needs to be launched cleanly.
 1. Check for a running `UnrealEditor.exe` process and a live `Saved/CortexPort-*.txt` port file.
 2. If the editor is already healthy, report the port and registered domains, then stop.
 3. Read the effective `engine.path` from `.cortex/config.yaml` plus optional `.cortex/config.local.yaml`. Fall back to `UE_PATH` only if project config does not provide it.
+
+```bash
+ENGINE_PATH=$(python cortex-toolkit/lib/cortex_config.py --project-dir . --get engine.path)
+```
+
 4. If no project config exists, direct the user to `cortex-setup` first.
-5. Verify the `.uproject` exists and that `UnrealCortex` is not explicitly disabled.
+5. Verify the `.uproject` exists and that `UnrealCortex` is not explicitly disabled. If the `.uproject` explicitly sets `UnrealCortex` to `"Enabled": false`, stop and tell the user to enable it before launching.
 6. If a UE process exists without a valid port file, tell the user the editor may still be starting or blocked by a modal dialog and ask whether to wait or relaunch.
 7. Remove stale port files only after confirming there is no healthy editor instance.
+
+```bash
+for f in Saved/CortexPort-*.txt; do
+  [ -f "$f" ] || continue
+  PID=$(echo "$f" | sed 's/.*CortexPort-\([0-9]*\).*/\1/')
+  if [ -n "$PID" ] && MSYS_NO_PATHCONV=1 tasklist /FI "PID eq $PID" /NH 2>/dev/null | grep -q "$PID"; then
+    continue
+  fi
+  rm -f "$f"
+done
+rm -f Saved/CortexPort.txt 2>/dev/null || true
+```
+
 8. Launch the editor with:
    - `-AutoDeclinePackageRecovery`
    - `-ExecCmds="Mainframe.ShowRestoreAssetsPromptOnStartup 0"`
-9. Poll for a new port file, then verify TCP first and `get_status` second.
-10. Report success with the port and registered domains, or report startup diagnostics and the latest log tail on timeout.
+
+```bash
+UPROJECT=$(ls *.uproject 2>/dev/null | head -1)
+"$ENGINE_PATH/Engine/Binaries/Win64/UnrealEditor.exe" "$(pwd)/$UPROJECT" -AutoDeclinePackageRecovery -ExecCmds="Mainframe.ShowRestoreAssetsPromptOnStartup 0" &
+```
+
+9. Poll every 5 seconds for up to 120 seconds for a new `Saved/CortexPort-*.txt` file. At 30 seconds, tell the user the editor may be compiling shaders. At 60 seconds, suggest checking the editor window for modal dialogs.
+10. Once the port file appears, read the port and verify TCP before calling MCP tools:
+
+```bash
+RAW=$(cat Saved/CortexPort-*.txt 2>/dev/null | head -1 | tr -d '[:space:]')
+if [[ "$RAW" =~ ^[0-9]+$ ]]; then
+  PORT="$RAW"
+elif [[ "$RAW" =~ \"port\":([0-9]+) ]]; then
+  PORT="${BASH_REMATCH[1]}"
+fi
+if [ -n "$PORT" ]; then
+  (echo > /dev/tcp/127.0.0.1/$PORT) 2>/dev/null && echo "TCP OK"
+fi
+```
+
+11. Report success with the port and registered domains, or report startup diagnostics and the latest log tail on timeout.
 
 ## Status Mode
 

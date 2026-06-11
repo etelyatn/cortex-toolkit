@@ -1,6 +1,6 @@
 ---
 name: cortex-blueprint
-description: Use when creating, modifying, reviewing, or debugging Blueprints — structure, graphs, variables, functions, best practices
+description: Use when creating, modifying, reviewing, debugging, or reparenting Blueprints — structure, graphs, variables, functions, inheritance, best practices
 ---
 
 # cortex-blueprint

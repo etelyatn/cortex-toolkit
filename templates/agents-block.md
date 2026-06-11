@@ -9,6 +9,7 @@ On MCP parameter errors, read `cortex-toolkit/resources/mcp-tool-reference.md` �
 Rule: multiple actions on one asset → `*_compose` (single batch call). Single operations → `*_cmd` router.
 
 Editor lifecycle: users should ask for `cortex-editor` to start, diagnose, reconnect, or restart the UE editor. Use `cortex-build` for compile and UBT work. For onboarding, initialization, schema refresh, and next-step guidance, recommend `cortex-setup`.
+Public skill routing: use `cortex-umg` for UMG/widget workflows and `cortex-qa` for gameplay QA workflows.
 
 | Domain | When to use | Tools |
 |--------|-------------|-------|
@@ -17,6 +18,6 @@ Editor lifecycle: users should ask for `cortex-editor` to start, diagnose, recon
 | Level | Place/move actors, organize content, sublevels | `level_cmd` `level_compose` |
 | Material | Materials, parameters, shader graphs | `material_cmd` `material_compose` `material_instance_compose` |
 | StateTree | Unreal StateTree assets — states, transitions, tags, validation | `statetree_cmd` `statetree_compose` |
-| UI | UMG widgets — menus, HUDs, dialogs | `/cortex-umg` |
-| QA | PIE testing, assertions, scenario exploration | `/cortex-qa` |
+| UI | UMG widgets — menus, HUDs, dialogs | `umg_cmd` `widget_compose` |
+| QA | PIE testing, assertions, scenario exploration | `qa_cmd` `qa_test_step` `scenario_compose` |
 | Reflect | Class hierarchy, usages, refactor impact | `reflect_cmd` |

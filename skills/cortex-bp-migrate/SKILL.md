@@ -948,7 +948,7 @@ Append to the existing `migration-plan.md` (created in ANALYZE stage). Use the E
 Each task includes Action, Verify, and Rollback:
 
 ### Task 1 -- Verify MCP connection
-- **Action:** Call `get_status` via `/cortex-editor`
+- **Action:** Invoke `/cortex-editor` to verify editor, MCP, and domain health
 - **Verify:** Response includes expected domains
 - **Rollback:** N/A
 
