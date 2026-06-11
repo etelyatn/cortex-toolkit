@@ -106,5 +106,9 @@ for doc_path in docs_to_check:
     if "trust" not in contents.lower():
         raise SystemExit(f"{doc_path.relative_to(root)} must explain Codex hook trust")
 
+taxonomy_test = root / "tests" / "test-skill-taxonomy.sh"
+if not taxonomy_test.exists():
+    raise SystemExit("missing taxonomy regression test")
+
 print("codex plugin tests passed")
 PY

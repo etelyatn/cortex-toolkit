@@ -43,7 +43,7 @@ Create, modify, and fix Blueprint assets. You work with Blueprint structure (var
 Call `core_cmd(get_status)`. If it returns a connected response, proceed immediately.
 
 If it fails:
-- Use the `Skill` tool to invoke `/cortex-status` — it will diagnose and attempt reconnection
+- Use the `Skill` tool to invoke `/cortex-editor` — it handles editor status, reconnect attempts, and restart when needed
 - If the editor is not running, invoke `/cortex-editor` to start it, then retry `core_cmd(get_status)`
 - If all attempts fail, stop and ask the user to run `/mcp` manually
 
@@ -661,7 +661,7 @@ reparent_blueprint(
 2. **Never fallback to Python scripts or manual workarounds** - always resolve MCP connectivity first
 
 3. If persistent errors, inform the user and suggest checking:
-   - Editor is running (`/cortex-status`)
+   - Editor is running (`/cortex-editor`)
    - Asset exists and path is correct
    - Operation is valid for the current Blueprint state
 

@@ -1,6 +1,6 @@
 ---
 name: cortex-blueprint
-description: Use when creating, modifying, reviewing, or debugging Blueprints — structure, graphs, variables, functions, best practices
+description: Use when creating, modifying, reviewing, debugging, or reparenting Blueprints — structure, graphs, variables, functions, inheritance, best practices
 ---
 
 # cortex-blueprint
@@ -23,6 +23,10 @@ Determine mode from user intent:
   Examples: "debug BP_Player", "why isn't this working", "trace execution", "investigate crash"
   → Launch `cortex-toolkit:blueprint-debugger` agent with `max_turns: 35`
 
+- **Reparent**: User wants to change a Blueprint parent class or move all children to a new parent
+  Examples: "reparent BP_Door to BP_InteractableBase", "change the parent of these Blueprints"
+  -> Stay in `cortex-blueprint` and run the reparent workflow below before any mutation
+
 - **Ambiguous** → Default to Review (read-only, safe)
 
 ## Agent Routing
@@ -32,8 +36,44 @@ Determine mode from user intent:
 | Create/Modify | cortex-toolkit:blueprint-developer | 25 |
 | Review/Analyze | cortex-toolkit:blueprint-developer | 15 |
 | Debug | cortex-toolkit:blueprint-debugger | 35 |
+| Reparent | built-in reparent workflow | n/a |
 
 ## Steps
+
+### Reparent Mode
+
+Run this workflow before mutation:
+1. Resolve target Blueprints and present the full mutation set for confirmation.
+2. Resolve the new parent Blueprint or C++ class and verify it exists.
+3. Capture SCS component defaults and placed-instance overrides before reparenting.
+4. Reparent.
+5. Restore Blueprint defaults and placed-instance overrides.
+6. Compile and save.
+7. Report per-Blueprint results and warnings.
+
+Detailed execution requirements:
+
+1. Resolve targets.
+   - For one named Blueprint, resolve the asset path if only a short name is provided.
+   - For "all children of X" or multi-target requests, discover candidates and filter them by current parent.
+   - Present the exact mutation set before proceeding.
+2. Resolve the new parent.
+   - Accept either a Blueprint asset path or a C++ class name.
+   - Verify the target exists before mutation.
+3. Capture pre-reparent state.
+   - Inspect each Blueprint for custom variables, functions, and graph complexity.
+   - Capture owned SCS component defaults that would be overwritten by the new parent.
+   - Capture placed-instance overrides for existing level instances so they can be restored after the parent swap.
+   - Warn the user if custom variables, graph logic, or component layouts may not be compatible with the new parent.
+4. Reparent.
+   - Use `reparent_blueprint` on each target Blueprint.
+   - If the primary reparent route is unavailable, use the supported cleanup/reparent fallback with the generated class path.
+5. Restore defaults and instance overrides.
+   - Restore owned Blueprint component defaults with `set_component_defaults`.
+   - Restore placed-instance overrides with level modify operations.
+   - Check for partial failures and surface them explicitly.
+6. Compile and save each Blueprint.
+7. Report per-Blueprint old parent, new parent, restored-instance count, and any warnings that still need visual verification.
 
 ### 1. Launch Agent
 

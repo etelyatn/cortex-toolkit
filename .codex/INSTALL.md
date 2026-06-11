@@ -49,7 +49,7 @@ Codex discovers `hooks/hooks.json` automatically after install. On first use, re
 ## Limitations
 
 - **Hooks require trust in Codex** — the `hooks/` directory is packaged and Codex prompts before running new or changed hooks.
-- **Operational skills need a local editor** — Skills like `/cortex-editor`, `/cortex-restart`, and `/cortex-build` require a local Unreal Editor and are not functional in Codex cloud environments.
+- **Operational skills need a local editor** — Skills like `/cortex-editor` and `/cortex-build` require a local Unreal Editor and are not functional in Codex cloud environments.
 - **MCP tools only** — Use the `cortex_mcp` server tools directly (configured in `.mcp.json`).
 
 ## Project Memory

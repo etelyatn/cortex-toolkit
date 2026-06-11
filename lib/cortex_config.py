@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Load Cortex project config with optional local overrides.
 
-This intentionally supports the small YAML subset emitted by cortex-init:
+This intentionally supports the small YAML subset emitted by cortex-setup:
 top-level maps, nested maps, lists of scalars, strings, and comments.
 """
 

@@ -1,4 +1,4 @@
-<!-- Template: injected into project AGENTS.md by cortex-init Step 6. Do not remove the sentinel comment or the ## Cortex Toolkit heading. -->
+<!-- Template: injected into project AGENTS.md by cortex-setup Init Mode. Do not remove the sentinel comment or the ## Cortex Toolkit heading. -->
 <!-- cortex-toolkit:v1 -->
 ## Cortex Toolkit
 
@@ -8,7 +8,8 @@ Config: `.cortex/config.yaml` plus optional local `.cortex/config.local.yaml` | 
 On MCP parameter errors, read `cortex-toolkit/resources/mcp-tool-reference.md` — never guess parameter names.
 Rule: multiple actions on one asset → `*_compose` (single batch call). Single operations → `*_cmd` router.
 
-Editor lifecycle: users should ask for `cortex-editor` to start/verify the UE editor and `cortex-status` for MCP/domain health. After init or structural content changes, recommend `cortex-schema-refresh` to regenerate `.cortex/schema/`. Agents may use `editor_cmd` for editor/PIE interaction and `core_cmd` for asset lifecycle operations.
+Editor lifecycle: users should ask for `cortex-editor` to start, diagnose, reconnect, or restart the UE editor. Use `cortex-build` for compile and UBT work. For onboarding, initialization, schema refresh, and next-step guidance, recommend `cortex-setup`.
+Public skill routing: use `cortex-umg` for UMG/widget workflows and `cortex-qa` for gameplay QA workflows.
 
 | Domain | When to use | Tools |
 |--------|-------------|-------|

@@ -1,177 +1,62 @@
 ---
 name: cortex-editor
-description: Use when the Unreal Editor needs to be running, MCP connection fails, or user asks to start or open the editor
+description: Use when the Unreal Editor needs to be started, checked, reconnected, or restarted
 ---
 
 # Cortex Editor
 
-Editor lifecycle management — detect, start, and verify the Unreal Editor.
+Single public workflow for editor lifecycle and MCP connectivity.
 
-> **Note:** The PreToolUse hook (`check-ue-editor.sh`) now auto-starts the editor when any MCP tool is called and the editor is down. This skill is for **explicit** editor management — when the user asks to start/restart the editor, when you need to verify status interactively, or when the hook's auto-start failed and the user chose to start manually.
+## Intent Routing
 
-## Steps
+- "open editor", "start editor" -> Start Mode
+- "check status", "why isn't Cortex connected?", "diagnose MCP" -> Status Mode
+- "restart editor", "restart after C++ changes", "editor is wedged" -> Restart Mode
+- "build", "compile", "UBT error" -> stop and route to `cortex-build`
 
-### 1. Check If Running
+## Start Mode
 
-Check for UnrealEditor process and verify a `Saved/CortexPort-*.txt` port file exists:
-```bash
-MSYS_NO_PATHCONV=1 tasklist /FI "IMAGENAME eq UnrealEditor.exe" /FO CSV 2>/dev/null | grep -i UnrealEditor
-```
+Use this when the editor is down and needs to be launched cleanly.
 
-If running and port file exists, read the port and verify TCP responds via `get_status` MCP tool. If healthy → report status and exit.
-
-### 2. Read Configuration
-
-Read engine path from the effective Cortex config under `engine.path`: load `.cortex/config.yaml`, then merge `.cortex/config.local.yaml` over it if present. Use `$UE_PATH` only as a fallback when project config does not provide an engine path.
-
-Use the shared loader when available:
-```bash
-python cortex-toolkit/lib/cortex_config.py --project-dir . --get engine.path
-```
-
-If no `.cortex/config.yaml` and no `$UE_PATH` → tell user to run `cortex-init` first, then configure `.cortex/config.local.yaml` if this machine needs a local override, or provide the engine path directly.
-
-Find the `.uproject` file in the project root.
-
-#### 2b. Verify Plugin Is Enabled
-
-After finding the `.uproject` file, parse its `Plugins` array:
+1. Check for a running `UnrealEditor.exe` process and a live `Saved/CortexPort-*.txt` port file.
+2. If the editor is already healthy, report the port and registered domains, then stop.
+3. Read the effective `engine.path` from `.cortex/config.yaml` plus optional `.cortex/config.local.yaml`. Fall back to `UE_PATH` only if project config does not provide it.
 
 ```bash
-UPROJECT=$(ls *.uproject 2>/dev/null | head -1)
-PLUGIN_STATUS=$(python3 -c "
-import json, sys
-with open(sys.argv[1], encoding='utf-8') as f:
-    data = json.load(f)
-plugins = data.get('Plugins', [])
-match = [p for p in plugins if p.get('Name') == 'UnrealCortex']
-if not match:
-    print('missing')
-elif not match[0].get('Enabled', False):
-    print('disabled')
-else:
-    print('enabled')
-" "$UPROJECT" 2>/dev/null || python -c "
-import json, sys
-with open(sys.argv[1], encoding='utf-8') as f:
-    data = json.load(f)
-plugins = data.get('Plugins', [])
-match = [p for p in plugins if p.get('Name') == 'UnrealCortex']
-if not match:
-    print('missing')
-elif not match[0].get('Enabled', False):
-    print('disabled')
-else:
-    print('enabled')
-" "$UPROJECT" 2>/dev/null || echo "parse_error")
+ENGINE_PATH=$(python cortex-toolkit/lib/cortex_config.py --project-dir . --get engine.path)
 ```
 
-If `enabled` or `missing`: Continue to Step 2c. Local plugins placed in the project's `Plugins/` folder are enabled by default — no `.uproject` entry required.
-
-If `disabled`: Print this message and STOP. Do not launch the editor.
-```
-UnrealCortex is explicitly disabled in {UPROJECT}.
-
-Enable it first:
-1. Open the editor manually
-2. Go to Edit -> Plugins -> search "UnrealCortex" -> Enable
-3. Accept the beta warning, then restart the editor
-4. Re-run cortex-editor
-
-Alternatively, edit {UPROJECT} and change "Enabled": false to "Enabled": true for the UnrealCortex entry.
-
-Without the plugin enabled, the editor will start but CortexCore won't initialize and no port file will be written.
-```
-
-If `parse_error`: Warn and continue.
-If `enabled`: Continue to Step 2c.
-
-#### 2c. Check for Running Editor Process
-
-Before launching a new editor, check if one is already running:
-
-```bash
-MSYS_NO_PATHCONV=1 tasklist /FI "IMAGENAME eq UnrealEditor.exe" /FO CSV 2>/dev/null | grep -i UnrealEditor
-```
-
-If an UnrealEditor process exists but no port file was found in Step 1:
-- Tell the user an editor process is running but no port file was found.
-- Explain this usually means the editor is still starting, or UnrealCortex is not enabled.
-- Ask whether to wait and poll for the port file, or proceed with a new launch.
-
-### 3. Start Editor
-
-Before launching, clean up stale port files from previous sessions (only after Step 1 confirmed no healthy running editor):
+4. If no project config exists, direct the user to `cortex-setup` first.
+5. Verify the `.uproject` exists and that `UnrealCortex` is not explicitly disabled. If the `.uproject` explicitly sets `UnrealCortex` to `"Enabled": false`, stop and tell the user to enable it before launching.
+6. If a UE process exists without a valid port file, tell the user the editor may still be starting or blocked by a modal dialog and ask whether to wait or relaunch.
+7. Remove stale port files only after confirming there is no healthy editor instance.
 
 ```bash
 for f in Saved/CortexPort-*.txt; do
   [ -f "$f" ] || continue
   PID=$(echo "$f" | sed 's/.*CortexPort-\([0-9]*\).*/\1/')
   if [ -n "$PID" ] && MSYS_NO_PATHCONV=1 tasklist /FI "PID eq $PID" /NH 2>/dev/null | grep -q "$PID"; then
-    continue  # PID still alive (native Windows check), keep port file
+    continue
   fi
   rm -f "$f"
 done
 rm -f Saved/CortexPort.txt 2>/dev/null || true
 ```
 
-This prevents stale dead-editor port files from short-circuiting readiness checks.
-
-Launch the editor in the background:
-```bash
-"$ENGINE_PATH/Engine/Binaries/Win64/UnrealEditor.exe" "<path to .uproject>" -AutoDeclinePackageRecovery -ExecCmds="Mainframe.ShowRestoreAssetsPromptOnStartup 0" &
-```
-
-> **Note:** `-AutoDeclinePackageRecovery` suppresses the "Restore Packages" modal (crash recovery). `-ExecCmds="Mainframe.ShowRestoreAssetsPromptOnStartup 0"` suppresses the "Restore Open Assets" toast (reopens previously-open asset editors). Both ensure the editor starts clean without prompts. We avoid `-unattended` because that suppresses all dialogs.
-
-### 4. Wait for Ready
-
-Poll for a new `Saved/CortexPort-*.txt` file to appear. Provide graduated feedback.
-
-Important: Do NOT call MCP tools during this poll phase. Verify TCP with bash only. Call MCP tools only after port file exists and TCP responds.
-
-At 0s: print "Starting editor... (this typically takes 30-90 seconds)".
-
-Poll every 5 seconds:
+8. Launch the editor with:
+   - `-AutoDeclinePackageRecovery`
+   - `-ExecCmds="Mainframe.ShowRestoreAssetsPromptOnStartup 0"`
 
 ```bash
-for i in {1..24}; do
-  if ls Saved/CortexPort-*.txt 1>/dev/null 2>&1; then
-    break
-  fi
-  if [ "$i" -eq 6 ]; then
-    echo "Still starting... If this is the first launch, the editor may be compiling shaders."
-  fi
-  if [ "$i" -eq 12 ]; then
-    echo "Still waiting - check the editor window for modal dialogs (beta warning, restore assets prompt)."
-  fi
-  sleep 5
-done
+UPROJECT=$(ls *.uproject 2>/dev/null | head -1)
+"$ENGINE_PATH/Engine/Binaries/Win64/UnrealEditor.exe" "$(pwd)/$UPROJECT" -AutoDeclinePackageRecovery -ExecCmds="Mainframe.ShowRestoreAssetsPromptOnStartup 0" &
 ```
 
-On timeout (120s, no port file): print diagnostics and tail latest log:
-
-```bash
-LATEST_LOG=$(ls -t Saved/Logs/*.log 2>/dev/null | head -1)
-echo "Editor started but CortexCore did not write a port file within 120 seconds."
-echo "Possible causes:"
-echo "1. UnrealCortex plugin not enabled"
-echo "2. Plugin failed to load"
-echo "3. A modal dialog is blocking startup"
-echo "4. Editor crashed during startup"
-if [ -n "$LATEST_LOG" ]; then
-  echo "Last 10 log lines from $LATEST_LOG:"
-  tail -10 "$LATEST_LOG"
-fi
-```
-
-### 5. Verify Connection
-
-Once port file appears, read the port and verify TCP with bash first:
+9. Poll every 5 seconds for up to 120 seconds for a new `Saved/CortexPort-*.txt` file. At 30 seconds, tell the user the editor may be compiling shaders. At 60 seconds, suggest checking the editor window for modal dialogs.
+10. Once the port file appears, read the port and verify TCP before calling MCP tools:
 
 ```bash
 RAW=$(cat Saved/CortexPort-*.txt 2>/dev/null | head -1 | tr -d '[:space:]')
-# Support both plain-number and JSON {"port":N,...} formats
 if [[ "$RAW" =~ ^[0-9]+$ ]]; then
   PORT="$RAW"
 elif [[ "$RAW" =~ \"port\":([0-9]+) ]]; then
@@ -182,12 +67,43 @@ if [ -n "$PORT" ]; then
 fi
 ```
 
-Only after TCP is healthy, call `get_status` MCP tool to verify full MCP health.
+11. Report success with the port and registered domains, or report startup diagnostics and the latest log tail on timeout.
 
-### 6. Report
+## Status Mode
 
-Print: "Editor running on port {port}, MCP ready" with registered domains.
+Use this when the editor may already be running but MCP connectivity or domain registration is suspect.
 
-If timeout → report "Editor did not start within 120 seconds" and suggest checking UE logs in `Saved/Logs/`.
+1. Check whether `UnrealEditor.exe` is running.
+2. Inspect `Saved/CortexPort-*.txt` and identify the active port file.
+3. Call `get_status` to validate the full chain: assistant client -> MCP server -> TCP -> CortexCore.
+4. Compare registered domains against the project's expected domains and report any missing ones.
+5. Print a concise summary:
 
-> **Need a full restart?** Use `cortex-restart` instead — it handles graceful shutdown, optional C++ rebuild, relaunch, and MCP verification in one workflow.
+```text
+Editor:  ✓ Running (PID 12345)
+Port:    ✓ 8742
+MCP:     ✓ Connected
+Domains: ✓ data, blueprint, umg, material, level, qa, reflect, statetree
+```
+
+### Reconnect Protocol
+
+Run this only if `get_status` fails while the editor still appears to be running.
+
+1. Re-verify that the editor process is still alive.
+2. Re-check the port file and wait briefly if the editor is still initializing.
+3. Retry `get_status` up to 4 times over about 55 seconds, with increasing waits between attempts.
+4. If the connection comes back, report the restored port, domains, and server version.
+5. If it still fails, tell the user that manual reconnect or a full `cortex-editor` restart path is required and stop rather than retrying indefinitely.
+
+## Restart Mode
+
+Use this when the editor is wedged or must be restarted after code changes.
+
+1. Check current state: editor process, port file, and whether the request is really just a start request.
+2. Ask whether to save assets before restart.
+3. If the user wants a build, stop and route them to `cortex-build`. Do not run build steps inside this skill.
+4. Call `editor_restart` to perform the graceful shutdown, relaunch, port-file wait, and connection verification.
+5. Report the new port, process ID, registered domains, and total restart time.
+
+If restart fails, report the error and give the user the relevant manual recovery path.
