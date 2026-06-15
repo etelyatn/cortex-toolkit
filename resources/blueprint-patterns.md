@@ -124,6 +124,33 @@ Before editing an existing graph, call `graph_cmd(command="list_graphs")` and ch
 the returned top-level `kind`. Delegate graphs are readable but not mutable through
 generic graph edit commands. Interface implementation graphs are mutable.
 
+### Typed FText Pin Mutation
+
+Use `pin_text_values` when a Blueprint pin is `FText`, especially for StringTable-backed content:
+
+```python
+blueprint_compose(
+  mode="update",
+  asset_path="/Game/Blueprints/BP_MailButton.BP_MailButton",
+  nodes=[{
+    "name": "PrintText",
+    "class": "CallFunction",
+    "params": {"function_name": "KismetSystemLibrary.PrintText"},
+    "pin_text_values": {
+      "InText": {
+        "type": "FText",
+        "source_kind": "string_table",
+        "value": "Pay",
+        "string_table": {
+          "table_id": "/Game/UI/ST_UI.ST_UI",
+          "key": "Mail.Button.Pay"
+        }
+      }
+    }
+  }]
+)
+```
+
 ### graph_add_node — Node Class Short Names
 
 When calling `blueprint_cmd(command="graph_add_node")` or specifying nodes in `blueprint_compose`, use these short names:
