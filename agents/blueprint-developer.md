@@ -225,21 +225,22 @@ create_blueprint(
 Use `graph_set_pin_value` to set input values on nodes, enabling fully automated Blueprint creation:
 
 ```python
-# After adding a Delay node and connecting it:
-graph_set_pin_value(
-    asset_path="/Game/Blueprints/BP_Actor",
-    node_id="K2Node_CallFunction_0",
-    pin_name="Duration",
-    value="5.0"
-)
-
-# After adding a Print String node:
-graph_set_pin_value(
-    asset_path="/Game/Blueprints/BP_Actor",
-    node_id="K2Node_CallFunction_1",
-    pin_name="InString",
-    value="Hello World"
-)
+graph_cmd(command="set_pin_value", params={
+  "asset_path": "/Game/Blueprints/BP_MailButton.BP_MailButton",
+  "graph_name": "EventGraph",
+  "node_id": "K2Node_CallFunction_0",
+  "pin_name": "InText",
+  "text": {
+    "type": "FText",
+    "source_kind": "string_table",
+    "value": "Pay",
+    "string_table": {
+      "table_id": "/Game/UI/ST_UI.ST_UI",
+      "key": "Mail.Button.Pay"
+    }
+  },
+  "expected_fingerprint": {"package_saved_hash": "CURRENT_HASH"}
+})
 ```
 
 **Critical for automation:** Without setting pin values, nodes use default values (0, empty strings, etc.) and Blueprints require manual editing. With `graph_set_pin_value`, you can create **fully functional, working Blueprints** programmatically.
@@ -247,7 +248,9 @@ graph_set_pin_value(
 **Validation:**
 - Only input pins can have values set (output pins error with `INVALID_OPERATION`)
 - Pin must not be connected to another node
-- Value is provided as a string and cast to appropriate type by Unreal
+- Use `value` for non-text pins or simple literal text writes
+- Use structured `text` for `FText` pins, especially StringTable-backed values
+- `value` and `text` are mutually exclusive
 
 ## Composite Subgraph Access
 

@@ -270,6 +270,7 @@ Real apply requires `dry_run=false` and `apply=true`. The MCP response is intent
 ## Graph (`graph_cmd`)
 
 - `list_graphs`, `list_nodes`, `get_node`, `search_nodes`, `add_node`, `remove_node`, `connect`, `disconnect`, `set_pin_value`, `auto_layout`
+- `set_pin_value`: use `value` for non-text pins and literal-only simple values; use structured `text` for `FText` pins, especially StringTable-backed text. `value` and `text` are mutually exclusive.
 
 `list_graphs` returns user-visible Blueprint graphs. Top-level entries include `kind`
 (`ubergraph`, `function`, `macro`, `delegate`, or `interface_impl`); `interface_impl`

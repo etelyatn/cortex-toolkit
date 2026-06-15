@@ -40,6 +40,12 @@ Determine mode from user intent:
 
 ## Steps
 
+### FText Pin Mutation
+
+For Blueprint graph `FText` pins, use `graph_cmd(command="set_pin_value", params={"asset_path": "/Game/UI/BP_MailButton.BP_MailButton", "node_id": "K2Node_CallFunction_0", "pin_name": "InText", "text": {"type": "FText", "source_kind": "literal", "value": "Pay"}})` or `blueprint_compose(mode="update", asset_path="/Game/UI/BP_MailButton.BP_MailButton", nodes=[{"name": "PrintText", "class": "CallFunction", "pin_text_values": {"InText": {"type": "FText", "source_kind": "literal", "value": "Pay"}}}])`.
+Do not JSON-encode StringTable descriptors into the `value` string. `value` remains valid for non-text pins and literal-only text writes; StringTable-backed text requires `text` with `type`, `source_kind`, `value`, and `string_table`.
+When mutating a prefetched Blueprint asset, pass `expected_fingerprint`.
+
 ### Reparent Mode
 
 Run this workflow before mutation:
