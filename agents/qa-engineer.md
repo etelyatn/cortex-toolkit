@@ -103,10 +103,10 @@ Use these for class analysis, asset dependency checks, and impact assessment —
 ## MCP Benchmark Tests
 
 QA and Editor domains have benchmark coverage in `Plugins/UnrealCortex/MCP/tests/`:
-- **Editor E2E** (`test_editor_e2e.py`): PIE lifecycle (start, stop, pause, resume, restart), viewport info, screenshot capture, recent logs, console commands, editor state, time dilation
+- **Editor E2E** (`test_editor_e2e.py`): PIE lifecycle (start, stop, pause, resume, restart), viewport info, screenshot capture, recent logs, console commands, editor state, time dilation, trusted Python, CVar diagnostics
 - **Editor lifecycle** (`test_editor_lifecycle.py`): Editor startup/shutdown integration
 - **QA tools** (`test_qa_tools.py`): QA composite tools (move_player_to, interact_with, observe_game_state, wait_for_condition, assert_game_state)
-- **Scenarios** (`test_mcp_scenarios.py`): Editor Domain benchmark check (get_editor_state, capture_screenshot, start/stop PIE)
+- **Scenarios** (`test_mcp_scenarios.py`): Editor Domain benchmark checks (get_editor_state, capture_screenshot, start/stop PIE, trusted Python, CVar roundtrip)
 
 Run QA/Editor-specific benchmarks:
 ```bash

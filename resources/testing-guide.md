@@ -123,7 +123,7 @@ Claude Code skill that calls real MCP tools in sequence and reports pass/fail wi
 /mcp-benchmark --cleanup    # auto-delete test assets after verification
 ```
 
-**Benchmark checks:** Connection, Data Catalog, Blueprint CRUD, Graph Wiring, StateTree Structure, Widget Build, Material Create, Batch Pipeline, Data Operations, Tag Validation, Editor Domain, Level Operations, Reflect
+**Benchmark checks:** Connection, Data Catalog, Blueprint CRUD, Graph Wiring, StateTree Structure, Widget Build, Material Create, Batch Pipeline, Data Operations, Tag Validation, Editor Domain, Editor Python/CVars, Level Operations, Reflect
 
 ### Test File Map
 
@@ -132,11 +132,11 @@ Claude Code skill that calls real MCP tools in sequence and reports pass/fail wi
 | `test_e2e.py` | 1 | Core, Data, Blueprint, Graph, UMG |
 | `test_level_e2e.py` | 1 | Level (actors, transforms, components, queries, batch) |
 | `test_level_batch.py` | 1 | Level batch API |
-| `test_editor_e2e.py` | 1 | Editor (PIE, viewport, screenshots, logs) |
+| `test_editor_e2e.py` | 1 | Editor (PIE, viewport, screenshots, logs, trusted Python, CVars) |
 | `test_class_defaults.py` | 1 | CDO get/set class defaults |
 | `test_material_composites_e2e.py` | 1 | Material property setters, enum aliases |
 | `test_graph_layout.py` | 1 | Graph layout engine stress |
-| `test_mcp_scenarios.py` | 2 | Cross-domain scenarios + stress tests, including live StateTree structure workflow |
+| `test_mcp_scenarios.py` | 2 | Cross-domain scenarios + stress tests, including live StateTree structure and Editor Python/CVar workflows |
 | `test_blueprint_composites.py` | 2 | Blueprint composite tool workflows |
 | `test_material_composites.py` | 2 | Material composite tool workflows |
 | `test_umg_composites.py` | 2 | UMG composite tool workflows |

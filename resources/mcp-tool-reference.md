@@ -371,7 +371,15 @@ Current boundary: StateTree support is structure-level. It does not author arbit
 - **PIE lifecycle:** `start_pie`, `stop_pie`, `get_pie_state`, `pause_pie`, `resume_pie`, `restart_pie`
 - **Viewport:** `get_viewport_info`, `capture_screenshot`, `set_viewport_camera`, `focus_actor`, `set_viewport_mode`
 - **Utilities:** `get_editor_state`, `get_recent_logs`, `execute_console_command`, `set_time_dilation`, `get_world_info`
+- **Trusted Python:** `run_python`
+- **Console variables:** `get_cvar`, `set_cvar`, `list_cvars`
 - **Input injection** (requires active PIE): `inject_key`, `inject_input_sequence`
+
+`run_python` is a high-trust local editor escape hatch. Prefer structured Cortex commands first; Python can mutate assets/files, import content, call editor APIs, and trigger project-specific side effects. It accepts `code` and optional `run_next_tick`; it rejects the legacy `defer` parameter with `INVALID_FIELD`. `run_next_tick=true` runs on the next core ticker tick and requires a deferred callback, so it is not available from no-callback batch contexts.
+
+Python stdout/log output and captured exception details are bounded before JSON serialization. Responses include `output` entries and `output_truncated`; Python exceptions return `INVALID_OPERATION` with bounded `details.result`.
+
+`get_cvar` reads editor console variables. `set_cvar` sets with `ECVF_SetByConsole`, reads back typed values, and reports `changed`. `list_cvars` returns capped, case-insensitively sorted `variables` and `commands` arrays; it does not use the legacy single `cvars` array shape.
 
 See `qa-patterns.md` for input injection documentation.
 

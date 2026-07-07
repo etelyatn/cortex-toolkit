@@ -92,9 +92,10 @@ QA and Editor tool coverage in `Plugins/UnrealCortex/MCP/tests/`:
 
 | Test File | Coverage |
 |-----------|----------|
-| `test_editor_e2e.py` | PIE lifecycle, viewport, screenshots, logs, console commands, time dilation |
+| `test_editor_e2e.py` | PIE lifecycle, viewport, screenshots, logs, console commands, time dilation, trusted Python, CVar diagnostics |
 | `test_editor_lifecycle.py` | Editor startup/shutdown integration |
 | `test_qa_tools.py` | QA composites (move_player_to, interact_with, observe_game_state, wait_for_condition, assert_game_state) |
+| `test_mcp_scenarios.py` | Cross-domain benchmark scenarios, including Editor Python/CVar roundtrip |
 
 Run to validate after modifying Editor/QA MCP tools or C++ command handlers.
 

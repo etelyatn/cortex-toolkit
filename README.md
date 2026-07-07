@@ -131,7 +131,7 @@ Skills are invoked with `/skill-name` in Claude Code. Skills launch specialized 
 | Skill | Description |
 |-------|-------------|
 | `/cortex-build` | Build the Unreal project after modifying C++ source files |
-| `/cortex-editor` | Open the Unreal Editor when it needs to be running |
+| `/cortex-editor` | Open or verify the Unreal Editor when it needs to be running; use `editor_cmd` for editor/PIE utilities, trusted Python, and CVar diagnostics |
 | `/cortex-restart` | Restart the Unreal Editor after C++ changes need recompilation |
 | `/cortex-schema-refresh` | Refresh `.cortex/schema/` project snapshot files |
 | `/cortex-status` | Check MCP connection health, editor status, and connection recovery |

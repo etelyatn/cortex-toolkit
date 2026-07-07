@@ -8,7 +8,7 @@ Config: `.cortex/config.yaml` plus optional local `.cortex/config.local.yaml` | 
 On MCP parameter errors, read `cortex-toolkit/resources/mcp-tool-reference.md` — never guess parameter names.
 Rule: multiple actions on one asset → `*_compose` (single batch call). Single operations → `*_cmd` router.
 
-Editor lifecycle: users should ask for `cortex-editor` to start/verify the UE editor and `cortex-status` for MCP/domain health. After init or structural content changes, recommend `cortex-schema-refresh` to regenerate `.cortex/schema/`. Agents may use `editor_cmd` for editor/PIE interaction and `core_cmd` for asset lifecycle operations.
+Editor lifecycle: users should ask for `cortex-editor` to start/verify the UE editor and `cortex-status` for MCP/domain health. After init or structural content changes, recommend `cortex-schema-refresh` to regenerate `.cortex/schema/`. Agents may use `editor_cmd` for editor/PIE interaction, trusted Python, and CVar diagnostics; prefer structured Cortex commands before `run_python` because it can mutate assets/files. Use `core_cmd` for asset lifecycle operations.
 
 | Domain | When to use | Tools |
 |--------|-------------|-------|

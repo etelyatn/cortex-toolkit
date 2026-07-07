@@ -72,7 +72,7 @@ StateTree coverage:
 | Layer | File(s) | What It Tests |
 |-------|---------|---------------|
 | 1: TCP E2E | `test_e2e.py`, `test_level_e2e.py`, `test_editor_e2e.py`, `test_class_defaults.py`, `test_material_composites_e2e.py` | Direct TCP commands per domain (CRUD + error cases) |
-| 2: MCP Scenarios | `test_mcp_scenarios.py`, `test_blueprint_composites.py`, `test_material_composites.py`, `test_umg_composites.py`, `test_statetree_composites.py` | Cross-domain workflows via FastMCP client, including live StateTree structure coverage; `test_statetree_composites.py` separately covers mocked wrapper registration and translation |
+| 2: MCP Scenarios | `test_mcp_scenarios.py`, `test_blueprint_composites.py`, `test_material_composites.py`, `test_umg_composites.py`, `test_statetree_composites.py` | Cross-domain workflows via FastMCP client, including live StateTree structure and Editor Python/CVar coverage; `test_statetree_composites.py` separately covers mocked wrapper registration and translation |
 | 3: Claude Skill | `/mcp-benchmark` | AI-driven real-world validation with timing |
 
 Tests live in `Plugins/UnrealCortex/MCP/tests/`. Run with:
