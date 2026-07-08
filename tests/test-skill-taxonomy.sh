@@ -37,6 +37,7 @@ expected = sorted([
     "cortex-material",
     "cortex-level",
     "cortex-statetree",
+    "cortex-animation",
     "cortex-reflect",
     "cortex-test",
     "cortex-qa",
@@ -74,9 +75,9 @@ for path in root.rglob("*"):
             raise SystemExit(f"stale skill reference {needle} in {rel_path}")
 
 required_public_mentions = {
-    "README.md": ["cortex-setup", "cortex-editor", "cortex-build", "cortex-blueprint", "cortex-bp-migrate", "cortex-data", "cortex-umg", "cortex-material", "cortex-level", "cortex-statetree", "cortex-reflect", "cortex-test", "cortex-qa"],
-    "templates/claude-block.md": ["/cortex-setup", "/cortex-editor", "/cortex-build", "/cortex-umg", "/cortex-qa"],
-    "templates/agents-block.md": ["cortex-setup", "cortex-editor", "cortex-build", "cortex-umg", "cortex-qa"],
+    "README.md": ["cortex-setup", "cortex-editor", "cortex-build", "cortex-blueprint", "cortex-bp-migrate", "cortex-data", "cortex-umg", "cortex-material", "cortex-level", "cortex-statetree", "cortex-animation", "cortex-reflect", "cortex-test", "cortex-qa"],
+    "templates/claude-block.md": ["/cortex-setup", "/cortex-editor", "/cortex-build", "/cortex-umg", "/cortex-animation", "/cortex-qa"],
+    "templates/agents-block.md": ["cortex-setup", "cortex-editor", "cortex-build", "cortex-umg", "cortex-animation", "cortex-qa"],
 }
 for rel, required in required_public_mentions.items():
     text = (root / rel).read_text(encoding="utf-8")

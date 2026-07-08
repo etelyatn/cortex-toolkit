@@ -32,6 +32,7 @@ Set up the project for UnrealCortex.
    - `CortexQA` -> `qa`
    - `CortexReflect` -> `reflect`
    - `CortexStateTree` -> `statetree`
+   - `CortexAnimation` -> `anim`
 5. Create `.cortex/config.yaml`, `.cortex/context.md`, and `.cortex/domains/*.md` for detected domains. Ensure `.gitignore` contains `.cortex/config.local.yaml`.
 6. Create or update `.mcp.json` so `mcpServers.cortex_mcp` runs `uv run --directory {plugin_root}/MCP cortex-mcp` with `CORTEX_PROJECT_DIR={project_root}`.
 7. Offer context-block injection into `CLAUDE.md` and `AGENTS.md` using the toolkit templates, filtered to detected domains.
@@ -64,7 +65,7 @@ Print a short reference card with:
 - `cortex-setup` for onboarding, initialization, schema refresh, and discovery
 - `cortex-editor` for editor lifecycle and MCP diagnostics
 - `cortex-build` for compile/build work
-- Domain skills: `cortex-blueprint`, `cortex-data`, `cortex-material`, `cortex-umg`, `cortex-level`, `cortex-statetree`, `cortex-reflect`
+- Domain skills: `cortex-blueprint`, `cortex-data`, `cortex-material`, `cortex-umg`, `cortex-level`, `cortex-statetree`, `cortex-animation`, `cortex-reflect`
 - Testing skills: `cortex-qa`, `cortex-test`
 
 ### Phase 3: What's Next?
@@ -77,6 +78,7 @@ Print a short reference card with:
    - `list_actors` with `limit=1`
    - `list_materials` under `/Game`
    - `statetree_cmd(command="list_assets", params={"path_filter": "/Game"})`
+   - `anim_cmd(command="list_assets", params={"path": "/Game", "limit": 20})`
 3. Check `.cortex/domains/*.md` for template-only or nearly empty files.
 4. Generate ordered suggestions backed by detected content. Keep the order foundational -> analytical -> creative.
 5. Stop after presenting suggestions. Do not auto-run one.
@@ -116,6 +118,7 @@ If the user asks for the full catalog, print the approved public surface:
 - `cortex-material`
 - `cortex-level`
 - `cortex-statetree`
+- `cortex-animation`
 - `cortex-reflect`
 - `cortex-test`
 - `cortex-qa`

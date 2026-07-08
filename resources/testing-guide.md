@@ -32,6 +32,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& { Set-Location 'cl
 - `Cortex.Editor+` — CortexEditor shared infrastructure (requires rendering, no `-NullRHI`)
 - `Cortex.QA+` — CortexQA domain (requires rendering and test level content)
 - `Cortex.StateTree+` — CortexStateTree domain
+- `Cortex.Animation+` — CortexAnimation domain
 
 Note: Use `+` wildcard, never `*`.
 
@@ -110,7 +111,7 @@ cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_mcp_scenarios.py -v -k s
 cd Plugins/UnrealCortex/MCP && uv run pytest tests/test_statetree_composites.py -v
 ```
 
-**Scenarios:** Blueprint Lifecycle, Widget Builder, Data Pipeline, Graph Wiring, StateTree Structure Workflow, GameplayTag Workflow, Localization Pipeline
+**Scenarios:** Blueprint Lifecycle, Widget Builder, Data Pipeline, Graph Wiring, StateTree Structure Workflow, Animation Named Notify Workflow, GameplayTag Workflow, Localization Pipeline
 
 **Stress tests:** Bulk blueprint create, large widget trees, many graph nodes, rapid data operations, concurrent batch
 
@@ -123,7 +124,7 @@ Claude Code skill that calls real MCP tools in sequence and reports pass/fail wi
 /mcp-benchmark --cleanup    # auto-delete test assets after verification
 ```
 
-**Benchmark checks:** Connection, Data Catalog, Blueprint CRUD, Graph Wiring, StateTree Structure, Widget Build, Material Create, Batch Pipeline, Data Operations, Tag Validation, Editor Domain, Level Operations, Reflect
+**Benchmark checks:** Connection, Data Catalog, Blueprint CRUD, Graph Wiring, StateTree Structure, Animation Named Notify Workflow, Widget Build, Material Create, Batch Pipeline, Data Operations, Tag Validation, Editor Domain, Level Operations, Reflect
 
 ### Test File Map
 
@@ -136,7 +137,7 @@ Claude Code skill that calls real MCP tools in sequence and reports pass/fail wi
 | `test_class_defaults.py` | 1 | CDO get/set class defaults |
 | `test_material_composites_e2e.py` | 1 | Material property setters, enum aliases |
 | `test_graph_layout.py` | 1 | Graph layout engine stress |
-| `test_mcp_scenarios.py` | 2 | Cross-domain scenarios + stress tests, including live StateTree structure workflow |
+| `test_mcp_scenarios.py` | 2 | Cross-domain scenarios + stress tests, including live StateTree structure and animation named-notify workflows |
 | `test_blueprint_composites.py` | 2 | Blueprint composite tool workflows |
 | `test_material_composites.py` | 2 | Material composite tool workflows |
 | `test_umg_composites.py` | 2 | UMG composite tool workflows |

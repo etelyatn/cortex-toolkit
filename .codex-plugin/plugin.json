@@ -1,6 +1,6 @@
 {
   "name": "cortex-toolkit",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "AI-powered Unreal Engine development toolkit for UnrealCortex.",
   "author": {
     "name": "Eugene Telyatnik",
@@ -21,7 +21,7 @@
   "interface": {
     "displayName": "Cortex Toolkit",
     "shortDescription": "Unreal Engine skills and MCP workflows for UnrealCortex.",
-    "longDescription": "Bundle Codex skills and UnrealCortex project guidance for Blueprint, Data, Level, Material, UMG, QA, Reflect, StateTree, editor, and setup workflows.",
+    "longDescription": "Bundle Codex skills and UnrealCortex project guidance for Blueprint, Data, Level, Material, UMG, QA, Reflect, StateTree, Animation, editor, and setup workflows.",
     "developerName": "Eugene Telyatnik",
     "category": "Developer Tools",
     "capabilities": [

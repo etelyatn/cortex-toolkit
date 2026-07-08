@@ -5,7 +5,7 @@ Flat catalog of all UnrealCortex MCP tools organized by domain.
 ## Tool Architecture
 
 Tools fall into three categories:
-- **Routers (11):** `core_cmd`, `data_cmd`, `blueprint_cmd`, `graph_cmd`, `level_cmd`, `material_cmd`, `umg_cmd`, `qa_cmd`, `reflect_cmd`, `editor_cmd`, `statetree_cmd` — dispatch named commands to existing assets
+- **Routers (12):** `core_cmd`, `data_cmd`, `blueprint_cmd`, `graph_cmd`, `level_cmd`, `material_cmd`, `umg_cmd`, `qa_cmd`, `reflect_cmd`, `editor_cmd`, `statetree_cmd`, `anim_cmd` — dispatch named commands to existing assets
 - **Composites (7):** `blueprint_compose`, `material_compose`, `material_instance_compose`, `widget_compose`, `level_compose`, `scenario_compose`, `statetree_compose` — declarative creation workflows, with some composites also supporting update-mode orchestration
 - **Standalone (3):** `editor_restart`, `schema_generate`, `qa_test_step`
 
@@ -364,6 +364,22 @@ Mutating commands require `expected_fingerprint` for existing assets. Use `dump_
 - `statetree_compose` — create or update one StateTree from declarative states and transitions, with fingerprint threading, update-mode preflight, optional validation, optional compile, optional save, and create-mode cleanup on failure.
 
 Current boundary: StateTree support is structure-level. It does not author arbitrary tasks, conditions, evaluators, parameter bags, or property bindings.
+
+---
+
+## Animation (`anim_cmd`)
+
+- **Assets:** `list_assets`
+- **Inspection:** `get_sequence_info`, `get_montage_info`, `get_skeleton_info`, `get_animbp_info`
+- **Named notifies:** `add_named_notify`, `update_named_notify`, `remove_named_notify`
+
+Mutating named-notify commands require the shared Cortex `expected_fingerprint`, support
+`dry_run`, and default `save` to `false`. Use `get_sequence_info` first, then pass its
+`fingerprint` as `expected_fingerprint`.
+
+Current boundary: Animation authoring is sequence skeleton named notifies only. Object
+notifies, notify states, curves, montage sections, sockets, AnimBP authoring,
+blendspaces, retargeting, runtime preview, and animation `save_asset` are out of scope.
 
 ---
 
