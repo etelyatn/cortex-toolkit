@@ -35,7 +35,8 @@ ProjectRoot/
 │       │   ├── CortexUMG/
 │       │   ├── CortexReflect/
 │       │   ├── CortexQA/
-│       │   └── CortexStateTree/
+│       │   ├── CortexStateTree/
+│       │   └── CortexAnimation/
 │       └── MCP/
 │           ├── src/cortex_mcp/
 │           ├── tools/{domain}/
@@ -66,4 +67,5 @@ ProjectRoot/
 - Test-generated assets go in `Content/Temp/` (git-ignored)
 - Each domain has its own content subdirectory
 - StateTree assets should live in `Content/AI/StateTrees/` or `Content/StateTrees/` with `ST_` prefix
+- Skeletal animation assets can be inspected through the `anim` domain; named-notify authoring is limited to sequence skeleton named notifies
 - GameplayTags stored in `Config/Tags/*.ini`, not in DataTables

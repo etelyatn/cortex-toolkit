@@ -96,6 +96,12 @@ Skills are invoked with `/skill-name` in Claude Code. Skills launch specialized 
 |-------|-------------|
 | `/cortex-statetree` | Create, update, review, validate, or compile StateTree assets — structure, hierarchy, tags, and simple transitions |
 
+### Animation
+
+| Skill | Description |
+|-------|-------------|
+| `/cortex-animation` | Inspect skeletal animation assets and author sequence skeleton named notifies through guarded `anim_cmd` commands |
+
 ### QA
 
 | Skill | Description |
@@ -165,6 +171,7 @@ Cortex Toolkit reads project-specific knowledge from `.cortex/`:
 │   ├── level.md
 │   ├── material.md
 │   ├── statetree.md
+│   ├── anim.md
 │   ├── qa.md
 │   └── umg.md
 └── schema/              # LLM-readable project snapshots
