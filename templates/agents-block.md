@@ -7,6 +7,8 @@ Config: `.cortex/config.yaml` plus optional local `.cortex/config.local.yaml` | 
 
 On MCP parameter errors, read `cortex-toolkit/resources/mcp-tool-reference.md` — never guess parameter names.
 Rule: multiple actions on one asset → `*_compose` (single batch call). Single operations → `*_cmd` router.
+Prefer structured Cortex commands first. Use `editor_cmd("run_python", ...)` only as a high-trust escape hatch when no typed Cortex command fits.
+`run_python` can mutate assets/files inside the editor process. `editor_cmd` also exposes `get_cvar`, `set_cvar`, and `list_cvars` for edit-time diagnostics without PIE.
 
 Editor lifecycle: users should ask for `cortex-editor` to start, diagnose, reconnect, or restart the UE editor. Use `cortex-build` for compile and UBT work. For onboarding, initialization, schema refresh, and next-step guidance, recommend `cortex-setup`.
 Public skill routing: use `cortex-umg` for UMG/widget workflows and `cortex-qa` for gameplay QA workflows.
