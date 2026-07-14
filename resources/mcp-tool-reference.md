@@ -372,14 +372,19 @@ Current boundary: StateTree support is structure-level. It does not author arbit
 - **Assets:** `list_assets`
 - **Inspection:** `get_sequence_info`, `get_montage_info`, `get_skeleton_info`, `get_animbp_info`
 - **Named notifies:** `add_named_notify`, `update_named_notify`, `remove_named_notify`
+- **Float curves:** `add_curve`, `set_curve_keys`, `remove_curve`
+- **Montage sections:** `add_montage_section`, `update_montage_section`, `remove_montage_section`
+- **Skeleton sockets:** `add_socket`, `set_socket_transform`, `remove_socket`
 
-Mutating named-notify commands require the shared Cortex `expected_fingerprint`, support
-`dry_run`, and default `save` to `false`. Use `get_sequence_info` first, then pass its
-`fingerprint` as `expected_fingerprint`.
+Every mutating command requires the shared Cortex `expected_fingerprint`, supports
+`dry_run`, and defaults `save` to `false`. Inspect the matching asset first, then pass its
+`fingerprint` as `expected_fingerprint`. Use an authoring family only when live capabilities
+advertise that complete family.
 
-Current boundary: Animation authoring is sequence skeleton named notifies only. Object
-notifies, notify states, curves, montage sections, sockets, AnimBP authoring,
-blendspaces, retargeting, runtime preview, and animation `save_asset` are out of scope.
+Current boundary: Animation authoring covers sequence skeleton named notifies, editable float
+curves, montage sections, and skeleton sockets. Object notifies, notify states, AnimBP
+authoring, blendspaces, retargeting, runtime preview, and animation `save_asset` are out of
+scope.
 
 ---
 
