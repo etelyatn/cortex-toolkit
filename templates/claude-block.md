@@ -20,7 +20,7 @@ Use `/cortex-animation` for skeletal animation inspection and sequence named-not
 | Level | Place/move actors, organize content, sublevels | `/cortex-level` |
 | Material | Materials, parameters, shader graphs | `/cortex-material` |
 | StateTree | Unreal StateTree assets — states, transitions, tags, validation | `/cortex-statetree` |
-| Animation | Skeletal animation inspection; sequence skeleton named notifies only | `/cortex-animation` |
+| Animation | Skeletal animation inspection; guarded named notifies, float curves, montage sections, and skeleton sockets | `/cortex-animation` |
 | UI | UMG widgets — menus, HUDs, dialogs | `/cortex-umg` |
 | QA | PIE testing, assertions, scenario exploration | `/cortex-qa` |
 | Reflect | Class hierarchy, usages, refactor impact | `/cortex-reflect` |
