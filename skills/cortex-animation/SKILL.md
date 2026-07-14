@@ -1,6 +1,6 @@
 ---
 name: cortex-animation
-description: Use when inspecting skeletal animation assets or authoring sequence skeleton named notifies through UnrealCortex.
+description: Use when inspecting skeletal animation assets or capability-gated authoring of named notifies, float curves, montage sections, and skeleton sockets through UnrealCortex.
 ---
 
 # Cortex Animation
@@ -23,19 +23,28 @@ Inspection:
 - `get_skeleton_info`
 - `get_animbp_info`
 
-Authoring is intentionally narrow:
+Authoring is intentionally narrow and capability-gated:
 
 - `add_named_notify`
 - `update_named_notify`
 - `remove_named_notify`
+- `add_curve`
+- `set_curve_keys`
+- `remove_curve`
+- `add_montage_section`
+- `update_montage_section`
+- `remove_montage_section`
+- `add_socket`
+- `set_socket_transform`
+- `remove_socket`
 
-Named notify mutations apply only to zero-duration sequence skeleton named notifies. They require `asset_path`, precise input or selector fields, `expected_fingerprint`, and support `dry_run` plus optional `save` (`false` by default).
+Named notify mutations apply only to zero-duration sequence skeleton named notifies. Float curves apply to `UAnimSequence`, montage sections to `UAnimMontage`, and sockets to `USkeleton`. All mutations require `asset_path`, a precise input or selector, and `expected_fingerprint`; they support `dry_run` and optional `save` (`false` by default). Use a Phase B2 family only when live capabilities advertise that complete family.
 
 ## Guardrails
 
 - Use `dry_run=true` before destructive or uncertain changes.
 - Treat stale fingerprint errors as a signal to re-inspect and ask whether to retry.
-- Do not call or invent object notify, notify state, curve, montage section, socket, AnimBP authoring, blendspace, retargeting, runtime preview, or animation `save_asset` commands.
+- Do not call or invent object notify, notify state, AnimBP authoring, blendspace, retargeting, or runtime preview commands. There is no `anim.save_asset`; use a mutation's `save=true` option, or `core.save_asset` where appropriate.
 - If a command is absent from live capabilities, report that the requested animation authoring is unavailable.
 
 ## Verification

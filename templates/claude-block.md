@@ -11,7 +11,7 @@ Prefer structured Cortex commands first. Use `editor_cmd("run_python", ...)` onl
 `run_python` can mutate assets/files inside the editor process. `editor_cmd` also exposes `get_cvar`, `set_cvar`, and `list_cvars` for edit-time diagnostics without PIE.
 
 Editor lifecycle: users should run `/cortex-editor` to start, diagnose, reconnect, or restart the UE editor. Use `/cortex-build` for compile and UBT work. For onboarding, initialization, schema refresh, and "what next?" guidance, recommend `/cortex-setup`.
-Use `/cortex-animation` for skeletal animation inspection and sequence named-notify authoring.
+Use `/cortex-animation` for skeletal animation inspection and guarded named-notify, float-curve, montage-section, and skeleton-socket authoring when live capabilities advertise the required family.
 
 | Domain | When to use | Skills |
 |--------|-------------|--------|
@@ -20,7 +20,7 @@ Use `/cortex-animation` for skeletal animation inspection and sequence named-not
 | Level | Place/move actors, organize content, sublevels | `/cortex-level` |
 | Material | Materials, parameters, shader graphs | `/cortex-material` |
 | StateTree | Unreal StateTree assets — states, transitions, tags, validation | `/cortex-statetree` |
-| Animation | Skeletal animation inspection; sequence skeleton named notifies only | `/cortex-animation` |
+| Animation | Skeletal animation inspection; guarded named notifies, float curves, montage sections, and skeleton sockets | `/cortex-animation` |
 | UI | UMG widgets — menus, HUDs, dialogs | `/cortex-umg` |
 | QA | PIE testing, assertions, scenario exploration | `/cortex-qa` |
 | Reflect | Class hierarchy, usages, refactor impact | `/cortex-reflect` |

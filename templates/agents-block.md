@@ -12,7 +12,7 @@ Prefer structured Cortex commands first. Use `editor_cmd("run_python", ...)` onl
 
 Editor lifecycle: users should ask for `cortex-editor` to start, diagnose, reconnect, or restart the UE editor. Use `cortex-build` for compile and UBT work. For onboarding, initialization, schema refresh, and next-step guidance, recommend `cortex-setup`.
 Public skill routing: use `cortex-umg` for UMG/widget workflows and `cortex-qa` for gameplay QA workflows.
-Use `cortex-animation` for skeletal animation inspection and sequence named-notify authoring.
+Use `cortex-animation` for skeletal animation inspection and guarded named-notify, float-curve, montage-section, and skeleton-socket authoring when live capabilities advertise the required family.
 
 | Domain | When to use | Tools |
 |--------|-------------|-------|
@@ -21,7 +21,7 @@ Use `cortex-animation` for skeletal animation inspection and sequence named-noti
 | Level | Place/move actors, organize content, sublevels | `level_cmd` `level_compose` |
 | Material | Materials, parameters, shader graphs | `material_cmd` `material_compose` `material_instance_compose` |
 | StateTree | Unreal StateTree assets — states, transitions, tags, validation | `statetree_cmd` `statetree_compose` |
-| Animation | Skeletal animation inspection; sequence skeleton named notifies only | `anim_cmd` |
+| Animation | Skeletal animation inspection; guarded named notifies, float curves, montage sections, and skeleton sockets | `anim_cmd` |
 | UI | UMG widgets — menus, HUDs, dialogs | `umg_cmd` `widget_compose` |
 | QA | PIE testing, assertions, scenario exploration | `qa_cmd` `qa_test_step` `scenario_compose` |
 | Reflect | Class hierarchy, usages, refactor impact | `reflect_cmd` |
