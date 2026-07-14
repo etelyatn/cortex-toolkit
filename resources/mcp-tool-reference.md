@@ -383,8 +383,8 @@ advertise that complete family.
 
 Current boundary: Animation authoring covers sequence skeleton named notifies, editable float
 curves, montage sections, and skeleton sockets. Object notifies, notify states, AnimBP
-authoring, blendspaces, retargeting, runtime preview, and animation `save_asset` are out of
-scope.
+authoring, blendspaces, retargeting, and runtime preview are out of scope. There is no
+`anim.save_asset`; use a mutation's `save=true` option, or `core.save_asset` where appropriate.
 
 ---
 

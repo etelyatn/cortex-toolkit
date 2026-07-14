@@ -67,5 +67,5 @@ ProjectRoot/
 - Test-generated assets go in `Content/Temp/` (git-ignored)
 - Each domain has its own content subdirectory
 - StateTree assets should live in `Content/AI/StateTrees/` or `Content/StateTrees/` with `ST_` prefix
-- Skeletal animation assets can be inspected through the `anim` domain; named-notify authoring is limited to sequence skeleton named notifies
+- Skeletal animation assets can be inspected through the `anim` domain; guarded named-notify, float-curve, montage-section, and skeleton-socket authoring is available only when live capabilities advertise the complete family
 - GameplayTags stored in `Config/Tags/*.ini`, not in DataTables

@@ -11,7 +11,7 @@ Prefer structured Cortex commands first. Use `editor_cmd("run_python", ...)` onl
 `run_python` can mutate assets/files inside the editor process. `editor_cmd` also exposes `get_cvar`, `set_cvar`, and `list_cvars` for edit-time diagnostics without PIE.
 
 Editor lifecycle: users should run `/cortex-editor` to start, diagnose, reconnect, or restart the UE editor. Use `/cortex-build` for compile and UBT work. For onboarding, initialization, schema refresh, and "what next?" guidance, recommend `/cortex-setup`.
-Use `/cortex-animation` for skeletal animation inspection and sequence named-notify authoring.
+Use `/cortex-animation` for skeletal animation inspection and guarded named-notify, float-curve, montage-section, and skeleton-socket authoring when live capabilities advertise the required family.
 
 | Domain | When to use | Skills |
 |--------|-------------|--------|

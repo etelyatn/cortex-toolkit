@@ -1,12 +1,14 @@
 # Animation Domain Context
 
-<!-- Skeletal animation asset inspection and named-notify authoring conventions for CortexAnimation -->
+<!-- Skeletal animation asset inspection and capability-gated Phase B/B2 authoring conventions for CortexAnimation -->
 
 ## What CortexAnimation Does
 
 `CortexAnimation` exposes the `anim` MCP domain for Unreal skeletal animation assets.
 It can inspect `UAnimSequence`, `UAnimMontage`, `USkeleton`, and `UAnimBlueprint`
-metadata, and can author a narrow Phase B slice: sequence skeleton named notifies.
+metadata, and can author guarded sequence skeleton named notifies, editable float curves,
+montage sections, and skeleton sockets. Authoring families are available only when live
+capabilities advertise every command in the family.
 
 ## Commands
 
@@ -20,6 +22,15 @@ metadata, and can author a narrow Phase B slice: sequence skeleton named notifie
 | `anim.add_named_notify` | Add one sequence skeleton named notify with `expected_fingerprint`, `dry_run`, and optional `save`. |
 | `anim.update_named_notify` | Update exactly one sequence skeleton named notify selected by `{ index, name, time }`. |
 | `anim.remove_named_notify` | Remove exactly one sequence skeleton named notify selected by `{ index, name, time }`; missing targets are errors. |
+| `anim.add_curve` | Add one editable float curve to a sequence. |
+| `anim.set_curve_keys` | Replace one float curve's finite, strictly increasing, unique keys (maximum 500). |
+| `anim.remove_curve` | Remove one editable float curve selected by `curve_name`. |
+| `anim.add_montage_section` | Add a unique montage section with `start_time` and optional `next_section`. |
+| `anim.update_montage_section` | Update one montage section selected by `{ index, name, start_time }`. |
+| `anim.remove_montage_section` | Remove one montage section selected by `{ index, name, start_time }`. |
+| `anim.add_socket` | Add one socket to a skeleton after validating `bone_name`. |
+| `anim.set_socket_transform` | Update a skeleton socket selected by `{ index, socket_name, bone_name }`. |
+| `anim.remove_socket` | Remove one skeleton socket selected by `{ index, socket_name, bone_name }`. |
 
 ## Boundaries
 
@@ -28,13 +39,16 @@ Sequencer, Control Rig authoring, Niagara, material animation, Blueprint Timelin
 components, runtime playback control, retargeting, IK, pose search, motion matching,
 blendspace inspection, or motion/keyframe generation.
 
-Only `add_named_notify`, `update_named_notify`, and `remove_named_notify` are available
-for authoring in this slice. Do not call or invent object notify, notify state, curve,
-montage section, socket, AnimBP authoring, blendspace, retargeting, runtime preview, or
-animation `save_asset` commands.
+Use a family only when live capabilities advertise every command in that family. Named
+notifies and float curves apply to `UAnimSequence`; montage sections apply to
+`UAnimMontage`; sockets mutate only `USkeleton::Sockets`. Do not call or invent object
+notify, notify state, AnimBP authoring, blendspace, retargeting, or runtime preview commands.
+There is no `anim.save_asset`; use a mutation's `save=true` option, or `core.save_asset`
+where appropriate.
 
-Update/remove selectors match only zero-duration skeleton named notifies. Object
-notifies and notify states are rejected before mutation.
+Named-notify update/remove selectors match only zero-duration skeleton named notifies.
+Object notifies and notify states remain rejected before mutation. Montage and socket
+update/remove selectors must use their full canonical selector objects.
 
 ## Response Discipline
 
@@ -42,7 +56,7 @@ Every successful inspection response includes `asset_path`, `asset_type`, `name`
 `fingerprint`. Large arrays are returned as collection objects with `count`, `returned`,
 `truncated`, and `items`.
 
-Every successful named-notify mutation response includes `operation`, `selector`,
+Every successful mutation response includes `operation`, `selector`,
 `changed`, `dirty_before`, `dirty_after`, `saved`, `saved_packages`, `before`, `after`,
 and `current_fingerprint`. `save` defaults to `false`; use `dry_run=true` to preview
 without mutation or dirtying the asset.
