@@ -335,6 +335,15 @@ See `blueprint-patterns.md` for node class short names and full node type table.
 
 ---
 
+## Animation (`anim_cmd`)
+
+- **Inspection:** `list_assets`, `get_sequence_info`, `get_montage_info`, `get_skeleton_info`, `get_animbp_info`
+- **Guarded authoring:** named notifies, float curves, montage sections, skeleton sockets, object notifies, and notify states.
+- Object notify selectors use `{ index, class_path, time }`; notify-state selectors also include `duration`.
+- Every mutation requires `expected_fingerprint`, supports `dry_run`, and defaults `save` to `false`. Only live capabilities advertise authoring families; later-stage animation systems remain unavailable.
+
+---
+
 ## Level (`level_cmd`)
 
 - **Actors:** `spawn_actor`, `delete_actor`, `duplicate_actor`, `rename_actor`, `get_actor`, `set_transform`, `set_actor_property`, `get_actor_property`, `list_actors`, `find_actors`, `get_bounds`, `select_actors`, `get_selection`

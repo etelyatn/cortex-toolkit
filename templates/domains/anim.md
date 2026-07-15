@@ -1,6 +1,6 @@
 # Animation Domain Context
 
-<!-- Skeletal animation asset inspection and capability-gated Phase B/B2 authoring conventions for CortexAnimation -->
+<!-- Skeletal animation asset inspection and capability-gated Phase B/B2/C authoring conventions for CortexAnimation -->
 
 ## What CortexAnimation Does
 
