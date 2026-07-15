@@ -40,7 +40,7 @@ Authoring is intentionally narrow and capability-gated:
 - `add_notify`, `update_notify`, `remove_notify`
 - `add_notify_state`, `update_notify_state`, `remove_notify_state`
 
-Named notify mutations apply only to zero-duration sequence skeleton named notifies. Float curves apply to `UAnimSequence`, montage sections to `UAnimMontage`, and sockets to `USkeleton`. All mutations require `asset_path`, a precise input or selector, and `expected_fingerprint`; they support `dry_run` and optional `save` (`false` by default). Use a Phase B2 family only when live capabilities advertise that complete family.
+Named notify mutations apply only to zero-duration sequence skeleton named notifies. Float curves, object notifies, and notify states apply to `UAnimSequence`; montage sections apply to `UAnimMontage`; sockets apply to `USkeleton`. Object-notify selectors use `{ index, class_path, time }`; state selectors also include `duration`. All mutations require `asset_path`, a precise input or selector, and `expected_fingerprint`; they support `dry_run` and optional `save` (`false` by default). Use an authoring family only when live capabilities advertise that complete family.
 
 ## Guardrails
 

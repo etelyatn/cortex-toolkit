@@ -384,15 +384,17 @@ Current boundary: StateTree support is structure-level. It does not author arbit
 - **Float curves:** `add_curve`, `set_curve_keys`, `remove_curve`
 - **Montage sections:** `add_montage_section`, `update_montage_section`, `remove_montage_section`
 - **Skeleton sockets:** `add_socket`, `set_socket_transform`, `remove_socket`
+- **Object notifies:** `add_notify`, `update_notify`, `remove_notify`
+- **Notify states:** `add_notify_state`, `update_notify_state`, `remove_notify_state`
 
 Every mutating command requires the shared Cortex `expected_fingerprint`, supports
 `dry_run`, and defaults `save` to `false`. Inspect the matching asset first, then pass its
 `fingerprint` as `expected_fingerprint`. Use an authoring family only when live capabilities
 advertise that complete family.
 
-Current boundary: Animation authoring covers sequence skeleton named notifies, editable float
-curves, montage sections, and skeleton sockets. Object notifies, notify states, AnimBP
-authoring, blendspaces, retargeting, and runtime preview are out of scope. There is no
+Current boundary: Animation authoring covers sequence skeleton named/object notifies, notify
+states, editable float curves, montage sections, and skeleton sockets. AnimBP authoring,
+blendspaces, retargeting, runtime preview, Sequencer, and Control Rig are out of scope. There is no
 `anim.save_asset`; use a mutation's `save=true` option, or `core.save_asset` where appropriate.
 
 ---
