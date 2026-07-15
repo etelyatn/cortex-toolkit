@@ -1,6 +1,6 @@
 ---
 name: cortex-animation
-description: Use when inspecting skeletal animation assets or capability-gated authoring of named notifies, float curves, montage sections, and skeleton sockets through UnrealCortex.
+description: Use when inspecting skeletal animation assets or capability-gated authoring of named notifies, curves, sections, sockets, object notifies, and notify states through UnrealCortex.
 ---
 
 # Cortex Animation
@@ -37,14 +37,16 @@ Authoring is intentionally narrow and capability-gated:
 - `add_socket`
 - `set_socket_transform`
 - `remove_socket`
+- `add_notify`, `update_notify`, `remove_notify`
+- `add_notify_state`, `update_notify_state`, `remove_notify_state`
 
-Named notify mutations apply only to zero-duration sequence skeleton named notifies. Float curves apply to `UAnimSequence`, montage sections to `UAnimMontage`, and sockets to `USkeleton`. All mutations require `asset_path`, a precise input or selector, and `expected_fingerprint`; they support `dry_run` and optional `save` (`false` by default). Use a Phase B2 family only when live capabilities advertise that complete family.
+Named notify mutations apply only to zero-duration sequence skeleton named notifies. Float curves, object notifies, and notify states apply to `UAnimSequence`; montage sections apply to `UAnimMontage`; sockets apply to `USkeleton`. Object-notify selectors use `{ index, class_path, time }`; state selectors also include `duration`. All mutations require `asset_path`, a precise input or selector, and `expected_fingerprint`; they support `dry_run` and optional `save` (`false` by default). Use an authoring family only when live capabilities advertise that complete family.
 
 ## Guardrails
 
 - Use `dry_run=true` before destructive or uncertain changes.
 - Treat stale fingerprint errors as a signal to re-inspect and ask whether to retry.
-- Do not call or invent object notify, notify state, AnimBP authoring, blendspace, retargeting, or runtime preview commands. There is no `anim.save_asset`; use a mutation's `save=true` option, or `core.save_asset` where appropriate.
+- Do not invent later-stage AnimBP authoring, blendspace, retargeting, runtime preview, Sequencer, or Control Rig commands. There is no `anim.save_asset`; use a mutation's `save=true` option, or `core.save_asset` where appropriate.
 - If a command is absent from live capabilities, report that the requested animation authoring is unavailable.
 
 ## Verification

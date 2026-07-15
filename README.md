@@ -100,7 +100,7 @@ Skills are invoked with `/skill-name` in Claude Code. Skills launch specialized 
 
 | Skill | Description |
 |-------|-------------|
-| `/cortex-animation` | Inspect skeletal animation assets and author guarded named notifies, float curves, montage sections, and skeleton sockets through capability-gated `anim_cmd` commands |
+| `/cortex-animation` | Inspect skeletal animation assets and author guarded named notifies, curves, sections, sockets, object notifies, and notify states through capability-gated `anim_cmd` commands |
 
 ### QA
 

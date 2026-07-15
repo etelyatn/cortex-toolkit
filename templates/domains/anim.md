@@ -1,13 +1,13 @@
 # Animation Domain Context
 
-<!-- Skeletal animation asset inspection and capability-gated Phase B/B2 authoring conventions for CortexAnimation -->
+<!-- Skeletal animation asset inspection and capability-gated Phase B/B2/C authoring conventions for CortexAnimation -->
 
 ## What CortexAnimation Does
 
 `CortexAnimation` exposes the `anim` MCP domain for Unreal skeletal animation assets.
 It can inspect `UAnimSequence`, `UAnimMontage`, `USkeleton`, and `UAnimBlueprint`
 metadata, and can author guarded sequence skeleton named notifies, editable float curves,
-montage sections, and skeleton sockets. Authoring families are available only when live
+montage sections, skeleton sockets, object notifies, and notify states. Authoring families are available only when live
 capabilities advertise every command in the family.
 
 ## Commands
@@ -31,6 +31,12 @@ capabilities advertise every command in the family.
 | `anim.add_socket` | Add one socket to a skeleton after validating `bone_name`. |
 | `anim.set_socket_transform` | Update a skeleton socket selected by `{ index, socket_name, bone_name }`. |
 | `anim.remove_socket` | Remove one skeleton socket selected by `{ index, socket_name, bone_name }`. |
+| `anim.add_notify` | Add one visible, placeable object notify to a sequence. |
+| `anim.update_notify` | Move one object notify selected by `{ index, class_path, time }`. |
+| `anim.remove_notify` | Remove one object notify selected by `{ index, class_path, time }`. |
+| `anim.add_notify_state` | Add one visible, placeable notify state with start time and duration. |
+| `anim.update_notify_state` | Move/resize one state selected by `{ index, class_path, time, duration }`. |
+| `anim.remove_notify_state` | Remove one state selected by `{ index, class_path, time, duration }`. |
 
 ## Boundaries
 
@@ -40,15 +46,15 @@ components, runtime playback control, retargeting, IK, pose search, motion match
 blendspace inspection, or motion/keyframe generation.
 
 Use a family only when live capabilities advertise every command in that family. Named
-notifies and float curves apply to `UAnimSequence`; montage sections apply to
-`UAnimMontage`; sockets mutate only `USkeleton::Sockets`. Do not call or invent object
-notify, notify state, AnimBP authoring, blendspace, retargeting, or runtime preview commands.
+notifies, float curves, object notifies, and notify states apply to `UAnimSequence`; montage sections apply to
+`UAnimMontage`; sockets mutate only `USkeleton::Sockets`. Do not call or invent later-stage
+AnimBP authoring, blendspace, retargeting, runtime preview, Sequencer, or Control Rig commands.
 There is no `anim.save_asset`; use a mutation's `save=true` option, or `core.save_asset`
 where appropriate.
 
 Named-notify update/remove selectors match only zero-duration skeleton named notifies.
-Object notifies and notify states remain rejected before mutation. Montage and socket
-update/remove selectors must use their full canonical selector objects.
+Object-notify selectors use `{ index, class_path, time }`; state selectors additionally
+include `duration`. Montage and socket update/remove selectors must use their full canonical selector objects.
 
 ## Response Discipline
 

@@ -21,7 +21,7 @@ Use `cortex-animation` for skeletal animation inspection and guarded named-notif
 | Level | Place/move actors, organize content, sublevels | `level_cmd` `level_compose` |
 | Material | Materials, parameters, shader graphs | `material_cmd` `material_compose` `material_instance_compose` |
 | StateTree | Unreal StateTree assets — states, transitions, tags, validation | `statetree_cmd` `statetree_compose` |
-| Animation | Skeletal animation inspection; guarded named notifies, float curves, montage sections, and skeleton sockets | `anim_cmd` |
+| Animation | Skeletal animation inspection; guarded named/object notifies, notify states, float curves, montage sections, and skeleton sockets | `anim_cmd` |
 | UI | UMG widgets — menus, HUDs, dialogs | `umg_cmd` `widget_compose` |
 | QA | PIE testing, assertions, scenario exploration | `qa_cmd` `qa_test_step` `scenario_compose` |
 | Reflect | Class hierarchy, usages, refactor impact | `reflect_cmd` |
