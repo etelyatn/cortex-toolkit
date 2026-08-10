@@ -255,7 +255,7 @@ Report:
   - AGENTS.md: injected (N domain rows) / already present / skipped / not requested
 - Recommended next actions:
   1. Fill in `.cortex/context.md` with project-specific goals and conventions.
-  2. Start/verify the editor with the Cortex editor workflow (`cortex-editor` or `/cortex-editor`), then check health with `cortex-status` or `/cortex-status`.
-  3. Generate project knowledge with `cortex-schema-refresh` / `/cortex-schema-refresh` and a CortexReflect scan/rebuild workflow.
+  2. Start/verify the editor with the Cortex editor workflow (`cortex-editor`), then check health with `cortex-status`.
+  3. Generate project knowledge with `cortex-schema-refresh` and a CortexReflect scan/rebuild workflow.
   4. Review each `.cortex/domains/*.md` file and add domain-specific conventions, asset locations, and safety rules.
   5. If any detected domain is missing at runtime, compare `.cortex/config.yaml`, `UnrealCortex.uplugin`, and registered runtime domains from the status workflow.

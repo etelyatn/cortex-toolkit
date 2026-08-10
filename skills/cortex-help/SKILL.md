@@ -82,13 +82,13 @@ Editor: {connected (port XXXX) | not running} | Schema: {age or "not generated"}
 Suggested Next Steps
 
 1. {Title} — {Rationale with specific numbers}.
-   Run {/skill-command} to {action description}.
+   Run `cortex-<name>` to {action description}.
 
 2. {Title} — {Rationale}.
-   Run {/skill-command} to {action description}.
+   Run `cortex-<name>` to {action description}.
 
 3. {Title} — {Rationale}.
-   Run {/skill-command} to {action description}.
+   Run `cortex-<name>` to {action description}.
 
 ---
 All commands: cortex-help all | Domain help: cortex-help <domain>
@@ -209,8 +209,8 @@ For the requested domain, gather:
 {Domain Name} Domain
 
 Skills
-  {/skill-command}     {description}
-  {/skill-command}     {description}
+  cortex-<name>     {description}
+  cortex-<name>     {description}
 
 Your Project
   {N} {asset type} in {path}
