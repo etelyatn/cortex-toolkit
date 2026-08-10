@@ -40,9 +40,38 @@ Set up the project for UnrealCortex.
     - the `plugin` array entry — `"./cortex-toolkit"` when the toolkit is a submodule in the project, otherwise `"cortex-toolkit@git+https://github.com/etelyatn/cortex-toolkit.git"`. Append, never replace existing entries, and skip entries already present. Never write to the user's global `~/.config/opencode/opencode.json`.
  8. Offer context-block injection into `CLAUDE.md` and `AGENTS.md` using the toolkit templates, filtered to detected domains.
  9. Summarize the engine path, detected domains, created files, MCP settings, and recommended next actions.
+ 10. If the user works in Codex, run the **Codex Verification Gate** below before declaring setup complete. "Config written" and "Codex ready" are separate states.
 
 If the plugin is missing, stop and tell the user to add the UnrealCortex submodule first.
 If the plugin is explicitly disabled in the `.uproject`, stop until they enable it.
+
+## Codex Verification Gate
+
+Run whenever the user works in Codex and setup or config files changed. The project can be fully configured while the active Codex session still cannot see Cortex, so never equate "config written" with "Codex ready".
+
+### Checklist (run in order)
+
+1. **CLI + plugin present.** Confirm `codex` is installed and the toolkit plugin is enabled:
+   ```bash
+   codex --version
+   codex plugin list | grep cortex-toolkit
+   ```
+   If the plugin is missing or disabled, run the install steps in `.codex/INSTALL.md`, then restart Codex and re-run this gate.
+2. **Project root aligned.** The session must have been started from the project root (where `.uproject` and `.mcp.json` live). If it was started elsewhere, the project is not detected:
+   - stop Codex, start a fresh session from the project root (`cd <project-root> && codex`), then re-run this gate.
+3. **Config picked up / session reload.** If `.mcp.json`, `AGENTS.md`, or the toolkit plugin changed after the session started, the session is stale:
+   - stop Codex and start a fresh session — that is the only reliable reload. Do not assume edits are hot-picked-up.
+4. **Trusted project.** Codex prompts to trust a project before running hooks or loading context. An untrusted project silently disables them:
+   - approve the trust prompt, or add the project root to the trusted projects list, then restart the session.
+5. **Editor + MCP health.** Confirm the Unreal Editor is running and MCP is reachable:
+   - call `get_status` (or `editor_cmd(get_editor_state)`). If it fails, use `cortex-editor`.
+6. **MCP surfaced vs loaded.** A non-zero MCP server count does not guarantee the custom `cortex_mcp_*` tools are exposed to the active agent interface:
+   - confirm `cortex_mcp` is in the runtime's MCP/server list and that a Cortex tool (e.g., `get_status`) is actually callable.
+   - if the server is loaded but the tools are not surfaced, restart the session and re-check.
+
+### Completion gate
+
+Only report Codex as ready when all of the following hold: project root correct; `.mcp.json` present and valid; Unreal Editor running with a fresh port file; the session was restarted after the latest config change; and Cortex MCP is visible in the current runtime.
 
 ## Onboarding Mode
 
