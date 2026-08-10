@@ -8,7 +8,6 @@ description: Use when the Unreal Editor needs to be restarted, after C++ changes
 Restart the Unreal Editor - optionally build first, then graceful shutdown, relaunch, and verify MCP connection.
 
 Use skill names directly in instructions (for example `cortex-editor`).
-**For Claude:** slash aliases are available (for example `/cortex-editor`).
 
 > **Note:** For just starting the editor (not restarting), use `cortex-editor` instead. The PreToolUse hook auto-starts the editor before MCP calls; this skill is for explicit restart workflows.
 

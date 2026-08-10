@@ -8,7 +8,6 @@ description: Use when the user asks for help, wants to discover available comman
 Discoverability and contextual guidance for the Cortex Toolkit.
 
 Use skill names directly in instructions (for example `cortex-help all`).
-**For Claude:** slash aliases are available (for example `/cortex-help all`).
 
 ## Argument Parsing
 

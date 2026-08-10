@@ -8,7 +8,6 @@ description: Use when checking MCP connection health, editor status, diagnosing 
 Diagnostic chain for MCP connectivity and domain health. Includes automatic reconnection retry if diagnostics fail.
 
 Use skill names directly in instructions (for example `cortex-editor`).
-**For Claude:** slash aliases are available (for example `/cortex-editor`).
 
 ## Steps
 
@@ -115,7 +114,6 @@ The MCP server appears to be running (editor is active, port file exists),
 but the MCP client cannot connect.
 
 For clients with a manual reconnect command, run it, then retry your operation.
-For Claude: run /mcp to force a manual reconnect.
 
 Troubleshooting:
 - Check for firewall blocking localhost:{port}

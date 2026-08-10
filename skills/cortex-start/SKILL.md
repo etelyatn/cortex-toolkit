@@ -8,7 +8,6 @@ description: Use when a user is new to the Cortex Toolkit, asks how to get start
 Guided onboarding for first-time Cortex Toolkit users. Demonstrates value within 60 seconds.
 
 Use skill names directly in instructions (for example `cortex-init`).
-**For Claude:** slash aliases are available (for example `/cortex-init`).
 
 ## Re-run Detection
 
