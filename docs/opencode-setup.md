@@ -3,7 +3,9 @@
 See `.opencode/INSTALL.md` for installation instructions.
 
 ## Install
-Run `cortex-init` and select OpenCode, or add the plugin + MCP entries to `opencode.json` manually.
+Tell OpenCode: "Fetch and follow instructions from https://raw.githubusercontent.com/etelyatn/cortex-toolkit/main/.opencode/INSTALL.md"
+
+This installs the toolkit as an OpenCode plugin from git. Then run `cortex-init` and select OpenCode to configure the project.
 
 ## How Skills Are Discovered
 The installed plugin's `config` hook registers the toolkit's `skills/` directory with OpenCode, so all

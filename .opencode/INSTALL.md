@@ -6,11 +6,25 @@
 - Python 3.10+ with uv (for the MCP server)
 
 ## Installation
-Run `cortex-init` in your project and select OpenCode when asked which assistants to configure.
-This writes the `plugin` entry and the `cortex_mcp` MCP server into `opencode.json`.
 
-### Manual installation
-Add to your project's `opencode.json`:
+Add the toolkit to the `plugin` array in your project's `opencode.json` (or the global `~/.config/opencode/opencode.json`):
+
+```json
+{
+  "plugin": ["cortex-toolkit@git+https://github.com/etelyatn/cortex-toolkit.git"]
+}
+```
+
+Restart OpenCode. OpenCode fetches the toolkit from git through its plugin manager, loads
+`.opencode/plugins/cortex.js`, and registers the `cortex-*` skills.
+
+Verify by asking: "What Cortex skills are available?" — OpenCode should list Cortex skills.
+
+## Project Setup
+
+Run `cortex-init` in your project and select OpenCode when asked which assistants to configure.
+This creates `.cortex/` and writes the `plugin` entry and the `cortex_mcp` MCP server into `opencode.json`.
+If the toolkit is a vendored submodule, `cortex-init` writes:
 
 ```json
 {
@@ -28,8 +42,15 @@ Add to your project's `opencode.json`:
 Replace `D:/Path/To/Your/Project` with your project's absolute root (forward slashes). On macOS/Linux, paths start with `/` (e.g. `/home/user/MyProject`). Use the same
 absolute path form as `.mcp.json` — the MCP server consumes `CORTEX_PROJECT_DIR` as-is.
 
-Use `"plugin": ["cortex-toolkit@git+https://github.com/etelyatn/cortex-toolkit.git"]` if the toolkit is
-not a submodule in your project.
+`cortex-init` picks the `plugin` entry automatically: `./cortex-toolkit` when the toolkit is a submodule
+in your project, otherwise `cortex-toolkit@git+https://github.com/etelyatn/cortex-toolkit.git`. Existing
+entries are never duplicated. Note: `cortex-init` writes to the project-level `opencode.json` only; if you
+installed the plugin in the global config, add the `cortex_mcp` MCP entry manually.
+
+### Vendored submodule alternative
+
+If your project already ships the toolkit as a submodule (like CortexSandbox), skip the git spec and use
+`"plugin": ["./cortex-toolkit"]` — the toolkit lives in the repo.
 
 ## Windows install issues
 Some Windows OpenCode builds fail to resolve git-backed plugin specs (Bun cannot find `git.exe`).

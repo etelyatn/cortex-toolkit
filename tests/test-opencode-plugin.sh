@@ -98,5 +98,18 @@ if "OpenCode" not in readme:
 if "## Agents" in readme:
     raise SystemExit("README must not contain an Agents section")
 
+# Bootstrap handshake: README must lead users with the fetch-instructions prompt, and
+# INSTALL.md must present the git-backed plugin spec as the install mechanism BEFORE
+# mentioning cortex-init (which only runs after the plugin is installed).
+HANDSHAKE = "Fetch and follow instructions from https://raw.githubusercontent.com/etelyatn/cortex-toolkit/main/.opencode/INSTALL.md"
+if HANDSHAKE not in readme:
+    raise SystemExit("README must contain the OpenCode install handshake prompt")
+install_md = (root / ".opencode" / "INSTALL.md").read_text(encoding="utf-8")
+GIT_SPEC = "cortex-toolkit@git+https://github.com/etelyatn/cortex-toolkit.git"
+if GIT_SPEC not in install_md:
+    raise SystemExit("INSTALL.md must contain the git-backed plugin spec")
+if install_md.find("cortex-init") < install_md.find(GIT_SPEC):
+    raise SystemExit("INSTALL.md must present the git-backed install before cortex-init")
+
 print("opencode plugin tests passed")
 PY

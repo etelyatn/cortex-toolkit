@@ -47,9 +47,15 @@ See [`docs/cursor-setup.md`](docs/cursor-setup.md) for full instructions.
 
 ### OpenCode
 
-See [`.opencode/INSTALL.md`](.opencode/INSTALL.md) for full instructions.
+Tell OpenCode:
 
-Run `cortex-init` in your project and select OpenCode when asked which assistants to configure. This writes the `plugin` and `cortex_mcp` MCP entries into `opencode.json`.
+```
+Fetch and follow instructions from https://raw.githubusercontent.com/etelyatn/cortex-toolkit/main/.opencode/INSTALL.md
+```
+
+OpenCode fetches the instructions, installs the toolkit as a plugin from git, and registers the
+`cortex-*` skills. Then run `cortex-init` in your project to configure MCP and `.cortex/`.
+Full details: [`.opencode/INSTALL.md`](.opencode/INSTALL.md).
 
 ### Manual Setup
 
