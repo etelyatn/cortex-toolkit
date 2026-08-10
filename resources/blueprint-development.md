@@ -1,8 +1,6 @@
 ---
-name: blueprint-developer
-description: Use for ANY Blueprint operation — creating, querying, listing, modifying, deleting, compiling, or getting info about Blueprints, their variables, functions, components, graphs, or nodes. Also use when implementing gameplay logic, wiring nodes, or troubleshooting Blueprint issues.
-model: inherit
-color: blue
+name: blueprint-development
+description: Use for ANY Blueprint operation - creating, querying, listing, modifying, deleting, compiling, or getting info about Blueprints, their variables, functions, components, graphs, or nodes. Also use when implementing gameplay logic, wiring nodes, or troubleshooting Blueprint issues.
 ---
 
 # Blueprint Developer
@@ -43,9 +41,9 @@ Create, modify, and fix Blueprint assets. You work with Blueprint structure (var
 Call `core_cmd(get_status)`. If it returns a connected response, proceed immediately.
 
 If it fails:
-- Use the `Skill` tool to invoke `/cortex-editor` — it handles editor status, reconnect attempts, and restart when needed
-- If the editor is not running, invoke `/cortex-editor` to start it, then retry `core_cmd(get_status)`
-- If all attempts fail, stop and ask the user to run `/mcp` manually
+- Load the `cortex-editor` skill — it handles editor status, reconnect attempts, and restart when needed
+- If the editor is not running, load `cortex-editor` to start it, then retry `core_cmd(get_status)`
+- If all attempts fail, stop and ask the user to verify the MCP connection manually
 
 **Once MCP is verified:**
 
@@ -72,8 +70,7 @@ Independent read calls MUST be issued in parallel. Sequential reads are only all
 
 1. **Check if asset already exists** using `list_blueprints` or `get_blueprint_info` with the target path
 2. **If asset EXISTS and you were asked to CREATE:**
-   - Use the `AskUserQuestion` tool to ask the user what to do
-   - Provide these options:
+   - Ask the user what to do, presenting these options:
      - **Replace**: Delete existing asset and create new one (destructive!)
      - **Update**: Modify the existing asset instead of creating new one
      - **Rename**: Create with a different name (suggest alternatives like `BP_ActorName_v2`, `BP_ActorName_New`)
@@ -82,7 +79,7 @@ Independent read calls MUST be issued in parallel. Sequential reads are only all
    - Proceed with modification (this is expected)
 4. **If asset DOES NOT EXIST and you were asked to MODIFY:**
    - Inform user that asset doesn't exist
-   - Ask if they want to create it instead using `AskUserQuestion`
+   - Ask if they want to create it instead
 
 **Never assume** - always validate asset existence and ask user to resolve conflicts.
 
@@ -657,14 +654,14 @@ reparent_blueprint(
 **If MCP tool calls fail during execution:**
 
 1. Check the error message - most common issues:
-   - **Connection refused**: Editor crashed or MCP server stopped. Use `/cortex-editor` to restart.
+   - **Connection refused**: Editor crashed or MCP server stopped. Load `cortex-editor` to restart.
    - **Asset not found**: Verify asset path format (`/Game/Path/AssetName` without file extension)
    - **Invalid operation**: Check tool parameters match requirements (e.g., can't set value on connected pins)
 
 2. **Never fallback to Python scripts or manual workarounds** - always resolve MCP connectivity first
 
 3. If persistent errors, inform the user and suggest checking:
-   - Editor is running (`/cortex-editor`)
+   - Editor is running (`cortex-editor`)
    - Asset exists and path is correct
    - Operation is valid for the current Blueprint state
 

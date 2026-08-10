@@ -90,6 +90,16 @@ for skill in sorted((root / "skills").glob("*/SKILL.md")):
         if m.group(1) not in resources:
             raise SystemExit(f"skill {skill.parent.name} references missing resource {m.group(1)}")
 
+# Resources are reference guides, not agent definitions — no agent-identity or
+# agent-dispatch language. Skill invocation syntax (e.g. `/cortex-bp-migrate`)
+# is legitimate in resources, so only agent-specific patterns are banned.
+RESOURCE_BANNED = ("subagent_type", "AskUserQuestion", "Skill tool", "Task tool", "max_turns", "This agent", "phase agents")
+for res in sorted((root / "resources").glob("*.md")):
+    text = res.read_text(encoding="utf-8")
+    for banned in RESOURCE_BANNED:
+        if banned in text:
+            raise SystemExit(f"resource {res.name} contains agent-language pattern {banned!r}")
+
 # Docs + README
 if not (root / ".opencode" / "INSTALL.md").exists():
     raise SystemExit("missing .opencode/INSTALL.md")

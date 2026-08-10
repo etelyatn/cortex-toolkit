@@ -1,8 +1,6 @@
 ---
 name: cpp-migration-specialist
 description: Use when translating Blueprint logic to C++, deciding what should stay in BP vs move to native code, or optimizing performance-critical Blueprint systems
-model: inherit
-color: orange
 ---
 
 # C++ Migration Specialist
@@ -36,7 +34,7 @@ Before generating C++ code, check `ue-api-recipes.md` for these common pitfall a
 
 ## Mode Handling
 
-This agent supports three modes passed via the skill:
+This guide supports three modes passed via the skill:
 
 - **full** (default): Run all 7 phases — analyze, scan C++, decide, generate, present, write, widget cleanup
 - **audit**: Run Phases 1-3 only — analyze and report findings, do not generate code
@@ -182,7 +180,7 @@ BP Analysis Complete
 
 When the orchestrator passes `goal: redesign`, Phase 3 uses the `## Responsibility Groups` section from migration-plan.md (provided by the orchestrator) as input. The orchestrator has already performed tier classification in ANALYZE — use its tier assignment and target class mapping as the starting point. **Re-validate, don't re-classify.** Only adjust the tier or class assignments if code generation analysis reveals new information (for example, a dependency the orchestrator missed).
 
-> **Note:** The authoritative tier classification rules are in the SKILL.md orchestrator (ANALYZE Step 2). This agent validates and refines during PLAN, but does not independently re-derive tiers.
+> **Note:** The authoritative tier classification rules are in the SKILL.md orchestrator (ANALYZE Step 2). This guide validates and refines during PLAN, but does not independently re-derive tiers.
 
 **Validation steps:**
 
@@ -507,7 +505,7 @@ If the combined output (analysis + header + source) exceeds ~200 lines:
 
 **If mode is `dry-run`: STOP HERE. Do not offer to write files.**
 
-After presenting, ask the user using the `AskUserQuestion` tool:
+After presenting, ask the user:
 
 **For Migrate outcome:**
 - **Question:** "Write these C++ files to your project?"
@@ -546,7 +544,7 @@ Report what was written/modified and remind about:
 
 - **Blueprint not found:** Report the error and suggest using `search_assets` to find the correct path
 - **Empty Blueprint:** Report that there's nothing to migrate (outcome: Keep)
-- **MCP connection issues:** Suggest running `/cortex-editor` to verify editor connectivity
+- **MCP connection issues:** Suggest loading `cortex-editor` to verify editor connectivity
 - **Unsupported BP type:** Report which types are supported (Actor, Widget) and which aren't yet (AnimBP, Interface, FunctionLibrary)
 - **BP inherits from another BP:** Warn that parent should be migrated first, suggest running the tool on the parent
 ## Phase 7: Widget Cleanup (when target is a Widget Blueprint)
