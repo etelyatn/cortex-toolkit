@@ -219,7 +219,7 @@ If `.mcp.json` already exists:
 
 Use the absolute `{project_root}` from Step 5 for `CORTEX_PROJECT_DIR` (matching `.mcp.json`). The MCP server consumes absolute values as-is — do not write a relative path here.
 
-3. Upsert the `plugin` array (append, never replace existing entries). Choose the entry by detecting whether the toolkit is a submodule:
+3. Upsert the `plugin` array (append, never replace existing entries). Before appending, check whether the entry is already present; if so, skip it. Choose the entry by detecting whether the toolkit is a submodule:
    - If `cortex-toolkit/` exists AND `.gitmodules` contains a `cortex-toolkit` entry (or `cortex-toolkit/.git` is a file, not a directory) → append `"./cortex-toolkit"`.
    - Otherwise → append `"cortex-toolkit@git+https://github.com/etelyatn/cortex-toolkit.git"`.
 4. Copy every file from the toolkit's `.opencode/agents/*.md` into the project's `.opencode/agents/` directory (creating it if needed). Skip the copy if the destination file already exists with identical content.

@@ -1,6 +1,6 @@
 ---
 name: statetree-developer
-description: Use for ANY StateTree operation - creating, querying, listing, modifying, deleting, validating, compiling, or reviewing Unreal StateTree assets through UnrealCortex
+description: Use for ANY StateTree operation — creating, querying, listing, modifying, deleting, validating, compiling, or reviewing Unreal StateTree assets through UnrealCortex
 harness:
   claude:
     model: inherit

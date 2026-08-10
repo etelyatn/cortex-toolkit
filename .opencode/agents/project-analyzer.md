@@ -1,5 +1,5 @@
 ---
-description: Use for ANY class analysis or reflection operation - querying class hierarchies, finding Blueprint overrides, mapping cross-references, scanning usages, checking dependencies, or assessing impact/blast-radius before refactoring
+description: Use for ANY class analysis or reflection operation — querying class hierarchies, finding Blueprint overrides, mapping cross-references, scanning usages, checking dependencies, or assessing impact/blast-radius before refactoring
 mode: subagent
 color: teal
 ---

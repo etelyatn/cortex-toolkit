@@ -1,5 +1,5 @@
 ---
-description: Use for ANY level/scene operation - spawning, placing, moving, deleting, querying, listing, or getting info about actors, their transforms, components, properties, sublevels, or scene organization. Also use for lighting adjustments, multi-actor layouts, and level streaming.
+description: Use for ANY level/scene operation — spawning, placing, moving, deleting, querying, listing, or getting info about actors, their transforms, components, properties, sublevels, or scene organization. Also use for lighting adjustments, multi-actor layouts, and level streaming.
 mode: subagent
 color: green
 ---

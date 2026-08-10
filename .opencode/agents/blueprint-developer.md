@@ -1,5 +1,5 @@
 ---
-description: Use for ANY Blueprint operation - creating, querying, listing, modifying, deleting, compiling, or getting info about Blueprints, their variables, functions, components, graphs, or nodes. Also use when implementing gameplay logic, wiring nodes, or troubleshooting Blueprint issues.
+description: Use for ANY Blueprint operation — creating, querying, listing, modifying, deleting, compiling, or getting info about Blueprints, their variables, functions, components, graphs, or nodes. Also use when implementing gameplay logic, wiring nodes, or troubleshooting Blueprint issues.
 mode: subagent
 color: blue
 ---

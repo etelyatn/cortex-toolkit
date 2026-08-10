@@ -26,7 +26,7 @@ Add to your project's `opencode.json`:
 }
 ```
 
-Replace `D:/Path/To/Your/Project` with your project's absolute root (forward slashes). Use the same
+Replace `D:/Path/To/Your/Project` with your project's absolute root (forward slashes). On macOS/Linux, paths start with `/` (e.g. `/home/user/MyProject`). Use the same
 absolute path form as `.mcp.json` — the MCP server consumes `CORTEX_PROJECT_DIR` as-is.
 
 Use `"plugin": ["cortex-toolkit@git+https://github.com/etelyatn/cortex-toolkit.git"]` if the toolkit is

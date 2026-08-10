@@ -1,5 +1,5 @@
 ---
-description: Use for ANY gameplay testing or PIE operation - running QA scenarios, testing interactions, observing game state, asserting conditions, capturing screenshots, controlling PIE lifecycle, or validating game mechanics
+description: Use for ANY gameplay testing or PIE operation — running QA scenarios, testing interactions, observing game state, asserting conditions, capturing screenshots, controlling PIE lifecycle, or validating game mechanics
 mode: subagent
 color: red
 ---

@@ -63,16 +63,25 @@ agents_dir = root / ".opencode" / "agents"
 canon_dir = root / "agents"
 if not agents_dir.is_dir():
     raise SystemExit(f"missing generated agents dir: {agents_dir}")
+
+def _body(p: Path) -> str:
+    text = p.read_text(encoding="utf-8")
+    return text.split("---", 2)[2] if text.startswith("---") else text
+
 for canon in sorted(canon_dir.glob("*.md")):
     wrapper = agents_dir / canon.name
     if not wrapper.exists():
         raise SystemExit(f"missing OpenCode agent wrapper for {canon.name}")
-    def _body(p: Path) -> str:
-        text = p.read_text(encoding="utf-8")
-        return text.split("---", 2)[2] if text.startswith("---") else text
+    wrapper_text = wrapper.read_text(encoding="utf-8")
+    frontmatter = wrapper_text.split("---", 2)[1]
+    if not wrapper_text.startswith("---\ndescription: "):
+        raise SystemExit(f"agent wrapper {canon.name} must start with description frontmatter")
+    if "\nname:" in frontmatter:
+        raise SystemExit(f"agent wrapper {canon.name} must not carry a name field")
+    if "mode: subagent" not in frontmatter:
+        raise SystemExit(f"agent wrapper {canon.name} must declare mode: subagent")
     if _body(canon).strip() != _body(wrapper).strip():
         raise SystemExit(f"agent body drift: {canon.name}")
-    wrapper_text = wrapper.read_text(encoding="utf-8")
     for banned in ("subagent_type", "AskUserQuestion", "Skill tool", "Task tool", "max_turns", "/cortex-", "/mcp"):
         if banned in wrapper_text:
             raise SystemExit(f"agent wrapper {canon.name} contains banned pattern {banned!r}")

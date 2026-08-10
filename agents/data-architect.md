@@ -1,6 +1,6 @@
 ---
 name: data-architect
-description: Use for ANY data operation - creating, querying, listing, modifying, deleting, or getting info about DataTables, DataAssets, CurveTables, StringTables, GameplayTags, or struct schemas. Also use for bulk data import, balance review, and data layer design.
+description: Use for ANY data operation — creating, querying, listing, modifying, deleting, or getting info about DataTables, DataAssets, CurveTables, StringTables, GameplayTags, or struct schemas. Also use for bulk data import, balance review, and data layer design.
 harness:
   claude:
     model: inherit

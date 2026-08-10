@@ -1,5 +1,5 @@
 ---
-description: Use for ANY StateTree operation - creating, querying, listing, modifying, deleting, validating, compiling, or reviewing Unreal StateTree assets through UnrealCortex
+description: Use for ANY StateTree operation — creating, querying, listing, modifying, deleting, validating, compiling, or reviewing Unreal StateTree assets through UnrealCortex
 mode: subagent
 color: green
 ---
