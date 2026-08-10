@@ -53,9 +53,10 @@ Tell OpenCode:
 Fetch and follow instructions from https://raw.githubusercontent.com/etelyatn/cortex-toolkit/main/.opencode/INSTALL.md
 ```
 
-OpenCode fetches the instructions, installs the toolkit as a plugin from git, and registers the
-`cortex-*` skills. Then run `cortex-init` in your project to configure MCP and `.cortex/`.
-Full details: [`.opencode/INSTALL.md`](.opencode/INSTALL.md).
+This installs the toolkit as a plugin from git and registers the `cortex-*` skills. The INSTALL.md
+quick start then walks you through `cortex-init` (project setup), `cortex-editor`/`cortex-status`
+(editor connection), and `cortex-start` (onboarding). Full details:
+[`.opencode/INSTALL.md`](.opencode/INSTALL.md).
 
 ### Manual Setup
 

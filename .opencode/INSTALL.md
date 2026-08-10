@@ -5,6 +5,24 @@
 - UnrealCortex plugin installed in your Unreal project
 - Python 3.10+ with uv (for the MCP server)
 
+## Quick Start
+
+1. **Install** — open your project in OpenCode and paste:
+
+   ```
+   Fetch and follow instructions from https://raw.githubusercontent.com/etelyatn/cortex-toolkit/main/.opencode/INSTALL.md
+   ```
+
+   The agent adds the toolkit plugin to `opencode.json`:
+   `"plugin": ["cortex-toolkit@git+https://github.com/etelyatn/cortex-toolkit.git"]`.
+2. **Restart OpenCode** — the toolkit installs from git and registers the `cortex-*` skills.
+3. **Configure** — run `cortex-init` and choose OpenCode; it creates `.cortex/` and wires the `cortex_mcp` MCP server.
+4. **Connect** — run `cortex-editor` to start the Unreal Editor, then `cortex-status` to verify the connection.
+5. **Onboard** — run `cortex-start` for guided onboarding, then `cortex-schema-refresh` to index your project.
+6. **Use** — ask `cortex-help` anytime; `cortex-*` domain skills work while the editor is running.
+
+If the plugin fails to load, see [Windows install issues](#windows-install-issues).
+
 ## Installation
 
 Add the toolkit to the `plugin` array in your project's `opencode.json` (or the global `~/.config/opencode/opencode.json`):
