@@ -8,8 +8,6 @@
 
 set -uo pipefail
 
-LOCK_DIR="/tmp/cortex-ue-editor-starting.lock"
-
 # Walk up from a starting directory looking for *.uproject
 _walk_up_for_uproject() {
     local dir="$1" parent
@@ -50,6 +48,7 @@ EOF
         exit 2
     }
 fi
+LOCK_DIR="$PROJECT_DIR/Saved/cortex-ue-editor-starting.lock"
 RESTART_LOCK="$PROJECT_DIR/Saved/CortexRestarting.lock"
 TOOLKIT_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." 2>/dev/null && pwd)
 CORTEX_CONFIG_LOADER="$TOOLKIT_ROOT/lib/cortex_config.py"
@@ -183,6 +182,7 @@ fi
 # Lock dir contains a PID file so stale locks (from killed hooks) are detected.
 # Stale = no pid file, empty pid, or dead pid.
 _try_acquire_lock() {
+    mkdir -p "$PROJECT_DIR/Saved" 2>/dev/null || return 1
     mkdir "$LOCK_DIR" 2>/dev/null || return 1
     # Set cleanup trap immediately — before anything else — so kills during
     # startup never leave a stale lock behind
