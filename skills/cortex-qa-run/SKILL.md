@@ -11,8 +11,8 @@ Execute a scenario file through the QA agent and return findings with report art
 
 ## Steps
 
-<!-- Turn budget: COMPLEX tier (max_turns=35) — iterative OODA loop pattern -->
-1. Use the Task tool with `subagent_type: "cortex-toolkit:qa-engineer"` and `max_turns: 35`.
+<!-- Turn budget: COMPLEX tier (35 turns) — iterative OODA loop pattern -->
+1. Dispatch the qa-engineer agent with a 35-turn budget.
 2. Provide the scenario path/content and request:
    - Scenario execution via QA composite tools.
    - Structural issue detection after each step.

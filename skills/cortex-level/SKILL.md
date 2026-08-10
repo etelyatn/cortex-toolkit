@@ -21,8 +21,8 @@ Places, organizes, modifies, and reviews level content using the Level Designer 
 
 ### 1. Launch Level Designer Agent
 
-<!-- Turn budget: CREATE tier (max_turns=25) — design + execute + verify pattern -->
-Use the Task tool with `subagent_type: "cortex-toolkit:level-designer"` and `max_turns: 25` to delegate the work.
+<!-- Turn budget: CREATE tier (25 turns) — design + execute + verify pattern -->
+Dispatch the level-designer agent with a 25-turn budget to delegate the work.
 
 **Structure the prompt using the 3-phase directive:**
 
@@ -79,8 +79,8 @@ The agent returns from `level_compose`:
 
 ### 1. Launch Level Designer Agent
 
-<!-- Turn budget: REVIEW tier (max_turns=15) — read + analyze + report pattern -->
-Use the Task tool with `subagent_type: "cortex-toolkit:level-designer"` and `max_turns: 15` to delegate the review.
+<!-- Turn budget: REVIEW tier (15 turns) — read + analyze + report pattern -->
+Dispatch the level-designer agent with a 15-turn budget to delegate the review.
 
 Pass context about what to review:
 

@@ -25,7 +25,7 @@ Analyze your project's class architecture, or assess the blast radius of a chang
 2. Queries the class hierarchy, detail, and cross-references
 3. Presents a comprehensive summary
 
-Use the Task tool with `subagent_type: "cortex-toolkit:project-analyzer"` and `max_turns: 35`.
+Dispatch the project-analyzer agent with a 35-turn budget.
 
 ### Impact / Safety
 

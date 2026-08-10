@@ -13,17 +13,17 @@ Determine mode from user intent:
 
 - **Create/Modify**: User wants to build or change something
   Examples: "create a material", "add a parameter to", "update the texture slot", "create an instance of"
-  → Launch `material-developer` agent with `max_turns: 25`
+  → Dispatch the material-developer agent with a 25-turn budget.
 
 - **Review/Analyze**: User wants to understand or audit existing assets
   Examples: "review materials in /Game/Materials", "check naming conventions", "audit material complexity", "list all instances"
-  → Launch `material-developer` agent with `max_turns: 15`
+  → Dispatch the material-developer agent with a 15-turn budget.
 
 - **Ambiguous** → Default to Review (read-only, safe)
 
 ## Agent Routing
 
-| Mode | Agent | max_turns |
+| Mode | Agent | Turn budget |
 |------|-------|-----------|
 | Create/Modify | material-developer | 25 |
 | Review/Analyze | material-developer | 15 |
@@ -32,7 +32,7 @@ Determine mode from user intent:
 
 ### 1. Launch Material Developer Agent
 
-Use the Task tool with `subagent_type: "cortex-toolkit:material-developer"` and the appropriate `max_turns` for the detected mode.
+Dispatch the agent listed in the routing table above with the turn budget for the detected mode.
 
 **For Create/Modify**, structure the prompt as a mandatory pipeline directive:
 

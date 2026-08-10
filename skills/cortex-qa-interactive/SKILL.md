@@ -11,8 +11,8 @@ Drive live exploratory testing in PIE with tight observe-act-assert loops.
 
 ## Steps
 
-<!-- Turn budget: INTERACTIVE tier (max_turns=75) — user-driven session safety net -->
-1. Use the Task tool with `subagent_type: "cortex-toolkit:qa-engineer"` and `max_turns: 75`.
+<!-- Turn budget: INTERACTIVE tier (75 turns) — user-driven session safety net -->
+1. Dispatch the qa-engineer agent with a 75-turn budget.
 2. Instruct the agent to operate in `guided` mode and:
    - execute one user-requested step at a time,
    - report findings after every step,
@@ -27,6 +27,6 @@ Drive live exploratory testing in PIE with tight observe-act-assert loops.
 
 If the agent reaches the turn limit (75 turns), report to the user:
 
-> Interactive session ended due to turn limit. Here's what was covered: [summary of findings and areas tested]. You can re-invoke /cortex-qa-interactive to continue testing.
+> Interactive session ended due to turn limit. Here's what was covered: [summary of findings and areas tested]. You can re-invoke the cortex-qa-interactive skill to continue testing.
 
 Do not treat this as a failure — interactive sessions are naturally open-ended.

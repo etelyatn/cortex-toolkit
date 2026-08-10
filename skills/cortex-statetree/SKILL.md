@@ -13,21 +13,21 @@ Determine mode from user intent:
 
 - **Create/Modify**: User wants to build or change a StateTree asset
   Examples: "create a StateTree", "add a Patrol state", "wire a transition", "compile after structural edits"
-  → Launch `cortex-toolkit:statetree-developer` agent with `max_turns: 25`
+  → Dispatch the statetree-developer agent with a 25-turn budget.
 
 - **Review/Analyze**: User wants to inspect structure or understand an existing StateTree without mutating it
   Examples: "review ST_Guard", "dump this StateTree", "check transitions", "check StateTree structure"
-  → Launch `cortex-toolkit:statetree-developer` agent with `max_turns: 15`
+  → Dispatch the statetree-developer agent with a 15-turn budget.
 
 - **Validate/Compile**: User wants to run mutating validation fixups or compile an existing StateTree
   Examples: "validate this StateTree", "run validation fixups", "compile ST_Guard"
-  → Launch `cortex-toolkit:statetree-developer` agent with `max_turns: 15`
+  → Dispatch the statetree-developer agent with a 15-turn budget.
 
 - **Ambiguous** → Default to Review (read-only, safe)
 
 ## Agent Routing
 
-| Mode | Agent | max_turns |
+| Mode | Agent | Turn budget |
 |------|-------|-----------|
 | Create/Modify | cortex-toolkit:statetree-developer | 25 |
 | Review/Analyze | cortex-toolkit:statetree-developer | 15 |
@@ -37,7 +37,7 @@ Determine mode from user intent:
 
 ### 1. Launch StateTree Developer Agent
 
-Use the Task tool with `subagent_type: "cortex-toolkit:statetree-developer"` and the appropriate `max_turns` for the detected mode.
+Dispatch the agent listed in the routing table above with the turn budget for the detected mode.
 
 **For Create/Modify**, structure the prompt as a mandatory pipeline directive:
 

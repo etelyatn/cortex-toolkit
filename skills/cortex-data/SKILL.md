@@ -13,17 +13,17 @@ Determine mode from user intent:
 
 - **Create/Modify**: User wants to build or change data assets
   Examples: "create a DataTable", "add rows to DT_Weapons", "import data from CSV", "create a CurveTable for level XP"
-  → Launch `cortex-toolkit:data-architect` agent with `max_turns: 25`
+  → Dispatch the data-architect agent with a 25-turn budget.
 
 - **Review/Balance**: User wants to audit, analyze, or validate existing data
   Examples: "review DT_WeaponStats for balance issues", "check XP curve", "are quest rewards fair?", "validate data integrity", "analyze item pricing"
-  → Launch `cortex-toolkit:data-balancer` agent with `max_turns: 15`
+  → Dispatch the data-balancer agent with a 15-turn budget.
 
 - **Ambiguous** → Default to Review (read-only, safe)
 
 ## Agent Routing
 
-| Mode | Agent | max_turns |
+| Mode | Agent | Turn budget |
 |------|-------|-----------|
 | Create/Modify | cortex-toolkit:data-architect | 25 |
 | Review/Balance | cortex-toolkit:data-balancer | 15 |
@@ -32,7 +32,7 @@ Determine mode from user intent:
 
 ### 1. Launch Agent
 
-Use the Task tool with the appropriate `subagent_type` and `max_turns` for the detected mode.
+Dispatch the agent listed in the routing table above with the turn budget for the detected mode.
 
 **For Create/Modify**, pass the full specification:
 

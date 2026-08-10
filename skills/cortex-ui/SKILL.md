@@ -21,8 +21,8 @@ Creates, modifies, and reviews UMG widget screens using the UI Developer agent.
 
 ### 1. Launch UI Developer Agent
 
-<!-- Turn budget: CREATE tier (max_turns=25) — design + execute + verify pattern -->
-Use the Task tool with `subagent_type: "cortex-toolkit:ui-developer"` and `max_turns: 25` to delegate UI creation.
+<!-- Turn budget: CREATE tier (25 turns) — design + execute + verify pattern -->
+Dispatch the ui-developer agent with a 25-turn budget to delegate UI creation.
 
 Pass the full specification including:
 - Screen type and name
@@ -58,8 +58,8 @@ The agent returns:
 
 ### 1. Launch UI Developer Agent
 
-<!-- Turn budget: REVIEW tier (max_turns=15) — read + analyze + report pattern -->
-Use the Task tool with `subagent_type: "cortex-toolkit:ui-developer"` and `max_turns: 15` to delegate UI review.
+<!-- Turn budget: REVIEW tier (15 turns) — read + analyze + report pattern -->
+Dispatch the ui-developer agent with a 15-turn budget to delegate UI review.
 
 Pass the review scope and focus:
 - Specific widgets to review (if targeted)

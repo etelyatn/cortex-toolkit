@@ -13,21 +13,21 @@ Determine mode from user intent:
 
 - **Create/Modify**: User wants to build or change something
   Examples: "create a blueprint", "add a variable to", "wire up BeginPlay", "add a component"
-  → Launch `cortex-toolkit:blueprint-developer` agent with `max_turns: 25`
+  → Dispatch the blueprint-developer agent with a 25-turn budget.
 
 - **Review/Analyze**: User wants to understand or audit existing assets
   Examples: "review BP_Player", "check naming conventions", "audit complexity", "list all blueprints"
-  → Launch `cortex-toolkit:blueprint-developer` agent with `max_turns: 15`
+  → Dispatch the blueprint-developer agent with a 15-turn budget.
 
 - **Debug**: User wants to trace or diagnose a problem
   Examples: "debug BP_Player", "why isn't this working", "trace execution", "investigate crash"
-  → Launch `cortex-toolkit:blueprint-debugger` agent with `max_turns: 35`
+  → Dispatch the blueprint-debugger agent with a 35-turn budget.
 
 - **Ambiguous** → Default to Review (read-only, safe)
 
 ## Agent Routing
 
-| Mode | Agent | max_turns |
+| Mode | Agent | Turn budget |
 |------|-------|-----------|
 | Create/Modify | cortex-toolkit:blueprint-developer | 25 |
 | Review/Analyze | cortex-toolkit:blueprint-developer | 15 |
@@ -37,7 +37,7 @@ Determine mode from user intent:
 
 ### 1. Launch Agent
 
-Use the Task tool with the appropriate `subagent_type` and `max_turns` for the detected mode.
+Dispatch the agent listed in the routing table above with the turn budget for the detected mode.
 
 **For Create/Modify**, structure the prompt as a mandatory pipeline directive:
 
