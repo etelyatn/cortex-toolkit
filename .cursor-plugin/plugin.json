@@ -1,7 +1,7 @@
 {
   "name": "cortex-toolkit",
   "description": "AI-powered Unreal Engine development toolkit. Skills, agents, and domain knowledge — powered by UnrealCortex MCP.",
-  "version": "0.1.10",
+  "version": "0.6.4",
   "author": {
     "name": "Eugene Telyatnik",
     "email": "etelyatn@gmail.com"

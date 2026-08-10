@@ -118,5 +118,21 @@ for doc_path in docs_to_check:
     if "trust" not in contents.lower():
         raise SystemExit(f"{doc_path.relative_to(root)} must explain Codex hook trust")
 
+package_path = root / "package.json"
+if not package_path.exists():
+    raise SystemExit(f"missing root package.json: {package_path}")
+pkg = json.loads(package_path.read_text(encoding="utf-8"))
+if pkg.get("type") != "module":
+    raise SystemExit("package.json type must be module")
+if pkg.get("main") != ".opencode/plugins/cortex.js":
+    raise SystemExit("package.json main must point at the OpenCode plugin")
+if pkg.get("version") != version:
+    raise SystemExit("package.json version must match the codex plugin manifest")
+
+cursor_path = root / ".cursor-plugin" / "plugin.json"
+cursor = json.loads(cursor_path.read_text(encoding="utf-8"))
+if cursor.get("version") != version:
+    raise SystemExit("cursor plugin version must match codex plugin version")
+
 print("codex plugin tests passed")
 PY
