@@ -1,21 +1,21 @@
 # Cortex Toolkit
 
-AI-powered Unreal Engine development toolkit. Skills, agents, and domain knowledge for Claude Code, Codex, and Cursor — powered by UnrealCortex MCP.
+AI-powered Unreal Engine development toolkit. Skills, agents, and domain knowledge for Claude Code, Codex, Cursor, and OpenCode — powered by UnrealCortex MCP.
 
 ## Platform Support
 
-| Feature | Claude Code | Codex | Cursor |
-|---------|-------------|-------|--------|
-| Skills (`skills/`) | ✅ | ✅ via Codex plugin | ✅ |
-| Agents (`agents/`) | ✅ | ❌ | ✅ |
-| Hooks (`hooks/`) | ✅ | ✅ requires trust | ⚠️ |
-| MCP tools | ✅ | ✅ | ✅ |
+| Feature | Claude Code | Codex | Cursor | OpenCode |
+|---------|-------------|-------|--------|----------|
+| Skills (`skills/`) | ✅ | ✅ via Codex plugin | ✅ | ✅ via plugin |
+| Agents (`agents/`) | ✅ | ❌ | ✅ | ✅ via `.opencode/agents/` |
+| Hooks (`hooks/`) | ✅ | ✅ requires trust | ⚠️ | ✅ via plugin |
+| MCP tools | ✅ | ✅ | ✅ | ✅ |
 
 ## Prerequisites
 
 - **Unreal Engine 5.6+** with [UnrealCortex](https://github.com/etelyatn/UnrealCortex) plugin installed
 - **Python 3.10+** with [uv](https://docs.astral.sh/uv/) (for the MCP server)
-- **Claude Code**, **Codex**, or **Cursor**
+- **Claude Code**, **Codex**, **Cursor**, or **OpenCode**
 
 ## Installation
 
@@ -46,12 +46,18 @@ Start with `cortex-start` for guided onboarding, or use `cortex-init` directly w
 
 See [`docs/cursor-setup.md`](docs/cursor-setup.md) for full instructions.
 
+### OpenCode
+
+See [`.opencode/INSTALL.md`](.opencode/INSTALL.md) for full instructions.
+
+Run `cortex-init` in your project and select OpenCode when asked which assistants to configure. This writes the `plugin` and `cortex_mcp` MCP entries into `opencode.json` and copies the Cortex agents into `.opencode/agents/`.
+
 ### Manual Setup
 
 If you prefer not to use `/cortex-init`, add the context block manually:
 
-- **Claude Code:** Append [`templates/claude-block.md`](templates/claude-block.md) to your project's `CLAUDE.md`
-- **Codex:** Append [`templates/agents-block.md`](templates/agents-block.md) to your project's `AGENTS.md`
+- **Claude Code:** Append [`templates/context-block.md`](templates/context-block.md) to your project's `CLAUDE.md`
+- **Codex:** Append [`templates/context-block.md`](templates/context-block.md) to your project's `AGENTS.md`
 
 Then create `.cortex/` manually following the structure in [Project Memory](#project-memory). Codex users can also install the packaged plugin and keep the same AGENTS.md context block for project-specific rules.
 
