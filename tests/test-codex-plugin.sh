@@ -134,5 +134,18 @@ cursor = json.loads(cursor_path.read_text(encoding="utf-8"))
 if cursor.get("version") != version:
     raise SystemExit("cursor plugin version must match codex plugin version")
 
+claude_path = root / ".claude-plugin" / "plugin.json"
+claude = json.loads(claude_path.read_text(encoding="utf-8"))
+if claude.get("version") != version:
+    raise SystemExit("claude plugin version must match codex plugin version")
+
+claude_marketplace_path = root / ".claude-plugin" / "marketplace.json"
+claude_marketplace = json.loads(claude_marketplace_path.read_text(encoding="utf-8"))
+if claude_marketplace.get("metadata", {}).get("version") != version:
+    raise SystemExit("claude marketplace metadata version must match codex plugin version")
+claude_entry = next((p for p in claude_marketplace.get("plugins", []) if p.get("name") == "cortex-toolkit"), None)
+if claude_entry is None or claude_entry.get("version") != version:
+    raise SystemExit("claude marketplace plugin entry version must match codex plugin version")
+
 print("codex plugin tests passed")
 PY
