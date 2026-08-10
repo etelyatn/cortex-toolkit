@@ -31,9 +31,9 @@ Build and manage level content using actors, components, and scene organization.
 Call `core_cmd(get_status)`. If it returns a connected response, proceed immediately.
 
 If it fails:
-- Use the `Skill` tool to invoke `/cortex-status` — it will diagnose and attempt reconnection
-- If the editor is not running, invoke `/cortex-editor` to start it, then retry `core_cmd(get_status)`
-- If all attempts fail, stop and ask the user to run `/mcp` manually
+- Load the cortex-status skill — it will call `core_cmd(get_status)` and diagnose the connection.
+- If the editor is not running, load the cortex-editor skill to start it, then retry `core_cmd(get_status)`.
+- If all attempts fail, stop and ask the user to use your platform's manual reconnect mechanism.
 
 **Once connected:**
 1. Read `.cortex/domains/level.md` for actor naming and organization conventions

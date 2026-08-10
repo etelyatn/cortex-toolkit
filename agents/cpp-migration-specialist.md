@@ -507,7 +507,7 @@ If the combined output (analysis + header + source) exceeds ~200 lines:
 
 **If mode is `dry-run`: STOP HERE. Do not offer to write files.**
 
-After presenting, ask the user using the `AskUserQuestion` tool:
+After presenting, ask the user:
 
 **For Migrate outcome:**
 - **Question:** "Write these C++ files to your project?"
@@ -546,7 +546,7 @@ Report what was written/modified and remind about:
 
 - **Blueprint not found:** Report the error and suggest using `search_assets` to find the correct path
 - **Empty Blueprint:** Report that there's nothing to migrate (outcome: Keep)
-- **MCP connection issues:** Suggest running `/cortex-status` to verify editor connectivity
+- **MCP connection issues:** Suggest loading the cortex-status skill to verify editor connectivity
 - **Unsupported BP type:** Report which types are supported (Actor, Widget) and which aren't yet (AnimBP, Interface, FunctionLibrary)
 - **BP inherits from another BP:** Warn that parent should be migrated first, suggest running the tool on the parent
 ## Phase 7: Widget Cleanup (when target is a Widget Blueprint)
