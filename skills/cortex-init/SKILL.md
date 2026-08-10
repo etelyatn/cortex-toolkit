@@ -194,12 +194,38 @@ If `.mcp.json` already exists:
 
 ### 6. Inject LLM Context
 
-**This step is required — do not skip it.** Ask the user for each file (CLAUDE.md default yes, AGENTS.md default ask):
+**This step is required — do not skip it.** Ask the user for each target (CLAUDE.md default yes, AGENTS.md default ask, OpenCode default no):
 
 > "Inject Cortex Toolkit context block into `CLAUDE.md`? (y/n) [y]"
 > "Create/update `AGENTS.md` with Cortex Toolkit context? (y/n)"
+> "Configure OpenCode? (y/n)"
 
-**For each approved file, follow this sequence:**
+**6A.5 — If OpenCode was selected, configure it now** (OpenCode is NOT injected via a context file — its bootstrap is the plugin):
+
+1. Read the project's existing `opencode.json` (or start from `{}`). Preserve all existing top-level keys and all existing `mcp` entries.
+2. Upsert only the `cortex_mcp` MCP entry:
+
+```json
+{
+  "mcp": {
+    "cortex_mcp": {
+      "type": "local",
+      "command": ["uv", "run", "--directory", "{mcp_dir}", "cortex-mcp"],
+      "environment": { "CORTEX_PROJECT_DIR": "{project_root}" }
+    }
+  }
+}
+```
+
+Use the absolute `{project_root}` from Step 5 for `CORTEX_PROJECT_DIR` (matching `.mcp.json`). The MCP server consumes absolute values as-is — do not write a relative path here.
+
+3. Upsert the `plugin` array (append, never replace existing entries). Choose the entry by detecting whether the toolkit is a submodule:
+   - If `cortex-toolkit/` exists AND `.gitmodules` contains a `cortex-toolkit` entry (or `cortex-toolkit/.git` is a file, not a directory) → append `"./cortex-toolkit"`.
+   - Otherwise → append `"cortex-toolkit@git+https://github.com/etelyatn/cortex-toolkit.git"`.
+4. Copy every file from the toolkit's `.opencode/agents/*.md` into the project's `.opencode/agents/` directory (creating it if needed). Skip the copy if the destination file already exists with identical content.
+5. Never write to the user's global `~/.config/opencode/opencode.json`.
+
+**For each approved file (CLAUDE.md / AGENTS.md), follow this sequence:**
 
 **A. Check writeability**
 Attempt the write; if a write error occurs, report "Cannot write to {file} — {error}" and skip. Do not pre-check with stat.
@@ -207,13 +233,11 @@ Attempt the write; if a write error occurs, report "Cannot write to {file} — {
 **B. Sentinel guard**
 Search the file for `<!-- cortex-toolkit:`.
 - Not found → proceed to inject.
-- Found matching current version (`<!-- cortex-toolkit:v1 -->`) → skip, report "already present (v1)".
-- Found with different version → warn: "Existing Cortex Toolkit block found (older version). Replace it? (y/n)". If yes, remove old block: starting from the sentinel line, delete until the next `---` or root-level `##` heading found *after* the sentinel, or end of file — whichever comes first; if no, skip.
+- Found matching current version (`<!-- cortex-toolkit:v2 -->`) → skip, report "already present (v2)".
+- Found with different version (for example `cortex-toolkit:v1`) → warn: "Existing Cortex Toolkit block found (older version). Replace it? (y/n)". If yes, remove the old block (starting from the sentinel line, delete until the next `---` or root-level `##` heading found *after* the sentinel, or end of file — whichever comes first), then run the full injection logic below — not a template swap; if no, skip.
 
 **C. Build filtered block**
-Read the canonical template:
-- For `CLAUDE.md`: `{toolkit-root}/templates/claude-block.md`
-- For `AGENTS.md`: `{toolkit-root}/templates/agents-block.md`
+Read the canonical template: `{toolkit-root}/templates/context-block.md` (for both CLAUDE.md and AGENTS.md).
 
 `{toolkit-root}` resolves as:
 1. If `CLAUDE_PLUGIN_ROOT` env var is set (marketplace install) → use that path.
@@ -236,8 +260,30 @@ Filter the table rows to only the domains detected in Step 3, using this key-to-
 
 Remove any row whose label is not matched by a detected domain key. Always keep the table header and separator rows.
 
+After the filtered block, append the per-harness mapping for the target file.
+
+For CLAUDE.md:
+
+```markdown
+
+**Tool Mapping (Claude Code):**
+- Load a skill -> use the `Skill` tool with the skill name (e.g. `Skill: "cortex-status"`)
+- Dispatch an agent -> use the `Task` tool with `subagent_type: "cortex-toolkit:<agent-name>"` and `max_turns: N`
+- Ask the user -> use `AskUserQuestion`
+```
+
+For AGENTS.md:
+
+```markdown
+
+**Tool Mapping (Codex):**
+- Load a skill -> read the skill's `SKILL.md` file directly with the file-read tool
+- Dispatch an agent -> agents are not supported on Codex; follow the agent's methodology inline
+- Ask the user -> use the question tool available in your session
+```
+
 **D. Inject**
-- If file exists → append the filtered block preceded by a blank line. Note in output: "Block appended at end of file — you may want to relocate it within the file."
+- If file exists → append the complete block (filtered template + mapping) preceded by a blank line. Note in output: "Block appended at end of file — you may want to relocate it within the file."
 - If file does not exist → create it containing only the block.
 
 **E. Record result** for Step 7 summary.
@@ -250,6 +296,7 @@ Report:
 - Detected domains
 - Created files
 - MCP configured: `CORTEX_PROJECT_DIR={project_root}`, `--directory={mcp_dir}`
+- OpenCode: plugin entry + MCP entry written to `opencode.json`; agent wrappers copied to `.opencode/agents/` (only when OpenCode was selected)
 - Context injection:
   - CLAUDE.md: injected (N domain rows) / already present / skipped
   - AGENTS.md: injected (N domain rows) / already present / skipped / not requested
