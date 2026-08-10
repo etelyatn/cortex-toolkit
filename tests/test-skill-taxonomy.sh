@@ -76,8 +76,7 @@ for path in root.rglob("*"):
 
 required_public_mentions = {
     "README.md": ["cortex-setup", "cortex-editor", "cortex-build", "cortex-blueprint", "cortex-bp-migrate", "cortex-data", "cortex-umg", "cortex-material", "cortex-level", "cortex-statetree", "cortex-animation", "cortex-reflect", "cortex-test", "cortex-qa"],
-    "templates/claude-block.md": ["/cortex-setup", "/cortex-editor", "/cortex-build", "/cortex-umg", "/cortex-animation", "/cortex-qa"],
-    "templates/agents-block.md": ["cortex-setup", "cortex-editor", "cortex-build", "cortex-umg", "cortex-animation", "cortex-qa"],
+    "templates/context-block.md": ["cortex-setup", "cortex-editor", "cortex-build", "cortex-umg", "cortex-animation", "cortex-qa"],
 }
 for rel, required in required_public_mentions.items():
     text = (root / rel).read_text(encoding="utf-8")
@@ -102,10 +101,6 @@ market_version = marketplace["metadata"]["version"]
 plugin_version = marketplace["plugins"][0]["version"]
 if market_version != plugin_version or market_version != versions[0]:
     raise SystemExit("marketplace versions must match plugin manifests")
-
-agents_marketplace = json.loads((root / ".agents" / "plugins" / "marketplace.json").read_text(encoding="utf-8"))
-if "version" in agents_marketplace:
-    raise SystemExit(".agents/plugins/marketplace.json should not define a version; release versions live in plugin manifests")
 
 print("skill taxonomy tests passed")
 PY

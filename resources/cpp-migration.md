@@ -667,7 +667,7 @@ The migration workflow uses a 4-stage pipeline:
 |-------|---------|------|
 | **ANALYZE** | Conversational goals + technical analysis → migration design | User approves design |
 | **PLAN** | Generate granular task list with complete C++ code | User approves plan |
-| **EXECUTE** | Run tasks via phase agents with TaskCreate checkboxes | Auto-verify checkpoint |
+| **EXECUTE** | Run phase workflows with checkpoint verification | Auto-verify checkpoint |
 | **COMPLETE** | Verify, present results, swap decision, final report | User approves swap |
 
 Entry point: `/cortex-bp-migrate <BlueprintPath>` (supports `--audit` and `--resume`)

@@ -25,13 +25,13 @@ Analyze your project's class architecture, or assess the blast radius of a chang
 2. Queries the class hierarchy, detail, and cross-references
 3. Presents a comprehensive summary
 
-Use the Task tool with `subagent_type: "cortex-toolkit:project-analyzer"` and `max_turns: 35`.
+Follow the `resources/project-analysis.md` guide for the analysis workflow.
 
 ### Impact / Safety
 
 **Triggers:** "what breaks if", "blast radius", "impact of removing", "is it safe to change", "what depends on"
 
-Execute these steps directly (no agent — fast path):
+Execute these steps directly:
 
 #### Step 1. Check Cache Freshness
 
@@ -74,10 +74,10 @@ Recommend:
 
 Default to **Explore / Understand**.
 
-## Handling Agent Results (Explore/Understand path only)
+## Handling Results (Explore/Understand path only)
 
-If the agent's response includes a **Status** line:
+Report results to the user with a completion status:
 - **completed** — present the class analysis to the user.
 - **blocked** / **partial** — surface what was analyzed and what remains. If the cache was stale or a rebuild was needed, note it.
 
-If the agent's response has no Status line (e.g., turn limit reached mid-response), treat as **partial** — summarize whatever analysis was produced.
+If the work is interrupted mid-execution, treat it as **partial** — summarize whatever analysis was produced.

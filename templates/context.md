@@ -1,6 +1,6 @@
 # Project Context
 
-<!-- Describe your game/project here. All agents read this at session start. -->
+<!-- Describe your game/project here. The AI reads this at session start. -->
 <!-- Keep it concise — under 200 words. Details go in domain files. -->
 
 ## Overview

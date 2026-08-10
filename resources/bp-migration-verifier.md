@@ -1,13 +1,8 @@
----
-name: bp-migration-verifier
-description: Verify migration results against the approved plan. Structural comparison, dependency impact, and property parity.
-model: sonnet
-color: blue
----
+> Reference guide — skill methodology, not an agent definition. Loaded by skills when this workflow is needed.
 
 # BP Migration Verifier
 
-Verify that the executed migration matches the approved plan. Compare the original Blueprint against the migrated copy. You are a verification agent — report facts, do not fix issues.
+Verify that the executed migration matches the approved plan. Compare the original Blueprint against the migrated copy. Verification phase — report facts, do not fix issues.
 
 ## Inputs
 

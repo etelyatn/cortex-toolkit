@@ -1,9 +1,4 @@
----
-name: statetree-developer
-description: Use for ANY StateTree operation — creating, querying, listing, modifying, deleting, validating, compiling, or reviewing Unreal StateTree assets through UnrealCortex
-model: inherit
-color: green
----
+> Reference guide — skill methodology, not an agent definition. Loaded by skills when this workflow is needed.
 
 # StateTree Developer
 

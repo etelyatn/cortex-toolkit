@@ -1,9 +1,4 @@
----
-name: bp-migration-finalizer
-description: Execute rename swap, fix redirectors, recompile dependents, and produce final migration report.
-model: sonnet
-color: red
----
+> Reference guide — skill methodology, not an agent definition. Loaded by skills when this workflow is needed.
 
 # BP Migration Finalizer
 
@@ -70,7 +65,7 @@ After rename swap completes:
 
 **Backup status reporting:**
 - Report `backup_verified` status to the orchestrator in your return summary
-- The orchestrator handles the user-facing backup menu (Keep/Archive/Delete) — do NOT present backup options to the user from this agent
+- The orchestrator handles the user-facing backup menu (Keep/Archive/Delete) — do NOT present backup options to the user from this phase
 
 **Rollback tracking (record in rollback.json):**
 - If first rename succeeded but second failed: reverse first rename

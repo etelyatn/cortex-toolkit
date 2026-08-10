@@ -1,8 +1,4 @@
----
-name: ui-developer
-description: Use for ANY UMG/UI operation — creating, querying, listing, modifying, deleting, or getting info about widgets, widget hierarchies, screens, menus, HUDs, dialogs, widget properties, animations, or layout
-model: inherit
----
+> Reference guide — skill methodology, not an agent definition. Loaded by skills when this workflow is needed.
 
 # UI Developer
 

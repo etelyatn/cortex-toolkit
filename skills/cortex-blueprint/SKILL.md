@@ -5,7 +5,7 @@ description: Use when creating, modifying, reviewing, debugging, or reparenting 
 
 # cortex-blueprint
 
-Creates, modifies, reviews, and debugs Blueprint assets using the Blueprint Developer and Blueprint Debugger agents.
+Creates, modifies, reviews, and debugs Blueprint assets following the `resources/blueprint-development.md` and `resources/blueprint-debugging.md` guides.
 
 ## Mode Detection
 
@@ -13,86 +13,45 @@ Determine mode from user intent:
 
 - **Create/Modify**: User wants to build or change something
   Examples: "create a blueprint", "add a variable to", "wire up BeginPlay", "add a component"
-  → Launch `cortex-toolkit:blueprint-developer` agent with `max_turns: 25`
+  → Follow the `resources/blueprint-development.md` guide.
 
 - **Review/Analyze**: User wants to understand or audit existing assets
   Examples: "review BP_Player", "check naming conventions", "audit complexity", "list all blueprints"
-  → Launch `cortex-toolkit:blueprint-developer` agent with `max_turns: 15`
+  → Follow the `resources/blueprint-development.md` guide.
 
 - **Debug**: User wants to trace or diagnose a problem
   Examples: "debug BP_Player", "why isn't this working", "trace execution", "investigate crash"
-  → Launch `cortex-toolkit:blueprint-debugger` agent with `max_turns: 35`
+  → Follow the `resources/blueprint-debugging.md` guide.
 
-- **Reparent**: User wants to change a Blueprint parent class or move all children to a new parent
+- **Reparent**: User wants to change the parent class of one or more Blueprints
   Examples: "reparent BP_Door to BP_InteractableBase", "change the parent of these Blueprints"
-  -> Stay in `cortex-blueprint` and run the reparent workflow below before any mutation
+  → Run the Reparent Mode workflow below before any mutation.
 
 - **Ambiguous** → Default to Review (read-only, safe)
 
-## Agent Routing
+## Routing
 
-| Mode | Agent | max_turns |
-|------|-------|-----------|
-| Create/Modify | cortex-toolkit:blueprint-developer | 25 |
-| Review/Analyze | cortex-toolkit:blueprint-developer | 15 |
-| Debug | cortex-toolkit:blueprint-debugger | 35 |
-| Reparent | built-in reparent workflow | n/a |
+| Mode | Guide |
+|------|-------|
+| Create/Modify | `blueprint-development` |
+| Review/Analyze | `blueprint-development` |
+| Debug | `blueprint-debugging` |
+| Reparent | built-in reparent workflow |
 
 ## Steps
 
-### FText Pin Mutation
+### 1. Execute the Workflow
 
-For Blueprint graph `FText` pins, use `graph_cmd(command="set_pin_value", params={"asset_path": "/Game/UI/BP_MailButton.BP_MailButton", "node_id": "K2Node_CallFunction_0", "pin_name": "InText", "text": {"type": "FText", "source_kind": "literal", "value": "Pay"}})` or `blueprint_compose(mode="update", asset_path="/Game/UI/BP_MailButton.BP_MailButton", nodes=[{"name": "PrintText", "class": "CallFunction", "pin_text_values": {"InText": {"type": "FText", "source_kind": "literal", "value": "Pay"}}}])`.
-Do not JSON-encode StringTable descriptors into the `value` string. `value` remains valid for non-text pins and literal-only text writes; StringTable-backed text requires `text` with `type`, `source_kind`, `value`, and `string_table`.
-When mutating a prefetched Blueprint asset, pass `expected_fingerprint`.
+Read the guide listed in the routing table for the detected mode, then execute its workflow directly in this conversation using the MCP tools it references.
 
-### Reparent Mode
-
-Run this workflow before mutation:
-1. Resolve target Blueprints and present the full mutation set for confirmation.
-2. Resolve the new parent Blueprint or C++ class and verify it exists.
-3. Capture SCS component defaults and placed-instance overrides before reparenting.
-4. Reparent.
-5. Restore Blueprint defaults and placed-instance overrides.
-6. Compile and save.
-7. Report per-Blueprint results and warnings.
-
-Detailed execution requirements:
-
-1. Resolve targets.
-   - For one named Blueprint, resolve the asset path if only a short name is provided.
-   - For "all children of X" or multi-target requests, discover candidates and filter them by current parent.
-   - Present the exact mutation set before proceeding.
-2. Resolve the new parent.
-   - Accept either a Blueprint asset path or a C++ class name.
-   - Verify the target exists before mutation.
-3. Capture pre-reparent state.
-   - Inspect each Blueprint for custom variables, functions, and graph complexity.
-   - Capture owned SCS component defaults that would be overwritten by the new parent.
-   - Capture placed-instance overrides for existing level instances so they can be restored after the parent swap.
-   - Warn the user if custom variables, graph logic, or component layouts may not be compatible with the new parent.
-4. Reparent.
-   - Use `reparent_blueprint` on each target Blueprint.
-   - If the primary reparent route is unavailable, use the supported cleanup/reparent fallback with the generated class path.
-5. Restore defaults and instance overrides.
-   - Restore owned Blueprint component defaults with `set_component_defaults`.
-   - Restore placed-instance overrides with level modify operations.
-   - Check for partial failures and surface them explicitly.
-6. Compile and save each Blueprint.
-7. Report per-Blueprint old parent, new parent, restored-instance count, and any warnings that still need visual verification.
-
-### 1. Launch Agent
-
-Use the Task tool with the appropriate `subagent_type` and `max_turns` for the detected mode.
-
-**For Create/Modify**, structure the prompt as a mandatory pipeline directive:
+**For Create/Modify**, execute the mandatory pipeline directive:
 
 ```
 Create the following Blueprint using the MANDATORY pipeline:
 
 **Blueprint:** [name and type, e.g. BP_PlayerCharacter (Actor)]
 **Path:** [e.g. `/Game/Blueprints/` or a project-owned plugin root such as `/InventoryPlugin/Blueprints/`]
-**Prefetched state:** [embed the main-thread `prefetched_state` block here before launching]
+**Prefetched state:** [embed the main-thread `prefetched_state` block here before proceeding]
 **Variables:** [name, type, default value, category, exposed status]
 **Functions:** [name, inputs, outputs]
 **Graph:** [nodes and connections for BeginPlay, function graphs, etc.]
@@ -120,7 +79,7 @@ Review the following Blueprint(s):
 
 **Scope:** [specific Blueprint paths, or "all Blueprints in `/Game/Blueprints/` or a project-owned plugin Blueprint root"]
 **Concerns:** [naming, complexity, compilation, variable organization, best practices]
-**Prefetched state:** [embed the main-thread `prefetched_state` block here before launching]
+**Prefetched state:** [embed the main-thread `prefetched_state` block here before proceeding]
 
 READ-ONLY MODE: Do NOT call list_blueprints, `blueprint_cmd(command="compile", params={...})`, impact_analysis, or any write tools.
 Permitted tools: blueprint_cmd(get_info), graph_cmd(list_graphs), graph_cmd(get_subgraph), graph_cmd(trace_exec), graph_cmd(find_event_handler), graph_cmd(find_function_calls), reflect_cmd(query_class_context).
@@ -147,7 +106,7 @@ Investigate the following Blueprint issue:
 **Blueprint:** [asset path]
 **Goal:** [execution trace / find function / explain behavior / diagnose crash]
 **Starting point:** [specific node, event, or behavior to start from]
-**Prefetched state:** [embed the main-thread `prefetched_state` block here before launching]
+**Prefetched state:** [embed the main-thread `prefetched_state` block here before proceeding]
 
 WORKFLOW:
 1. Read `.cortex/domains/blueprints.md` for available tools and patterns
@@ -161,10 +120,36 @@ WORKFLOW:
 Note: graph read commands default to compact=true — sufficient for execution tracing and branch analysis. Pass compact=false only if the bug involves visual layout (needs positions) or hidden pin wiring.
 ```
 
-### 2. Handling Agent Results
+### Reparent Mode
 
-If the agent's response includes a **Status** line:
-- **completed** — present results to the user. For creates, include asset paths and stats (variable, function, node, connection counts, compilation status). For reviews, include findings grouped by severity. For debug, include the traced execution path and diagnosis.
+Run this workflow before any mutation:
+
+1. **Resolve targets** and present the exact mutation set for confirmation.
+   - For one named Blueprint, resolve the asset path if only a short name is provided.
+   - For "all children of X" or multi-target requests, discover candidates and filter them by current parent.
+2. **Resolve the new parent** — accept either a Blueprint asset path or a C++ class name, and verify it exists before mutating.
+3. **Capture pre-reparent state.**
+   - Inspect each Blueprint for custom variables, functions, and graph complexity.
+   - Capture owned SCS component defaults that would be overwritten by the new parent.
+   - Capture placed-instance overrides for existing level instances so they can be restored after the parent swap.
+   - Warn the user if custom variables, graph logic, or component layouts may not be compatible with the new parent.
+4. **Reparent** — use `reparent` on each target Blueprint. If the primary reparent route is unavailable, use the supported cleanup/reparent fallback with the generated class path.
+5. **Restore defaults and instance overrides.**
+   - Restore owned Blueprint component defaults with `set_component_defaults`.
+   - Restore placed-instance overrides with level modify operations.
+6. **Compile and save.**
+7. **Report** per-Blueprint results and warnings.
+
+### FText Pin Mutation
+
+For Blueprint graph `FText` pins, prefer `graph_cmd(command="set_pin_value", params={"text": {"type": "FText", "source_kind": "literal", "value": "..."}})` or `blueprint_compose(mode="update", nodes=[{"pin_text_values": {...}}])`.
+
+Do not JSON-encode StringTable descriptors into the `value` string. `value` remains valid for non-text pins and literal-only text writes; StringTable-backed text requires `text` with `type`, `source_kind`, `value`, and `string_table`. When mutating a prefetched Blueprint asset, pass `expected_fingerprint`.
+
+### 2. Reporting Results
+
+Report results to the user with a completion status:
+- **completed** — present results. For creates, include asset paths and stats (variable, function, node, connection counts, compilation status). For reviews, include findings grouped by severity. For debug, include the traced execution path and diagnosis.
 - **blocked** / **partial** — surface what was done, what remains, and what blocked it. For creates, warn the user that partially created assets may need cleanup.
 
-If the agent's response has no Status line (e.g., turn limit reached mid-response), treat as **partial** — summarize whatever the agent produced and note that the work may be incomplete.
+If the work is interrupted mid-execution, treat it as **partial** — summarize what was produced and note that the work may be incomplete.

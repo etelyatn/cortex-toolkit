@@ -1,8 +1,4 @@
----
-name: test-debugger
-description: Use when tests are failing, need to understand error patterns, diagnose flaky tests, or figure out why a test passes locally but fails in automation
-model: inherit
----
+> Reference guide — skill methodology, not an agent definition. Loaded by skills when this workflow is needed.
 
 # Test Debugger
 
@@ -57,8 +53,8 @@ The benchmark testing framework in `Plugins/UnrealCortex/MCP/tests/` has three l
    - Common failures: tool parameter validation, $ref resolution in batch steps, MCP server registration issues
    - Scenarios assert intermediate state — failure pinpoints which step broke
 
-3. **Layer 3: `/mcp-benchmark` Skill**
-   - Claude Code calls real MCP tools in sequence
+3. **Layer 3: `cortex-mcp-benchmark` skill**
+   - Runs real MCP tools in sequence
    - Failures indicate end-to-end integration issues
 
 **Running benchmark tests:**

@@ -34,9 +34,12 @@ Set up the project for UnrealCortex.
    - `CortexStateTree` -> `statetree`
    - `CortexAnimation` -> `anim`
 5. Create `.cortex/config.yaml`, `.cortex/context.md`, and `.cortex/domains/*.md` for detected domains. Ensure `.gitignore` contains `.cortex/config.local.yaml`.
-6. Create or update `.mcp.json` so `mcpServers.cortex_mcp` runs `uv run --directory {plugin_root}/MCP cortex-mcp` with `CORTEX_PROJECT_DIR={project_root}`.
-7. Offer context-block injection into `CLAUDE.md` and `AGENTS.md` using the toolkit templates, filtered to detected domains.
-8. Summarize the engine path, detected domains, created files, MCP settings, and recommended next actions.
+ 6. Create or update `.mcp.json` so `mcpServers.cortex_mcp` runs `uv run --directory {plugin_root}/MCP cortex-mcp` with `CORTEX_PROJECT_DIR={project_root}`.
+ 7. If the user works in OpenCode, ask whether to configure OpenCode. If yes, read the project's `opencode.json` (or start from `{}`), preserve all existing top-level keys and all existing `mcp` entries, and upsert:
+    - the `cortex_mcp` MCP entry — same command and `CORTEX_PROJECT_DIR` as `.mcp.json`, using the absolute project root (forward slashes);
+    - the `plugin` array entry — `"./cortex-toolkit"` when the toolkit is a submodule in the project, otherwise `"cortex-toolkit@git+https://github.com/etelyatn/cortex-toolkit.git"`. Append, never replace existing entries, and skip entries already present. Never write to the user's global `~/.config/opencode/opencode.json`.
+ 8. Offer context-block injection into `CLAUDE.md` and `AGENTS.md` using the toolkit templates, filtered to detected domains.
+ 9. Summarize the engine path, detected domains, created files, MCP settings, and recommended next actions.
 
 If the plugin is missing, stop and tell the user to add the UnrealCortex submodule first.
 If the plugin is explicitly disabled in the `.uproject`, stop until they enable it.

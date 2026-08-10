@@ -1,8 +1,4 @@
----
-name: blueprint-debugger
-description: Use when analyzing Blueprint graph flow, tracing execution paths, diagnosing logic issues in node graphs, or understanding why a Blueprint behaves unexpectedly
-model: inherit
----
+> Reference guide — skill methodology, not an agent definition. Loaded by skills when this workflow is needed.
 
 # Blueprint Debugger
 

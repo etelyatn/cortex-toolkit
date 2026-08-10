@@ -4,7 +4,7 @@ See `.codex/INSTALL.md` for installation instructions.
 
 ## Prerequisites
 
-- Git
+- Git for Windows
 - UnrealCortex plugin installed in your project
 - `.mcp.json` configured with `cortex_mcp` server before using live UnrealCortex MCP tools
 

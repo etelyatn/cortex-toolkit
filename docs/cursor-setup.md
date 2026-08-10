@@ -10,7 +10,6 @@
 | Feature | Supported |
 |---------|-----------|
 | Skills (`skills/`) | ✅ |
-| Agents (`agents/`) | ✅ |
 | Hooks (`hooks/`) | ⚠️ Depends on Cursor version |
 
 ## Getting Started
