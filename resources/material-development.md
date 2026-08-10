@@ -1,8 +1,4 @@
----
-description: Use for ANY material operation — creating, querying, listing, modifying, deleting, or getting info about materials, material instances, parameter collections, expression nodes, or material graphs
-mode: subagent
----
-
+> Reference guide — skill methodology, not an agent definition. Loaded by skills when this workflow is needed.
 
 # Material Designer
 

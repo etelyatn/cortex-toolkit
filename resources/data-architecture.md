@@ -1,8 +1,4 @@
----
-description: Use for ANY data operation — creating, querying, listing, modifying, deleting, or getting info about DataTables, DataAssets, CurveTables, StringTables, GameplayTags, or struct schemas. Also use for bulk data import, balance review, and data layer design.
-mode: subagent
----
-
+> Reference guide — skill methodology, not an agent definition. Loaded by skills when this workflow is needed.
 
 # Data Architect
 

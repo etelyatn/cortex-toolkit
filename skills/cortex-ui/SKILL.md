@@ -5,24 +5,23 @@ description: Use when creating or reviewing UMG widgets, screens, or UI componen
 
 # UI
 
-Creates, modifies, and reviews UMG widget screens using the UI Developer agent.
+Creates, modifies, and reviews UMG widget screens following the `resources/ui-development.md` guide.
 
 ## Mode Detection
 
-| Request | Mode | Agent turns |
-|---------|------|-------------|
-| "Create a new screen", "Build WBP_X", "Add a dialog", spec or mockup provided | Create/Modify | 25 |
-| "Review", "Audit", "Check", "Analyse", hierarchy/layout/naming questions | Review/Analyze | 15 |
-| Ambiguous | Default to **Review** | 15 |
+| Request | Mode |
+|---------|------|
+| "Create a new screen", "Build WBP_X", "Add a dialog", spec or mockup provided | Create/Modify |
+| "Review", "Audit", "Check", "Analyse", hierarchy/layout/naming questions | Review/Analyze |
+| Ambiguous | Default to **Review** |
 
 ---
 
 ## Create / Modify Mode
 
-### 1. Launch UI Developer Agent
+### 1. Execute the Workflow
 
-<!-- Turn budget: CREATE tier (25 turns) — design + execute + verify pattern -->
-Dispatch the ui-developer agent with a 25-turn budget to delegate UI creation.
+Read the `resources/ui-development.md` guide, then execute its workflow directly in this conversation.
 
 Pass the full specification including:
 - Screen type and name
@@ -30,9 +29,9 @@ Pass the full specification including:
 - Inline styling (text, fonts, colors, anchors, padding, brushes)
 - Animations (fade in/out, transitions)
 
-### 2. Agent Workflow (runs in background)
+### 2. Workflow
 
-The UI Developer agent will:
+Follow this workflow:
 1. Read `.cortex/domains/umg.md` for widget conventions and styling shorthand
 2. Plan the widget hierarchy top-down
 3. **Use `widget_compose` composite tool** — single call builds the entire screen
@@ -40,13 +39,13 @@ The UI Developer agent will:
 5. Report final result with widget tree and stats
 
 **IMPORTANT:**
-- For NEW widget screens: agent MUST use `widget_compose`. Individual tools (`add_widget`, `set_text`, `set_color`, `set_font`, `set_brush`, `set_padding`, `set_anchor`, `set_alignment`, `set_size`, `set_visibility`, `create_animation`) are PROHIBITED.
-- For EXISTING widgets with 2+ changes: agent MUST use `core_cmd(batch)` with `stop_on_error: true` and `$ref` wiring. Never make N sequential individual tool calls — use the batch pipeline (see `resources/batch-pipeline-guide.md`).
+- For NEW widget screens: MUST use `widget_compose`. Individual tools (`add_widget`, `set_text`, `set_color`, `set_font`, `set_brush`, `set_padding`, `set_anchor`, `set_alignment`, `set_size`, `set_visibility`, `create_animation`) are PROHIBITED.
+- For EXISTING widgets with 2+ changes: MUST use `core_cmd(batch)` with `stop_on_error: true` and `$ref` wiring. Never make N sequential individual tool calls — use the batch pipeline (see `resources/batch-pipeline-guide.md`).
 - Individual tools are only acceptable for a single isolated change on an existing widget.
 
-### 3. Review Agent Results
+### 3. Verify Results
 
-The agent returns:
+The workflow produces:
 - Created widget path
 - Widget count, styling count, animation count
 - Compilation status
@@ -56,10 +55,9 @@ The agent returns:
 
 ## Review / Analyze Mode
 
-### 1. Launch UI Developer Agent
+### 1. Execute the Workflow
 
-<!-- Turn budget: REVIEW tier (15 turns) — read + analyze + report pattern -->
-Dispatch the ui-developer agent with a 15-turn budget to delegate UI review.
+Read the `resources/ui-development.md` guide, then execute its workflow directly in this conversation.
 
 Pass the review scope and focus:
 - Specific widgets to review (if targeted)
@@ -72,9 +70,9 @@ Example prompts:
 - "Review widget hierarchy depth in WBP_YourInventoryScreen"
 - "Verify all UI screens follow project conventions"
 
-### 2. Agent Workflow (runs in background)
+### 2. Workflow
 
-The UI Developer agent will:
+Follow this workflow:
 1. Read `.cortex/domains/umg.md` for project widget conventions and screen inventory
 2. Discover relevant Widget Blueprints
 3. Inspect widget trees (hierarchy, nesting depth, panel usage)
@@ -83,11 +81,9 @@ The UI Developer agent will:
 6. Review animations (screen transitions, feedback)
 7. Cross-reference against project style guide
 
-All MCP tool calls happen in the background — you won't see each individual call.
+### 3. Verify Results
 
-### 3. Review Agent Results
-
-The agent returns findings grouped by widget and severity:
+Report findings grouped by widget and severity:
 - **Errors:** Broken bindings, missing required widgets, invalid properties
 - **Warnings:** Naming violations, deep nesting (>5 levels), missing anchors, inconsistent padding
 - **Info:** Animation suggestions, layout optimizations, accessibility improvements
@@ -101,10 +97,10 @@ Each finding includes:
 
 ---
 
-## Handling Agent Results
+## Handling Results
 
-If the agent's response includes a **Status** line:
+Report results to the user with a completion status:
 - **completed** — present results to the user. For Create mode, optionally verify key assets exist with a single `search_assets` call.
 - **blocked** / **partial** — surface what was done, what remains, and what blocked it. For Create mode, warn the user that assets may be incomplete.
 
-If the agent's response has no Status line (e.g., turn limit reached mid-response), treat as **partial** — summarize whatever the agent produced and note the review or creation may be incomplete.
+If the work is interrupted mid-execution, treat it as **partial** — summarize what was produced and note the review or creation may be incomplete.

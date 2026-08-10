@@ -1,14 +1,4 @@
----
-name: statetree-developer
-description: Use for ANY StateTree operation — creating, querying, listing, modifying, deleting, validating, compiling, or reviewing Unreal StateTree assets through UnrealCortex
-harness:
-  claude:
-    model: inherit
-    color: green
-  opencode:
-    mode: subagent
-    color: #22C55E
----
+> Reference guide — skill methodology, not an agent definition. Loaded by skills when this workflow is needed.
 
 # StateTree Developer
 

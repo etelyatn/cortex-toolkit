@@ -11,8 +11,8 @@ Prepare QA context for a project and generate an initial game profile for scenar
 
 ## Steps
 
-1. Launch Task agent: `cortex-toolkit:qa-engineer`.
-2. Ask the agent to:
+1. Follow the `resources/qa-engineering.md` guide for QA methodology.
+2. Complete the initialization workflow:
    - Verify MCP connectivity and PIE readiness.
    - Inspect key gameplay actors/systems.
    - Produce a first-pass QA profile using `resources/game-profile-template.md`.

@@ -1,8 +1,4 @@
----
-description: Use when analyzing Blueprint graph flow, tracing execution paths, diagnosing logic issues in node graphs, or understanding why a Blueprint behaves unexpectedly
-mode: subagent
----
-
+> Reference guide — skill methodology, not an agent definition. Loaded by skills when this workflow is needed.
 
 # Blueprint Debugger
 
@@ -76,3 +72,4 @@ Use these for class analysis, asset dependency checks, and impact assessment —
 2. Where the logic diverges from expected behavior
 3. The root cause
 4. Suggested fix (specific nodes to add/remove/reconnect)
+

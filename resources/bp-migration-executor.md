@@ -1,9 +1,4 @@
----
-description: Execute Blueprint cleanup tasks from an approved migration plan. Receives task range, executes mechanically, reports per-task status.
-mode: subagent
-color: "#F97316"
----
-
+> Reference guide — skill methodology, not an agent definition. Loaded by skills when this workflow is needed.
 
 # BP Migration Executor
 

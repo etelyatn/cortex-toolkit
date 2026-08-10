@@ -1,13 +1,12 @@
 # Cortex Toolkit
 
-AI-powered Unreal Engine development toolkit. Skills, agents, and domain knowledge for Claude Code, Codex, Cursor, and OpenCode — powered by UnrealCortex MCP.
+AI-powered Unreal Engine development toolkit. Skills and domain knowledge for Claude Code, Codex, Cursor, and OpenCode — powered by UnrealCortex MCP.
 
 ## Platform Support
 
 | Feature | Claude Code | Codex | Cursor | OpenCode |
 |---------|-------------|-------|--------|----------|
 | Skills (`skills/`) | ✅ | ✅ via Codex plugin | ✅ | ✅ via plugin |
-| Agents (`agents/`) | ✅ | ❌ | ✅ | ✅ via `.opencode/agents/` |
 | Hooks (`hooks/`) | ✅ | ✅ requires trust | ⚠️ | ✅ via plugin |
 | MCP tools | ✅ | ✅ | ✅ | ✅ |
 
@@ -50,7 +49,7 @@ See [`docs/cursor-setup.md`](docs/cursor-setup.md) for full instructions.
 
 See [`.opencode/INSTALL.md`](.opencode/INSTALL.md) for full instructions.
 
-Run `cortex-init` in your project and select OpenCode when asked which assistants to configure. This writes the `plugin` and `cortex_mcp` MCP entries into `opencode.json` and copies the Cortex agents into `.opencode/agents/`.
+Run `cortex-init` in your project and select OpenCode when asked which assistants to configure. This writes the `plugin` and `cortex_mcp` MCP entries into `opencode.json`.
 
 ### Manual Setup
 
@@ -70,7 +69,7 @@ Then create `.cortex/` manually following the structure in [Project Memory](#pro
 
 ## Skills
 
-Skills are invoked with `/skill-name` in Claude Code. Skills launch specialized agents to handle complex workflows and keep your conversation clean by running MCP tool sequences in the background.
+Skills are invoked with `/skill-name` in Claude Code. Each skill runs a focused workflow and keeps your conversation clean by running MCP tool sequences.
 
 ### Blueprint
 
@@ -109,7 +108,7 @@ Skills are invoked with `/skill-name` in Claude Code. Skills launch specialized 
 |-------|-------------|
 | `/cortex-qa-init` | Prepare QA context and generate an initial game profile for scenario-driven testing |
 | `/cortex-qa-interactive` | Drive live exploratory testing in PIE with tight observe-act-assert loops |
-| `/cortex-qa-run` | Execute a scenario file through the QA agent and return findings with report artifacts |
+| `/cortex-qa-run` | Execute a predefined gameplay QA scenario and collect findings |
 
 ### Reflect
 
@@ -142,31 +141,7 @@ Skills are invoked with `/skill-name` in Claude Code. Skills launch specialized 
 | `/cortex-schema-refresh` | Refresh `.cortex/schema/` project snapshot files |
 | `/cortex-status` | Check MCP connection health, editor status, and connection recovery |
 
-## Agents
-
-Specialized agents launched by skills. Each agent has deep knowledge of a specific Unreal Engine domain and reads `.cortex/domains/*.md` to follow your project conventions automatically.
-
-| Agent | Domain | Description |
-|-------|--------|-------------|
-| `blueprint-debugger` | Blueprint | Debug Blueprint graph issues and identify root causes |
-| `blueprint-developer` | Blueprint | Develop and modify Blueprint assets and graphs |
-| `bp-migration-executor` | Blueprint | Execute Blueprint-to-C++ migration tasks |
-| `bp-migration-verifier` | Blueprint | Verify migration results for correctness |
-| `bp-migration-finalizer` | Blueprint | Finalize migration and clean up source assets |
-| `cpp-migration-specialist` | Blueprint | Specialist for analyzing and migrating complex Blueprint logic to C++ |
-| `data-architect` | Data | Design and build data structures, schemas, and GameplayTag hierarchies |
-| `data-balancer` | Data | Analyze and balance game data, tune DataTables, validate progression curves |
-| `level-designer` | Level | Design and edit levels, spawn actors, manage transforms and organization |
-| `material-developer` | Material | Create and modify materials, expression graphs, and parameter collections |
-| `project-analyzer` | Reflect | Analyze project architecture, class hierarchies, and cross-class symbol references |
-| `statetree-developer` | StateTree | Create, inspect, validate, compile, and modify StateTree structure through UnrealCortex |
-| `qa-engineer` | QA | Run and verify game QA scenarios in PIE |
-| `test-debugger` | Core | Debug failing Unreal C++ and Python MCP tests |
-| `ui-developer` | UI | Develop UMG widget hierarchies, set properties, and create animations |
-
-## Project Memory
-
-Cortex Toolkit reads project-specific knowledge from `.cortex/`:
+## Project MemoryCortex Toolkit reads project-specific knowledge from `.cortex/`:
 
 ```
 .cortex/
@@ -190,7 +165,7 @@ Check `.cortex/config.yaml` into version control for shared defaults. Put machin
 
 `config.local.yaml` uses the same shape as `config.yaml`. Dictionaries merge recursively, while lists and scalar values replace the shared value. Keep `config.local.yaml` out of version control; use it for fields that differ per workstation, especially `engine.path`. If no effective `engine.path` is configured, editor helpers fall back to `UE_PATH`.
 
-Fill the domain files with your project's specifics. Agents use this context to work without repeated questions. Run `/cortex-schema-refresh` to regenerate schema snapshots from live editor data.
+Fill the domain files with your project's specifics. The AI uses this context to work without repeated questions. Run `/cortex-schema-refresh` to regenerate schema snapshots from live editor data.
 
 ## Migration from v0.1.x
 
@@ -198,7 +173,6 @@ If you were using the old multi-plugin structure (8 separate plugins like `corte
 
 1. Uninstall all individual domain plugins: `claude plugin uninstall cortex-core` (repeat for each)
 2. Add the marketplace and install the unified plugin: `claude plugin marketplace add etelyatn/cortex-toolkit && claude plugin install cortex-toolkit`
-3. Update any custom `subagent_type` references from `cortex-{domain}:agent-name` to `cortex-toolkit:agent-name`
 
 ## Development
 

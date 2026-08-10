@@ -7,29 +7,28 @@ description: Use when executing a predefined gameplay QA scenario and collecting
 
 ## Goal
 
-Execute a scenario file through the QA agent and return findings with report artifacts.
+Execute a predefined gameplay QA scenario and return findings with report artifacts.
 
 ## Steps
 
-<!-- Turn budget: COMPLEX tier (35 turns) — iterative OODA loop pattern -->
-1. Dispatch the qa-engineer agent with a 35-turn budget.
-2. Provide the scenario path/content and request:
-   - Scenario execution via QA composite tools.
-   - Structural issue detection after each step.
-   - Screenshot capture on assertion failures.
-3. Require a final summary with:
+1. Follow the `resources/qa-engineering.md` guide and execute the scenario directly in this conversation.
+2. Provide the scenario path/content and:
+   - Execute it via QA composite tools.
+   - Detect structural issues after each step.
+   - Capture screenshots on assertion failures.
+3. Produce a final summary with:
    - pass/fail status
    - major/critical findings
    - paths to generated report files
 
 ## Constraints
 
-- Do not duplicate QA execution logic in this skill; delegate to the agent.
+- Do not duplicate QA execution logic in this skill; follow the guide's methodology directly.
 
-## Handling Agent Results
+## Handling Results
 
-If the agent's response includes a **Status** line:
+Report results to the user with a completion status:
 - **completed** — present the scenario results (pass/fail, findings, report paths).
 - **blocked** / **partial** — surface what steps were completed, what remains, and what blocked execution. The user can re-invoke for remaining steps.
 
-If the agent's response has no Status line (e.g., turn limit reached mid-response), treat as **partial** — summarize whatever findings were collected and note that the scenario may not have completed all steps.
+If the work is interrupted mid-execution, treat it as **partial** — summarize whatever findings were collected and note that the scenario may not have completed all steps.

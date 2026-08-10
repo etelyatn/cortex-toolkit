@@ -12,7 +12,7 @@
     {
       "name": "cortex-toolkit",
       "source": "./",
-      "description": "Complete toolkit - skills, agents, and domain knowledge for AI-powered Unreal Engine development.",
+      "description": "Complete toolkit - skills and domain knowledge for AI-powered Unreal Engine development.",
       "version": "0.7.0",
       "strict": true
     }

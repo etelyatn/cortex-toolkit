@@ -15,7 +15,7 @@ Parse user input for:
 - **Blueprint path** (required) — e.g., `BP_JumpPad` or `/Game/Blueprints/BP_JumpPad`
 - **`--audit`** — run ANALYZE stage only, present design without executing. If combined with `--fast`, run analysis with auto-defaults and report fast mode eligibility, but stop after presenting the design (do not execute).
 - **`--resume`** — detect and resume from saved migration state. If the plan's frontmatter contains `mode: fast`, resume within the Fast Mode Pipeline (route to Stage A/B/C based on `phase` and `current_task`).
-- **`--fast`** — streamlined mode for simple migrations (1 gate instead of 4, fewer agent dispatches). Auto-detected eligibility; falls back to full pipeline if criteria not met.
+- **`--fast`** — streamlined mode for simple migrations (1 gate instead of 4, fewer phases). Auto-detected eligibility; falls back to full pipeline if criteria not met.
 
 ## Fast Mode Eligibility
 
@@ -85,7 +85,7 @@ Before entering any stage, verify the editor is alive and MCP is healthy.
 
 **This check runs:**
 - At pipeline start (before ANALYZE)
-- Before each phase agent dispatch (before EXECUTE, VERIFY, SWAP)
+- Before each phase (before EXECUTE, VERIFY, SWAP)
 - After any editor crash recovery
 
 **On failure after 2 retries (respecting pipeline-wide restart cap of 3):** Ask the user to choose:
@@ -114,41 +114,28 @@ Track editor restarts in frontmatter field `editor_restarts`.
   Please investigate manually (logs, crash report, plugin state), then resume with --resume.
   ```
 
-### Pre-Dispatch Protocol (referenced by all phase dispatches)
+### Pre-Phase Verification (referenced by all phases)
 
-Before dispatching ANY phase agent (executor, verifier, finalizer):
+Before starting ANY phase:
 1. Run `cortex-status` — verify editor alive + MCP connected + `blueprint` domain registered
 2. If editor is down -> use `cortex-editor` or `cortex-restart` as appropriate
-3. Only dispatch agent once MCP connection is confirmed and `blueprint` domain is registered
+3. Only proceed once MCP connection is confirmed and `blueprint` domain is registered
 4. If editor cannot be started after 2 attempts (respecting pipeline-wide restart cap) -> present:
    ```
-   Editor is down before agent dispatch. Options:
+   Editor is down before phase start. Options:
    [1] Retry — try starting editor again
    [2] Manual — I'll start it myself, then continue
    [3] Stop — save progress, resume later with --resume
    ```
-   If user picks [2] Manual: wait for confirmation, re-run `cortex-status` before dispatching.
+   If user picks [2] Manual: wait for confirmation, re-run `cortex-status` before proceeding.
 
-This prevents wasted agent dispatches (significant overhead per dispatch) when the editor is already dead.
+This prevents wasted phase execution when the editor is already dead.
 
-### Model Selection Rules
+### Session Model
 
-**All migration phase agents MUST use sonnet or higher.** Do not dispatch with haiku.
+All phases execute in the current session. There is no per-phase model selection; the workflow runs on whatever model the user's session uses. The phase guides (`resources/bp-migration-executor.md`, `resources/bp-migration-verifier.md`, `resources/bp-migration-finalizer.md`, `resources/cpp-migration-specialist.md`) contain the methodology.
 
-**Intent:** `model: sonnet` is set as a **capability floor** — these agents require at least sonnet-level reasoning for MCP tool calls. This is an intentional trade-off:
-- If your session runs on Opus, agents will run at sonnet (not Opus). This is by design for cost control — phase agents are mechanical executors, not creative thinkers. Sonnet is sufficient for MCP operations.
-- If your session runs on sonnet, agents inherit the same level (no change).
-- If your session runs on haiku, agents are upgraded to sonnet (the whole point).
-
-| Context | Model | Reason |
-|---------|-------|--------|
-| Phase agents (executor, verifier, finalizer) | sonnet (frontmatter enforced) | MCP tool calls require understanding tool naming, parameter schemas, and error handling |
-| Orchestrator operations | session model (no override) | Orchestrator runs at whatever model the user's session uses; do not attempt to switch models mid-conversation |
-| Error recovery, MCP response interpretation | sonnet (via agent dispatch) | Complex reasoning required |
-
-The phase agent frontmatters enforce a specific model. Do not override it during agent dispatch.
-
-**Why not haiku for MCP tasks:** During the BP_JumpPad migration, haiku agents confused TCP command names with MCP tool names, returned "UNKNOWN_COMMAND" errors, and couldn't distinguish "editor not running" from "stale port file." Sonnet handled all of these correctly.
+**Why phase methodology matters:** During the BP_JumpPad migration, low-capability models confused TCP command names with MCP tool names, returned "UNKNOWN_COMMAND" errors, and couldn't distinguish "editor not running" from "stale port file." If your session model struggles with MCP tool calls, switch to a stronger model.
 
 ## Implementation Notes
 
@@ -165,15 +152,15 @@ When this skill says "append to migration-plan.md":
 4. If the heading does not exist, insert the new section at the end.
 5. Update frontmatter `phase` and `last_updated` in the same edit.
 
-### Agent Context Scoping
+### Guide Scoping
 
-Before dispatching an agent, extract and send only relevant sections:
+The phase guides are long. Read only the sections relevant to the current phase:
 
-| Agent | Receives |
-|-------|----------|
-| Executor | Frontmatter + Pre-Migration Snapshot + Migration Scope + Generated C++ Code + Task List (tasks in range only) |
-| Verifier | Frontmatter + Pre-Migration Snapshot + Migration Scope + Execution Log + Node Mappings |
-| Finalizer | Frontmatter + Execution Log + Node Mappings + Verification Results + Task List (tasks in range only) |
+| Phase | Reads |
+|-------|-------|
+| Executor | `resources/bp-migration-executor.md` — frontmatter + Pre-Migration Snapshot + Migration Scope + Generated C++ Code + Task List (tasks in range only) |
+| Verifier | `resources/bp-migration-verifier.md` — frontmatter + Pre-Migration Snapshot + Migration Scope + Execution Log + Node Mappings |
+| Finalizer | `resources/bp-migration-finalizer.md` — frontmatter + Execution Log + Node Mappings + Verification Results + Task List (tasks in range only) |
 
 ### Artifact Rules
 
@@ -203,9 +190,9 @@ Do NOT write legacy artifacts:
 - 1 approval gate instead of 4 (after plan generation, before execution)
 - No goal questions (auto-select "Reusability / base class")
 - No separate design approval gate
-- Inline verification only (no verifier agent dispatch)
+- Inline verification only (no separate verifier phase)
 - Auto-archive backup after successful swap
-- 2 agent dispatches total (executor + finalizer)
+- 2 phase executions total (executor + finalizer, each following its guide)
 
 **Fast mode flow:**
 
@@ -268,7 +255,7 @@ Fast mode uses a compressed task list. Tasks that are skipped or combined:
 | Task 11b: Delete orphans | Keep | Required |
 | Task 12-14: Remove funcs/vars/components | Keep | Required |
 | Task 15: Smoke test | **Merge with verify** | Combined in Stage B |
-| Task 16: Structural verify | **Inline** (compile + parent + count) | No verifier agent |
+| Task 16: Structural verify | **Inline** (compile + parent + count) | No verifier phase |
 | Task 17: Dependency check | **Skip** | referencers = 0 (known) |
 | Task 18: Disable auto-save | **Skip** | No dependents to corrupt |
 | Task 19: Rename swap | Keep | Required |
@@ -360,14 +347,14 @@ Handle Fast-1 through Fast-6 directly. Same as full pipeline PREPARE but:
 - Fast-6 (restart): automated via `cortex-restart` (same as Phase 2)
 - Update frontmatter after each task (same as Phase 2 Task 4). Use numeric IDs (1-14) in `current_task` regardless of mode — the `mode: fast` field distinguishes fast from full pipeline.
 
-**Step B2: Pre-dispatch** Run Pre-Dispatch Protocol.
+**Step B2: Pre-phase** Run Pre-Phase Verification.
 
-**Step B3: Dispatch executor agent** (`cortex-toolkit:bp-migration-executor`, model: sonnet) with:
+**Step B3: Execute executor phase** — follow `resources/bp-migration-executor.md`, using:
 - Full text of migration-plan.md
 - Task range: Fast-7 through Fast-12 (EXECUTE tasks only)
 
-**EXECUTE tasks (executor agent):**
-The executor handles Fast-7 through Fast-12. Same cleanup order as full mode:
+**EXECUTE tasks:**
+The executor phase handles Fast-7 through Fast-12. Same cleanup order as full mode:
 1. Validate collisions (auto-resolve: if C++ component name matches SCS name, that's expected — skip)
 2. Reparent
 3. Disconnect events + delete orphaned nodes (combined into one task)
@@ -375,8 +362,8 @@ The executor handles Fast-7 through Fast-12. Same cleanup order as full mode:
 5. Remove variables
 6. Remove SCS components
 
-**Step B4: Inline verification (orchestrator, no verifier agent)**
-After executor completes, orchestrator runs Fast-13 inline:
+**Step B4: Inline verification (no separate verifier phase)**
+After the executor phase completes, run Fast-13 inline:
 1. Compile `BP_Name_Migration` -> must compile clean
 2. Verify parent class is the target C++ class
 3. Compare component count against pre-migration snapshot
@@ -393,19 +380,19 @@ Fast mode verification failed:
 
 Options:
 [1] Fix — investigate and retry
-[2] Full verify — dispatch verifier agent on current state (does NOT re-execute migration)
+[2] Full verify — run the full verifier phase on current state (does NOT re-execute migration)
 [3] Stop — save progress, resume later
 ```
 
 ### Stage C: Swap and Complete (Combined)
 
-**Pre-dispatch:** Run Pre-Dispatch Protocol.
+**Pre-phase:** Run Pre-Phase Verification.
 
-**Dispatch finalizer agent** (`cortex-toolkit:bp-migration-finalizer`, model: sonnet) with:
+**Execute finalizer phase** — follow `resources/bp-migration-finalizer.md`, using:
 - Full text of migration-plan.md
 - Task range: Fast-14
 
-The finalizer handles in one task:
+The finalizer phase handles in one task:
 1. Rename swap (`BP_Name` → `BP_Name_Backup`, `BP_Name_Migration` → `BP_Name`)
 2. Fix redirectors + recompile dependents (should be 0 dependents, but run anyway for safety)
 3. Verify backup exists on disk
@@ -413,7 +400,7 @@ The finalizer handles in one task:
 5. Write rollback.json
 
 **Auto-cleanup (no backup menu in fast mode):**
-After finalizer completes:
+After the finalizer phase completes:
 - If `backup_verified: true` -> auto-archive the backup to `/Game/Migration/Backups/{BP_Name}_Backup` (moved out of content browser sight, but recoverable without git)
 - If `backup_verified: false` -> log explicit warning: "WARNING: No backup was created during swap. The original Blueprint cannot be recovered except via git."
 - Report: "Backup auto-archived to /Game/Migration/Backups/ (fast mode). Delete manually when confident, or use git to recover if needed."
@@ -498,7 +485,7 @@ When the user selects "Redesign/restructure" as the migration goal, perform addi
    - Class name following Unreal conventions (Components: `U{Responsibility}Component`, Subsystems: `U{Name}Subsystem`, Secondary actors: `A{Name}`)
    - Parent class (`UActorComponent` vs `USceneComponent` for Tier 1; subsystem type for Tier 2)
    - UCLASS specifiers: primary class gets `Blueprintable` if source BP was; components get `BlueprintSpawnableComponent` if addable in BP editors; internal-only components get `ClassGroup=(Custom)`
-5. **Serialize responsibility groups** — write a `## Responsibility Groups` section to migration-plan.md with named groups and their member items (variables, functions, components). This is the concrete input for the cpp-migration-specialist agent's redesign validation/refinement during PLAN.
+5. **Serialize responsibility groups** — write a `## Responsibility Groups` section to migration-plan.md with named groups and their member items (variables, functions, components). This is the concrete input for redesign validation/refinement during PLAN (see `resources/cpp-migration-specialist.md`).
 
 ### Step 3: Present Migration Design
 
@@ -507,7 +494,7 @@ Synthesize user goals (Step 1) with technical analysis (Step 2). Present:
 1. **Blueprint summary** — components, variables, functions, complexity, parent class
 2. **Functional groups** with coupling warnings (max 6 groups; merge small ones)
 3. **Dependency impact table** — SAFE/WARNING/BREAKING per public member
-4. **Scope recommendation** — based on user's stated goals. **Apply anti-over-engineering filter:** do NOT recommend migrating spatial construction, visual setup, or component configuration — these stay in BP regardless of scope setting. See "Anti-Over-Engineering Rule" in the cpp-migration-specialist agent and "When NOT to Migrate" in cpp-migration.md.
+4. **Scope recommendation** — based on user's stated goals. **Apply anti-over-engineering filter:** do NOT recommend migrating spatial construction, visual setup, or component configuration — these stay in BP regardless of scope setting. See "Anti-Over-Engineering Rule" in `resources/cpp-migration-specialist.md` and "When NOT to Migrate" in `resources/cpp-migration.md`.
 5. **MIGRATING / STAYING / DEFERRED columns** — what moves to C++, what stays in BP, what's deferred. The STAYING column must explicitly list items kept in BP with reasons (not just "everything else").
 
 #### Extended Presentation (When Goal = "Redesign/restructure")
@@ -717,7 +704,7 @@ Complex migration: anything that fails one or more simple criteria.
 
 Record in frontmatter: `complexity: simple` or `complexity: complex`.
 
-This classification determines the agent dispatch strategy in EXECUTE stage.
+This classification determines the phase execution strategy in EXECUTE stage.
 
 ---
 
@@ -776,7 +763,7 @@ The Ground Truth Table uses a single format for all migrations. For standard (no
 
 For redesign migrations, `Target Class` is set per-row based on the responsibility map. For Tier 3, rows targeting secondary actor classes have `Automated: No`.
 
-The executor acts on the `Automated` column: `Yes` = clean up automatically, `No` = leave with annotation.
+The executor phase acts on the `Automated` column: `Yes` = clean up automatically, `No` = leave with annotation.
 
 Flag unmappable nodes as WARNING (use display name):
 `WARNING: "ForEachLoop" (MacroInstance) has no direct C++ equivalent. Recommend: Replace with standard for-loop in C++ implementation.`
@@ -785,7 +772,7 @@ Feed this table into code generation. The generated C++ must use exactly the fun
 
 ### Step 2: Generate C++ Code
 
-Using the approved design, Ground Truth Table, and the `cpp-migration-specialist` agent patterns (see `resources/cpp-migration.md`):
+Using the approved design, Ground Truth Table, and the C++ migration patterns (see `resources/cpp-migration.md` and `resources/cpp-migration-specialist.md`):
 
 1. Generate complete C++ header file
 2. Generate complete C++ source file
@@ -876,15 +863,15 @@ Note for Tasks 5-6 (PREPARE phase): When writing C++ files to disk, extract the 
 
 #### Context Management for Redesign
 
-For redesign migrations generating 4+ files, generated C++ code may be written to `docs/migration/blueprint-to-cpp/{BP_Name}/generated/` instead of inline in migration-plan.md. Reference file paths in migration-plan.md via `files_created` frontmatter. The executor reads files from disk.
+For redesign migrations generating 4+ files, generated C++ code may be written to `docs/migration/blueprint-to-cpp/{BP_Name}/generated/` instead of inline in migration-plan.md. Reference file paths in migration-plan.md via `files_created` frontmatter. The executor phase reads files from disk.
 
-**Agent context scoping for redesign:** When dispatching the executor for cleanup tasks, include only:
+**Guide scoping for redesign:** When running the executor phase for cleanup tasks, use only:
 - Frontmatter (full)
 - Responsibility Map section
 - Ground Truth Table (only rows relevant to current task range)
 - Primary class code (for cleanup decisions)
 
-Do NOT include all generated source files in the executor dispatch. The executor needs the responsibility map and ground truth to know what to clean, not the full source of every component class.
+Do NOT load all generated source files into the executor phase. The executor needs the responsibility map and ground truth to know what to clean, not the full source of every component class.
 
 **Cross-reference check scaling:** For multi-class redesign, cross-reference the ground truth table per-class: for each target class, validate only the rows assigned to that class against that class's `.cpp` file. Do not search all `.cpp` files for every row.
 
@@ -1010,7 +997,7 @@ Mark each task `in_progress` when starting, `completed` when done.
 
 ### PREPARE Phase (Tasks 1-8) — Orchestrator Handles Directly
 
-**NEVER dispatch a sub-agent for PREPARE tasks.** Call MCP tools and file operations directly in this conversation. If you reach for the Agent tool for any of Tasks 1-8, stop — that is incorrect. Tasks 1-8 are simple operations: status checks, file reads, build commands. They require no agent context and no agent overhead.
+**PREPARE tasks run directly in this conversation** — call MCP tools and file operations yourself. Tasks 1-8 are simple operations: status checks, file reads, build commands. They require no dedicated phase.
 
 **CRITICAL: Frontmatter update after EVERY task, BEFORE proceeding to the next task.**
 
@@ -1064,29 +1051,29 @@ tasks:
 
 **On failure:** Set `status: failed`, `failed_task: <N>` BEFORE presenting recovery options. This ensures the failure point is persisted even if the session crashes.
 
-### Agent Dispatch Strategy
+### Phase Execution Strategy
 
-Simple migrations -- 2 dispatches:
+Simple migrations -- 2 phases:
 
-| Phase | Handler | Rationale |
-|-------|---------|-----------|
-| PREPARE (Tasks 1-8) | Orchestrator inline | No agent needed for file ops + build |
-| EXECUTE (Tasks 9-15) | Executor agent (sonnet) | Multi-step MCP workflow, needs dedicated agent |
-| VERIFY (Tasks 16-17) | Orchestrator inline | Simple: compile check + component delta + orphan check. No full verifier needed. |
-| SWAP + COMPLETE (Tasks 18-22) | Finalizer agent (sonnet) | Rename swap is critical, needs dedicated agent |
+| Phase | Handler | Guide |
+|-------|---------|-------|
+| PREPARE (Tasks 1-8) | Inline | — |
+| EXECUTE (Tasks 9-15) | Inline phase | `resources/bp-migration-executor.md` |
+| VERIFY (Tasks 16-17) | Inline | compile check + component delta + orphan check |
+| SWAP + COMPLETE (Tasks 18-22) | Inline phase | `resources/bp-migration-finalizer.md` |
 
-Complex migrations -- 3 dispatches (unchanged):
+Complex migrations -- 3 phases:
 
-| Phase | Handler | Rationale |
-|-------|---------|-----------|
-| PREPARE (Tasks 1-8) | Orchestrator inline | Same as simple |
-| EXECUTE (Tasks 9-15) | Executor agent (sonnet) | Same as simple |
-| VERIFY (Tasks 16-17) | Verifier agent (sonnet) | Full structural comparison, dependency impact analysis needed |
-| SWAP + COMPLETE (Tasks 18-22) | Finalizer agent (sonnet) | Same as simple |
+| Phase | Handler | Guide |
+|-------|---------|-------|
+| PREPARE (Tasks 1-8) | Inline | — |
+| EXECUTE (Tasks 9-15) | Inline phase | `resources/bp-migration-executor.md` |
+| VERIFY (Tasks 16-17) | Inline phase | `resources/bp-migration-verifier.md` |
+| SWAP + COMPLETE (Tasks 18-22) | Inline phase | `resources/bp-migration-finalizer.md` |
 
 ### Inline Verification (Simple Migrations Only)
 
-When `complexity: simple`, the orchestrator handles VERIFY directly instead of dispatching the verifier agent:
+When `complexity: simple`, handle VERIFY directly instead of running a separate verifier phase:
 
 Task 16 -- Simplified Structural Verification:
 1. Call `blueprint_cmd(command="compile", params={"asset_path": "/Game/.../BP_Name_Migration"})` -> must compile clean
@@ -1099,7 +1086,7 @@ Task 16 -- Simplified Structural Verification:
 
 Task 17 -- Simplified Dependency Check:
 - Skip entirely if `referencers = 0` (already known from ANALYZE)
-- If referencers > 0 (should not happen for simple migrations): fall back to full verifier agent
+- If referencers > 0 (should not happen for simple migrations): fall back to the full verifier phase (see `resources/bp-migration-verifier.md`)
 
 Verification gate:
 
@@ -1120,19 +1107,19 @@ Verify runtime behavior after swap.
 [Stop] -- save progress
 ```
 
-Fallback: If any inline check fails unexpectedly, dispatch the full verifier agent instead of trying to diagnose inline. Report: "Inline verification found issues -- dispatching full verifier for detailed analysis."
+Fallback: If any inline check fails unexpectedly, run the full verifier phase instead of trying to diagnose inline. Report: "Inline verification found issues -- running full verifier for detailed analysis."
 
-### EXECUTE Phase (Tasks 9-15) — Dispatch Executor Agent
+### EXECUTE Phase (Tasks 9-15) — Execute Executor Phase
 
-**Pre-dispatch:** Run Pre-Dispatch Protocol (see above).
+**Pre-phase:** Run Pre-Phase Verification (see above).
 
-Dispatch `cortex-toolkit:bp-migration-executor` with:
-- Relevant sections of migration-plan.md (see Agent Context Scoping in Implementation Notes)
+Follow `resources/bp-migration-executor.md`, using:
+- Relevant sections of migration-plan.md (see Guide Scoping in Implementation Notes)
 - Task range: 9-15
 
-The executor appends execution results to `migration-plan.md` and returns concise status.
+The executor phase appends execution results to `migration-plan.md`.
 
-**Tier 3 pause (When `goal: redesign` and `redesign_tier: 3`):** After executor completes, present the `## Manual Migration Steps` checklist from migration-plan.md to the user. Pause and wait for user confirmation that manual steps are done before proceeding to VERIFY. Ask the user:
+**Tier 3 pause (When `goal: redesign` and `redesign_tier: 3`):** After the executor phase completes, present the `## Manual Migration Steps` checklist from migration-plan.md to the user. Pause and wait for user confirmation that manual steps are done before proceeding to VERIFY. Ask the user:
 ```
 The automated portion of the Tier 3 migration is complete.
 These manual steps remain before verification:
@@ -1145,7 +1132,7 @@ These manual steps remain before verification:
 
 ### Crash Recovery (Orchestrator)
 
-When a phase agent returns `status: editor_crashed`:
+When a phase is interrupted by an editor crash:
 
 1. Load the cortex-status skill to diagnose the state
 2. If editor is dead (status shows "Editor not running" or stale port):
@@ -1159,7 +1146,7 @@ When a phase agent returns `status: editor_crashed`:
    - If crash during VERIFY: VERIFY is read-only — safe to retry from `failed_task` without re-verification of asset state
    - If crash during SWAP: verify which referencers have already been updated (`get_referencers`). Do NOT blindly re-run from `failed_task` — some referencers may already point to the new asset
    - The frontmatter `failed_task` indicates where to resume, but the orchestrator must confirm preconditions of that task still hold
-4. Resume from `failed_task` by re-dispatching the phase agent with updated task range
+4. Resume from `failed_task` by re-running the phase with the updated task range
 5. Update frontmatter: refresh `last_updated`, keep `status: executing`
 6. If restart fails after 2 attempts, ask the user:
    ```
@@ -1172,17 +1159,17 @@ When a phase agent returns `status: editor_crashed`:
 
 ### VERIFY Phase (Tasks 16-17)
 
-**Pre-dispatch:** Run Pre-Dispatch Protocol (see above).
+**Pre-phase:** Run Pre-Phase Verification (see above).
 
 If `complexity: simple`:
-Run Inline Verification (see above). No agent dispatch.
+Run Inline Verification (see above). No separate phase.
 
 If `complexity: complex`:
-Dispatch `cortex-toolkit:bp-migration-verifier` with:
-- Relevant sections of migration-plan.md (see Agent Context Scoping in Implementation Notes)
+Follow `resources/bp-migration-verifier.md`, using:
+- Relevant sections of migration-plan.md (see Guide Scoping in Implementation Notes)
 - Task range: 16-17
 
-The verifier appends results to `migration-plan.md` and returns a concise summary.
+The verifier phase appends results to `migration-plan.md`.
 
 ### Hard Gate — User Reviews Verification
 
@@ -1192,21 +1179,21 @@ Present verification summary. Ask for approval:
 - [Pause] — save state, resume later
 - [Abort] — delete migration copy, keep original. Clean up: delete `BP_Name_Migration`, delete C++ files, update frontmatter `status: failed`.
 
-### SWAP + COMPLETE Phase (Tasks 18-22) — Dispatch Finalizer Agent
+### SWAP + COMPLETE Phase (Tasks 18-22) — Execute Finalizer Phase
 
-**Pre-dispatch:** Run Pre-Dispatch Protocol (see above).
+**Pre-phase:** Run Pre-Phase Verification (see above).
 
-Dispatch `cortex-toolkit:bp-migration-finalizer` with:
-- Relevant sections of migration-plan.md (see Agent Context Scoping in Implementation Notes)
+Follow `resources/bp-migration-finalizer.md`, using:
+- Relevant sections of migration-plan.md (see Guide Scoping in Implementation Notes)
 - Task range: 18-22
 
-The finalizer returns:
+The finalizer phase returns:
 - Swap status (success or failure with details)
 - `rollback.json` written to disk and Final Report appended to `migration-plan.md`
 
 ### Failure Handling
 
-On any task failure from any agent:
+On any task failure during any phase:
 
 1. Update frontmatter: `status: failed`, `failed_task: {N}`
 2. Present to user:

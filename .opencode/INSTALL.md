@@ -7,8 +7,7 @@
 
 ## Installation
 Run `cortex-init` in your project and select OpenCode when asked which assistants to configure.
-This writes the `plugin` entry and the `cortex_mcp` MCP server into `opencode.json` and copies the
-Cortex agents into `.opencode/agents/`.
+This writes the `plugin` entry and the `cortex_mcp` MCP server into `opencode.json`.
 
 ### Manual installation
 Add to your project's `opencode.json`:

@@ -47,7 +47,6 @@ function toolMapping() {
   return [
     '## OpenCode Tool Mapping',
     '- Load a skill -> use the native `skill` tool',
-    '- Dispatch an agent -> use the `task` tool with the agent name as `subagent_type`',
     '- Ask the user -> use the `question` tool',
     '- Read / edit / delete a file -> `read` / `edit` / `write`',
     '- Run a shell command -> `bash`',

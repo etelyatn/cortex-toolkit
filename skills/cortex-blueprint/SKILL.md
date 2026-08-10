@@ -5,7 +5,7 @@ description: Use when creating, modifying, reviewing, or debugging Blueprints �
 
 # cortex-blueprint
 
-Creates, modifies, reviews, and debugs Blueprint assets using the Blueprint Developer and Blueprint Debugger agents.
+Creates, modifies, reviews, and debugs Blueprint assets following the `resources/blueprint-development.md` and `resources/blueprint-debugging.md` guides.
 
 ## Mode Detection
 
@@ -13,40 +13,40 @@ Determine mode from user intent:
 
 - **Create/Modify**: User wants to build or change something
   Examples: "create a blueprint", "add a variable to", "wire up BeginPlay", "add a component"
-  → Dispatch the blueprint-developer agent with a 25-turn budget.
+  → Follow the `resources/blueprint-development.md` guide.
 
 - **Review/Analyze**: User wants to understand or audit existing assets
   Examples: "review BP_Player", "check naming conventions", "audit complexity", "list all blueprints"
-  → Dispatch the blueprint-developer agent with a 15-turn budget.
+  → Follow the `resources/blueprint-development.md` guide.
 
 - **Debug**: User wants to trace or diagnose a problem
   Examples: "debug BP_Player", "why isn't this working", "trace execution", "investigate crash"
-  → Dispatch the blueprint-debugger agent with a 35-turn budget.
+  → Follow the `resources/blueprint-debugging.md` guide.
 
 - **Ambiguous** → Default to Review (read-only, safe)
 
-## Agent Routing
+## Routing
 
-| Mode | Agent | Turn budget |
-|------|-------|-----------|
-| Create/Modify | cortex-toolkit:blueprint-developer | 25 |
-| Review/Analyze | cortex-toolkit:blueprint-developer | 15 |
-| Debug | cortex-toolkit:blueprint-debugger | 35 |
+| Mode | Guide |
+|------|-------|
+| Create/Modify | `blueprint-development` |
+| Review/Analyze | `blueprint-development` |
+| Debug | `blueprint-debugging` |
 
 ## Steps
 
-### 1. Launch Agent
+### 1. Execute the Workflow
 
-Dispatch the agent listed in the routing table above with the turn budget for the detected mode.
+Read the guide listed in the routing table for the detected mode, then execute its workflow directly in this conversation using the MCP tools it references.
 
-**For Create/Modify**, structure the prompt as a mandatory pipeline directive:
+**For Create/Modify**, execute the mandatory pipeline directive:
 
 ```
 Create the following Blueprint using the MANDATORY pipeline:
 
 **Blueprint:** [name and type, e.g. BP_PlayerCharacter (Actor)]
 **Path:** [e.g. `/Game/Blueprints/` or a project-owned plugin root such as `/InventoryPlugin/Blueprints/`]
-**Prefetched state:** [embed the main-thread `prefetched_state` block here before launching]
+**Prefetched state:** [embed the main-thread `prefetched_state` block here before proceeding]
 **Variables:** [name, type, default value, category, exposed status]
 **Functions:** [name, inputs, outputs]
 **Graph:** [nodes and connections for BeginPlay, function graphs, etc.]
@@ -74,7 +74,7 @@ Review the following Blueprint(s):
 
 **Scope:** [specific Blueprint paths, or "all Blueprints in `/Game/Blueprints/` or a project-owned plugin Blueprint root"]
 **Concerns:** [naming, complexity, compilation, variable organization, best practices]
-**Prefetched state:** [embed the main-thread `prefetched_state` block here before launching]
+**Prefetched state:** [embed the main-thread `prefetched_state` block here before proceeding]
 
 READ-ONLY MODE: Do NOT call list_blueprints, `blueprint_cmd(command="compile", params={...})`, impact_analysis, or any write tools.
 Permitted tools: blueprint_cmd(get_info), graph_cmd(list_graphs), graph_cmd(get_subgraph), graph_cmd(trace_exec), graph_cmd(find_event_handler), graph_cmd(find_function_calls), reflect_cmd(query_class_context).
@@ -101,7 +101,7 @@ Investigate the following Blueprint issue:
 **Blueprint:** [asset path]
 **Goal:** [execution trace / find function / explain behavior / diagnose crash]
 **Starting point:** [specific node, event, or behavior to start from]
-**Prefetched state:** [embed the main-thread `prefetched_state` block here before launching]
+**Prefetched state:** [embed the main-thread `prefetched_state` block here before proceeding]
 
 WORKFLOW:
 1. Read `.cortex/domains/blueprints.md` for available tools and patterns
@@ -115,10 +115,10 @@ WORKFLOW:
 Note: graph read commands default to compact=true — sufficient for execution tracing and branch analysis. Pass compact=false only if the bug involves visual layout (needs positions) or hidden pin wiring.
 ```
 
-### 2. Handling Agent Results
+### 2. Reporting Results
 
-If the agent's response includes a **Status** line:
-- **completed** — present results to the user. For creates, include asset paths and stats (variable, function, node, connection counts, compilation status). For reviews, include findings grouped by severity. For debug, include the traced execution path and diagnosis.
+Report results to the user with a completion status:
+- **completed** — present results. For creates, include asset paths and stats (variable, function, node, connection counts, compilation status). For reviews, include findings grouped by severity. For debug, include the traced execution path and diagnosis.
 - **blocked** / **partial** — surface what was done, what remains, and what blocked it. For creates, warn the user that partially created assets may need cleanup.
 
-If the agent's response has no Status line (e.g., turn limit reached mid-response), treat as **partial** — summarize whatever the agent produced and note that the work may be incomplete.
+If the work is interrupted mid-execution, treat it as **partial** — summarize what was produced and note that the work may be incomplete.

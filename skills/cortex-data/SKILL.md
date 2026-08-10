@@ -5,7 +5,7 @@ description: Use when creating, populating, or reviewing DataTables, DataAssets,
 
 # cortex-data
 
-Creates, populates, and reviews data assets using the Data Architect and Data Balancer agents.
+Creates, populates, and reviews data assets following the `resources/data-architecture.md` and `resources/data-balancing.md` guides.
 
 ## Mode Detection
 
@@ -13,26 +13,26 @@ Determine mode from user intent:
 
 - **Create/Modify**: User wants to build or change data assets
   Examples: "create a DataTable", "add rows to DT_Weapons", "import data from CSV", "create a CurveTable for level XP"
-  → Dispatch the data-architect agent with a 25-turn budget.
+  → Follow the `resources/data-architecture.md` guide.
 
 - **Review/Balance**: User wants to audit, analyze, or validate existing data
   Examples: "review DT_WeaponStats for balance issues", "check XP curve", "are quest rewards fair?", "validate data integrity", "analyze item pricing"
-  → Dispatch the data-balancer agent with a 15-turn budget.
+  → Follow the `resources/data-balancing.md` guide.
 
 - **Ambiguous** → Default to Review (read-only, safe)
 
-## Agent Routing
+## Routing
 
-| Mode | Agent | Turn budget |
-|------|-------|-----------|
-| Create/Modify | cortex-toolkit:data-architect | 25 |
-| Review/Balance | cortex-toolkit:data-balancer | 15 |
+| Mode | Guide |
+|------|-------|
+| Create/Modify | `data-architecture` |
+| Review/Balance | `data-balancing` |
 
 ## Steps
 
-### 1. Launch Agent
+### 1. Execute the Workflow
 
-Dispatch the agent listed in the routing table above with the turn budget for the detected mode.
+Read the guide listed in the routing table for the detected mode, then execute its workflow directly in this conversation using the MCP tools it references.
 
 **For Create/Modify**, pass the full specification:
 
@@ -75,10 +75,10 @@ WORKFLOW:
 Return findings grouped by severity: Errors, Warnings, Info.
 ```
 
-### 2. Handling Agent Results
+### 2. Reporting Results
 
-If the agent's response includes a **Status** line:
-- **completed** — present results to the user. For creates, include asset paths and row counts. For reviews, include findings grouped by severity.
+Report results to the user with a completion status:
+- **completed** — present results. For creates, include asset paths and row counts. For reviews, include findings grouped by severity.
 - **blocked** / **partial** — surface what was done, what remains, and what blocked it. For creates, warn the user that partially created assets may need cleanup.
 
-If the agent's response has no Status line (e.g., turn limit reached mid-response), treat as **partial** — summarize whatever the agent produced and note that the work may be incomplete.
+If the work is interrupted mid-execution, treat it as **partial** — summarize what was produced and note that the work may be incomplete.

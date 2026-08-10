@@ -139,7 +139,7 @@ engine:
 ```markdown
 # Project Context
 
-<!-- Describe your game/project here. Agents read this at session start. -->
+<!-- Describe your game/project here. The AI reads this at session start. -->
 
 ## Key Systems
 <!-- List major systems: quest system, inventory, combat, etc. -->
@@ -222,8 +222,7 @@ Use the absolute `{project_root}` from Step 5 for `CORTEX_PROJECT_DIR` (matching
 3. Upsert the `plugin` array (append, never replace existing entries). Before appending, check whether the entry is already present; if so, skip it. Choose the entry by detecting whether the toolkit is a submodule:
    - If `cortex-toolkit/` exists AND `.gitmodules` contains a `cortex-toolkit` entry (or `cortex-toolkit/.git` is a file, not a directory) → append `"./cortex-toolkit"`.
    - Otherwise → append `"cortex-toolkit@git+https://github.com/etelyatn/cortex-toolkit.git"`.
-4. Copy every file from the toolkit's `.opencode/agents/*.md` into the project's `.opencode/agents/` directory (creating it if needed). Skip the copy if the destination file already exists with identical content.
-5. Never write to the user's global `~/.config/opencode/opencode.json`.
+4. Never write to the user's global `~/.config/opencode/opencode.json`.
 
 **For each approved file (CLAUDE.md / AGENTS.md), follow this sequence:**
 
@@ -268,7 +267,6 @@ For CLAUDE.md:
 
 **Tool Mapping (Claude Code):**
 - Load a skill -> use the `Skill` tool with the skill name (e.g. `Skill: "cortex-status"`)
-- Dispatch an agent -> use the `Task` tool with `subagent_type: "cortex-toolkit:<agent-name>"` and `max_turns: N`
 - Ask the user -> use `AskUserQuestion`
 ```
 
@@ -278,7 +276,6 @@ For AGENTS.md:
 
 **Tool Mapping (Codex):**
 - Load a skill -> read the skill's `SKILL.md` file directly with the file-read tool
-- Dispatch an agent -> agents are not supported on Codex; follow the agent's methodology inline
 - Ask the user -> use the question tool available in your session
 ```
 
@@ -296,7 +293,7 @@ Report:
 - Detected domains
 - Created files
 - MCP configured: `CORTEX_PROJECT_DIR={project_root}`, `--directory={mcp_dir}`
-- OpenCode: plugin entry + MCP entry written to `opencode.json`; agent wrappers copied to `.opencode/agents/` (only when OpenCode was selected)
+- OpenCode: plugin entry + MCP entry written to `opencode.json` (only when OpenCode was selected)
 - Context injection:
   - CLAUDE.md: injected (N domain rows) / already present / skipped
   - AGENTS.md: injected (N domain rows) / already present / skipped / not requested

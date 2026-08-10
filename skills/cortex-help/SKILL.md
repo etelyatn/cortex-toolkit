@@ -14,7 +14,6 @@ Use skill names directly in instructions (for example `cortex-help all`).
 Check the arguments passed to this skill:
 - No arguments → **Advisor Mode** (default)
 - `all` → **Catalog Mode**
-- `agents` → **Agent Catalog Mode**
 - Domain keyword → **Domain Mode** (see domain mapping below)
 - Unrecognized argument → Fall back to **Advisor Mode** and mention: "No domain called '{arg}'. Run cortex-help all to see all commands."
 
@@ -160,47 +159,39 @@ For the requested domain, gather:
 - Content path: `Content/Data/`
 - Schema files: `.cortex/schema/datatables.md`, `.cortex/schema/structs.md`, `.cortex/schema/tags.md`
 - Domain context: `.cortex/domains/data.md`
-- Agents: Data Architect, Data Balancer
 
 **blueprint (bp):**
 - Skills: `cortex-blueprint`, `cortex-bp-migrate`, `cortex-reflect`
 - Content path: `Content/Blueprints/`
 - Schema files: `.cortex/schema/blueprints.md`
 - Domain context: `.cortex/domains/blueprints.md`
-- Agents: Blueprint Developer, Blueprint Debugger, C++ Migration Specialist
 
 **material (mat):**
 - Skills: `cortex-material`
 - Content path: `Content/Materials/`
 - Domain context: `.cortex/domains/material.md`
-- Agents: Material Developer
 
 **ui (umg):**
 - Skills: `cortex-ui`
 - Content path: `Content/UI/`
 - Domain context: `.cortex/domains/umg.md`
-- Agents: UI Developer
 
 **level:**
 - Skills: `cortex-level`
 - Content path: `Content/Maps/`
 - Domain context: `.cortex/domains/level.md`
-- Agents: Level Designer
 
 **statetree:**
 - Skills: `cortex-statetree`, `cortex-reflect`
 - Content path: `Content/AI/StateTrees/` or `Content/StateTrees/`
 - Domain context: `.cortex/domains/statetree.md`
-- Agents: StateTree Developer
 
 **qa (test):**
 - Skills: `cortex-qa-init`, `cortex-qa-run`, `cortex-qa-interactive`, `cortex-test`
 - Domain context: `.cortex/domains/qa.md`
-- Agents: QA Engineer, Test Debugger
 
 **setup (infra):**
 - Skills: `cortex-init`, `cortex-editor`, `cortex-build`, `cortex-status`, `cortex-restart`, `cortex-schema-refresh`
-- Agents: Project Analyzer
 - Note: No content path or schema. "Your Project" section should show infrastructure status instead: config exists/missing, editor connected/not, schema freshness.
 
 ### Output Format
@@ -219,52 +210,6 @@ Your Project
 
 Suggested
   {One contextual suggestion based on detected content}
-
-Related
-  The {Agent Name} and {Agent Name} agents assist these commands automatically.
 ```
 
 ---
-
-## Agent Catalog Mode (`agents` argument)
-
-Print all agents grouped by domain:
-
-```
-Specialist Agents
-
-These agents run autonomously when skills need complex, multi-step work.
-You don't invoke them directly — they're launched automatically.
-
-Core
-  Test Debugger        — Test failure analysis, error patterns, flaky tests
-
-Blueprint
-  Blueprint Developer      — Blueprint creation, modification, graph wiring
-  Blueprint Debugger       — Blueprint graph flow analysis, logic diagnosis
-  C++ Migration Specialist — C++ code generation patterns for Blueprint migration (internal, used by cortex-bp-migrate PLAN stage)
-  BP Migration Executor    — Execute migration tasks from approved plan (internal, used by cortex-bp-migrate)
-  BP Migration Verifier    — Verify migration results against plan (internal, used by cortex-bp-migrate)
-  BP Migration Finalizer   — Rename swap, fix redirectors, final cleanup (internal, used by cortex-bp-migrate)
-Data
-  Data Architect       — DataTable creation, schema design, bulk data import
-  Data Balancer        — Balance analysis, progression curves, reward scaling
-
-Level
-  Level Designer       — Actor placement, level organization, streaming
-
-Material
-  Material Developer   — Material creation, graph building, parameter setup
-
-QA
-  QA Engineer          — Automated game testing, scenario execution
-
-Reflect
-  Project Analyzer     — Class hierarchy analysis, cross-references
-
-StateTree
-  StateTree Developer  — StateTree hierarchy, transitions, Gameplay Tags, validation
-
-UI
-  UI Developer         — Widget hierarchy, screen building, UMG properties
-```

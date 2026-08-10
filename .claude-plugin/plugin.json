@@ -1,6 +1,6 @@
 {
   "name": "cortex-toolkit",
-  "description": "AI-powered Unreal Engine development toolkit. Skills, agents, and domain knowledge for Claude Code, Codex, and Cursor — powered by UnrealCortex MCP.",
+  "description": "AI-powered Unreal Engine development toolkit. Skills and domain knowledge for Claude Code, Codex, and Cursor — powered by UnrealCortex MCP.",
   "version": "0.7.0",
   "author": {
     "name": "Eugene Telyatnik",
@@ -9,5 +9,5 @@
   "homepage": "https://github.com/etelyatn/cortex-toolkit",
   "repository": "https://github.com/etelyatn/cortex-toolkit",
   "license": "MIT",
-  "keywords": ["unreal-engine", "game-development", "mcp", "cortex", "skills", "agents"]
+  "keywords": ["unreal-engine", "game-development", "mcp", "cortex", "skills"]
 }

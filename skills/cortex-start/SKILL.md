@@ -87,7 +87,7 @@ Print this reference card, substituting `{ProjectName}`, `{Version}`, and `{N}` 
 ```
 Cortex Toolkit — AI-Assisted Unreal Engine Development
 
-You have skills and specialist agents across multiple domains.
+You have skills across multiple domains.
 
   Quick actions:    cortex-status, cortex-build, cortex-schema-refresh
   Domains:          cortex-blueprint, cortex-data, cortex-material, cortex-ui, cortex-level, cortex-statetree, cortex-reflect
@@ -192,7 +192,7 @@ What's next?
 
   9. Document your project domains         (.cortex/domains/ files are empty)
      -> "Update .cortex/domains/ with the actual project schemas"
-     Agents will use this as context in every future session.
+     The AI will use this as context in every future session.
 
 Or just describe what you need - I'll figure out the right tool.
 ```

@@ -5,32 +5,31 @@ description: Use when placing, organizing, or reviewing actors in a level
 
 # Level
 
-Places, organizes, modifies, and reviews level content using the Level Designer agent.
+Places, organizes, modifies, and reviews level content following the `resources/level-design.md` guide.
 
 ## Mode Detection
 
-| Request | Mode | Agent turns |
-|---------|------|-------------|
-| "Place", "Add", "Spawn", "Build", "Move", "Delete", "Organize", "Adjust lighting", multi-actor layout, scene construction | Create/Modify | 25 |
-| "Review", "Audit", "Check", "Analyse", "What actors", "List", spatial/organization questions | Review/Analyze | 15 |
-| Ambiguous | Default to **Review** | 15 |
+| Request | Mode |
+|---------|------|
+| "Place", "Add", "Spawn", "Build", "Move", "Delete", "Organize", "Adjust lighting", multi-actor layout, scene construction | Create/Modify |
+| "Review", "Audit", "Check", "Analyse", "What actors", "List", spatial/organization questions | Review/Analyze |
+| Ambiguous | Default to **Review** |
 
 ---
 
 ## Create / Modify Mode
 
-### 1. Launch Level Designer Agent
+### 1. Execute the Workflow
 
-<!-- Turn budget: CREATE tier (25 turns) — design + execute + verify pattern -->
-Dispatch the level-designer agent with a 25-turn budget to delegate the work.
+Read the `resources/level-design.md` guide, then execute its workflow directly in this conversation.
 
-**Structure the prompt using the 3-phase directive:**
+**Execute the 3-phase methodology:**
 
 ```
 Make the following level changes using the 3-phase methodology:
 
 **Request:** [user's request verbatim]
-**Prefetched state:** [embed the main-thread `prefetched_state` block here before launching]
+**Prefetched state:** [embed the main-thread `prefetched_state` block here before proceeding]
 
 MANDATORY WORKFLOW:
 0. VERIFY: call `get_info` to confirm MCP connectivity. If it fails, invoke `cortex-status`.
@@ -56,18 +55,18 @@ PROHIBITED: Do NOT skip the Plan phase for multi-actor work. Do NOT call get_act
 for each spawned actor to verify — check completed_steps first.
 ```
 
-### 2. Agent Workflow
+### 2. Workflow
 
-The Level Designer agent will:
+Follow this workflow:
 1. Read `.cortex/domains/level.md`
 2. **Plan** — inspect level state, design full `operations[]` spec
 3. **Batch** — call `level_compose` once
 4. **Verify** — check result, apply minimal fix if needed
 5. Report summary
 
-### 3. Review Agent Results
+### 3. Verify Results
 
-The agent returns from `level_compose`:
+`level_compose` returns:
 - `success`: true/false
 - `actor_count` + `spawned_actors`: actors created or duplicated
 - `completed_steps` / `total_steps`: batch progress
@@ -77,17 +76,16 @@ The agent returns from `level_compose`:
 
 ## Review / Analyze Mode
 
-### 1. Launch Level Designer Agent
+### 1. Execute the Workflow
 
-<!-- Turn budget: REVIEW tier (15 turns) — read + analyze + report pattern -->
-Dispatch the level-designer agent with a 15-turn budget to delegate the review.
+Read the `resources/level-design.md` guide, then execute its workflow directly in this conversation.
 
 Pass context about what to review:
 
 ```
 Review the current level and provide a report:
 
-**Prefetched state:** [embed the main-thread `prefetched_state` block here before launching]
+**Prefetched state:** [embed the main-thread `prefetched_state` block here before proceeding]
 
 1. Use `prefetched_state` first; only fetch missing data
 2. Use `get_info` for level overview (name, actor count, world type, sublevels, is_world_partition)
@@ -104,17 +102,17 @@ Review the current level and provide a report:
 8. Summarize findings with recommendations
 ```
 
-### 2. Agent Workflow
+### 2. Workflow
 
-The Level Designer agent will:
+Follow this workflow:
 1. Query level info and actor lists
 2. Analyze organization patterns
 3. Check spatial distribution
 4. Report findings and recommendations
 
-### 3. Review Agent Results
+### 3. Verify Results
 
-The agent returns:
+The review produces:
 - Level overview (name, actor count, world type, is_world_partition)
 - Actor breakdown by class and folder
 - Spatial bounds information
@@ -123,10 +121,10 @@ The agent returns:
 
 ---
 
-## Handling Agent Results
+## Handling Results
 
-If the agent's response includes a **Status** line:
+Report results to the user with a completion status:
 - **completed** — present results to the user.
 - **blocked** / **partial** — surface what was done, what remains, and what blocked it. For Create/Modify mode, warn the user that level changes may be incomplete.
 
-If the agent's response has no Status line (e.g., turn limit reached mid-response), treat as **partial** — summarize whatever the agent produced and note the work may be incomplete.
+If the work is interrupted mid-execution, treat it as **partial** — summarize what was produced and note the work may be incomplete.

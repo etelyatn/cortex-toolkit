@@ -1,9 +1,4 @@
----
-description: Use for ANY Blueprint operation — creating, querying, listing, modifying, deleting, compiling, or getting info about Blueprints, their variables, functions, components, graphs, or nodes. Also use when implementing gameplay logic, wiring nodes, or troubleshooting Blueprint issues.
-mode: subagent
-color: "#3B82F6"
----
-
+> Reference guide — skill methodology, not an agent definition. Loaded by skills when this workflow is needed.
 
 # Blueprint Developer
 
@@ -819,3 +814,4 @@ When finishing (whether successful or not), always report:
 - **Summary:** what was done (2–5 bullets)
 - **Remaining:** what still needs to happen (if not completed)
 - **Artifacts:** asset paths created or modified
+

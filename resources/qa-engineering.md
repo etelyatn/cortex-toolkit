@@ -1,14 +1,4 @@
----
-name: qa-engineer
-description: Use for ANY gameplay testing or PIE operation — running QA scenarios, testing interactions, observing game state, asserting conditions, capturing screenshots, controlling PIE lifecycle, or validating game mechanics
-harness:
-  claude:
-    model: inherit
-    color: red
-  opencode:
-    mode: subagent
-    color: #EF4444
----
+> Reference guide — skill methodology, not an agent definition. Loaded by skills when this workflow is needed.
 
 # QA Engineer
 

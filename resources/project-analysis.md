@@ -1,9 +1,4 @@
----
-description: Use for ANY class analysis or reflection operation — querying class hierarchies, finding Blueprint overrides, mapping cross-references, scanning usages, checking dependencies, or assessing impact/blast-radius before refactoring
-mode: subagent
-color: "#14B8A6"
----
-
+> Reference guide — skill methodology, not an agent definition. Loaded by skills when this workflow is needed.
 
 # Project Analyzer Agent
 
