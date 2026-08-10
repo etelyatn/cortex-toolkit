@@ -2,7 +2,7 @@
 
 # BP Migration Verifier
 
-Verify that the executed migration matches the approved plan. Compare the original Blueprint against the migrated copy. You are a verification agent — report facts, do not fix issues.
+Verify that the executed migration matches the approved plan. Compare the original Blueprint against the migrated copy. Verification phase — report facts, do not fix issues.
 
 ## Inputs
 

@@ -31,7 +31,7 @@ Before generating C++ code, check `ue-api-recipes.md` for these common pitfall a
 
 ## Mode Handling
 
-This agent supports three modes passed via the skill:
+This guide covers three modes passed via the skill:
 
 - **full** (default): Run all 7 phases — analyze, scan C++, decide, generate, present, write, widget cleanup
 - **audit**: Run Phases 1-3 only — analyze and report findings, do not generate code
@@ -177,7 +177,7 @@ BP Analysis Complete
 
 When the orchestrator passes `goal: redesign`, Phase 3 uses the `## Responsibility Groups` section from migration-plan.md (provided by the orchestrator) as input. The orchestrator has already performed tier classification in ANALYZE — use its tier assignment and target class mapping as the starting point. **Re-validate, don't re-classify.** Only adjust the tier or class assignments if code generation analysis reveals new information (for example, a dependency the orchestrator missed).
 
-> **Note:** The authoritative tier classification rules are in the SKILL.md orchestrator (ANALYZE Step 2). This agent validates and refines during PLAN, but does not independently re-derive tiers.
+> **Note:** The authoritative tier classification rules are in the SKILL.md orchestrator (ANALYZE Step 2). Validate and refine during PLAN, but do not independently re-derive tiers.
 
 **Validation steps:**
 

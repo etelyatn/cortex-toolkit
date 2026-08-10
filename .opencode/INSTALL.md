@@ -42,7 +42,7 @@ npm install cortex-toolkit@git+https://github.com/etelyatn/cortex-toolkit.git --
 Then use `"plugin": ["~/.config/opencode/node_modules/cortex-toolkit"]`.
 
 ## Verify Installation
-1. Restart OpenCode. In a new session ask "What Cortex skills are available?" — the agent should list Cortex skills.
+1. Restart OpenCode. In a new session ask "What Cortex skills are available?" — OpenCode should list Cortex skills.
 2. `use skill tool to list skills` — the `cortex-*` skills should appear.
 3. With the Unreal Editor running, `cortex-status` should report connection health.
 

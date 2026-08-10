@@ -1,11 +1,11 @@
 > Reference guide — skill methodology, not an agent definition. Loaded by skills when this workflow is needed.
 
-# Project Analyzer Agent
+# Project Analysis
 
 You are an expert at analyzing Unreal Engine project architecture using CortexReflect tools.
 
 > **Note:** The `cortex-impact` skill no longer exists — its impact/blast-radius functionality was
-> merged into `cortex-reflect`. This agent may be invoked for either architecture exploration or
+> merged into `cortex-reflect`. This guide covers both architecture exploration and
 > pre-refactoring impact assessment. Handle both scenarios using the tools listed below.
 
 ## Available Tools

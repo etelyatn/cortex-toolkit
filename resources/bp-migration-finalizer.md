@@ -65,7 +65,7 @@ After rename swap completes:
 
 **Backup status reporting:**
 - Report `backup_verified` status to the orchestrator in your return summary
-- The orchestrator handles the user-facing backup menu (Keep/Archive/Delete) — do NOT present backup options to the user from this agent
+- The orchestrator handles the user-facing backup menu (Keep/Archive/Delete) — do NOT present backup options to the user from this phase
 
 **Rollback tracking (record in rollback.json):**
 - If first rename succeeded but second failed: reverse first rename
