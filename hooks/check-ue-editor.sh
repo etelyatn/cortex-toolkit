@@ -154,13 +154,21 @@ EOF
     fi
 fi
 
-# Validate port file and check TCP using bash built-in /dev/tcp (no external tools needed)
-is_editor_ready() {
-    local port_file
-    port_file=$(_find_port_file) || return 1
-    local raw port
+# Probe a port for a real MCP health response (get_status). Stronger than a bare
+# TCP connect: it proves the plugin's command loop is alive on the Game Thread.
+_mcp_health_probe() {
+    local port="$1" line
+    exec 3<>/dev/tcp/127.0.0.1/"$port" 2>/dev/null || return 1
+    printf '{"command":"get_status"}\n' >&3 2>/dev/null
+    IFS= read -r -t 3 line <&3 2>/dev/null
+    exec 3<&- 3>&- 2>/dev/null
+    [[ "$line" == *'"success":true'* ]]
+}
+
+# Parse the port from a port file (supports plain-number and JSON formats).
+_read_port_from_file() {
+    local port_file="$1" raw port
     raw=$(tr -d '[:space:]' < "$port_file")
-    # Support both plain-number and JSON {"port":N,...} formats
     if [[ "$raw" =~ ^[0-9]+$ ]]; then
         port="$raw"
     elif [[ "$raw" =~ \"port\":([0-9]+) ]]; then
@@ -169,7 +177,42 @@ is_editor_ready() {
         return 1
     fi
     [ "$port" -ge 1024 ] && [ "$port" -le 65535 ] || return 1
-    (echo >/dev/tcp/127.0.0.1/$port) 2>/dev/null
+    printf '%s' "$port"
+}
+
+_editor_process_running() {
+    if command -v tasklist >/dev/null 2>&1; then
+        MSYS_NO_PATHCONV=1 tasklist /FI "IMAGENAME eq UnrealEditor.exe" /NH 2>/dev/null | grep -qi "UnrealEditor.exe"
+    else
+        pgrep -f "UnrealEditor" >/dev/null 2>&1
+    fi
+}
+
+# Find a live editor port. Preferred signal: valid port file whose MCP health
+# probe succeeds. Fallback (only when an editor process is running): probe the
+# default bind range (8742 + auto-increment), so "editor up + MCP healthy +
+# port file missing" is still treated as ready instead of launching a duplicate.
+_find_live_port() {
+    local port_file port candidate
+    port_file=$(_find_port_file)
+    if [ -n "$port_file" ]; then
+        port=$(_read_port_from_file "$port_file") || port=""
+        if [ -n "$port" ] && _mcp_health_probe "$port"; then
+            printf '%s' "$port"; return 0
+        fi
+    fi
+    if _editor_process_running; then
+        for candidate in $(seq 8742 8752); do
+            if _mcp_health_probe "$candidate"; then
+                printf '%s' "$candidate"; return 0
+            fi
+        done
+    fi
+    return 1
+}
+
+is_editor_ready() {
+    [ -n "$(_find_live_port)" ]
 }
 
 # ── Fast path ──────────────────────────────────────────────────────────────
@@ -267,7 +310,11 @@ while [ $ELAPSED -lt $DEADLINE ]; do
     sleep 5; ELAPSED=$((ELAPSED + 5))
 
     if is_editor_ready; then
-        echo "Unreal Editor started and CortexCore TCP server is ready."
+        if _find_port_file >/dev/null 2>&1; then
+            echo "Unreal Editor started and CortexCore TCP server is ready."
+        else
+            echo "Unreal Editor is running and MCP is reachable (port file missing)."
+        fi
         exit 0
     fi
 
@@ -286,10 +333,10 @@ EOF
     fi
 done
 
-# Timed out — our PID is still alive but port file never appeared
+# Timed out — our PID is still alive but no live MCP endpoint was found
 if kill -0 $EDITOR_PID 2>/dev/null; then
     cat >&2 <<'EOF'
-Unreal Editor is running but CortexCore did not write a port file within 180 seconds.
+Unreal Editor is running but CortexCore MCP did not become reachable within 180 seconds.
 Tell the user: verify that the UnrealCortex plugin is enabled in the project and
 UCortexSettings.bAutoStart is true. Ask them to choose:
 1. Fix the configuration and restart the editor, then retry

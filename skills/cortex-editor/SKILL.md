@@ -18,8 +18,8 @@ Single public workflow for editor lifecycle and MCP connectivity.
 
 Use this when the editor is down and needs to be launched cleanly.
 
-1. Check for a running `UnrealEditor.exe` process and a live `Saved/CortexPort-*.txt` port file.
-2. If the editor is already healthy, report the port and registered domains, then stop.
+1. Check for a running `UnrealEditor.exe` process and use the layered readiness check: a valid `Saved/CortexPort-*.txt` port file with a healthy MCP probe, **or** a live MCP health probe on the default bind range when the editor is running but the port file is missing.
+2. If the editor is already healthy (port file + probe, or probe without port file), report the port and registered domains, then stop.
 3. Read the effective `engine.path` from `.cortex/config.yaml` plus optional `.cortex/config.local.yaml`. Fall back to `UE_PATH` only if project config does not provide it.
 
 ```bash
@@ -52,8 +52,8 @@ UPROJECT=$(ls *.uproject 2>/dev/null | head -1)
 "$ENGINE_PATH/Engine/Binaries/Win64/UnrealEditor.exe" "$(pwd)/$UPROJECT" -AutoDeclinePackageRecovery -ExecCmds="Mainframe.ShowRestoreAssetsPromptOnStartup 0" &
 ```
 
-9. Poll every 5 seconds for up to 120 seconds for a new `Saved/CortexPort-*.txt` file. At 30 seconds, tell the user the editor may be compiling shaders. At 60 seconds, suggest checking the editor window for modal dialogs.
-10. Once the port file appears, read the port and verify TCP before calling MCP tools:
+9. Poll every 5 seconds for up to 120 seconds using the layered readiness check: process alive → port file present → live MCP health probe (`get_status`). A successful probe counts as ready even if the port file never appears. At 30 seconds, tell the user the editor may be compiling shaders. At 60 seconds, suggest checking the editor window for modal dialogs.
+10. Once ready, read the port and verify MCP before calling MCP tools. If the port file is present, use it (preferred discovery); if MCP is healthy but the port file is missing, proceed anyway and say so explicitly:
 
 ```bash
 RAW=$(cat Saved/CortexPort-*.txt 2>/dev/null | head -1 | tr -d '[:space:]')
@@ -67,7 +67,7 @@ if [ -n "$PORT" ]; then
 fi
 ```
 
-11. Report success with the port and registered domains, or report startup diagnostics and the latest log tail on timeout.
+11. Report success with the port and registered domains. If readiness came from the live MCP probe without a port file, report: editor running, MCP reachable, port file missing. On timeout, distinguish: editor never started vs. editor started but MCP never became reachable.
 
 ## Status Mode
 
