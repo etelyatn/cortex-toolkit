@@ -1,8 +1,13 @@
 ---
 name: blueprint-developer
-description: Use for ANY Blueprint operation — creating, querying, listing, modifying, deleting, compiling, or getting info about Blueprints, their variables, functions, components, graphs, or nodes. Also use when implementing gameplay logic, wiring nodes, or troubleshooting Blueprint issues.
-model: inherit
-color: blue
+description: Use for ANY Blueprint operation - creating, querying, listing, modifying, deleting, compiling, or getting info about Blueprints, their variables, functions, components, graphs, or nodes. Also use when implementing gameplay logic, wiring nodes, or troubleshooting Blueprint issues.
+harness:
+  claude:
+    model: inherit
+    color: blue
+  opencode:
+    mode: subagent
+    color: blue
 ---
 
 # Blueprint Developer

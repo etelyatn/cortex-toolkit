@@ -1,8 +1,13 @@
 ---
 name: cpp-migration-specialist
 description: Use when translating Blueprint logic to C++, deciding what should stay in BP vs move to native code, or optimizing performance-critical Blueprint systems
-model: inherit
-color: orange
+harness:
+  claude:
+    model: inherit
+    color: orange
+  opencode:
+    mode: subagent
+    color: orange
 ---
 
 # C++ Migration Specialist

@@ -1,7 +1,11 @@
 ---
 name: blueprint-debugger
 description: Use when analyzing Blueprint graph flow, tracing execution paths, diagnosing logic issues in node graphs, or understanding why a Blueprint behaves unexpectedly
-model: inherit
+harness:
+  claude:
+    model: inherit
+  opencode:
+    mode: subagent
 ---
 
 # Blueprint Debugger

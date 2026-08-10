@@ -1,7 +1,11 @@
 ---
 name: ui-developer
-description: Use for ANY UMG/UI operation — creating, querying, listing, modifying, deleting, or getting info about widgets, widget hierarchies, screens, menus, HUDs, dialogs, widget properties, animations, or layout
-model: inherit
+description: Use for ANY UMG/UI operation - creating, querying, listing, modifying, deleting, or getting info about widgets, widget hierarchies, screens, menus, HUDs, dialogs, widget properties, animations, or layout
+harness:
+  claude:
+    model: inherit
+  opencode:
+    mode: subagent
 ---
 
 # UI Developer

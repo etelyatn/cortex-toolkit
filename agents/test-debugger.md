@@ -1,7 +1,11 @@
 ---
 name: test-debugger
 description: Use when tests are failing, need to understand error patterns, diagnose flaky tests, or figure out why a test passes locally but fails in automation
-model: inherit
+harness:
+  claude:
+    model: inherit
+  opencode:
+    mode: subagent
 ---
 
 # Test Debugger

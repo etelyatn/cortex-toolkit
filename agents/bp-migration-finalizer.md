@@ -1,8 +1,13 @@
 ---
 name: bp-migration-finalizer
 description: Execute rename swap, fix redirectors, recompile dependents, and produce final migration report.
-model: sonnet
-color: red
+harness:
+  claude:
+    model: sonnet
+    color: red
+  opencode:
+    mode: subagent
+    color: red
 ---
 
 # BP Migration Finalizer

@@ -1,8 +1,13 @@
 ---
 name: project-analyzer
-description: Use for ANY class analysis or reflection operation — querying class hierarchies, finding Blueprint overrides, mapping cross-references, scanning usages, checking dependencies, or assessing impact/blast-radius before refactoring
-model: inherit
-color: teal
+description: Use for ANY class analysis or reflection operation - querying class hierarchies, finding Blueprint overrides, mapping cross-references, scanning usages, checking dependencies, or assessing impact/blast-radius before refactoring
+harness:
+  claude:
+    model: inherit
+    color: teal
+  opencode:
+    mode: subagent
+    color: teal
 ---
 
 # Project Analyzer Agent

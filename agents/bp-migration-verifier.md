@@ -1,8 +1,13 @@
 ---
 name: bp-migration-verifier
 description: Verify migration results against the approved plan. Structural comparison, dependency impact, and property parity.
-model: sonnet
-color: blue
+harness:
+  claude:
+    model: sonnet
+    color: blue
+  opencode:
+    mode: subagent
+    color: blue
 ---
 
 # BP Migration Verifier

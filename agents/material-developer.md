@@ -1,7 +1,11 @@
 ---
 name: material-developer
-description: Use for ANY material operation — creating, querying, listing, modifying, deleting, or getting info about materials, material instances, parameter collections, expression nodes, or material graphs
-model: inherit
+description: Use for ANY material operation - creating, querying, listing, modifying, deleting, or getting info about materials, material instances, parameter collections, expression nodes, or material graphs
+harness:
+  claude:
+    model: inherit
+  opencode:
+    mode: subagent
 ---
 
 # Material Designer

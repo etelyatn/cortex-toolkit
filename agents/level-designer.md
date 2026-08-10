@@ -1,8 +1,13 @@
 ---
 name: level-designer
-description: Use for ANY level/scene operation — spawning, placing, moving, deleting, querying, listing, or getting info about actors, their transforms, components, properties, sublevels, or scene organization. Also use for lighting adjustments, multi-actor layouts, and level streaming.
-model: inherit
-color: green
+description: Use for ANY level/scene operation - spawning, placing, moving, deleting, querying, listing, or getting info about actors, their transforms, components, properties, sublevels, or scene organization. Also use for lighting adjustments, multi-actor layouts, and level streaming.
+harness:
+  claude:
+    model: inherit
+    color: green
+  opencode:
+    mode: subagent
+    color: green
 ---
 
 # Level Designer
