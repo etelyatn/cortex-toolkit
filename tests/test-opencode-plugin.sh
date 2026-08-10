@@ -68,13 +68,16 @@ if (root / ".opencode" / "agents").exists():
 if (root / "scripts" / "generate-opencode-agents.sh").exists():
     raise SystemExit("generate-opencode-agents.sh must not exist — toolkit is skills-only")
 
-# Banned-pattern compliance across skills (cortex-init Step 7 exempt)
+# Banned-pattern compliance across skills (neutral harness: no agent/tool dispatch).
+# Strip known-good toolkit references first — the git URL and the "./cortex-toolkit"
+# vendored-plugin path both legitimately contain "/cortex-".
 BANNED = ("subagent_type", "AskUserQuestion", "Skill tool", "Task tool", "max_turns", "/cortex-", "/mcp")
+LEGIT_CORTEX_SLASH = ("https://github.com/etelyatn/cortex-toolkit.git", '"./cortex-toolkit"')
 for skill in sorted((root / "skills").glob("*/SKILL.md")):
-    if skill.parent.name == "cortex-init":
-        continue
     raw = skill.read_text(encoding="utf-8")
     text = raw.split("---", 2)[2] if raw.startswith("---") else raw
+    for legit in LEGIT_CORTEX_SLASH:
+        text = text.replace(legit, "")
     for banned in BANNED:
         if banned in text:
             raise SystemExit(f"skill {skill.parent.name} contains banned pattern {banned!r}")
@@ -100,19 +103,19 @@ if "## Agents" in readme:
 
 # Bootstrap handshake: README must lead users with the fetch-instructions prompt, and
 # INSTALL.md must present the git-backed plugin spec as the install mechanism BEFORE
-# instructing the user to run cortex-init (which only works after the plugin is installed).
+# instructing the user to run cortex-setup (which only works after the plugin is installed).
 HANDSHAKE = "Fetch and follow instructions from https://raw.githubusercontent.com/etelyatn/cortex-toolkit/main/.opencode/INSTALL.md"
 if HANDSHAKE not in readme:
     raise SystemExit("README must contain the OpenCode install handshake prompt")
 install_md = (root / ".opencode" / "INSTALL.md").read_text(encoding="utf-8")
 GIT_SPEC = "cortex-toolkit@git+https://github.com/etelyatn/cortex-toolkit.git"
-RUN_INIT = "run `cortex-init`"
+RUN_SETUP = "run `cortex-setup`"
 if GIT_SPEC not in install_md:
     raise SystemExit("INSTALL.md must contain the git-backed plugin spec")
-if RUN_INIT not in install_md.lower():
-    raise SystemExit("INSTALL.md must instruct running cortex-init")
-if install_md.lower().find(RUN_INIT) < install_md.find(GIT_SPEC):
-    raise SystemExit("INSTALL.md must present the git-backed install before instructing cortex-init")
+if RUN_SETUP not in install_md.lower():
+    raise SystemExit("INSTALL.md must instruct running cortex-setup")
+if install_md.lower().find(RUN_SETUP) < install_md.find(GIT_SPEC):
+    raise SystemExit("INSTALL.md must present the git-backed install before instructing cortex-setup")
 
 print("opencode plugin tests passed")
 PY

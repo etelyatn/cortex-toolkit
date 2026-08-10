@@ -5,7 +5,7 @@ Flat catalog of all UnrealCortex MCP tools organized by domain.
 ## Tool Architecture
 
 Tools fall into three categories:
-- **Routers (11):** `core_cmd`, `data_cmd`, `blueprint_cmd`, `graph_cmd`, `level_cmd`, `material_cmd`, `umg_cmd`, `qa_cmd`, `reflect_cmd`, `editor_cmd`, `statetree_cmd` — dispatch named commands to existing assets
+- **Routers (12):** `core_cmd`, `data_cmd`, `blueprint_cmd`, `graph_cmd`, `level_cmd`, `material_cmd`, `umg_cmd`, `qa_cmd`, `reflect_cmd`, `editor_cmd`, `statetree_cmd`, `anim_cmd` — dispatch named commands to existing assets
 - **Composites (7):** `blueprint_compose`, `material_compose`, `material_instance_compose`, `widget_compose`, `level_compose`, `scenario_compose`, `statetree_compose` — declarative creation workflows, with some composites also supporting update-mode orchestration
 - **Standalone (3):** `editor_restart`, `schema_generate`, `qa_test_step`
 
@@ -109,11 +109,144 @@ Manage asset lifecycle. All commands accept a single path, a list of paths, or g
 ## Data (`data_cmd`)
 
 - **DataTables:** `list_datatables`, `get_datatable_schema`, `query_datatable`, `get_datatable_row`, `add_datatable_row`, `update_datatable_row`, `delete_datatable_row`, `search_datatable_content`, `import_datatable_json`, `get_struct_schema`
+- **Raw/schema file exports:** `export_datatable_json`, `export_string_table_json`, `export_data_assets_json`, `export_schema_json`, `export_bulk_json`
+- **Snapshot diff:** `compare_data_json`
+- **File-backed imports:** `apply_import_ops_json`
 - **GameplayTags:** `list_gameplay_tags`, `validate_gameplay_tag`, `register_gameplay_tag`, `register_gameplay_tags`, `resolve_tags`
 - **DataAssets:** `list_data_assets`, `get_data_asset`, `update_data_asset`
 - **CurveTables:** `list_curve_tables`, `get_curve_table`, `update_curve_table_row`
-- **StringTables:** `list_string_tables`, `get_translations`, `set_translation`
+- **StringTables:** `list_string_tables`, `get_translations`, `set_translation`, `update_string_table`
 - **Search:** `search_assets`
+
+For large or repeatable data migrations, use raw export commands for large reads, `export_schema_json` for offline validation inputs, `compare_data_json` for exported-snapshot review, and `apply_import_ops_json` for the guarded write phase. Small targeted edits should still use direct mutation commands.
+
+File-backed Data command responses use a compact summary envelope: `success`, `partial`, `warnings`, `errors`, `files_written`, `targets_touched`, and nested `counts`. Raw export payload files and durable import reports on disk remain the detailed sources of truth. For `apply_import_ops_json`, queue counts are exposed under normalized nested keys such as `operations`, `validated`, `previewed`, `attempted`, `applied`, `failed`, and `save_failed` instead of legacy summary aliases.
+
+Use `export_schema_json` when the job is offline schema validation rather than raw payload review. It writes DataTable row schemas, transitive struct closure, DataAsset class property schemas, and StringTable metadata to disk while keeping the MCP response compact.
+
+`get_data_asset` returns a deep reflected property payload. Inspect additive `partial` and `issues` fields before assuming every nested field serialized cleanly.
+
+`export_data_assets_json(include_properties=true)` performs deep property export. In partial mode it can report `partial`, `issue_count`, and `omitted_assets`; in strict mode (`allow_partial=false`) blocking serialization issues fail the export instead of writing an incomplete asset set.
+
+### Data Localization Migration Examples
+
+Generic router dry-run prefix migration:
+
+```json
+{
+  "tool": "data_cmd",
+  "command": "update_string_table",
+  "params": {
+    "string_table_path": "/Game/Data/ST_CodexEntries.ST_CodexEntries",
+    "dry_run": true,
+    "verbose": false,
+    "operations": [
+      {"type": "replace_all", "old_prefix": "entry.", "new_prefix": ""}
+    ]
+  }
+}
+```
+
+Dry-run `operation_results` are preview-only: successful operations report `applied=false`, `would_apply=true`, and `status="would_apply"`. Apply with `dry_run=false` only after the preview is clean or after intentionally setting `allow_partial=true`.
+
+Optional direct compatibility wrapper, only if still registered:
+
+```text
+update_string_table(
+  string_table_path="/Game/Data/ST_CodexEntries.ST_CodexEntries",
+  operations_json="[{\"type\":\"replace_all\",\"old_prefix\":\"entry.\",\"new_prefix\":\"\"}]",
+  dry_run=true,
+  verbose=false
+)
+```
+
+Scan DataTable `FText` references:
+
+```json
+{
+  "tool": "data_cmd",
+  "command": "search_datatable_content",
+  "params": {
+    "table_path": "/Game/Data/DT_CodexEntries.DT_CodexEntries",
+    "search_mode": "string_table_refs",
+    "string_table_path": "/Game/Data/ST_CodexEntries.ST_CodexEntries",
+    "key_pattern": "entry.*",
+    "limit": 100
+  }
+}
+```
+
+For `search_mode="string_table_refs"`, the generic `data_cmd` router forwards `limit` to C++ so scans can return more than the normal default batch size. Use `limit` as the scan cap; cursor pagination is not used for this mode.
+
+Update nested `TArray<UStruct>` table-backed `FText` fields:
+
+```json
+{
+  "tool": "data_cmd",
+  "command": "update_datatable_row",
+  "params": {
+    "table_path": "/Game/Data/DT_CodexEntries.DT_CodexEntries",
+    "row_name": "fireball",
+    "row_data": {
+      "Steps": [
+        {
+          "Description": {
+            "value": "Charge flame.",
+            "string_table": {
+              "table_id": "/Game/Data/ST_CodexEntries.ST_CodexEntries",
+              "key": "fireball.step_0"
+            }
+          }
+        }
+      ]
+    },
+    "dry_run": true
+  }
+}
+```
+
+### Snapshot Diff Example
+
+Compare two exported snapshots and write the canonical diff report to disk:
+
+```json
+{
+  "tool": "data_cmd",
+  "command": "compare_data_json",
+  "params": {
+    "left_path": "Saved/CortexExports/baseline/quests.json",
+    "right_path": "Saved/CortexExports/proposed/quests.json",
+    "report_path": "Saved/CortexExports/diff/quests_diff.json",
+    "mode": "datatable_rows",
+    "ignore_fields": ["LastModified"],
+    "include_equal": false
+  }
+}
+```
+
+Use `mode="auto"` only for canonical Cortex export wrappers. Use explicit modes for top-level arrays or custom wrappers, and inspect the report file on disk for the full added/removed/changed summary.
+
+### File-Backed Import Queue Example
+
+Preview a migration queue:
+
+```json
+{
+  "tool": "data_cmd",
+  "command": "apply_import_ops_json",
+  "params": {
+    "ops_path": "Saved/CortexImports/quest_cortex_ops.json",
+    "report_path": "Saved/CortexImports/quest_import_report.json",
+    "dry_run": true,
+    "apply": false,
+    "query_back": true,
+    "stop_on_error": true,
+    "allow_partial": false
+  }
+}
+```
+
+Real apply requires `dry_run=false` and `apply=true`. The MCP response is intentionally compact; inspect the JSON report on disk for per-operation results, warnings, failures, and query-back payloads.
 
 ---
 
@@ -137,6 +270,7 @@ Manage asset lifecycle. All commands accept a single path, a list of paths, or g
 ## Graph (`graph_cmd`)
 
 - `list_graphs`, `list_nodes`, `get_node`, `search_nodes`, `add_node`, `remove_node`, `connect`, `disconnect`, `set_pin_value`, `auto_layout`
+- `set_pin_value`: use `value` for non-text pins and literal-only simple values; use structured `text` for `FText` pins, especially StringTable-backed text. `value` and `text` are mutually exclusive.
 
 `list_graphs` returns user-visible Blueprint graphs. Top-level entries include `kind`
 (`ubergraph`, `function`, `macro`, `delegate`, or `interface_impl`); `interface_impl`
@@ -201,6 +335,15 @@ See `blueprint-patterns.md` for node class short names and full node type table.
 
 ---
 
+## Animation (`anim_cmd`)
+
+- **Inspection:** `list_assets`, `get_sequence_info`, `get_montage_info`, `get_skeleton_info`, `get_animbp_info`
+- **Guarded authoring:** named notifies, float curves, montage sections, skeleton sockets, object notifies, and notify states.
+- Object notify selectors use `{ index, class_path, time }`; notify-state selectors also include `duration`.
+- Every mutation requires `expected_fingerprint`, supports `dry_run`, and defaults `save` to `false`. Only live capabilities advertise authoring families; later-stage animation systems remain unavailable.
+
+---
+
 ## Level (`level_cmd`)
 
 - **Actors:** `spawn_actor`, `delete_actor`, `duplicate_actor`, `rename_actor`, `get_actor`, `set_transform`, `set_actor_property`, `get_actor_property`, `list_actors`, `find_actors`, `get_bounds`, `select_actors`, `get_selection`
@@ -230,6 +373,29 @@ Mutating commands require `expected_fingerprint` for existing assets. Use `dump_
 - `statetree_compose` — create or update one StateTree from declarative states and transitions, with fingerprint threading, update-mode preflight, optional validation, optional compile, optional save, and create-mode cleanup on failure.
 
 Current boundary: StateTree support is structure-level. It does not author arbitrary tasks, conditions, evaluators, parameter bags, or property bindings.
+
+---
+
+## Animation (`anim_cmd`)
+
+- **Assets:** `list_assets`
+- **Inspection:** `get_sequence_info`, `get_montage_info`, `get_skeleton_info`, `get_animbp_info`
+- **Named notifies:** `add_named_notify`, `update_named_notify`, `remove_named_notify`
+- **Float curves:** `add_curve`, `set_curve_keys`, `remove_curve`
+- **Montage sections:** `add_montage_section`, `update_montage_section`, `remove_montage_section`
+- **Skeleton sockets:** `add_socket`, `set_socket_transform`, `remove_socket`
+- **Object notifies:** `add_notify`, `update_notify`, `remove_notify`
+- **Notify states:** `add_notify_state`, `update_notify_state`, `remove_notify_state`
+
+Every mutating command requires the shared Cortex `expected_fingerprint`, supports
+`dry_run`, and defaults `save` to `false`. Inspect the matching asset first, then pass its
+`fingerprint` as `expected_fingerprint`. Use an authoring family only when live capabilities
+advertise that complete family.
+
+Current boundary: Animation authoring covers sequence skeleton named/object notifies, notify
+states, editable float curves, montage sections, and skeleton sockets. AnimBP authoring,
+blendspaces, retargeting, runtime preview, Sequencer, and Control Rig are out of scope. There is no
+`anim.save_asset`; use a mutation's `save=true` option, or `core.save_asset` where appropriate.
 
 ---
 

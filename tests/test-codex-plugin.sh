@@ -30,7 +30,7 @@ from pathlib import Path
 
 root = Path(sys.argv[1])
 manifest_path = root / ".codex-plugin" / "plugin.json"
-marketplace_path = root / ".agents" / "plugins" / "marketplace.json"
+marketplace_path = root / ".codex" / "plugins" / "marketplace.json"
 hooks_path = root / "hooks" / "hooks.json"
 hook_wrapper_path = root / "hooks" / "run-hook.cmd"
 
@@ -146,6 +146,10 @@ if claude_marketplace.get("metadata", {}).get("version") != version:
 claude_entry = next((p for p in claude_marketplace.get("plugins", []) if p.get("name") == "cortex-toolkit"), None)
 if claude_entry is None or claude_entry.get("version") != version:
     raise SystemExit("claude marketplace plugin entry version must match codex plugin version")
+
+taxonomy_test = root / "tests" / "test-skill-taxonomy.sh"
+if not taxonomy_test.exists():
+    raise SystemExit("missing taxonomy regression test")
 
 print("codex plugin tests passed")
 PY

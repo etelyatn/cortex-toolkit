@@ -25,7 +25,7 @@ claude plugin marketplace add etelyatn/cortex-toolkit
 claude plugin install cortex-toolkit
 ```
 
-Then open your project and run `/cortex-start`. It will verify the editor/MCP connection and guide you through setup. If you only need the project configuration step, run `/cortex-init` directly.
+Then open your project and run `/cortex-setup`. It initializes the project when needed, refreshes project memory/schema when requested, and guides you to the next useful action. If editor or MCP lifecycle work is needed, it routes you to `/cortex-editor`.
 
 ### Codex
 
@@ -39,7 +39,7 @@ codex plugin add cortex-toolkit@cortex-toolkit
 Then restart Codex if it was already running.
 Your Unreal project still needs a project-local `.mcp.json` pointing to the UnrealCortex MCP server.
 Codex discovers the toolkit hooks automatically and asks you to trust them before they run.
-Start with `cortex-start` for guided onboarding, or use `cortex-init` directly when you only want MCP and `.cortex/` setup.
+Start with `cortex-setup` for onboarding, initialization, schema refresh, and next-step guidance.
 
 ### Cursor
 
@@ -54,13 +54,12 @@ Fetch and follow instructions from https://raw.githubusercontent.com/etelyatn/co
 ```
 
 This installs the toolkit as a plugin from git and registers the `cortex-*` skills. The INSTALL.md
-quick start then walks you through `cortex-init` (project setup), `cortex-editor`/`cortex-status`
-(editor connection), and `cortex-start` (onboarding). Full details:
-[`.opencode/INSTALL.md`](.opencode/INSTALL.md).
+quick start then walks you through `cortex-setup` (project setup and onboarding), `cortex-editor`
+(editor connection), and the domain skills. Full details: [`.opencode/INSTALL.md`](.opencode/INSTALL.md).
 
 ### Manual Setup
 
-If you prefer not to use `/cortex-init`, add the context block manually:
+If you prefer not to use `/cortex-setup`, add the context block manually:
 
 - **Claude Code:** Append [`templates/context-block.md`](templates/context-block.md) to your project's `CLAUDE.md`
 - **Codex:** Append [`templates/context-block.md`](templates/context-block.md) to your project's `AGENTS.md`
@@ -69,10 +68,9 @@ Then create `.cortex/` manually following the structure in [Project Memory](#pro
 
 ## Getting Started
 
-1. Start with `/cortex-start` (or `cortex-start` in Codex) for guided onboarding, editor/MCP verification, and next-step recommendations.
-2. If you want only setup without the full guided flow, run `/cortex-init` or `cortex-init` to configure MCP and `.cortex/` project memory.
-3. After init or structural content changes, run `/cortex-schema-refresh` or `cortex-schema-refresh` so `.cortex/schema/` contains current project data.
-4. Run `/cortex-help` anytime to discover available skills or get contextual suggestions.
+1. Start with `/cortex-setup` (or `cortex-setup` in Codex) for onboarding, initialization, schema refresh, and next-step guidance.
+2. Use `/cortex-editor` for editor lifecycle, MCP diagnostics, and explicit restarts.
+3. Use `/cortex-build` only for compile/build requests.
 
 ## Skills
 
@@ -82,7 +80,7 @@ Skills are invoked with `/skill-name` in Claude Code. Each skill runs a focused 
 
 | Skill | Description |
 |-------|-------------|
-| `/cortex-blueprint` | Create, modify, review, or debug Blueprints — structure, graphs, variables, functions, best practices |
+| `/cortex-blueprint` | Create, modify, review, debug, or reparent Blueprints — structure, graphs, variables, functions, inheritance, and best practices |
 | `/cortex-bp-migrate` | Migrate Blueprints to C++ using the V7 migration pipeline |
 
 ### Data
@@ -109,13 +107,17 @@ Skills are invoked with `/skill-name` in Claude Code. Each skill runs a focused 
 |-------|-------------|
 | `/cortex-statetree` | Create, update, review, validate, or compile StateTree assets — structure, hierarchy, tags, and simple transitions |
 
+### Animation
+
+| Skill | Description |
+|-------|-------------|
+| `/cortex-animation` | Inspect skeletal animation assets and author guarded named notifies, curves, sections, sockets, object notifies, and notify states through capability-gated `anim_cmd` commands |
+
 ### QA
 
 | Skill | Description |
 |-------|-------------|
-| `/cortex-qa-init` | Prepare QA context and generate an initial game profile for scenario-driven testing |
-| `/cortex-qa-interactive` | Drive live exploratory testing in PIE with tight observe-act-assert loops |
-| `/cortex-qa-run` | Execute a predefined gameplay QA scenario and collect findings |
+| `/cortex-qa` | Generate QA baselines, run scenario-driven gameplay QA, or start an interactive exploratory QA session |
 
 ### Reflect
 
@@ -123,19 +125,17 @@ Skills are invoked with `/skill-name` in Claude Code. Each skill runs a focused 
 |-------|-------------|
 | `/cortex-reflect` | Assess blast radius before breaking changes, or analyze class architecture and cross-references |
 
-### UI
+### UMG
 
 | Skill | Description |
 |-------|-------------|
-| `/cortex-ui` | Create or review UMG widgets, screens, or UI components |
+| `/cortex-umg` | Create or review UMG widgets, screens, or UI components |
 
 ### Core
 
 | Skill | Description |
 |-------|-------------|
-| `/cortex-help` | Discover available skills and get contextual guidance |
-| `/cortex-init` | Initialize a new project with Cortex configuration |
-| `/cortex-start` | Start a Cortex session, verify editor connection, and run guided onboarding |
+| `/cortex-setup` | Set up Cortex for a project, get started, refresh schema, or ask what to do next |
 | `/cortex-test` | Run Unreal C++ and Python MCP tests (dual-track test runner) |
 
 ### Operations
@@ -143,12 +143,11 @@ Skills are invoked with `/skill-name` in Claude Code. Each skill runs a focused 
 | Skill | Description |
 |-------|-------------|
 | `/cortex-build` | Build the Unreal project after modifying C++ source files |
-| `/cortex-editor` | Open the Unreal Editor when it needs to be running |
-| `/cortex-restart` | Restart the Unreal Editor after C++ changes need recompilation |
-| `/cortex-schema-refresh` | Refresh `.cortex/schema/` project snapshot files |
-| `/cortex-status` | Check MCP connection health, editor status, and connection recovery |
+| `/cortex-editor` | Start, check, reconnect, or restart the Unreal Editor and MCP connection |
 
-## Project MemoryCortex Toolkit reads project-specific knowledge from `.cortex/`:
+## Project Memory
+
+Cortex Toolkit reads project-specific knowledge from `.cortex/`:
 
 ```
 .cortex/
@@ -162,7 +161,8 @@ Skills are invoked with `/skill-name` in Claude Code. Each skill runs a focused 
 │   ├── material.md
 │   ├── statetree.md
 │   ├── qa.md
-│   └── umg.md
+│   ├── umg.md
+│   └── anim.md
 └── schema/              # LLM-readable project snapshots
     ├── _catalog.md      # Index of all schema files
     └── ...
@@ -172,7 +172,7 @@ Check `.cortex/config.yaml` into version control for shared defaults. Put machin
 
 `config.local.yaml` uses the same shape as `config.yaml`. Dictionaries merge recursively, while lists and scalar values replace the shared value. Keep `config.local.yaml` out of version control; use it for fields that differ per workstation, especially `engine.path`. If no effective `engine.path` is configured, editor helpers fall back to `UE_PATH`.
 
-Fill the domain files with your project's specifics. The AI uses this context to work without repeated questions. Run `/cortex-schema-refresh` to regenerate schema snapshots from live editor data.
+Fill the domain files with your project's specifics. The AI uses this context to work without repeated questions. Run `/cortex-setup` and ask it to refresh the schema to regenerate snapshots from live editor data.
 
 ## Migration from v0.1.x
 

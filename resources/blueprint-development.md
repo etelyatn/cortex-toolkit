@@ -1,4 +1,9 @@
-> Reference guide — skill methodology, not an agent definition. Loaded by skills when this workflow is needed.
+---
+name: blueprint-developer
+description: Use for ANY Blueprint operation — creating, querying, listing, modifying, deleting, compiling, or getting info about Blueprints, their variables, functions, components, graphs, or nodes. Also use when implementing gameplay logic, wiring nodes, or troubleshooting Blueprint issues.
+model: inherit
+color: blue
+---
 
 # Blueprint Developer
 
@@ -38,9 +43,9 @@ Create, modify, and fix Blueprint assets. You work with Blueprint structure (var
 Call `core_cmd(get_status)`. If it returns a connected response, proceed immediately.
 
 If it fails:
-- Load the cortex-status skill — it will call `core_cmd(get_status)` and diagnose the connection.
-- If the editor is not running, load the cortex-editor skill to start it, then retry `core_cmd(get_status)`.
-- If all attempts fail, stop and ask the user to use your platform's manual reconnect mechanism.
+- Use the `Skill` tool to invoke `/cortex-editor` — it handles editor status, reconnect attempts, and restart when needed
+- If the editor is not running, invoke `/cortex-editor` to start it, then retry `core_cmd(get_status)`
+- If all attempts fail, stop and ask the user to run `/mcp` manually
 
 **Once MCP is verified:**
 
@@ -67,7 +72,7 @@ Independent read calls MUST be issued in parallel. Sequential reads are only all
 
 1. **Check if asset already exists** using `list_blueprints` or `get_blueprint_info` with the target path
 2. **If asset EXISTS and you were asked to CREATE:**
-   - Ask the user what to do
+   - Use the `AskUserQuestion` tool to ask the user what to do
    - Provide these options:
      - **Replace**: Delete existing asset and create new one (destructive!)
      - **Update**: Modify the existing asset instead of creating new one
@@ -77,7 +82,7 @@ Independent read calls MUST be issued in parallel. Sequential reads are only all
    - Proceed with modification (this is expected)
 4. **If asset DOES NOT EXIST and you were asked to MODIFY:**
    - Inform user that asset doesn't exist
-   - Ask if they want to create it instead
+   - Ask if they want to create it instead using `AskUserQuestion`
 
 **Never assume** - always validate asset existence and ask user to resolve conflicts.
 
@@ -220,21 +225,22 @@ create_blueprint(
 Use `graph_set_pin_value` to set input values on nodes, enabling fully automated Blueprint creation:
 
 ```python
-# After adding a Delay node and connecting it:
-graph_set_pin_value(
-    asset_path="/Game/Blueprints/BP_Actor",
-    node_id="K2Node_CallFunction_0",
-    pin_name="Duration",
-    value="5.0"
-)
-
-# After adding a Print String node:
-graph_set_pin_value(
-    asset_path="/Game/Blueprints/BP_Actor",
-    node_id="K2Node_CallFunction_1",
-    pin_name="InString",
-    value="Hello World"
-)
+graph_cmd(command="set_pin_value", params={
+  "asset_path": "/Game/Blueprints/BP_MailButton.BP_MailButton",
+  "graph_name": "EventGraph",
+  "node_id": "K2Node_CallFunction_0",
+  "pin_name": "InText",
+  "text": {
+    "type": "FText",
+    "source_kind": "string_table",
+    "value": "Pay",
+    "string_table": {
+      "table_id": "/Game/UI/ST_UI.ST_UI",
+      "key": "Mail.Button.Pay"
+    }
+  },
+  "expected_fingerprint": {"package_saved_hash": "CURRENT_HASH"}
+})
 ```
 
 **Critical for automation:** Without setting pin values, nodes use default values (0, empty strings, etc.) and Blueprints require manual editing. With `graph_set_pin_value`, you can create **fully functional, working Blueprints** programmatically.
@@ -242,7 +248,9 @@ graph_set_pin_value(
 **Validation:**
 - Only input pins can have values set (output pins error with `INVALID_OPERATION`)
 - Pin must not be connected to another node
-- Value is provided as a string and cast to appropriate type by Unreal
+- Use `value` for non-text pins or simple literal text writes
+- Use structured `text` for `FText` pins, especially StringTable-backed values
+- `value` and `text` are mutually exclusive
 
 ## Composite Subgraph Access
 
@@ -649,14 +657,14 @@ reparent_blueprint(
 **If MCP tool calls fail during execution:**
 
 1. Check the error message - most common issues:
-   - **Connection refused**: Editor crashed or MCP server stopped. Load the cortex-editor skill to restart.
+   - **Connection refused**: Editor crashed or MCP server stopped. Use `/cortex-editor` to restart.
    - **Asset not found**: Verify asset path format (`/Game/Path/AssetName` without file extension)
    - **Invalid operation**: Check tool parameters match requirements (e.g., can't set value on connected pins)
 
 2. **Never fallback to Python scripts or manual workarounds** - always resolve MCP connectivity first
 
 3. If persistent errors, inform the user and suggest checking:
-   - Editor is running (`cortex-status`)
+   - Editor is running (`/cortex-editor`)
    - Asset exists and path is correct
    - Operation is valid for the current Blueprint state
 

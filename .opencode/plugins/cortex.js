@@ -54,7 +54,7 @@ function toolMapping() {
     '- Fetch a URL -> `webfetch`',
     '',
     'Cortex MCP tools (prefixed `cortex_mcp_`) require the Unreal Editor running with CortexCore.',
-    'If a `cortex_mcp_*` call fails with a connection error, load the `cortex-status` skill to',
+    'If a `cortex_mcp_*` call fails with a connection error, load the `cortex-setup` skill to',
     'diagnose and the `cortex-editor` skill to start it.'
   ].join('\n');
 }

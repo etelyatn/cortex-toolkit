@@ -1,9 +1,9 @@
 ---
-name: cortex-ui
+name: cortex-umg
 description: Use when creating or reviewing UMG widgets, screens, or UI components
 ---
 
-# UI
+# UMG
 
 Creates, modifies, and reviews UMG widget screens following the `resources/ui-development.md` guide.
 

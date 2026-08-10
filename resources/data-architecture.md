@@ -14,6 +14,11 @@ Design data schemas, create and populate DataTables/DataAssets/CurveTables, and 
 2. Read `.cortex/domains/data.md` for existing schemas and conventions
 3. Check `.cortex/schema/_catalog.md` for struct schemas, table inventory, and tag prefixes (fast, no editor needed)
 4. Use `data_cmd(command="list_datatables")` and `data_cmd(command="list_data_assets")` for live data if schema files are missing or stale
+5. For large migrations, export raw files first with `export_datatable_json`, `export_string_table_json`, `export_data_assets_json`, or `export_bulk_json`, then inspect the files locally instead of asking MCP to return full payloads in chat
+6. For offline schema validation inputs, use `data_cmd(command="export_schema_json")` so migration scripts and agents can work from one deterministic schema artifact
+7. Use `data_cmd(command="compare_data_json")` when you need a deterministic diff between two exported snapshots, especially before generating or approving reconcile queues
+8. For large or repeatable write batches, prefer the file-backed queue workflow with `data_cmd(command="apply_import_ops_json")` instead of long ad hoc loops of direct mutation commands
+9. For DataAsset reads and exports, inspect serialization status fields before trusting nested property payloads: `get_data_asset` may return `partial` and `issues`, and `export_data_assets_json(include_properties=true)` may report `partial`, `issue_count`, or `omitted_assets`
 
 ## Methodology
 
@@ -24,8 +29,9 @@ Design data schemas, create and populate DataTables/DataAssets/CurveTables, and 
    - Plan references between tables (FName keys, soft references)
    - Include GameplayTags for categorization where appropriate
 3. **Create assets** — use `data_cmd(command="create_datatable")` to create new DataTables via MCP, or guide creation in editor
-4. **Populate data** — use `data_cmd(command="add_datatable_row")`, `data_cmd(command="import_datatable_json")`, `data_cmd(command="set_translation")`
-5. **Validate** — verify data integrity, reference resolution, tag validity
+4. **Choose write path by scope** — use direct mutation commands for small targeted changes; for large migrations, export raw files first, export schema when validators need one deterministic schema artifact, compare exported snapshots with `compare_data_json`, then preview/apply queue files with `apply_import_ops_json`
+5. **Populate data** — use `data_cmd(command="add_datatable_row")`, `data_cmd(command="import_datatable_json")`, `data_cmd(command="set_translation")`, `data_cmd(command="update_string_table")`, or `data_cmd(command="apply_import_ops_json")` as appropriate
+6. **Validate** — verify data integrity, reference resolution, tag validity, snapshot diffs, and file-backed import reports
 
 ## Creating DataTables via MCP
 
@@ -48,6 +54,131 @@ data_cmd(
 ```
 data_cmd("create_datatable") → data_cmd("add_datatable_row") (×N) OR data_cmd("import_datatable_json") → data_cmd("query_datatable") (verify)
 ```
+
+## Localization Migration Workflow
+
+Use `data_cmd(command="update_string_table")` for bulk StringTable edits. Always run a dry-run first, inspect `operation_results`, then apply with the same ordered operations only after the preview is clean.
+
+```python
+data_cmd(
+    command="update_string_table",
+    params={
+        "string_table_path": "/Game/Data/ST_CodexEntries.ST_CodexEntries",
+        "dry_run": True,
+        "operations": [
+            {"type": "replace_all", "old_prefix": "entry.", "new_prefix": ""}
+        ]
+    }
+)
+```
+
+For DataTable rows containing table-backed `FText`, write the object shape so key metadata is preserved:
+
+```json
+{
+  "Title": {
+    "value": "Fireball",
+    "string_table": {
+      "table_id": "/Game/Data/ST_CodexEntries.ST_CodexEntries",
+      "key": "fireball.title"
+    }
+  }
+}
+```
+
+Before renaming or deleting StringTable keys, audit DataTable references:
+
+```python
+data_cmd(
+    command="search_datatable_content",
+    params={
+        "table_path": "/Game/Data/DT_CodexEntries.DT_CodexEntries",
+        "search_mode": "string_table_refs",
+        "string_table_path": "/Game/Data/ST_CodexEntries.ST_CodexEntries",
+        "key_pattern": "entry.*",
+        "limit": 100
+    }
+)
+```
+
+Reference scan results include `field_path` values such as `Steps[0].Description`. The generic `data_cmd` router forwards `limit` to this C++ scan mode, so use `limit` for scan size rather than cursor pagination.
+
+## Large Raw Export Workflow
+
+For large DataTable, StringTable, or DataAsset audits, use file exports before analysis:
+
+```python
+data_cmd(
+    command="export_bulk_json",
+    params={
+        "out_dir": "Saved/CortexExports/Audit",
+        "items": [
+            {"type": "datatable", "name": "quests", "table_path": "/Game/Data/DT_Quests", "out_path": "quests.json"},
+            {"type": "string_table", "name": "quest_text", "string_table_path": "/Game/Data/ST_Quests", "out_path": "quest_text.json"},
+            {"type": "data_assets", "name": "items", "class_name": "ItemData", "path_filter": "/Game/Data/Items", "include_properties": True, "out_path": "items.json"}
+        ]
+    }
+)
+```
+
+The MCP response is only a compact summary. Inspect the exported JSON files locally for full rows, entries, or properties.
+
+For DataAsset exports with `include_properties=true`, inspect the summary before relying on the file: deep serialization can surface `partial`, `issue_count`, and `omitted_assets`, and strict mode with `allow_partial=false` can fail instead of writing a partial asset set.
+
+## Snapshot Diff Workflow
+
+Use `data_cmd(command="compare_data_json")` when you already have two exported files and need a deterministic report of added, removed, changed, and optionally equal items before planning reconcile writes.
+
+Typical flow:
+
+1. Export the left and right snapshots with `export_datatable_json`, `export_string_table_json`, `export_data_assets_json`, or `export_bulk_json`.
+2. Run `compare_data_json` with the matching mode (`datatable_rows`, `string_table_entries`, `data_assets`, or `auto` for canonical export shapes).
+3. Inspect the JSON report on disk rather than relying on the compact MCP response.
+4. Use the diff findings to decide whether direct edits, a queue file, or no write at all is appropriate.
+
+```python
+data_cmd(
+    command="compare_data_json",
+    params={
+        "left_path": "Saved/CortexExports/baseline/quests.json",
+        "right_path": "Saved/CortexExports/proposed/quests.json",
+        "report_path": "Saved/CortexExports/diff/quests_diff.json",
+        "mode": "datatable_rows",
+        "ignore_fields": ["LastModified"],
+        "include_equal": False,
+    }
+)
+```
+
+The report is canonical and sorted so it can be reviewed in git or used as input to follow-up planning outside MCP.
+
+## File-Backed Import Queue Workflow
+
+Use `data_cmd(command="apply_import_ops_json")` when the write set is large, repeatable, produced by external migration scripts, or should be replayable from disk. Do not use it for one-off row tweaks that are simpler with direct commands.
+
+Workflow:
+
+1. Export and inspect source data locally if the migration needs large read context.
+2. Run `compare_data_json` first when you need to confirm the exact delta between source and target snapshots.
+3. Build or receive the queue JSON outside MCP.
+4. Preview with `dry_run=true` and inspect the report file, not just the compact MCP response.
+5. Real file-backed imports require explicit user intent plus `dry_run=false` and `apply=true`; inspect the durable report file and query-back results before reporting completion.
+6. Treat the report file and query-back results as the source of truth for verification.
+
+```python
+data_cmd(
+    command="apply_import_ops_json",
+    params={
+        "ops_path": "Saved/CortexImports/quest_cortex_ops.json",
+        "report_path": "Saved/CortexImports/quest_import_report.json",
+        "dry_run": True,
+        "apply": False,
+        "query_back": True,
+    }
+)
+```
+
+Real apply requires both `dry_run=False` and `apply=True`. The MCP response is intentionally compact. Inspect the JSON report on disk for per-operation status, warnings, failures, partial execution, and query-back payloads.
 
 ## Data Type Decision Framework
 

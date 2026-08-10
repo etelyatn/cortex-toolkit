@@ -6,14 +6,14 @@
   },
   "metadata": {
     "description": "AI-powered Unreal Engine development toolkit",
-    "version": "0.7.0"
+    "version": "0.9.0"
   },
   "plugins": [
     {
       "name": "cortex-toolkit",
       "source": "./",
       "description": "Complete toolkit - skills and domain knowledge for AI-powered Unreal Engine development.",
-      "version": "0.7.0",
+      "version": "0.9.0",
       "strict": true
     }
   ]

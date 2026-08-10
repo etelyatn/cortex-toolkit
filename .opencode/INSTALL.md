@@ -17,10 +17,10 @@
    `"plugin": ["cortex-toolkit@git+https://github.com/etelyatn/cortex-toolkit.git"]`.
    Global install works the same — same entry in `~/.config/opencode/opencode.json`.
 2. **Restart OpenCode** — the toolkit installs from git and registers the `cortex-*` skills.
-3. **Configure** — run `cortex-init` and choose OpenCode; it creates `.cortex/` and wires the `cortex_mcp` MCP server.
-4. **Connect** — run `cortex-editor` to start the Unreal Editor, then `cortex-status` to verify the connection.
-5. **Onboard** — run `cortex-start` for guided onboarding, then `cortex-schema-refresh` to index your project.
-6. **Use** — ask `cortex-help` anytime; `cortex-*` domain skills work while the editor is running.
+3. **Configure** — run `cortex-setup` and choose OpenCode; it creates `.cortex/` and wires the `cortex_mcp` MCP server.
+4. **Connect** — run `cortex-editor` to start the Unreal Editor, then `cortex-setup` to verify the connection.
+5. **Onboard** — `cortex-setup` handles guided onboarding and schema refresh.
+6. **Use** — the `cortex-*` domain skills work while the editor is running.
 
 If the plugin fails to load, see [Windows install issues](#windows-install-issues).
 
@@ -41,9 +41,9 @@ Verify by asking: "What Cortex skills are available?" — OpenCode should list C
 
 ## Project Setup
 
-Run `cortex-init` in your project and select OpenCode when asked which assistants to configure.
+Run `cortex-setup` in your project and select OpenCode when asked which assistants to configure.
 This creates `.cortex/` and writes the `plugin` entry and the `cortex_mcp` MCP server into `opencode.json`.
-If the toolkit is a vendored submodule, `cortex-init` writes:
+If the toolkit is a vendored submodule, `cortex-setup` writes:
 
 ```json
 {
@@ -61,11 +61,11 @@ If the toolkit is a vendored submodule, `cortex-init` writes:
 Replace `D:/Path/To/Your/Project` with your project's absolute root (forward slashes). On macOS/Linux, paths start with `/` (e.g. `/home/user/MyProject`). Use the same
 absolute path form as `.mcp.json` — the MCP server consumes `CORTEX_PROJECT_DIR` as-is.
 
-`cortex-init` picks the `plugin` entry automatically: `./cortex-toolkit` when the toolkit is a submodule
+`cortex-setup` picks the `plugin` entry automatically: `./cortex-toolkit` when the toolkit is a submodule
 in your project, otherwise `cortex-toolkit@git+https://github.com/etelyatn/cortex-toolkit.git`. Existing
 entries are never duplicated.
 
-> **Note:** `cortex-init` writes to the project-level `opencode.json` only. If you installed the plugin
+> **Note:** `cortex-setup` writes to the project-level `opencode.json` only. If you installed the plugin
 > in the global config, add the `cortex_mcp` MCP entry manually (see the example above).
 
 ### Vendored submodule alternative
@@ -86,7 +86,7 @@ Then use `"plugin": ["~/.config/opencode/node_modules/cortex-toolkit"]`.
 ## Verify Installation
 1. Restart OpenCode. In a new session ask "What Cortex skills are available?" — OpenCode should list Cortex skills.
 2. `use skill tool to list skills` — the `cortex-*` skills should appear.
-3. With the Unreal Editor running, `cortex-status` should report connection health.
+3. With the Unreal Editor running, `cortex-setup` should report connection health.
 
 ## Troubleshooting
 - Plugin not loading: check `opencode run --print-logs "hello" 2>&1 | grep -i cortex`.

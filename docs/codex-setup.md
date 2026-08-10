@@ -29,7 +29,7 @@ Codex also discovers `hooks/hooks.json` from the plugin. The PreToolUse hook gua
 ## Limitations
 
 - **Hooks require trust in Codex** — Codex prompts before running new or changed toolkit hooks.
-- **Operational skills need a local editor** — Skills like `/cortex-editor`, `/cortex-restart`, and `/cortex-build` require a local Unreal Editor and are not functional in Codex cloud environments.
+- **Operational skills need a local editor** — Skills like `/cortex-editor` and `/cortex-build` require a local Unreal Editor and are not functional in Codex cloud environments.
 - **MCP only** — Interact with Unreal Engine via the `cortex_mcp` MCP server.
 
 ## Troubleshooting

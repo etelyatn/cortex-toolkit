@@ -14,7 +14,7 @@
 
 ## Getting Started
 
-Open your Unreal project in Cursor, then use the skill `/cortex-start` to begin.
+Open your Unreal project in Cursor, then use the skill `/cortex-setup` to begin.
 
 ## Troubleshooting
 

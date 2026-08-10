@@ -32,7 +32,7 @@ Make the following level changes using the 3-phase methodology:
 **Prefetched state:** [embed the main-thread `prefetched_state` block here before proceeding]
 
 MANDATORY WORKFLOW:
-0. VERIFY: call `get_info` to confirm MCP connectivity. If it fails, invoke `cortex-status`.
+0. VERIFY: call `get_info` to confirm MCP connectivity. If it fails, invoke `cortex-editor`.
 1. Use `prefetched_state` first. Do not re-fetch the same baseline unless required for the next step.
 2. Read `.cortex/domains/level.md` for level conventions
 3. PLAN: call `get_info`, then `list_actors` or `find_actors` to understand current state.

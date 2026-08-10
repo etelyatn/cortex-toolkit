@@ -1,6 +1,6 @@
 ---
 name: cortex-blueprint
-description: Use when creating, modifying, reviewing, or debugging Blueprints — structure, graphs, variables, functions, best practices
+description: Use when creating, modifying, reviewing, debugging, or reparenting Blueprints — structure, graphs, variables, functions, inheritance, best practices
 ---
 
 # cortex-blueprint
@@ -23,6 +23,10 @@ Determine mode from user intent:
   Examples: "debug BP_Player", "why isn't this working", "trace execution", "investigate crash"
   → Follow the `resources/blueprint-debugging.md` guide.
 
+- **Reparent**: User wants to change the parent class of one or more Blueprints
+  Examples: "reparent BP_Door to BP_InteractableBase", "change the parent of these Blueprints"
+  → Run the Reparent Mode workflow below before any mutation.
+
 - **Ambiguous** → Default to Review (read-only, safe)
 
 ## Routing
@@ -32,6 +36,7 @@ Determine mode from user intent:
 | Create/Modify | `blueprint-development` |
 | Review/Analyze | `blueprint-development` |
 | Debug | `blueprint-debugging` |
+| Reparent | built-in reparent workflow |
 
 ## Steps
 
@@ -114,6 +119,32 @@ WORKFLOW:
 
 Note: graph read commands default to compact=true — sufficient for execution tracing and branch analysis. Pass compact=false only if the bug involves visual layout (needs positions) or hidden pin wiring.
 ```
+
+### Reparent Mode
+
+Run this workflow before any mutation:
+
+1. **Resolve targets** and present the exact mutation set for confirmation.
+   - For one named Blueprint, resolve the asset path if only a short name is provided.
+   - For "all children of X" or multi-target requests, discover candidates and filter them by current parent.
+2. **Resolve the new parent** — accept either a Blueprint asset path or a C++ class name, and verify it exists before mutating.
+3. **Capture pre-reparent state.**
+   - Inspect each Blueprint for custom variables, functions, and graph complexity.
+   - Capture owned SCS component defaults that would be overwritten by the new parent.
+   - Capture placed-instance overrides for existing level instances so they can be restored after the parent swap.
+   - Warn the user if custom variables, graph logic, or component layouts may not be compatible with the new parent.
+4. **Reparent** — use `reparent` on each target Blueprint. If the primary reparent route is unavailable, use the supported cleanup/reparent fallback with the generated class path.
+5. **Restore defaults and instance overrides.**
+   - Restore owned Blueprint component defaults with `set_component_defaults`.
+   - Restore placed-instance overrides with level modify operations.
+6. **Compile and save.**
+7. **Report** per-Blueprint results and warnings.
+
+### FText Pin Mutation
+
+For Blueprint graph `FText` pins, prefer `graph_cmd(command="set_pin_value", params={"text": {"type": "FText", "source_kind": "literal", "value": "..."}})` or `blueprint_compose(mode="update", nodes=[{"pin_text_values": {...}}])`.
+
+Do not JSON-encode StringTable descriptors into the `value` string. `value` remains valid for non-text pins and literal-only text writes; StringTable-backed text requires `text` with `type`, `source_kind`, `value`, and `string_table`. When mutating a prefetched Blueprint asset, pass `expected_fingerprint`.
 
 ### 2. Reporting Results
 

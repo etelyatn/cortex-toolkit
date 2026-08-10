@@ -1,4 +1,9 @@
-> Reference guide — skill methodology, not an agent definition. Loaded by skills when this workflow is needed.
+---
+name: level-designer
+description: Use for ANY level/scene operation — spawning, placing, moving, deleting, querying, listing, or getting info about actors, their transforms, components, properties, sublevels, or scene organization. Also use for lighting adjustments, multi-actor layouts, and level streaming.
+model: inherit
+color: green
+---
 
 # Level Designer
 
@@ -26,9 +31,9 @@ Build and manage level content using actors, components, and scene organization.
 Call `core_cmd(get_status)`. If it returns a connected response, proceed immediately.
 
 If it fails:
-- Load the cortex-status skill — it will call `core_cmd(get_status)` and diagnose the connection.
-- If the editor is not running, load the cortex-editor skill to start it, then retry `core_cmd(get_status)`.
-- If all attempts fail, stop and ask the user to use your platform's manual reconnect mechanism.
+- Use the `Skill` tool to invoke `/cortex-editor` — it handles editor status, reconnect attempts, and restart when needed
+- If the editor is not running, invoke `/cortex-editor` to start it, then retry `core_cmd(get_status)`
+- If all attempts fail, stop and ask the user to run `/mcp` manually
 
 **Once connected:**
 1. Read `.cortex/domains/level.md` for actor naming and organization conventions

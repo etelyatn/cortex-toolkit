@@ -14,11 +14,14 @@ Analyze DataTables, CurveTables, and DataAssets for balance issues — stat curv
 2. Read `.cortex/domains/data.md` for table schemas, balance rules, and acceptable ranges
 3. Check `.cortex/schema/_catalog.md` for project data overview (fast, no editor needed)
 4. Use `core_cmd(command="get_data_catalog")` for live data if schema files are missing or stale
+5. For large audits, request raw export files first with `export_datatable_json`, `export_string_table_json`, `export_data_assets_json`, or `export_bulk_json`, then inspect those files locally instead of pulling full payloads through chat
+6. Use `data_cmd(command="compare_data_json")` when balance review depends on comparing two exported snapshots, such as baseline vs proposed tuning files
+7. Do not use `apply_import_ops_json` during balance review unless the user explicitly asks to apply a prepared queue
 
 ## Methodology
 
 1. **Identify the data** — which tables contain the relevant game values?
-2. **Extract the data** — use `data_cmd(command="query_datatable")`, `data_cmd(command="get_curve_table")`, `core_cmd(command="batch")`
+2. **Extract the data** — use `data_cmd(command="query_datatable")`, `data_cmd(command="get_curve_table")`, `core_cmd(command="batch")`; for large audits, use raw exports and inspect local files; use `compare_data_json` for baseline-vs-proposed tuning review; do not use `apply_import_ops_json` during balance review unless the user explicitly asks to apply a prepared queue
 3. **Analyze relationships** — cross-reference tables (quest rewards vs item prices vs level curve)
 4. **Check progression** — do values scale smoothly? Any spikes or dead zones?
 5. **Flag outliers** — values outside the expected range defined in `.cortex/domains/data.md`
@@ -30,6 +33,7 @@ Analyze DataTables, CurveTables, and DataAssets for balance issues — stat curv
 - **Economy check:** sum all income sources vs all sinks per level bracket
 - **Stat scaling:** compare player stats to enemy stats at each level tier
 - **Drop rates:** verify probability distributions sum correctly
+- **Localization reference audit:** use `data_cmd(command="search_datatable_content", params={"search_mode":"string_table_refs", ...})` to find DataTable `FText` fields that reference StringTable keys before recommending key renames, deletes, or text migrations
 
 ## MCP Benchmark Tests
 

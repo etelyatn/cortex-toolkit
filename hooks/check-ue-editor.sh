@@ -224,7 +224,7 @@ if [ -z "$ENGINE_PATH" ] || [ ! -d "$ENGINE_PATH" ]; then
     cat >&2 <<'EOF'
 Unreal Editor is not running and the engine path could not be determined.
 Tell the user: MCP tools require the Unreal Editor. Ask them to choose:
-1. Run cortex-init to create .cortex/config.yaml, then configure .cortex/config.local.yaml with engine.path if this machine needs a local override
+1. Run cortex-setup to create .cortex/config.yaml, then configure .cortex/config.local.yaml with engine.path if this machine needs a local override
 2. Set the UE_PATH environment variable and retry
 3. Start the editor manually (see CLAUDE.md), then retry
 4. Abort the current task
