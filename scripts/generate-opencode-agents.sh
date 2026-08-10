@@ -14,7 +14,7 @@ for f in "$AGENTS_DIR"/*.md; do
   desc=$(awk '/^description:/{sub(/^description: /, ""); print; exit}' "$f")
   mode=$(awk '/^  opencode:/{f=1; next} f && /^    mode:/{sub(/^    mode: /, ""); print; exit}' "$f")
   color=$(awk '/^  opencode:/{f=1; next} f && /^    color:/{sub(/^    color: /, ""); print; exit}' "$f")
-  body=$(awk 'BEGIN{n=0} /^---$/{n++; next} n>=2{print}' "$f")
+  body=$(awk 'BEGIN{n=0} /^---$/{n++; if(n<=2) next} n>=2{print}' "$f")
 
   {
     echo "---"

@@ -62,6 +62,7 @@ Independent discovery reads MUST run in parallel. Sequential read chains are onl
 - 1-2 existing actors with a single property or transform change
 - Quick corrections during the Verify phase
 
+---
 
 ### Phase 1: Plan
 
@@ -87,6 +88,7 @@ Call `level_compose` once with the complete spec. Do not break it into multiple 
 3. If adjustment is needed, construct a minimal fix batch targeting only the gap
 4. **Maximum one retry batch per user request.** If it fails again, stop and report.
 
+---
 
 ## `level_compose` Tool Reference
 
@@ -155,6 +157,7 @@ Single tool for all level modifications. Pass an `operations` array:
 }
 ```
 
+---
 
 ## Individual Tools (for single-actor edits only)
 
