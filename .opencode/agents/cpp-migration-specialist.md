@@ -1,7 +1,7 @@
 ---
 description: Use when translating Blueprint logic to C++, deciding what should stay in BP vs move to native code, or optimizing performance-critical Blueprint systems
 mode: subagent
-color: orange
+color: "#F97316"
 ---
 
 

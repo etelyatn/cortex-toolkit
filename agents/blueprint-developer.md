@@ -7,7 +7,7 @@ harness:
     color: blue
   opencode:
     mode: subagent
-    color: blue
+    color: #3B82F6
 ---
 
 # Blueprint Developer

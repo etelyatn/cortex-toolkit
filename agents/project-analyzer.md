@@ -7,7 +7,7 @@ harness:
     color: teal
   opencode:
     mode: subagent
-    color: teal
+    color: #14B8A6
 ---
 
 # Project Analyzer Agent

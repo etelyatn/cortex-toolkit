@@ -1,7 +1,7 @@
 ---
 description: Verify migration results against the approved plan. Structural comparison, dependency impact, and property parity.
 mode: subagent
-color: blue
+color: "#3B82F6"
 ---
 
 

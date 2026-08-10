@@ -7,7 +7,7 @@ harness:
     color: orange
   opencode:
     mode: subagent
-    color: orange
+    color: #F97316
 ---
 
 # C++ Migration Specialist

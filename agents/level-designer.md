@@ -7,7 +7,7 @@ harness:
     color: green
   opencode:
     mode: subagent
-    color: green
+    color: #22C55E
 ---
 
 # Level Designer

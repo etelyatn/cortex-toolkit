@@ -7,7 +7,7 @@ harness:
     color: red
   opencode:
     mode: subagent
-    color: red
+    color: #EF4444
 ---
 
 # QA Engineer

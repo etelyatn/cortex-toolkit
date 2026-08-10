@@ -1,7 +1,7 @@
 ---
 description: Execute rename swap, fix redirectors, recompile dependents, and produce final migration report.
 mode: subagent
-color: red
+color: "#EF4444"
 ---
 
 

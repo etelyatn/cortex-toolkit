@@ -24,6 +24,7 @@ PYTHON_BIN=$(python_bin)
 
 "$PYTHON_BIN" - "$ROOT_DIR" <<'PY'
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -80,6 +81,14 @@ for canon in sorted(canon_dir.glob("*.md")):
         raise SystemExit(f"agent wrapper {canon.name} must not carry a name field")
     if "mode: subagent" not in frontmatter:
         raise SystemExit(f"agent wrapper {canon.name} must declare mode: subagent")
+    color_match = re.search(r"(?m)^color: (.+)$", frontmatter)
+    if color_match:
+        color_value = color_match.group(1).strip().strip('"')
+        valid_color = bool(re.fullmatch(r"#[0-9a-fA-F]{6}", color_value)) or color_value in (
+            "primary", "secondary", "accent", "success", "warning", "error", "info",
+        )
+        if not valid_color:
+            raise SystemExit(f"agent wrapper {canon.name} has invalid OpenCode color {color_value!r}")
     if _body(canon).strip() != _body(wrapper).strip():
         raise SystemExit(f"agent body drift: {canon.name}")
     for banned in ("subagent_type", "AskUserQuestion", "Skill tool", "Task tool", "max_turns", "/cortex-", "/mcp"):

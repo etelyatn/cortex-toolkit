@@ -20,7 +20,7 @@ for f in "$AGENTS_DIR"/*.md; do
     echo "---"
     echo "description: $desc"
     echo "mode: ${mode:-subagent}"
-    if [ -n "${color:-}" ]; then echo "color: $color"; fi
+    if [ -n "${color:-}" ]; then echo "color: \"$color\""; fi
     echo "---"
     echo ""
     printf '%s\n' "$body"
