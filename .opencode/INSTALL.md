@@ -15,6 +15,7 @@
 
    The agent adds the toolkit plugin to `opencode.json`:
    `"plugin": ["cortex-toolkit@git+https://github.com/etelyatn/cortex-toolkit.git"]`.
+   Global install works the same — same entry in `~/.config/opencode/opencode.json`.
 2. **Restart OpenCode** — the toolkit installs from git and registers the `cortex-*` skills.
 3. **Configure** — run `cortex-init` and choose OpenCode; it creates `.cortex/` and wires the `cortex_mcp` MCP server.
 4. **Connect** — run `cortex-editor` to start the Unreal Editor, then `cortex-status` to verify the connection.
@@ -62,8 +63,10 @@ absolute path form as `.mcp.json` — the MCP server consumes `CORTEX_PROJECT_DI
 
 `cortex-init` picks the `plugin` entry automatically: `./cortex-toolkit` when the toolkit is a submodule
 in your project, otherwise `cortex-toolkit@git+https://github.com/etelyatn/cortex-toolkit.git`. Existing
-entries are never duplicated. Note: `cortex-init` writes to the project-level `opencode.json` only; if you
-installed the plugin in the global config, add the `cortex_mcp` MCP entry manually.
+entries are never duplicated.
+
+> **Note:** `cortex-init` writes to the project-level `opencode.json` only. If you installed the plugin
+> in the global config, add the `cortex_mcp` MCP entry manually (see the example above).
 
 ### Vendored submodule alternative
 
