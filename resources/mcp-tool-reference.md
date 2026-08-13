@@ -86,10 +86,23 @@ Cache TTL is 60 seconds. On expiry, re-send the original command with `limit` to
 - `get_data_catalog` — unified project data overview (cached 10 min)
 - `refresh_cache` — clear all cached MCP responses
 - `schema_status` — check if `.cortex/schema/` exists, per-domain freshness and version (no editor required)
+- `get_operation_schema` — live editor construction contract for one command (`domain`, `command`); returns `source`, `editor_instance_id`, `plugin_build_id`, `router`, `domain`, `command`, and `params`. A capabilities cache never proves a command is executable.
 - `batch` — execute multiple commands sequentially with `$ref` resolution; see `resources/batch-pipeline-guide.md`
-- `batch_query` — run multiple read queries in one round-trip; returns a keyed result map
+- `batch_query` — run multiple commands in one round-trip; accepts `commands`/`steps`, `stop_on_error`, `rollback_on_error`, and `verify_rollback`. The latter two publish graph-rollback metadata only; actual rollback behavior depends on the editor implementation.
 - `switch_editor` — select target editor by PID or index when multiple editors are running
 - `shutdown` — graceful editor shutdown
+
+### Profile-aware live schema contract
+
+- `profile_operation_schema(profile, domain, command)` — returns a live-editor-backed contract with policy gating (`policy_allowed`), execution shape (`router`/`batch`), retry budget (`budget_remaining`), and restart guidance. The default `UMGAuthoring` profile permits `umg`, `graph`, and `core` domains only.
+
+### Strict router envelope
+
+All `{domain}_cmd` tools enforce the canonical shape `{command: string, params: object}`. Extra top-level operation fields or non-object `params` are rejected with `INVALID_INVOCATION_SHAPE`. `core.batch_query` rejects empty/missing/non-array `commands` locally before contacting the editor.
+
+### Error preservation
+
+Unreal errors are returned as `{"success": false, "_error": code, "_message": message, "_command": command, ...details}` without flattening nested `details`. Do not override reserved fields `success`, `_error`, `_message`, or `_command`.
 
 ### Asset Editor Commands (`core.*`)
 
