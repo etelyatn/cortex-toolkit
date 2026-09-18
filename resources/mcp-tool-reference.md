@@ -88,13 +88,13 @@ Cache TTL is 60 seconds. On expiry, re-send the original command with `limit` to
 - `schema_status` — check if `.cortex/schema/` exists, per-domain freshness and version (no editor required)
 - `get_operation_schema` — live editor construction contract for one command (`domain`, `command`); returns `source`, `editor_instance_id`, `plugin_build_id`, `router`, `domain`, `command`, and `params`. A capabilities cache never proves a command is executable.
 - `batch` — execute multiple commands sequentially with `$ref` resolution; see `resources/batch-pipeline-guide.md`
-- `batch_query` — run multiple commands in one round-trip; accepts `commands`/`steps`, `stop_on_error`, `rollback_on_error`, and `verify_rollback`. The latter two publish graph-rollback metadata only; actual rollback behavior depends on the editor implementation.
+- `batch_query` — run multiple commands in one round-trip; requires exactly one non-empty `commands` or `steps` array and accepts `stop_on_error`, `rollback_on_error`, and `verify_rollback`. The latter two publish graph-rollback metadata only; actual rollback behavior depends on the editor implementation.
 - `switch_editor` — select target editor by PID or index when multiple editors are running
 - `shutdown` — graceful editor shutdown
 
 ### Profile-aware live schema contract
 
-- `profile_operation_schema(profile, domain, command)` — returns a live-editor-backed contract with policy gating (`policy_allowed`), execution shape (`router`/`batch`), retry budget (`budget_remaining`), and restart guidance. The default `UMGAuthoring` profile permits `umg`, `graph`, and `core` domains only.
+- `profile_operation_schema(profile, domain, command)` — returns a live-editor-backed contract with policy gating (`policy_allowed`), execution shape (`router`/`batch`), retry budget (`budget_remaining`), and restart guidance. Structured editor failures remain nested as `unreal_error: {code, message, details}`, including after retry-budget exhaustion. The default `UMGAuthoring` profile permits `umg`, `graph`, and `core` domains only.
 
 ### Strict router envelope
 

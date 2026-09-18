@@ -40,8 +40,8 @@ The `batch` built-in command executes multiple commands sequentially with option
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `commands` | array | required | Array of command objects with `command` and `params` fields |
-| `steps` | array | optional | Alias for `commands` |
+| `commands` | array | conditionally required | Array of command objects with `command` and `params` fields; provide either this or `steps` |
+| `steps` | array | conditionally required | Alias for `commands`; provide either this or `commands` |
 | `stop_on_error` | bool | `false` | Halt execution at first failure (recommended for atomic operations) |
 | `rollback_on_error` | bool | `false` | Publish rollback metadata; actual graph rollback is editor-dependent |
 | `verify_rollback` | bool | `false` | Publish rollback verification metadata; actual verification is editor-dependent |
