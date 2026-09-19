@@ -92,6 +92,8 @@ Cache TTL is 60 seconds. On expiry, re-send the original command with `limit` to
 - `switch_editor` — select target editor by PID or index when multiple editors are running
 - `shutdown` — graceful editor shutdown
 
+`batch_query` accepts `rollback_on_error` and `verify_rollback`. Rollback is capability-gated and applies only to supported graph node/link operations; it does not undo pin-value, UMG, material, or other domain mutations.
+
 ### Profile-aware live schema contract
 
 - `profile_operation_schema(profile, domain, command)` — returns a live-editor-backed contract with policy gating (`policy_allowed`), execution shape (`router`/`batch`), retry budget (`budget_remaining`), and restart guidance. Structured editor failures remain nested as `unreal_error: {code, message, details}`, including after retry-budget exhaustion. The default `UMGAuthoring` profile permits `umg`, `graph`, and `core` domains only.
@@ -282,8 +284,10 @@ Real apply requires `dry_run=false` and `apply=true`. The MCP response is intent
 
 ## Graph (`graph_cmd`)
 
-- `list_graphs`, `list_nodes`, `get_node`, `search_nodes`, `add_node`, `remove_node`, `connect`, `disconnect`, `set_pin_value`, `auto_layout`
+- `list_graphs`, `list_nodes`, `get_node`, `search_nodes`, `describe_node`, `add_node`, `remove_node`, `connect`, `disconnect`, `set_pin_value`, `auto_layout`
 - `set_pin_value`: use `value` for non-text pins and literal-only simple values; use structured `text` for `FText` pins, especially StringTable-backed text. `value` and `text` are mutually exclusive.
+
+Use `describe_node` before raw `add_node` authoring to inspect the accepted class, parameters, and pins. Correct an invalid request before attempting the mutation. Invoke it as `graph.describe_node` through `graph_cmd`.
 
 `list_graphs` returns user-visible Blueprint graphs. Top-level entries include `kind`
 (`ubergraph`, `function`, `macro`, `delegate`, or `interface_impl`); `interface_impl`
@@ -336,11 +340,13 @@ See `blueprint-patterns.md` for node class short names and full node type table.
 
 ## UMG (`umg_cmd`)
 
-- **Tree:** `add_widget`, `remove_widget`, `reparent`, `get_tree`, `get_widget`, `list_widget_classes`, `duplicate_widget`
+- **Tree:** `add_widget`, `remove_widget`, `reparent`, `get_tree`, `get_widget`, `list_widget_classes`, `duplicate_widget`, `set_widget_variable`
 - **Properties:** `set_color`, `set_text`, `set_font`, `set_brush`, `set_padding`, `set_anchor`, `set_alignment`, `set_size`, `set_visibility`, `set_property`, `get_property`, `get_schema`
 - **Animations:** `create_animation`, `list_animations`, `remove_animation`
 
 `get_widget` returns `render_transform`, `slot_type` (e.g. `"CanvasPanelSlot"`, `null` for root), and `slot` (layout details vary by slot type).
+
+`set_widget_variable` changes the designer-variable flag on an existing Widget Blueprint. Inspect the current widget tree first and pass its current `expected_fingerprint`. Invoke it as `umg.set_widget_variable` through `umg_cmd`.
 
 ### Composite
 
