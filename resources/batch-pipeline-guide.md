@@ -40,8 +40,13 @@ The `batch` built-in command executes multiple commands sequentially with option
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `commands` | array | required | Array of command objects with `command` and `params` fields |
+| `commands` | array | conditionally required | Array of command objects with `command` and `params` fields; provide either this or `steps` |
+| `steps` | array | conditionally required | Alias for `commands`; provide either this or `commands` |
 | `stop_on_error` | bool | `false` | Halt execution at first failure (recommended for atomic operations) |
+| `rollback_on_error` | bool | `false` | Publish rollback metadata; actual graph rollback is editor-dependent |
+| `verify_rollback` | bool | `false` | Publish rollback verification metadata; actual verification is editor-dependent |
+
+For the MCP-facing `core.batch_query` router path, `rollback_on_error` and `verify_rollback` are forwarded transparently to the editor's `batch` command. They do not alter Python-level batch behavior on this branch.
 
 **Limits:**
 - MaxBatchSize: 200 commands per batch
