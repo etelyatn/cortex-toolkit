@@ -27,7 +27,7 @@
 
 **Interfaces:**
 - Consumes: `core_cmd(command="batch_query", params={"commands": [...], "rollback_on_error": true, "verify_rollback": true})`
-- Consumes: `graph_cmd(command="describe_node", params={"asset_path": "..."})`
+- Consumes: `graph_cmd(command="describe_node", params={"node_class": "...", "params": {...}})` to inspect a node-class contract
 - Consumes: `umg_cmd(command="set_widget_variable", params={"asset_path": "...", "widget_name": "...", "is_variable": true, "expected_fingerprint": {...}})`
 - Produces: toolkit instructions that direct agents to inspect before authoring and accurately limit rollback claims.
 
@@ -58,7 +58,7 @@ Use `describe_node` before raw `add_node` authoring to inspect the accepted clas
 Add the following requirements without changing the existing composite-first rules:
 
 ```markdown
-Before a raw `graph.add_node` mutation, call `graph_cmd(command="describe_node", ...)` for the target Blueprint. Use the returned contract to select accepted parameters and pin names; correct validation failures before retrying.
+Before a raw `graph.add_node` mutation, call `graph_cmd(command="describe_node", ...)` for the node class. Use the returned node-class contract to select accepted parameters and pin names; correct validation failures before retrying.
 
 For an existing Widget Blueprint, inspect the current tree/fingerprint before calling `umg_cmd(command="set_widget_variable", ...)`, and pass `expected_fingerprint`. Use this only for an isolated designer-variable change; new screens still use `widget_compose`.
 ```
