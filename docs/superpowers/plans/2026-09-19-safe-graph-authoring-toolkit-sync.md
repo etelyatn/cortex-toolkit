@@ -36,7 +36,7 @@
 Run:
 
 ```powershell
-$files = @('resources/mcp-tool-reference.md', 'skills/cortex-blueprint/SKILL.md', 'skills/cortex-umg/SKILL.md'); @('graph.describe_node', 'umg.set_widget_variable', 'rollback_on_error', 'expected_fingerprint') | ForEach-Object { if (-not (rg --fixed-strings --quiet $_ $files)) { "MISSING: $_" } }
+$files = @('resources/mcp-tool-reference.md', 'skills/cortex-blueprint/SKILL.md', 'skills/cortex-umg/SKILL.md'); @('graph.describe_node', 'umg.set_widget_variable', 'rollback_on_error', 'expected_fingerprint') | ForEach-Object { rg --fixed-strings --quiet $_ $files; if ($LASTEXITCODE -ne 0) { "MISSING: $_" } }
 ```
 
 Expected: `MISSING` output for the new safe-authoring terms.
@@ -68,7 +68,7 @@ For an existing Widget Blueprint, inspect the current tree/fingerprint before ca
 Run:
 
 ```powershell
-$files = @('resources/mcp-tool-reference.md', 'skills/cortex-blueprint/SKILL.md', 'skills/cortex-umg/SKILL.md'); @('graph.describe_node', 'umg.set_widget_variable', 'rollback_on_error', 'expected_fingerprint') | ForEach-Object { if (-not (rg --fixed-strings --quiet $_ $files)) { throw "Missing required guidance: $_" } }; rg --fixed-strings --quiet 'does not undo pin-value, UMG, material, or other domain mutations' resources/mcp-tool-reference.md; if ($LASTEXITCODE -ne 0) { throw 'Missing rollback boundary.' }
+$files = @('resources/mcp-tool-reference.md', 'skills/cortex-blueprint/SKILL.md', 'skills/cortex-umg/SKILL.md'); @('graph.describe_node', 'umg.set_widget_variable', 'rollback_on_error', 'expected_fingerprint') | ForEach-Object { rg --fixed-strings --quiet $_ $files; if ($LASTEXITCODE -ne 0) { throw "Missing required guidance: $_" } }; rg --fixed-strings --quiet 'does not undo pin-value, UMG, material, or other domain mutations' resources/mcp-tool-reference.md; if ($LASTEXITCODE -ne 0) { throw 'Missing rollback boundary.' }
 ```
 
 Expected: command exits successfully with no output.
