@@ -40,3 +40,16 @@
 - WBP_YourBaseScreen: all full-screen widgets inherit from this (handles input focus, fade animations)
 - WBP_YourBasePopup: all popups inherit from this (dim background, close button logic)
 -->
+
+## Animation Conventions
+
+<!-- WHY: Animations bind to specific widgets or slot properties. When refactoring
+     or deleting widgets, animation bindings must be cleanly updated to avoid orphaned
+     tracks or missing target warnings.
+     Use umg.list_animation_bindings to inspect bindings and umg.remove_animation_binding
+     to safely prune bindings before deleting or renaming widgets. -->
+<!-- Example:
+- Intro / Outro: standard 0.3s FadeIn and FadeOut animations bound to RenderOpacity
+- Hover feedback: button hover animations bound to Scale or ColorAndOpacity
+- Shared possessables: when multiple properties on the same widget are animated, pruning one binding preserves the shared MovieScene possessable
+-->
