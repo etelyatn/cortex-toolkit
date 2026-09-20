@@ -51,5 +51,7 @@
 <!-- Example:
 - Intro / Outro: standard 0.3s FadeIn and FadeOut animations bound to RenderOpacity
 - Hover feedback: button hover animations bound to Scale or ColorAndOpacity
-- Shared possessables: when multiple properties on the same widget are animated, pruning one binding preserves the shared MovieScene possessable
+- Binding removal vs track deletion: `remove_animation_binding` removes an entire target-binding record, not an individual property track.
+  - Unshared binding: if a widget target has multiple property tracks (e.g., RenderOpacity and Scale) under a single binding record, removing that binding removes the possessable and all associated tracks.
+  - Shared possessable: a possessable and its tracks are retained only while another UMG binding record still references its GUID. When multiple UMG binding records share the same GUID, removing one binding record preserves the shared MovieScene possessable and tracks for the remaining records.
 -->

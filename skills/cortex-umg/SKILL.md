@@ -43,6 +43,7 @@ Follow this workflow:
 - For EXISTING widgets with 2+ changes: MUST use `core_cmd(batch)` with `stop_on_error: true` and `$ref` wiring. Never make N sequential individual tool calls — use the batch pipeline (see `resources/batch-pipeline-guide.md`).
 - For animation binding removal: inspect with `umg_cmd(list_animation_bindings)` to acquire a valid fingerprint, then call `umg_cmd(remove_animation_binding)` before deleting target widgets.
 - Individual tools are only acceptable for a single isolated change on an existing widget.
+- For an existing Widget Blueprint, inspect the current tree/fingerprint before calling `umg_cmd(command="set_widget_variable", ...)`, and pass `expected_fingerprint`. Use this only for an isolated designer-variable change; new screens still use `widget_compose`.
 
 ### 3. Verify Results
 

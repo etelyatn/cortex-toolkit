@@ -65,6 +65,7 @@ MANDATORY WORKFLOW:
 6. Design your variables[], functions[], nodes[], and connections[] as a JSON spec
 7a. NEW Blueprint → `blueprint_compose(name, path, ...)` as a SINGLE call
 7b. MODIFYING EXISTING (2+ changes) → `blueprint_compose(mode="update", asset_path="...", nodes=[...], connections=[...])` as a SINGLE call
+8. Before a raw `graph.add_node` mutation, call `graph_cmd(command="describe_node", ...)` for the node class. Use the returned node-class contract to select accepted parameters and pin names; correct validation failures before retrying.
 
 PROHIBITED:
 - Never call `graph_add_node` or `graph_connect` individually N times for multi-node operations.

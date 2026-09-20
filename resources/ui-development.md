@@ -38,7 +38,7 @@ slot — using `slot.` prefix on a root widget returns an error.
 **Animations:** `create_animation`, `list_animations`, `remove_animation`, `list_animation_bindings`, `remove_animation_binding`
 
 - `list_animation_bindings`: inspects canonical `FWidgetAnimationBinding` records, possessables, tracks, channels, and returns a scoped `domain_signature` fingerprint.
-- `remove_animation_binding`: surgically removes a single animation binding by selector (`{widget_name, slot_widget_name, animation_guid, is_root_widget}`) using optimistic locking (`expected_fingerprint`). Preserves shared MovieScene possessables and tracks. Defaults to `dry_run: true` and `save: false`.
+- `remove_animation_binding`: surgically removes a single animation binding by selector (`{widget_name, slot_widget_name, binding_guid, is_root_widget}`) using optimistic locking (`expected_fingerprint`). Preserves shared MovieScene possessables and tracks. Defaults to `dry_run: true` and `save: false`.
 
 ### get_widget — Full Response Fields
 
