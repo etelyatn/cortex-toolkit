@@ -342,9 +342,11 @@ See `blueprint-patterns.md` for node class short names and full node type table.
 
 - **Tree:** `add_widget`, `remove_widget`, `reparent`, `get_tree`, `get_widget`, `list_widget_classes`, `duplicate_widget`, `set_widget_variable`
 - **Properties:** `set_color`, `set_text`, `set_font`, `set_brush`, `set_padding`, `set_anchor`, `set_alignment`, `set_size`, `set_visibility`, `set_property`, `get_property`, `get_schema`
-- **Animations:** `create_animation`, `list_animations`, `remove_animation`
+- **Animations:** `create_animation`, `list_animations`, `remove_animation`, `list_animation_bindings`, `remove_animation_binding`
 
 `get_widget` returns `render_transform`, `slot_type` (e.g. `"CanvasPanelSlot"`, `null` for root), and `slot` (layout details vary by slot type).
+
+`list_animation_bindings` returns canonical `FWidgetAnimationBinding` records, possessables, tracks, channels, and a scoped `domain_signature` fingerprint. `remove_animation_binding` surgically removes a single binding record by selector (`{widget_name, slot_widget_name, binding_guid, is_root_widget}`) using optimistic locking (`expected_fingerprint`), defaulting to `dry_run=true` and `save=false`. Shared MovieScene possessables and tracks are preserved.
 
 `set_widget_variable` changes the designer-variable flag on an existing Widget Blueprint. Inspect the current widget tree first and pass its current `expected_fingerprint`. Invoke it as `umg.set_widget_variable` through `umg_cmd`.
 

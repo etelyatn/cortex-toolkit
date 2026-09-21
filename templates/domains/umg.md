@@ -40,3 +40,18 @@
 - WBP_YourBaseScreen: all full-screen widgets inherit from this (handles input focus, fade animations)
 - WBP_YourBasePopup: all popups inherit from this (dim background, close button logic)
 -->
+
+## Animation Conventions
+
+<!-- WHY: Animations bind to specific widgets or slot properties. When refactoring
+     or deleting widgets, animation bindings must be cleanly updated to avoid orphaned
+     tracks or missing target warnings.
+     Use umg.list_animation_bindings to inspect bindings and umg.remove_animation_binding
+     to safely prune bindings before deleting or renaming widgets. -->
+<!-- Example:
+- Intro / Outro: standard 0.3s FadeIn and FadeOut animations bound to RenderOpacity
+- Hover feedback: button hover animations bound to Scale or ColorAndOpacity
+- Binding removal vs track deletion: `remove_animation_binding` removes an entire target-binding record, not an individual property track.
+  - Unshared binding: if a widget target has multiple property tracks (e.g., RenderOpacity and Scale) under a single binding record, removing that binding removes the possessable and all associated tracks.
+  - Shared possessable: a possessable and its tracks are retained only while another UMG binding record still references its GUID. When multiple UMG binding records share the same GUID, removing one binding record preserves the shared MovieScene possessable and tracks for the remaining records.
+-->
