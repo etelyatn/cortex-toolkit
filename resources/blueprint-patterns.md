@@ -126,30 +126,39 @@ generic graph edit commands. Interface implementation graphs are mutable.
 
 ### Typed FText Pin Mutation
 
-Use `pin_text_values` when a Blueprint pin is `FText`, especially for StringTable-backed content:
+Text identity is structural: an FText write is a tagged default on the exact input pin, never a
+JSON-encoded string. Both forms live inside one previewed and approved `graph.apply_patch` envelope
+(`resources/typed-blueprint-authoring.md`); a single isolated pin may also use
+`graph_cmd(command="set_pin_value", ...)`.
 
-```python
-blueprint_compose(
-  mode="update",
-  asset_path="/Game/Blueprints/BP_MailButton.BP_MailButton",
-  nodes=[{
-    "name": "PrintText",
-    "class": "CallFunction",
+```json
+// A new call node with a StringTable-backed FText input, inside the patch envelope.
+{
+  "nodes": [{
+    "client_id": "print_text",
+    "node_class": "CallFunction",
     "params": {"function_name": "KismetSystemLibrary.PrintText"},
-    "pin_text_values": {
-      "InText": {
-        "type": "FText",
-        "source_kind": "string_table",
-        "value": "Pay",
-        "string_table": {
-          "table_id": "/Game/UI/ST_UI.ST_UI",
-          "key": "Mail.Button.Pay"
-        }
-      }
+    "defaults": {
+      "InText": {"kind": "text", "table_id": "/Game/UI/ST_UI.ST_UI", "key": "Mail.Button.Pay"}
     }
-  }]
-)
+  }],
+  "connections": [],
+  "pin_updates": [],
+  "dry_run": true,
+  "compile": true,
+  "save": false
+}
 ```
+
+```json
+// An existing node's input pin, rewritten in the same envelope.
+{"node_guid": "<from a read>", "pin": "InText",
+ "default": {"kind": "text", "table_id": "/Game/UI/ST_UI.ST_UI", "key": "Mail.Button.Pay"}}
+```
+
+A `kind: "text"` default accepts exactly one encoding: `literal`, `table`/`table_id` plus `key`, or
+the full FText descriptor under `value`. Mixing `literal` with a table reference, or a table without a
+key, fails preflight. The readback compares the canonical table id plus key, never display text.
 
 ### graph_add_node — Node Class Short Names
 
@@ -613,7 +622,11 @@ blueprint_cmd(command="graph_search_nodes", params={
 # Results inside composites include "subgraph_path": "MyComposite"
 ```
 
-**Use `blueprint_compose` to add nodes inside a composite:**
+**Authoring inside a composite** — a composite's graph is a target like any other. Read it with
+`graph_cmd(command="get_subgraph", params={"include_subgraphs": true, ...})` to learn its
+`subgraph_path` and its tunnel boundary node ids, then use the guarded patch
+(`resources/typed-blueprint-authoring.md`) with that `subgraph_path` in `target.graph_ref`:
+
 ```python
 # Step 1: create the Blueprint and add the Composite node to EventGraph
 blueprint_compose(
@@ -625,26 +638,32 @@ blueprint_compose(
     connections=[{"from": "BeginPlay.then", "to": "MyComposite.execute"}]
 )
 
-# Step 2: read back subgraph_name from list_nodes, then add nodes inside it
-blueprint_compose(
-    mode="update",
-    asset_path="/Game/Blueprints/BP_CompositeActor",
-    graph_name="EventGraph",
-    subgraph_path="<subgraph_name_from_list_nodes>",
-    nodes=[
-        {"name": "PrintMsg", "class": "CallFunction",
+# Step 2: preview one patch whose target is the composite's subgraph (one target per request)
+graph_cmd(command="apply_patch", params={
+    "asset_path": "/Game/Blueprints/BP_CompositeActor",
+    "target": {"graph_ref": {"graph_guid": graph_guid, "subgraph_path": "MyComposite"}},
+    "patch_id": "<caller-generated UUID>",
+    "expected_fingerprint": authoring_context["fingerprint"],
+    "nodes": [
+        {"client_id": "print_msg", "node_class": "CallFunction",
          "params": {"function_name": "KismetSystemLibrary.PrintString"},
-         "pin_values": {"InString": "Inside composite!"}},
+         "defaults": {"InString": {"kind": "string", "value": "Inside composite!"}}},
     ],
-    connections=[{"from": "<tunnel_entry_id>.then", "to": "PrintMsg.execute"}]
-)
+    "connections": [
+        {"from": {"node_guid": "<tunnel entry node guid>"}, "to": {"client_id": "print_msg", "pin": "execute"}}
+    ],
+    "pin_updates": [],
+    "dry_run": True, "compile": True, "save": False,
+})
 ```
+
+Then send the identical intent with `dry_run=False` and the preview's `validation_hash`.
 
 **Safety rules:**
 - Tunnel boundary nodes (`is_tunnel_boundary: true`) are structural — never delete or rewire them
 - Composite names must not contain dots (the path separator)
-- `subgraph_path` cannot be used with `blueprint_compose(mode="create")`
-- Each `blueprint_compose` call targets a single subgraph level
+- The v1 patch target is `graph_ref` only; `subgraph_path` selects the composite inside it
+- Each request targets a single graph or composite level — preview and apply twice to touch two
 
 **Error codes:**
 - `SUBGRAPH_NOT_FOUND` — no composite with that name found in the graph

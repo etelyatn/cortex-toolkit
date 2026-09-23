@@ -369,5 +369,114 @@ class TypedBlueprintGuidanceTests(unittest.TestCase):
                 validate_no_fabricated_live_value(path)
 
 
+def _read(relative_path: str) -> str:
+    return (ROOT / relative_path).read_text(encoding="utf-8")
+
+
+# Guidance files that must never prescribe the removed legacy update batch again.
+ROUTED_FILES = (
+    "skills/cortex-blueprint/SKILL.md",
+    "skills/cortex-umg/SKILL.md",
+    "skills/cortex-bp-migrate/SKILL.md",
+    "resources/blueprint-development.md",
+    "resources/blueprint-patterns.md",
+    "resources/ui-development.md",
+    "resources/batch-pipeline-guide.md",
+    "resources/mcp-tool-reference.md",
+    "resources/bp-migration-executor.md",
+    "resources/typed-blueprint-authoring.md",
+    "README.md",
+)
+
+# A prescriptive legacy update call: `blueprint_compose(mode="update", …, nodes/connections=…)`.
+LEGACY_UPDATE_CALLS = (
+    re.compile(r"""blueprint_compose\([^()]*mode\s*=\s*["']update["'][^()]*nodes\s*=""", re.S),
+    re.compile(r"""blueprint_compose\([^()]*mode\s*=\s*["']update["'][^()]*connections\s*=""", re.S),
+    re.compile(r"""mode\s*=\s*["']update["'][^()]*pin_text_values""", re.S),
+    re.compile(r"""blueprint_compose\([^()]*mode\s*=\s*["']update["'][^()]*graph_name\s*=""", re.S),
+)
+
+# The frozen contract facts the guide (and the routing files that lean on it) must state.
+GUIDE_CONTRACT_NEEDLES = (
+    ("mode='update' requires a 'patch'", "update mode without a patch is refused, not migrated by fallback"),
+    ("MIGRATION_REQUIRED", "the refusal code for an update without a patch"),
+    ("MIXED_UPDATE_CONTRACT", "the refusal code for legacy fields beside patch"),
+    ("never coerced", "strict booleans are never coerced"),
+    ("must be **absent**", "target is absent for the transfer and prune shells"),
+    ("replayed_with_absent_source", "an accepted replay with an absent source is published"),
+    ("prune_island", "the prune shell is published"),
+    ("approved_node_guids", "the caller echoes the approved removable set"),
+    ("omission marker", "the inventory is bounded"),
+    ("No blind retry", "recovery never retries blindly"),
+    ("blocked", "missing live support blocks instead of falling back"),
+)
+
+
+class TypedBlueprintRoutingTests(unittest.TestCase):
+    def test_all_relevant_skills_link_the_single_guide(self):
+        for path in ("skills/cortex-blueprint/SKILL.md", "skills/cortex-umg/SKILL.md", "skills/cortex-bp-migrate/SKILL.md"):
+            text = (ROOT / path).read_text(encoding="utf-8")
+            with self.subTest(path=path):
+                self.assertIn("resources/typed-blueprint-authoring.md", text)
+
+    def test_batch_guide_does_not_confuse_stop_with_rollback(self):
+        text = (ROOT / "resources/batch-pipeline-guide.md").read_text(encoding="utf-8")
+        self.assertIn("stop_on_error is not rollback", text)
+        self.assertIn("graph.apply_patch", text)
+        self.assertIn("not nestable", text)
+
+    def test_no_affected_file_prescribes_the_removed_legacy_update_route(self):
+        for path in ROUTED_FILES:
+            text = _read(path)
+            for pattern in LEGACY_UPDATE_CALLS:
+                with self.subTest(path=path, pattern=pattern.pattern[:48]):
+                    self.assertIsNone(pattern.search(text), f"{path} still prescribes the removed legacy update call")
+
+    def test_update_route_guidance_names_the_guarded_patch(self):
+        for path in (
+            "skills/cortex-blueprint/SKILL.md",
+            "resources/blueprint-development.md",
+            "resources/batch-pipeline-guide.md",
+            "resources/mcp-tool-reference.md",
+        ):
+            text = _read(path)
+            with self.subTest(path=path):
+                self.assertIn("graph.apply_patch", text)
+                self.assertIn("patch=", text)
+
+    def test_guide_states_the_frozen_contract_facts(self):
+        guide = _read("resources/typed-blueprint-authoring.md")
+        for needle, why in GUIDE_CONTRACT_NEEDLES:
+            with self.subTest(needle=needle):
+                self.assertIn(needle, guide, why)
+
+    def test_widget_graph_authoring_is_routed_out_of_the_stop_on_error_batch(self):
+        text = _read("skills/cortex-umg/SKILL.md")
+        self.assertIn("typed-blueprint-authoring", text)
+        self.assertIn("widget_compose", text, "new screens keep their own composite route")
+        self.assertIn("set_widget_variable", text)
+        self.assertIn("Widget Blueprint graph", text, "the widget-graph exception must be stated")
+        exception = text.split("Widget Blueprint graph", 1)[1]
+        self.assertIn(
+            "typed-blueprint-authoring",
+            exception[:1200],
+            "the graph exception must name the guarded workflow instead of the stop-on-error batch",
+        )
+
+    def test_migration_guidance_blocks_bounded_operations_instead_of_substituting_cleanup(self):
+        skill = _read("skills/cortex-bp-migrate/SKILL.md")
+        executor = _read("resources/bp-migration-executor.md")
+        for path, text in (("skills/cortex-bp-migrate/SKILL.md", skill), ("resources/bp-migration-executor.md", executor)):
+            with self.subTest(path=path):
+                self.assertIn("typed-blueprint-authoring", text)
+                self.assertIn("replace_entry", text)
+                self.assertIn("prune_island", text)
+                self.assertIn("blocked", text.lower())
+        self.assertIn("disconnect-plus-orphan", executor, "the raw cleanup substitute must be explicitly refused")
+
+    def test_guide_is_reachable_from_the_readme(self):
+        self.assertIn("typed-blueprint-authoring", _read("README.md"))
+
+
 if __name__ == "__main__":
     unittest.main()

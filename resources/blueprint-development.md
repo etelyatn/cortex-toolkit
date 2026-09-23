@@ -310,8 +310,8 @@ graph_get_subgraph(
 
 - **Tunnel boundary nodes** (`is_tunnel_boundary: true`) are structural entry/exit nodes — **do not delete or rewire them**. They represent the composite's execution and data pin interface to the outer graph. Use `graph_get_subgraph` to inspect their pins before connecting new nodes to the execution flow inside a composite.
 - **Composite names must not contain dots** (dots are the path separator).
-- **`subgraph_path` cannot be used with `blueprint_compose(mode="create")`** — the Blueprint does not exist yet. Use `mode="update"` after creation.
-- **Each `blueprint_compose` call targets one subgraph** — to add nodes to both the top-level graph and a composite, call twice: once without `subgraph_path` (top-level) and once with `mode="update"` and `subgraph_path` (inside composite).
+- **`subgraph_path` cannot be used with `blueprint_compose(mode="create")`** — the Blueprint does not exist yet. Authoring inside a composite is existing-asset work: use the guarded patch workflow in `resources/typed-blueprint-authoring.md` with the composite's `subgraph_path` in `target.graph_ref`.
+- **Each request targets one subgraph** — to change both the top-level graph and a composite, preview and apply twice: once for the top-level target and once for the composite's `subgraph_path`. Never mix two targets in one patch.
 
 ### Error Codes
 
@@ -732,9 +732,16 @@ Use these for class analysis, asset dependency checks, and impact assessment —
 - Compile after structural changes to catch errors early
 - Always `save_blueprint` after modifications
 
-## MANDATORY Pipeline — Blueprint Compose for All Multi-Step Operations
+## MANDATORY Pipeline — Compose for Creation, Guarded Patch for Existing Graph Logic
 
-`blueprint_compose` is the REQUIRED tool for any operation involving 2+ graph changes. It sends everything as a single atomic batch — eliminating round-trips and preventing partial state.
+`blueprint_compose` remains the REQUIRED route for creating a Blueprint, and it is the entry point
+for existing-asset graph changes — but an existing-asset change is now a **reviewed, guarded patch**,
+not a batch of `nodes`/`connections`.
+
+`resources/typed-blueprint-authoring.md` is the authority for the guarded route: live context →
+`graph.describe_node` → preview (`dry_run=true`, `save=false`) → apply with the preview token →
+canonical readback, with persistence only under explicit authority. The legacy update batch route was
+removed, and there is no fallback to it.
 
 ### New Blueprint Creation
 
@@ -745,33 +752,52 @@ Use `blueprint_compose` (default `mode: "create"`). Do NOT call individual tools
 2. Call `blueprint_compose` once with the full spec
 3. Review result — handle warnings from auto_layout/compile
 
-### Modifying Existing Blueprints (2+ changes)
+### Modifying Existing Blueprints
 
-Use `blueprint_compose(mode="update", asset_path="...")`. Specify only what is being added.
+Use the guarded patch route. Send one reviewed envelope as
+`blueprint_compose(mode="update", asset_path="...", patch={...})` or
+`graph_cmd(command="apply_patch", params={...})`.
 
 **Workflow:**
-1. Inspect the existing Blueprint to understand current state
-2. Design the complete delta spec (only new nodes/connections/variables)
-3. Call `blueprint_compose(mode="update", asset_path="...", nodes=[...], connections=[...])`
-4. Review result
+1. Inspect the existing Blueprint to understand the current state
+2. `graph.get_authoring_context` for the target and the fingerprint, then `graph.describe_node` for
+   every node family and the exact pin names
+3. Design the intent (nodes, connections, pin_updates) and preview it with `dry_run=true`
+4. Apply the same intent with `dry_run=false` and `expected_validation_hash` from the preview
+5. Read the canonical result back and report by phase
 
 **Example — adding nodes to EventGraph of an existing Blueprint:**
+
 ```python
-blueprint_compose(
-    mode="update",
-    asset_path="/Game/Blueprints/BP_Door",
-    graph_name="EventGraph",
-    nodes=[
-        {"name": "OpenEvent", "class": "Event", "params": {"function_name": "RipLift.ReceiveOpenDoor"}},
-        {"name": "OpenDoors",  "class": "CallFunction", "params": {"function_name": "BP_Lift.OpenDoors"}},
+graph_cmd(command="apply_patch", params={
+    "asset_path": "/Game/Blueprints/BP_Door",
+    "target": {"graph_ref": {"graph_guid": graph_guid_from_authoring_context}},
+    "patch_id": "<caller-generated UUID, reused only for an identical repeat>",
+    "expected_fingerprint": authoring_context["fingerprint"],
+    "nodes": [
+        {"client_id": "open_event", "node_class": "Event",
+         "params": {"function_name": "RipLift.ReceiveOpenDoor"}},
+        {"client_id": "open_doors", "node_class": "CallFunction",
+         "params": {"function_name": "BP_Lift.OpenDoors"}},
     ],
-    connections=[
-        {"from": "OpenEvent.then", "to": "OpenDoors.execute"},
-    ]
-)
+    "connections": [
+        {"from": {"client_id": "open_event", "pin": "then"}, "to": {"client_id": "open_doors", "pin": "execute"}}
+    ],
+    "pin_updates": [],
+    "dry_run": True,
+    "compile": True,
+    "save": False,
+})
 ```
 
-**Connections to pre-existing nodes:** Use the existing node_id string directly as the source/target name (instead of a spec name).
+Then send the identical intent with `dry_run=False` and `expected_validation_hash` set to the
+preview's `validation_hash`.
+
+**Connections to pre-existing nodes:** use that node's `node_guid` (from a read) as the endpoint
+identity instead of a `client_id`.
+
+**Explicit persistence:** `save=True` is a separate disk boundary that requires `compile=True` and a
+clean starting package; it happens only after a verified readback and is never implied by a compile.
 
 ## PROHIBITED Patterns
 
@@ -783,12 +809,16 @@ blueprint_compose(
 - `graph_set_pin_value` — include in composite spec
 - `graph_connect` — include in composite spec
 
-### For EXISTING Blueprints with 2+ changes — sequential individual calls are PROHIBITED:
-- Calling `graph_add_node` N times in separate tool calls — use `blueprint_compose(mode="update")` instead
-- Calling `graph_connect` N times in separate tool calls — include connections in the compose spec
-- Calling `graph_remove_node` N times for bulk deletion — batch them via `graph_cmd` batch or make a single composed pass
+### For EXISTING Blueprints — the removed legacy update batch is PROHIBITED:
+- Never send an existing-asset graph change as `mode="update"` carrying `nodes`/`connections`
+  without a `patch`: that route was removed and is refused
+- Calling `graph_add_node` or `graph_connect` N times in separate tool calls to reach the same result
+  — build one intent and preview/apply it
+- Calling `graph_remove_node` N times for bulk deletion — a migration request or one reviewed patch
+- Never substitute `core_cmd(batch)` composition, `editor_cmd(run_python)` or raw add/connect calls
+  when `graph.apply_patch` is missing or refuses: stop and report the blocker
 
-**Individual tools ARE allowed for single-step changes** (e.g., renaming one variable, connecting one existing wire, setting one pin value) where the overhead of compose is not justified.
+**Individual tools ARE allowed for single-step changes** (e.g., renaming one variable, connecting one existing wire, setting one pin value) where the overhead of a reviewed patch is not justified.
 
 ## After Graph Modifications
 
@@ -796,11 +826,12 @@ blueprint_compose(
 - Auto-layout runs automatically as the final batch step — no manual call needed
 
 **Editing existing graphs (adding/removing nodes or connections):**
-- After completing **structural** edits (`graph_add_node`, `graph_remove_node`, `graph_connect`, `graph_disconnect`), ask the user ONCE:
+- A guarded patch does not reformat the graph and a no-op changes nothing at all, so layout stays a separate, optional command: offer `graph_cmd(command="auto_layout")` (or `mode: "full"`) once after a successful apply if the user wants readability. Never fold layout into the patch.
+- After completing **structural** edits with the raw `graph_cmd` route (`add_node`, `remove_node`, `connect`, `disconnect`), ask the user ONCE:
   "The graph has been updated. Would you like me to reformat the node layout for better readability?"
-- If yes: call `graph_auto_layout` with `mode: "full"`
+- If yes: call `graph_cmd(command="auto_layout", params={"mode": "full"})`
 - If no: leave nodes where they are
-- Do NOT ask after non-structural edits (`graph_set_pin_value`, `compile_blueprint`)
+- Do NOT ask after non-structural edits (a pin value, a compile)
 - After completing all structural edits for the current user request, ask once. Do not ask again for the same request
 
 ## Progress Discipline

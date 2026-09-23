@@ -6,10 +6,10 @@ Flat catalog of all UnrealCortex MCP tools organized by domain.
 
 Tools fall into three categories:
 - **Routers (12):** `core_cmd`, `data_cmd`, `blueprint_cmd`, `graph_cmd`, `level_cmd`, `material_cmd`, `umg_cmd`, `qa_cmd`, `reflect_cmd`, `editor_cmd`, `statetree_cmd`, `anim_cmd` — dispatch named commands to existing assets
-- **Composites (7):** `blueprint_compose`, `material_compose`, `material_instance_compose`, `widget_compose`, `level_compose`, `scenario_compose`, `statetree_compose` — declarative creation workflows, with some composites also supporting update-mode orchestration
+- **Composites (7):** `blueprint_compose`, `material_compose`, `material_instance_compose`, `widget_compose`, `level_compose`, `scenario_compose`, `statetree_compose` — declarative creation workflows; `blueprint_compose(mode="update")` is a facade over one guarded `graph.apply_patch` envelope
 - **Standalone (3):** `editor_restart`, `schema_generate`, `qa_test_step`
 
-Rule: New asset creation → composite. Isolated edits to existing assets → router. Multi-step or structure-wide updates to existing assets can use composite update mode.
+Rule: New asset creation → composite. Isolated edits to existing assets → router. Existing-asset **graph** changes → the guarded `graph.apply_patch` workflow (`resources/typed-blueprint-authoring.md`): context → describe → preview → apply → readback, persistence only on explicit authority. The removed legacy update batch is never a fallback.
 
 ## Naming Convention
 
@@ -279,24 +279,35 @@ Real apply requires `dry_run=false` and `apply=true`. The MCP response is intent
 ### Composite
 
 - `blueprint_compose` — atomic creation of a new Blueprint with variables, functions, and initial graph nodes
+- `blueprint_compose(mode="update", asset_path=..., patch={...})` — forwards exactly one reviewed
+  `graph.apply_patch` envelope (the facade owns `asset_path` and refuses a conflicting
+  `patch.asset_path`); a legacy `nodes`/`connections` update arrives without a `patch` and is refused
+  with `MIGRATION_REQUIRED`
 
 ---
 
 ## Graph (`graph_cmd`)
 
-- `list_graphs`, `list_nodes`, `get_node`, `search_nodes`, `describe_node`, `add_node`, `remove_node`, `connect`, `disconnect`, `set_pin_value`, `auto_layout`
+- `list_graphs`, `list_nodes`, `get_node`, `search_nodes`, `describe_node`, `add_node`, `remove_node`, `connect`, `disconnect`, `set_pin_value`, `auto_layout`, `get_authoring_context`, `apply_patch`
 - `set_pin_value`: use `value` for non-text pins and literal-only simple values; use structured `text` for `FText` pins, especially StringTable-backed text. `value` and `text` are mutually exclusive.
 
 Use `describe_node` before raw `add_node` authoring to inspect the accepted class, parameters, and pins. Correct an invalid request before attempting the mutation. Invoke it as `graph.describe_node` through `graph_cmd`.
+
+`get_authoring_context` publishes the candidate graphs (with canonical GUIDs, kind, mutability and
+subgraph paths), the current authoring fingerprint and the published limits; `apply_patch` previews
+and applies one guarded graph patch. Both are documented in `resources/typed-blueprint-authoring.md`;
+read their live schema (`core.get_operation_schema`) before building a request, because the names,
+defaults, limits and families published there are the contract.
 
 `list_graphs` returns user-visible Blueprint graphs. Top-level entries include `kind`
 (`ubergraph`, `function`, `macro`, `delegate`, or `interface_impl`); `interface_impl`
 entries also include `owning_interface`. Delegate graphs are readable but not mutable
 through generic graph commands.
 
-Graph targeting is currently name-based. If graph names collide across categories,
-commands resolve the first matching graph. Prefer unique graph names until a stable
-`graph_ref` or graph-kind disambiguator exists.
+Generic read commands resolve graphs by name: if names collide across categories they resolve the
+first match, so prefer unique names. Authoring does not rely on that resolution — a patch target is a
+`graph_ref` carrying a canonical `graph_guid` (plus an optional `subgraph_path`) taken from
+`graph.get_authoring_context`.
 
 `auto_layout` — repositions nodes using execution-first left-to-right layout with parameter grouping. `mode`: `"full"` repositions all nodes; `"incremental"` only repositions nodes at position (0,0). Optional `graph_name`, `horizontal_spacing`, `vertical_spacing`.
 
