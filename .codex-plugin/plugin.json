@@ -1,6 +1,6 @@
 {
   "name": "cortex-toolkit",
-  "version": "0.9.1",
+  "version": "0.10.0",
   "description": "AI-powered Unreal Engine development toolkit for UnrealCortex.",
   "author": {
     "name": "Eugene Telyatnik",
