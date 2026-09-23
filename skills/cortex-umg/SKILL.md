@@ -40,10 +40,11 @@ Follow this workflow:
 
 **IMPORTANT:**
 - For NEW widget screens: MUST use `widget_compose`. Individual tools (`add_widget`, `set_text`, `set_color`, `set_font`, `set_brush`, `set_padding`, `set_anchor`, `set_alignment`, `set_size`, `set_visibility`, `create_animation`) are PROHIBITED.
-- For EXISTING widgets with 2+ changes: MUST use `core_cmd(batch)` with `stop_on_error: true` and `$ref` wiring. Never make N sequential individual tool calls — use the batch pipeline (see `resources/batch-pipeline-guide.md`).
-- For animation binding removal: inspect with `umg_cmd(list_animation_bindings)` to acquire a valid fingerprint, then call `umg_cmd(remove_animation_binding)` before deleting target widgets.
+- For EXISTING widgets with 2+ **hierarchy/style** changes: MUST use `core_cmd(batch)` with `stop_on_error: true` and `$ref` wiring. Never make N sequential individual tool calls — use the batch pipeline (see `resources/batch-pipeline-guide.md`).
+- For **Widget Blueprint graph** work — event graphs, functions, typed adapters, bounded graph migration — the stop-on-error batch is NOT the route. Use the guarded `graph.apply_patch` workflow in `resources/typed-blueprint-authoring.md`: live context, `graph.describe_node` for canonical selectors and pins, preview, apply with the preview token, canonical readback, persistence only under explicit authority. A batch cannot undo the patch's compile or save boundary, so never nest the patch inside one, and never fall back to raw add/connect calls or `run_python` if the command is unavailable.
+- For animation binding removal: inspect with `umg_cmd(list_animation_bindings)` to acquire a valid fingerprint, then call `umg_cmd(remove_animation_binding)` before deleting target widgets. Animation-binding repair remains its own operation and is never folded into a graph patch.
 - Individual tools are only acceptable for a single isolated change on an existing widget.
-- For an existing Widget Blueprint, inspect the current tree/fingerprint before calling `umg_cmd(command="set_widget_variable", ...)`, and pass `expected_fingerprint`. Use this only for an isolated designer-variable change; new screens still use `widget_compose`.
+- Designer-widget repair is a separate, isolated operation: inspect the current tree/fingerprint, then call `umg_cmd(command="set_widget_variable", ...)` and pass `expected_fingerprint`. Afterwards refresh the authoring context and take a **fresh** fingerprint — a graph patch that reads or writes that widget must never reuse the pre-repair fingerprint, and the repair is never part of the patch transaction. New screens still use `widget_compose`.
 
 ### 3. Verify Results
 

@@ -34,6 +34,7 @@ Determine mode from user intent:
 | Mode | Guide |
 |------|-------|
 | Create/Modify | `blueprint-development` |
+| Modify existing graph logic | `blueprint-development` + `typed-blueprint-authoring` |
 | Review/Analyze | `blueprint-development` |
 | Debug | `blueprint-debugging` |
 | Reparent | built-in reparent workflow |
@@ -64,12 +65,13 @@ MANDATORY WORKFLOW:
 5. Pass `expected_fingerprint` on every mutation that touches a prefetched asset
 6. Design your variables[], functions[], nodes[], and connections[] as a JSON spec
 7a. NEW Blueprint → `blueprint_compose(name, path, ...)` as a SINGLE call
-7b. MODIFYING EXISTING (2+ changes) → `blueprint_compose(mode="update", asset_path="...", nodes=[...], connections=[...])` as a SINGLE call
+7b. EXISTING Blueprint graph logic → the guarded workflow in `resources/typed-blueprint-authoring.md`: live context → `graph.describe_node` → preview → apply → readback, with persistence only under explicit authority. Send it as `blueprint_compose(mode="update", asset_path="...", patch={...})` or `graph_cmd(command="apply_patch", params={...})`
 8. Before a raw `graph.add_node` mutation, call `graph_cmd(command="describe_node", ...)` for the node class. Use the returned node-class contract to select accepted parameters and pin names; correct validation failures before retrying.
 
 PROHIBITED:
 - Never call `graph_add_node` or `graph_connect` individually N times for multi-node operations.
-- Always batch 2+ node additions/connections into a single `blueprint_compose(mode="update")` call.
+- Never send an existing-asset graph change as the removed legacy update batch (`mode="update"` carrying `nodes`/`connections` without a `patch`): it is refused, and there is no fallback to it.
+- Never substitute a `core_cmd(batch)` composition, `editor_cmd(run_python)` or raw add/connect calls when `graph.apply_patch` is unavailable or refuses: stop and report the blocker.
 - Individual graph tools are only acceptable for a single isolated change (e.g., set one pin value, connect one existing wire).
 ```
 
@@ -143,7 +145,12 @@ Run this workflow before any mutation:
 
 ### FText Pin Mutation
 
-For Blueprint graph `FText` pins, prefer `graph_cmd(command="set_pin_value", params={"text": {"type": "FText", "source_kind": "literal", "value": "..."}})` or `blueprint_compose(mode="update", nodes=[{"pin_text_values": {...}}])`.
+For a single isolated Blueprint graph `FText` pin, use
+`graph_cmd(command="set_pin_value", params={"text": {"type": "FText", "source_kind": "literal", "value": "..."}})`.
+For several pins in one reviewed request — or any graph change beyond one isolated pin — use the
+guarded patch in `resources/typed-blueprint-authoring.md`: a `pin_updates` entry carries the existing
+`node_guid`, the exact input `pin` and a tagged `default`/`value`, inside a previewed and approved
+`graph.apply_patch` envelope.
 
 Do not JSON-encode StringTable descriptors into the `value` string. `value` remains valid for non-text pins and literal-only text writes; StringTable-backed text requires `text` with `type`, `source_kind`, `value`, and `string_table`. When mutating a prefetched Blueprint asset, pass `expected_fingerprint`.
 

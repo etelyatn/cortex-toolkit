@@ -1,0 +1,16 @@
+{
+  "case": "update-without-patch",
+  "surface": "facade",
+  "call": "blueprint_compose",
+  "request": {
+    "mode": "update",
+    "asset_path": "<live: asset_path>",
+    "nodes": [{"name": "<live: legacy node spec>", "class": "CallFunction"}]
+  },
+  "expected": {
+    "code": "MIGRATION_REQUIRED",
+    "message_contains": "requires a 'patch' object",
+    "enforced_by": "MCP/tests/test_blueprint_safe_patch.py::test_update_without_patch_reports_migration_error_and_never_calls_editor"
+  },
+  "live_only": false
+}

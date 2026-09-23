@@ -119,7 +119,18 @@ These tools ARE allowed when modifying an existing Widget Blueprint — but see 
 
 ## MANDATORY: Batch for Existing Widget Modifications
 
-When adding or modifying 2+ widgets/properties on an existing Widget Blueprint, you MUST use the batch pipeline — NOT sequential individual tool calls.
+When adding or modifying 2+ widgets/properties on an existing Widget Blueprint (hierarchy, layout and
+styling work), you MUST use the batch pipeline — NOT sequential individual tool calls.
+
+**Widget Blueprint graph work is not this workflow.** Event graphs, functions, typed adapters and
+bounded graph migration go through the guarded `graph.apply_patch` route in
+`resources/typed-blueprint-authoring.md`: live context and `graph.describe_node` for canonical
+selectors and pins, preview with `dry_run=true`, apply with the preview token, canonical readback, and
+persistence only under explicit authority. A stop-on-error batch cannot undo the patch's compile or
+save boundary, so never nest a patch inside one, and never substitute raw add/connect calls or
+`run_python` for it. Designer-widget repair (`umg.set_widget_variable`) stays a separate, isolated
+operation: after it, refresh the authoring context and take a fresh fingerprint before any patch
+touches that widget.
 
 Use `core_cmd(batch)` with `stop_on_error: true` and `$ref` wiring. See `resources/batch-pipeline-guide.md` for full syntax.
 

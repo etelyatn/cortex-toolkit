@@ -6,10 +6,10 @@ Flat catalog of all UnrealCortex MCP tools organized by domain.
 
 Tools fall into three categories:
 - **Routers (12):** `core_cmd`, `data_cmd`, `blueprint_cmd`, `graph_cmd`, `level_cmd`, `material_cmd`, `umg_cmd`, `qa_cmd`, `reflect_cmd`, `editor_cmd`, `statetree_cmd`, `anim_cmd` — dispatch named commands to existing assets
-- **Composites (7):** `blueprint_compose`, `material_compose`, `material_instance_compose`, `widget_compose`, `level_compose`, `scenario_compose`, `statetree_compose` — declarative creation workflows, with some composites also supporting update-mode orchestration
+- **Composites (7):** `blueprint_compose`, `material_compose`, `material_instance_compose`, `widget_compose`, `level_compose`, `scenario_compose`, `statetree_compose` — declarative creation workflows; `blueprint_compose(mode="update")` is a facade over one guarded `graph.apply_patch` envelope
 - **Standalone (3):** `editor_restart`, `schema_generate`, `qa_test_step`
 
-Rule: New asset creation → composite. Isolated edits to existing assets → router. Multi-step or structure-wide updates to existing assets can use composite update mode.
+Rule: New asset creation → composite. Isolated edits to existing assets → router. Existing-asset **graph** changes → the guarded `graph.apply_patch` workflow (`resources/typed-blueprint-authoring.md`): context → describe → preview → apply → readback, persistence only on explicit authority. The removed legacy update batch is never a fallback.
 
 ## Naming Convention
 
@@ -47,6 +47,15 @@ When a response exceeds 40KB, the MCP layer finds the largest list with 10+ item
 ```
 
 If no truncatable list exists, the response is replaced with `{"_error": "RESPONSE_TOO_LARGE"}`.
+
+This budget bounds **delivery**, and it applies to the guarded graph patch workflow
+(`resources/typed-blueprint-authoring.md`): a large `prune_island` inventory can arrive truncated, and
+an oversized apply response can lose the phase statuses of a mutation that already ran. Large-island
+MCP prune is therefore **unsupported** at this reviewed candidate — the fail-closed response-bound guard
+is not implemented; the follow-up is
+https://github.com/etelyatn/CortexSandbox/issues/102. When an inventory or an outcome is truncated,
+missing or ambiguous, **Stop and reconcile**: never proceed on a partial approval set, never rebuild
+GUIDs from a read to force an approval, and never treat a response read as a pre-mutation gate.
 
 ### Pagination
 
@@ -96,7 +105,7 @@ Cache TTL is 60 seconds. On expiry, re-send the original command with `limit` to
 
 ### Profile-aware live schema contract
 
-- `profile_operation_schema(profile, domain, command)` — returns a live-editor-backed contract with policy gating (`policy_allowed`), execution shape (`router`/`batch`), retry budget (`budget_remaining`), and restart guidance. Structured editor failures remain nested as `unreal_error: {code, message, details}`, including after retry-budget exhaustion. The default `UMGAuthoring` profile permits `umg`, `graph`, and `core` domains only.
+- `profile_operation_schema(profile, domain, command)` — returns a live-editor-backed contract with policy gating (`policy_allowed`), execution shape (`router`/`batch`), retry budget (`budget_remaining`), and restart guidance. Structured editor failures remain nested as `unreal_error: {code, message, details}`, including after retry-budget exhaustion. The default `UMGAuthoring` profile permits `umg`, `graph`, and `core` domains only. That gating is schema discovery, not call interception: a direct router call is not blocked by the profile, so the effective restriction is whatever filtering the external host applies — report a `policy_allowed: false` response as a stop signal, not as proof that a direct call would fail.
 
 ### Strict router envelope
 
@@ -279,24 +288,38 @@ Real apply requires `dry_run=false` and `apply=true`. The MCP response is intent
 ### Composite
 
 - `blueprint_compose` — atomic creation of a new Blueprint with variables, functions, and initial graph nodes
+- `blueprint_compose(mode="update", asset_path=..., patch={...})` — forwards exactly one reviewed
+  `graph.apply_patch` envelope (the facade owns `asset_path` and refuses a conflicting
+  `patch.asset_path`); a legacy `nodes`/`connections` update arrives without a `patch` and is refused
+  with `MIGRATION_REQUIRED`
 
 ---
 
 ## Graph (`graph_cmd`)
 
-- `list_graphs`, `list_nodes`, `get_node`, `search_nodes`, `describe_node`, `add_node`, `remove_node`, `connect`, `disconnect`, `set_pin_value`, `auto_layout`
+- `list_graphs`, `list_nodes`, `get_node`, `search_nodes`, `describe_node`, `add_node`, `remove_node`, `connect`, `disconnect`, `set_pin_value`, `auto_layout`, `get_authoring_context`, `apply_patch`
 - `set_pin_value`: use `value` for non-text pins and literal-only simple values; use structured `text` for `FText` pins, especially StringTable-backed text. `value` and `text` are mutually exclusive.
 
 Use `describe_node` before raw `add_node` authoring to inspect the accepted class, parameters, and pins. Correct an invalid request before attempting the mutation. Invoke it as `graph.describe_node` through `graph_cmd`.
+
+`get_authoring_context` publishes the candidate graphs (with canonical GUIDs, kind, mutability and
+subgraph paths), the current authoring fingerprint and the published limits; `apply_patch` previews
+and applies one guarded graph patch. Both are documented in `resources/typed-blueprint-authoring.md`;
+read their live schema (`core.get_operation_schema`) before building a request, because the names,
+defaults, limits and families published there are the contract. A `prune_island` inventory is subject
+to the response budget above: until the bounded guard lands
+(https://github.com/etelyatn/CortexSandbox/issues/102), a large-island MCP prune is unsupported and
+must not be attempted.
 
 `list_graphs` returns user-visible Blueprint graphs. Top-level entries include `kind`
 (`ubergraph`, `function`, `macro`, `delegate`, or `interface_impl`); `interface_impl`
 entries also include `owning_interface`. Delegate graphs are readable but not mutable
 through generic graph commands.
 
-Graph targeting is currently name-based. If graph names collide across categories,
-commands resolve the first matching graph. Prefer unique graph names until a stable
-`graph_ref` or graph-kind disambiguator exists.
+Generic read commands resolve graphs by name: if names collide across categories they resolve the
+first match, so prefer unique names. Authoring does not rely on that resolution — a patch target is a
+`graph_ref` carrying a canonical `graph_guid` (plus an optional `subgraph_path`) taken from
+`graph.get_authoring_context`.
 
 `auto_layout` — repositions nodes using execution-first left-to-right layout with parameter grouping. `mode`: `"full"` repositions all nodes; `"incremental"` only repositions nodes at position (0,0). Optional `graph_name`, `horizontal_spacing`, `vertical_spacing`.
 

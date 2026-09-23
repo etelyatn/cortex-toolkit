@@ -17,6 +17,7 @@ All input data is inline in migration-plan.md:
 ## Required Reads Before Starting
 
 - `resources/cpp-migration.md` — cleanup order and patterns
+- `resources/typed-blueprint-authoring.md` — the guarded `graph.apply_patch` route used by the bounded graph operations
 - `docs/unreal-coding-standards.md` — coding standards for any code adjustments
 
 ## Execution Protocol
@@ -69,6 +70,45 @@ After all conflicts resolved, proceed to Step 1 (standard collision validation f
 4. Remove migrated functions → verify compile after each (leaf-first order from plan)
 5. Remove migrated variables → verify compile after each
 6. Remove migrated SCS components → verify compile after each
+
+## Bounded Graph Operations — Guarded, Never a Cleanup Substitute
+
+Steps 3 and 3b above are deliberately blunt: they disconnect migrated entry exec pins and then delete
+orphaned nodes. For a specifically approved, bounded graph change — replacing a stale inherited entry,
+copying or moving one node set between graphs, or pruning one entry's uniquely owned execution island
+— that cleanup order is **not** the route, and a generic disconnect-plus-orphan-deletion pass is never
+an acceptable substitute for ownership-aware pruning.
+
+Use the guarded workflow in `resources/typed-blueprint-authoring.md` instead, one operation per
+request through `graph.apply_patch`, with preview and an approved removable set:
+
+| Approved task | Route | Never |
+|---|---|---|
+| Replace a stale inherited implementation entry, preserving the downstream body | `migration.op: "replace_entry"` with `target.implementation` and a complete `pin_map` | Disconnecting the stale entry and deleting the orphan chain by hand. |
+| Move/copy one node set between two graphs of the same asset | `migration.op: "copy_subgraph"` / `"move_subgraph"` with explicit boundary mappings | Re-adding the nodes from the plan and re-wiring by hand. |
+| Remove one entry's uniquely owned execution island | `migration.op: "prune_island"` with the preview's approved removable set | Blanket orphan deletion that also removes shared nodes or links. |
+
+Rules for this branch:
+
+- Preview first, then apply the identical intent with the preview token; keep `save=false` unless the
+  migration plan carries explicit persistence authority.
+- A node or link the entry does not uniquely own is `shared` or `blocked` in the preview partition and
+  **stays**. `complete=false` means the scan budget was exhausted, never "nothing else to remove".
+- `complete`, `scan_limit`, `scanned_nodes` and `max_scanned_nodes` bound the **native traversal** of
+  the asset, not delivery of the response. Large-island MCP prune is **unsupported** at this candidate:
+  the MCP response budget can truncate the preview inventory or replace the apply response, and the
+  fail-closed response-bound guard is not implemented
+  (https://github.com/etelyatn/CortexSandbox/issues/102). When an inventory or an outcome is truncated,
+  missing or ambiguous, **Stop and reconcile** — never approve a partial set, never re-send the
+  mutation, and never treat a response read as a pre-mutation gate: the mutation may already have run.
+- A STAYING node that references a migrated variable is still a reported manual rewire — never a
+  silent ownership decision, and never a graph rewrite.
+- If the operation is unavailable in the running editor, the operation is **blocked**: record the
+  editor/plugin identity, leave the asset untouched, and return the blocker to the orchestrator. Never
+  fall back to the raw disconnect/delete steps, to `core_cmd(batch)`, or to `editor_cmd(run_python)`.
+- Report the phase statuses (`apply`/`compile`/`readback`/`save`/`rollback`) and the durable locators
+  from the response in the execution log, exactly as the plan's verification expects.
+
 
 #### STAYING-Node Variable Reference Handling (When `goal: redesign`)
 
@@ -167,6 +207,9 @@ Do NOT write `03-node-mapping.json`. All execution data goes inline.
 - `cleanup_blueprint_migration`
 - `graph_disconnect`
 - `delete_orphaned_nodes`
+- `graph_cmd(command="apply_patch", ...)` — the guarded route for the bounded graph operations above
+  (preview → apply with the preview token → readback); it is a standalone transaction and is never
+  nested in a batch
 - `remove_scs_component`
 - `rename_scs_component`
 - `add_interface` / `remove_interface` — add or remove interface implementations (use `remove_interface` to clean up stale interface references during migration)

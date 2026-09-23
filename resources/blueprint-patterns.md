@@ -126,30 +126,39 @@ generic graph edit commands. Interface implementation graphs are mutable.
 
 ### Typed FText Pin Mutation
 
-Use `pin_text_values` when a Blueprint pin is `FText`, especially for StringTable-backed content:
+Text identity is structural: an FText write is a tagged default on the exact input pin, never a
+JSON-encoded string. Both forms live inside one previewed and approved `graph.apply_patch` envelope
+(`resources/typed-blueprint-authoring.md`); a single isolated pin may also use
+`graph_cmd(command="set_pin_value", ...)`.
 
-```python
-blueprint_compose(
-  mode="update",
-  asset_path="/Game/Blueprints/BP_MailButton.BP_MailButton",
-  nodes=[{
-    "name": "PrintText",
-    "class": "CallFunction",
+```json
+// A new call node with a StringTable-backed FText input, inside the patch envelope.
+{
+  "nodes": [{
+    "client_id": "print_text",
+    "node_class": "CallFunction",
     "params": {"function_name": "KismetSystemLibrary.PrintText"},
-    "pin_text_values": {
-      "InText": {
-        "type": "FText",
-        "source_kind": "string_table",
-        "value": "Pay",
-        "string_table": {
-          "table_id": "/Game/UI/ST_UI.ST_UI",
-          "key": "Mail.Button.Pay"
-        }
-      }
+    "defaults": {
+      "InText": {"kind": "text", "table_id": "/Game/UI/ST_UI.ST_UI", "key": "Mail.Button.Pay"}
     }
-  }]
-)
+  }],
+  "connections": [],
+  "pin_updates": [],
+  "dry_run": true,
+  "compile": true,
+  "save": false
+}
 ```
+
+```json
+// An existing node's input pin, rewritten in the same envelope.
+{"node_guid": "<from a read>", "pin": "InText",
+ "default": {"kind": "text", "table_id": "/Game/UI/ST_UI.ST_UI", "key": "Mail.Button.Pay"}}
+```
+
+A `kind: "text"` default accepts exactly one encoding: `literal`, `table`/`table_id` plus `key`, or
+the full FText descriptor under `value`. Mixing `literal` with a table reference, or a table without a
+key, fails preflight. The readback compares the canonical table id plus key, never display text.
 
 ### graph_add_node — Node Class Short Names
 
@@ -613,7 +622,11 @@ blueprint_cmd(command="graph_search_nodes", params={
 # Results inside composites include "subgraph_path": "MyComposite"
 ```
 
-**Use `blueprint_compose` to add nodes inside a composite:**
+**Authoring inside a composite** — a composite's graph is a target like any other. Read the bound
+graph with `graph.get_subgraph`, then take its locator from `graph.get_authoring_context`. Each
+composite choice publishes the child's own `graph_guid`, `graph_kind`, and root-relative
+`subgraph_path`; pass those values through unchanged:
+
 ```python
 # Step 1: create the Blueprint and add the Composite node to EventGraph
 blueprint_compose(
@@ -622,33 +635,72 @@ blueprint_compose(
         {"name": "BeginPlay", "class": "Event", "params": {"function_name": "Actor.ReceiveBeginPlay"}},
         {"name": "MyComposite", "class": "Composite"},
     ],
-    connections=[{"from": "BeginPlay.then", "to": "MyComposite.execute"}]
+    connections=[{"from": "BeginPlay.then", "to": "MyComposite.execute"}],
 )
 
-# Step 2: read back subgraph_name from list_nodes, then add nodes inside it
-blueprint_compose(
-    mode="update",
-    asset_path="/Game/Blueprints/BP_CompositeActor",
-    graph_name="EventGraph",
-    subgraph_path="<subgraph_name_from_list_nodes>",
-    nodes=[
-        {"name": "PrintMsg", "class": "CallFunction",
-         "params": {"function_name": "KismetSystemLibrary.PrintString"},
-         "pin_values": {"InString": "Inside composite!"}},
-    ],
-    connections=[{"from": "<tunnel_entry_id>.then", "to": "PrintMsg.execute"}]
+# Step 2: get the canonical asset object path and discover the child graph locator.
+asset_path = "/Game/Blueprints/BP_CompositeActor.BP_CompositeActor"
+authoring_context = graph_cmd(command="get_authoring_context", params={"asset_path": asset_path})
+root_choice = next(
+    choice for choice in authoring_context["graph_choices"]
+    if choice["graph_kind"] == "ubergraph" and not choice.get("subgraph_path")
 )
+composite_choice = next(
+    choice for choice in authoring_context["graph_choices"] if choice.get("subgraph_path")
+)
+composite_graph = graph_cmd(command="get_subgraph", params={
+    "asset_path": asset_path,
+    "graph_name": root_choice["graph_name"],
+    "subgraph_path": composite_choice["subgraph_path"],
+    "compact": False,
+})
+graph_ref = {
+    "graph_guid": composite_choice["graph_guid"],
+    "graph_kind": composite_choice["graph_kind"],
+    "subgraph_path": composite_choice["subgraph_path"],
+}
+
+# Select the tunnel entry and its paired exec output from the live readback.
+tunnel_entry = next(
+    node for node in composite_graph["nodes"]
+    if node.get("is_tunnel_boundary") and any(
+        pin["direction"] == "output" and pin["type"] == "exec"
+        for pin in node["pins"]
+    )
+)
+tunnel_exec_output = next(
+    pin for pin in tunnel_entry["pins"]
+    if pin["direction"] == "output" and pin["type"] == "exec"
+)
+graph_cmd(command="apply_patch", params={
+    "asset_path": asset_path,
+    "target": {"graph_ref": graph_ref},
+    "patch_id": "<caller-generated UUID>",
+    "expected_fingerprint": authoring_context["fingerprint"],
+    "nodes": [
+        {"client_id": "print_msg", "node_class": "CallFunction",
+         "params": {"function_name": "KismetSystemLibrary.PrintString"},
+         "defaults": {"InString": {"kind": "string", "value": "Inside composite!"}}},
+    ],
+    "connections": [
+        {"from": {"node_guid": tunnel_entry["node_guid"], "pin": tunnel_exec_output["name"]},
+         "to": {"client_id": "print_msg", "pin": "execute"}},
+    ],
+    "pin_updates": [],
+    "dry_run": True, "compile": True, "save": False,
+})
 ```
+
+Then send the identical intent with `dry_run=False` and the preview's `validation_hash`.
 
 **Safety rules:**
 - Tunnel boundary nodes (`is_tunnel_boundary: true`) are structural — never delete or rewire them
 - Composite names must not contain dots (the path separator)
-- `subgraph_path` cannot be used with `blueprint_compose(mode="create")`
-- Each `blueprint_compose` call targets a single subgraph level
+- The v1 patch target is `graph_ref` only: `graph_guid` names the target graph itself and `subgraph_path`, when supplied, must equal that target's root-relative path. Pass the locator you discovered through unchanged — substituting another graph's GUID, or a root GUID with a child's path, is refused (`INVALID_FIELD`)
+- Each request targets a single graph or composite level — preview and apply twice to touch two
 
 **Error codes:**
-- `SUBGRAPH_NOT_FOUND` — no composite with that name found in the graph
-- `SUBGRAPH_DEPTH_EXCEEDED` — path exceeds the 5-level depth limit
+- `SUBGRAPH_NOT_FOUND` / `SUBGRAPH_DEPTH_EXCEEDED` — from the read/inspection route (`graph_get_subgraph`, name-plus-path); the guarded patch route instead refuses an unmatched target identity with `GRAPH_NOT_FOUND` and a mismatched GUID/path pair with `INVALID_FIELD`
 
 ### Review Blueprint
 ```

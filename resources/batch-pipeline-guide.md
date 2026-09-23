@@ -270,6 +270,28 @@ Material operations check `FCortexCommandRouter::IsInBatch()` to defer expensive
 - Single undo entry instead of N entries
 - Atomic rollback on Ctrl+Z
 
+## stop_on_error, rollback and the standalone graph patch
+
+Three different failure contracts, and only two of them belong to a batch:
+
+- **stop_on_error is not rollback.** It halts the sequence at the first failure and returns the
+  completed steps; the steps that already ran stay applied. Nothing is undone.
+- **Rollback metadata** (`rollback_on_error` / `verify_rollback`, and the graph commands registered
+  as rollback-safe) covers direct node/link mutations the batch itself performed. An unverified
+  rollback returns `DIRTY_EDITOR_STATE`. Read the published schema for which commands are
+  rollback-safe rather than assuming.
+- **`graph.apply_patch` is a standalone transaction, not nestable in a batch.** It owns its own
+  reversible mutation, its own single target compile, its own authoritative readback and its own
+  explicit save boundary; an outer batch cannot undo a compile or a save. Because the command is
+  **not nestable** inside a rollback-enabled Core batch, call it directly through
+  `graph_cmd(command="apply_patch", ...)` or through
+  `blueprint_compose(mode="update", asset_path=..., patch={...})`, preview first, and apply with the
+  preview token. Where the capability is missing, stop and report — never compose raw
+  `graph.add_node`/`graph.connect` steps as a substitute.
+
+See `resources/typed-blueprint-authoring.md` for the guarded graph workflow, its phases and its
+recovery rules.
+
 ## Best Practices
 
 ### When to Use Batches

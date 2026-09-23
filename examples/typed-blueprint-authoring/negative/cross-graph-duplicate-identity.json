@@ -1,0 +1,28 @@
+{
+  "case": "cross-graph-duplicate-identity",
+  "surface": "native",
+  "call": "graph_cmd(command=\"apply_patch\", ...)",
+  "request": {
+    "migration": {
+      "op": "copy_subgraph",
+      "source": {
+        "graph_ref": {"graph_guid": "<live: source graph_guid>"},
+        "node_guids": ["<live: selected node GUID>"]
+      },
+      "destination": {"graph_ref": {"graph_guid": "<live: destination graph_guid>"}},
+      "boundary": []
+    },
+    "nodes": [],
+    "connections": [],
+    "pin_updates": [],
+    "dry_run": true,
+    "compile": true,
+    "save": false
+  },
+  "expected": {
+    "code": "INVALID_OPERATION",
+    "message_contains": "already exists in graph",
+    "enforced_by": "live"
+  },
+  "live_only": true
+}

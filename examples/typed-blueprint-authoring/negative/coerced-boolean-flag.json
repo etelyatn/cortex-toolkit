@@ -1,0 +1,16 @@
+{
+  "case": "coerced-boolean-flag",
+  "surface": "facade",
+  "call": "blueprint_compose",
+  "request": {
+    "mode": "update",
+    "asset_path": "<live: asset_path>",
+    "patch": {"dry_run": 1, "save": "false"}
+  },
+  "expected": {
+    "code": "INVALID_PATCH",
+    "message_contains": "must be a boolean",
+    "enforced_by": "MCP/tests/test_blueprint_safe_patch.py::test_update_rejects_non_boolean_patch_flags_locally"
+  },
+  "live_only": false
+}

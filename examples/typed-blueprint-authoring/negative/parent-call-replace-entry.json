@@ -1,0 +1,38 @@
+{
+  "case": "parent-call-replace-entry",
+  "surface": "native",
+  "call": "graph_cmd(command=\"apply_patch\", ...)",
+  "request": {
+    "target": {
+      "implementation": {
+        "owner_class": "/Script/CortexSandbox.CortexGraphAuthoringWidgetBase",
+        "function_name": "PresentTitle",
+        "call_kind": "parent"
+      }
+    },
+    "migration": {
+      "op": "replace_entry",
+      "source": {
+        "graph_ref": {"graph_guid": "<live: source graph_guid>"},
+        "entry_node_guid": "<live: stale entry node_guid>"
+      },
+      "pin_map": [
+        {"entry": "output", "from_pin": "<live: stale entry output pin>", "to_pin": "<live: replacement entry output pin>"},
+        {"entry": "output", "from_pin": "Title", "to_pin": "Title"}
+      ],
+      "remove_shadowing_member": false
+    },
+    "nodes": [],
+    "connections": [],
+    "pin_updates": [],
+    "dry_run": true,
+    "compile": true,
+    "save": false
+  },
+  "expected": {
+    "code": "INVALID_OPERATION",
+    "message_contains": "Explicit parent call requested but function is not a native event.",
+    "enforced_by": "live"
+  },
+  "live_only": true
+}

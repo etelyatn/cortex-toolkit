@@ -1119,6 +1119,22 @@ Follow `resources/bp-migration-executor.md`, using:
 
 The executor phase appends execution results to `migration-plan.md`.
 
+**Approved bounded graph operations:** entries the plan approves as a *bounded* graph change —
+`replace_entry` on a stale inherited implementation, `copy_subgraph` / `move_subgraph` of one node
+set, `prune_island` of one entry's uniquely owned island — run through the guarded workflow in
+`resources/typed-blueprint-authoring.md`, not through the blunt disconnect/delete-orphans cleanup
+order. Preview, apply with the preview token, report the phase statuses, and keep `save=false`
+unless the plan carries explicit persistence authority. If the running editor does not expose the
+operation, the operation is **blocked**: record the editor identity, leave the asset untouched, and
+return the blocker. Never substitute raw disconnect/orphan deletion, a batch, or `run_python`.
+
+Large-island MCP prune is **unsupported** at this candidate: `complete`, `scanned_nodes` and
+`max_scanned_nodes` bound the native traversal, not delivery, and the MCP response budget can truncate
+the preview inventory or replace the apply response. The fail-closed response-bound guard is not
+implemented (https://github.com/etelyatn/CortexSandbox/issues/102). When an inventory or an outcome is
+truncated, missing or ambiguous, **Stop and reconcile** — never approve a partial set, never re-send
+the mutation, and never treat a response read as a pre-mutation gate: the mutation may already have run.
+
 **Tier 3 pause (When `goal: redesign` and `redesign_tier: 3`):** After the executor phase completes, present the `## Manual Migration Steps` checklist from migration-plan.md to the user. Pause and wait for user confirmation that manual steps are done before proceeding to VERIFY. Ask the user:
 ```
 The automated portion of the Tier 3 migration is complete.
@@ -1285,4 +1301,5 @@ this simple migration. Verify runtime behavior matches expectations
 - Design: `docs/plans/2026-02-27-bp-migration-pipeline-design.md`
 - V5 schema: `docs/plans/2026-02-26-bp-migration-v5-design.md`
 - Patterns: `resources/cpp-migration.md`
+- Guarded graph operations (`replace_entry`, `copy_subgraph`, `move_subgraph`, `prune_island`): `resources/typed-blueprint-authoring.md`
 - Standards: `docs/unreal-coding-standards.md`
