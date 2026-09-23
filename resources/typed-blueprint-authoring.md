@@ -13,14 +13,16 @@ published there as authoritative for field names, defaults, limits, families and
 ## Live contract
 
 Obtain `core.get_operation_schema` for `graph.get_authoring_context`, `graph.describe_node` and
-`graph.apply_patch` through the connected Editor. Respect the selected facade profile, and read what
-it actually does: `profile_operation_schema` (or `core.get_operation_schema`) reports which
-domains and commands the profile allows — `UMGAuthoring` allows `umg`, `graph` and `core`, so it
-reports the graph operations below as `policy_allowed: true` and an unrelated Blueprint-domain
-command as `policy_allowed: false` with a blocked reason. That response is **schema discovery, not
-enforcement**: the profile does not intercept a direct router call, so the real restriction comes from
-the external host's tool filtering. Treat a reported block as the signal to stop and ask for the
-authorized path, never as proof that a direct call would be refused.
+`graph.apply_patch` through the connected Editor: it is the live command contract and returns what
+the connected editor actually implements (source, editor instance, plugin build, router and the
+command's parameters) — it **carries no policy verdict**. Respect the selected facade profile and
+read what it actually does: `profile_operation_schema` reports which domains and commands the
+profile allows — `UMGAuthoring` allows `umg`, `graph` and `core`, so it reports the graph operations
+below as `policy_allowed: true` and an unrelated Blueprint-domain command as `policy_allowed: false`
+with a blocked reason. That verdict is **schema discovery, not enforcement**: the profile does not
+intercept a direct router call, so the real restriction comes from the external host's tool filtering.
+Treat a reported block as the signal to stop and ask for the authorized path, never as proof that a
+direct call would be refused.
 
 Cached metadata, a capability fixture, or a prior-session success is not live capability evidence.
 A missing command, a missing profile permission or an editor that does not know `graph.apply_patch`
@@ -55,7 +57,7 @@ Create mode is a separate, unchanged route; this guide covers updates to existin
 | `INVALID_FIELD` | Native shape validation: an unknown field, a malformed flag type (a boolean is never coerced), a missing required selector, an unmapped reference, a `replace_entry` parent-call target. |
 | `STALE_PRECONDITION` | The fingerprint or the preview token no longer matches the live state; nothing was mutated. |
 | `DIRTY_EDITOR_STATE` | `save=true` against a package that is not clean. |
-| `LIMIT_EXCEEDED` | The request itself exceeds a published bound: node, edge, client-id length, boundary-entry or mapped-pin counts, or the published request size. |
+| `LIMIT_EXCEEDED` | The request itself exceeds a published bound — node, edge, client-id length, boundary-entry or mapped-pin counts, or the published request size — or a graph-wide scan of the affected graphs exceeded `max_scanned_nodes` while planning a non-prune request; that refusal reports `scan_limit`, `scanned_nodes` and `complete=false`. |
 | `TYPE_MISMATCH` | A transfer boundary mapping is not type-compatible through the destination schema, or its destination pin is an expanded (struct-split) pin the transfer cannot prove. |
 | `PIN_TYPE_MISMATCH` | A pin-to-pin connection inside a patch is disallowed by the target schema during preflight. |
 | `INVALID_OPERATION` | The asset or graph state cannot carry the request: an unverified-rollback block, a cross-graph duplicate identity, a graph that is not the target declaration's graph, a prune entry identity owned by several graphs, or a `prune_island` scan that exhausted the published `max_scanned_nodes` budget — that refusal reports `scan_limit`, `scanned_nodes`, `scanned_links` and `complete=false`, and an incomplete partition is refused instead of being treated as an empty island. |

@@ -521,11 +521,14 @@ class TypedBlueprintFixtureTests(unittest.TestCase):
         boundary_row = re.search(r"^\| `TYPE_MISMATCH` \|.*$", guide, re.M)
         self.assertIn("boundary", boundary_row.group(0))
 
-    def test_scan_budget_exhaustion_is_documented_as_an_invalid_operation(self):
+    def test_scan_budget_exhaustion_is_documented_per_shell(self):
         guide = _read("resources/typed-blueprint-authoring.md")
         limit_row = re.search(r"^\| `LIMIT_EXCEEDED` \|.*$", guide, re.M)
         self.assertIsNotNone(limit_row)
-        self.assertNotIn("scan", limit_row.group(0), "an exhausted prune scan is not a LIMIT_EXCEEDED refusal")
+        # A non-prune shell reports its graph-wide scan exhaustion as the budget refusal...
+        self.assertIn("scan", limit_row.group(0))
+        self.assertIn("scanned_nodes", limit_row.group(0))
+        # ... while the prune shell reports the same exhaustion under INVALID_OPERATION.
         invalid_row = re.search(r"^\| `INVALID_OPERATION` \|.*$", guide, re.M)
         self.assertIsNotNone(invalid_row)
         self.assertIn("scan", invalid_row.group(0))
@@ -534,6 +537,13 @@ class TypedBlueprintFixtureTests(unittest.TestCase):
         self.assertIsNotNone(pin_row)
         self.assertNotIn("expanded", pin_row.group(0))
         self.assertNotIn("boundary", pin_row.group(0))
+
+    def test_policy_verdict_is_scoped_to_the_profile_wrapper(self):
+        guide = _read("resources/typed-blueprint-authoring.md")
+        self.assertIn("carries no policy verdict", guide, "core.get_operation_schema must not be described as policy-bearing")
+        paragraph = re.search(r"^Obtain `core\.get_operation_schema`.*?(?=\n\n)", guide, re.M | re.S)
+        self.assertIsNotNone(paragraph)
+        self.assertIn("`profile_operation_schema` reports", paragraph.group(0))
 
     def test_transfer_fixtures_map_every_crossing_edge_with_a_pin_pair(self):
         for name in ("copy-subgraph-intent.json", "move-subgraph-intent.json"):
