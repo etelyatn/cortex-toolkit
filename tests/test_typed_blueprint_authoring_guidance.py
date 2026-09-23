@@ -539,16 +539,60 @@ class TypedBlueprintRoutingTests(unittest.TestCase):
             self.assertIn(f'"{field}": composite_choice["{field}"]', example)
         self.assertIn('"target": {"graph_ref": graph_ref}', example)
         self.assertIn('composite_graph = graph_cmd(command="get_subgraph"', example)
-        self.assertIn(
-            '"from": {"node_guid": "<live: tunnel entry node guid>", "pin": "then"}',
-            example,
-            "the tunnel source is a complete endpoint",
+        calls = []
+        graph_choices = [
+            {
+                "graph_guid": "root-guid",
+                "graph_kind": "ubergraph",
+                "graph_name": "EventGraph",
+                "subgraph_path": "",
+            },
+            {
+                "graph_guid": "composite-guid",
+                "graph_kind": "composite",
+                "graph_name": "MyComposite",
+                "subgraph_path": "MyComposite",
+            },
+        ]
+        composite_graph = {
+            "nodes": [
+                {
+                    "node_guid": "tunnel-exit-guid",
+                    "is_tunnel_boundary": True,
+                    "pins": [{"name": "execute", "direction": "input", "type": "exec"}],
+                },
+                {
+                    "node_guid": "tunnel-entry-guid",
+                    "is_tunnel_boundary": True,
+                    "pins": [{"name": "execute", "direction": "output", "type": "exec"}],
+                },
+            ],
+        }
+
+        def graph_cmd(command, params):
+            calls.append((command, params))
+            if command == "get_authoring_context":
+                return {"fingerprint": "fixture-fingerprint", "graph_choices": graph_choices}
+            if command == "get_subgraph":
+                return composite_graph
+            return {}
+
+        exec(
+            compile(example, "blueprint-patterns-composite-example", "exec"),
+            {"blueprint_compose": lambda **params: None, "graph_cmd": graph_cmd},
         )
-        self.assertIn(
-            '"to": {"client_id": "print_msg", "pin": "execute"}',
-            example,
-            "the destination is a complete endpoint",
+        applied = next(params for command, params in calls if command == "apply_patch")
+        self.assertEqual(
+            applied["connections"][0]["from"],
+            {"node_guid": "tunnel-entry-guid", "pin": "execute"},
+            "the example must use the entry tunnel GUID and paired pin read from the subgraph",
         )
+        self.assertEqual(
+            applied["connections"][0]["to"],
+            {"client_id": "print_msg", "pin": "execute"},
+        )
+        subgraph_request = next(params for command, params in calls if command == "get_subgraph")
+        self.assertIs(subgraph_request.get("compact"), False, "include hidden boundary pins in readback")
 
     def test_guide_is_reachable_from_the_readme(self):
         self.assertIn("typed-blueprint-authoring", _read("README.md"))

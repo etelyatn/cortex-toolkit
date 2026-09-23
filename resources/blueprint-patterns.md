@@ -652,6 +652,7 @@ composite_graph = graph_cmd(command="get_subgraph", params={
     "asset_path": asset_path,
     "graph_name": root_choice["graph_name"],
     "subgraph_path": composite_choice["subgraph_path"],
+    "compact": False,
 })
 graph_ref = {
     "graph_guid": composite_choice["graph_guid"],
@@ -659,7 +660,18 @@ graph_ref = {
     "subgraph_path": composite_choice["subgraph_path"],
 }
 
-# Use the actual tunnel-entry node GUID from composite_graph; its execution output pin is "then".
+# Select the tunnel entry and its paired exec output from the live readback.
+tunnel_entry = next(
+    node for node in composite_graph["nodes"]
+    if node.get("is_tunnel_boundary") and any(
+        pin["direction"] == "output" and pin["type"] == "exec"
+        for pin in node["pins"]
+    )
+)
+tunnel_exec_output = next(
+    pin for pin in tunnel_entry["pins"]
+    if pin["direction"] == "output" and pin["type"] == "exec"
+)
 graph_cmd(command="apply_patch", params={
     "asset_path": asset_path,
     "target": {"graph_ref": graph_ref},
@@ -671,7 +683,7 @@ graph_cmd(command="apply_patch", params={
          "defaults": {"InString": {"kind": "string", "value": "Inside composite!"}}},
     ],
     "connections": [
-        {"from": {"node_guid": "<live: tunnel entry node guid>", "pin": "then"},
+        {"from": {"node_guid": tunnel_entry["node_guid"], "pin": tunnel_exec_output["name"]},
          "to": {"client_id": "print_msg", "pin": "execute"}},
     ],
     "pin_updates": [],
