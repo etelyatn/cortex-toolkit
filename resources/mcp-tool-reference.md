@@ -48,6 +48,15 @@ When a response exceeds 40KB, the MCP layer finds the largest list with 10+ item
 
 If no truncatable list exists, the response is replaced with `{"_error": "RESPONSE_TOO_LARGE"}`.
 
+This budget bounds **delivery**, and it applies to the guarded graph patch workflow
+(`resources/typed-blueprint-authoring.md`): a large `prune_island` inventory can arrive truncated, and
+an oversized apply response can lose the phase statuses of a mutation that already ran. Large-island
+MCP prune is therefore **unsupported** at this reviewed candidate — the fail-closed response-bound guard
+is not implemented; the follow-up is
+https://github.com/etelyatn/CortexSandbox/issues/102. When an inventory or an outcome is truncated,
+missing or ambiguous, **Stop and reconcile**: never proceed on a partial approval set, never rebuild
+GUIDs from a read to force an approval, and never treat a response read as a pre-mutation gate.
+
 ### Pagination
 
 All list commands support opt-in cursor-based pagination via two parameters:
@@ -297,7 +306,10 @@ Use `describe_node` before raw `add_node` authoring to inspect the accepted clas
 subgraph paths), the current authoring fingerprint and the published limits; `apply_patch` previews
 and applies one guarded graph patch. Both are documented in `resources/typed-blueprint-authoring.md`;
 read their live schema (`core.get_operation_schema`) before building a request, because the names,
-defaults, limits and families published there are the contract.
+defaults, limits and families published there are the contract. A `prune_island` inventory is subject
+to the response budget above: until the bounded guard lands
+(https://github.com/etelyatn/CortexSandbox/issues/102), a large-island MCP prune is unsupported and
+must not be attempted.
 
 `list_graphs` returns user-visible Blueprint graphs. Top-level entries include `kind`
 (`ubergraph`, `function`, `macro`, `delegate`, or `interface_impl`); `interface_impl`

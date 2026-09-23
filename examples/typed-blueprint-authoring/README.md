@@ -43,7 +43,7 @@ plugin scenario under an Editor lease.
 | `copy-subgraph-intent.json` | migration | Preview of `copy_subgraph` with one explicit boundary mapping. |
 | `move-subgraph-intent.json` | migration | Preview of `move_subgraph`, same selection and boundary shape, different destination graph. |
 | `prune-island-intent.json` | migration | Preview of `prune_island`: the partition, no approved set. |
-| `prune-island-apply.json` | migration | The apply overlay: same graph and entry, the approved `removable` set, and a token from a fresh preview of that approved intent. |
+| `prune-island-apply.json` | migration | The apply overlay: same graph and entry, the approved `removable` set, and a token from a fresh preview of that approved intent. This is the small supported island case, where the preview delivered its inventory in full. |
 | `negative/*.json` | descriptor | Requests that must be refused, with the code, the message fragment and where the refusal is enforced. |
 
 Every migration fixture is a preview (`dry_run=true`) except `prune-island-apply.json`. The apply
@@ -95,7 +95,7 @@ changes between preview and apply.
 |---|---|---|
 | `<live: validation_hash returned by the preview>` | The token required by an apply. | The `dry_run=true` response. |
 | `<live: a token from a preview of an earlier state>` | A deliberately stale token, used only by the negative case. | An earlier preview. |
-| `<live: removable set published by the preview>` | The `removable` list the caller approves. | The `prune_island` preview response. |
+| `<live: removable set published by the preview>` | The `removable` list the caller approves. | The `prune_island` preview response — only when that response arrived complete; a truncated or oversized preview is not approvable. |
 
 ## `adapter-intent.json` — authoring preview
 
@@ -161,6 +161,14 @@ values and nothing else changed, so the applied intent is provably the previewed
   the intent, preview it again with that exact set and use **that** token for the apply. An approved
   set is never empty; `complete=false` means the scan budget was exhausted, not an empty island.
 
+These two are the **small supported island** route only. Large-island MCP prune is **unsupported** at
+this reviewed candidate: the MCP response budget (`resources/mcp-tool-reference.md`) can truncate the
+preview inventory or replace the whole response, and the fail-closed response-bound guard is not
+implemented (https://github.com/etelyatn/CortexSandbox/issues/102). If a preview or an apply response
+is truncated, oversized, lost or ambiguous — or the approved set cannot be proven to be the delivered
+`removable` set — **Stop and reconcile** instead of approving a subset: reading the response afterwards
+does not prevent the mutation, which may already have happened.
+
 ## Negative fixtures
 
 Each descriptor names the request, the code, a message fragment, and where the refusal is enforced.
@@ -191,7 +199,7 @@ under an Editor lease.
 | Preview | `changed=true`, every phase status `not_requested`, a `validation_hash`, `node_mappings` for all six client ids, `locators` for the target, and an unchanged fingerprint/dirty state. |
 | Apply | `apply_status=applied`, `compile_status=compiled` (one target compile), `readback_status=matched`, `save_status=not_requested`, `dirty_after=true`, `blocked=false`. |
 | Repeat with the same `patch_id` | `apply_status=unchanged`, `reused_client_ids` naming the existing nodes, no compile, no save. |
-| Migration preview | The bounded inventory above, exactly as published: transfers report `crossing_edges`/`boundary`/`dependencies`/`removal_set`/`internal_edges`/`node_count`; prune reports its partition and scan counts. |
+| Migration preview | The bounded inventory above, exactly as published, when the response fits the MCP budget: transfers report `crossing_edges`/`boundary`/`dependencies`/`removal_set`/`internal_edges`/`node_count`; prune reports its partition and scan counts. A truncated or oversized prune response is the unsupported large-island case above: reconcile it, never approve part of it. |
 | Accepted replay | `replayed_with_absent_source=true` with a diagnostic on preview and apply when the named source locator is already gone. |
 
 ## Bound live (not proven by the toolkit checks)

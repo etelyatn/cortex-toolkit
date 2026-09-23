@@ -136,7 +136,13 @@ transfers publish `crossing_edges`, `boundary`, `dependencies`, `removal_set`, `
 `node_count` and both graph GUIDs; `prune_island` publishes a partition (`removable`, `shared`,
 `blocked_nodes`, `external_edges`, `complete`, scan counts). `blocked` itself remains the Boolean
 asset-block status. Like diagnostics, the informational lists are bounded and carry a single omission
-marker; the `removable` set is published complete because you must echo it exactly.
+marker, and the response as a whole is bounded by the MCP layer's response budget
+(`resources/mcp-tool-reference.md`): an inventory larger than that budget arrives truncated
+(`_truncated`) or is replaced with `RESPONSE_TOO_LARGE`, so no response is promised to deliver every
+`removable` GUID. Native scan completeness — `complete`, `scan_limit`, `scanned_nodes`,
+`scanned_links` and the published `max_scanned_nodes` — describes the traversal of the asset only; it
+is neither MCP response completeness nor MCP response capacity. See **Large-island prune is
+unsupported at this candidate** below.
 
 `replayed_with_absent_source` is published on preview and apply. It is `true` when the source
 locator you named no longer exists and the request was accepted as an idempotent replay of work this
@@ -191,10 +197,10 @@ transaction, and the pre-repair fingerprint must never be reused.
 
 ## Recovery
 
-No blind retry. After a timeout, a lost response, save uncertainty, a stale guard or an unverified
-rollback, read the current state first, reconcile the identities you already have, and re-preview
-before sending anything again. A retried mutation with a stale guard or a new identity is how a
-small failure becomes a duplicated graph.
+No blind retry. After a timeout, a lost response, a truncated or oversized response, save uncertainty,
+a stale guard or an unverified rollback, read the current state first, reconcile the identities you
+already have, and re-preview before sending anything again. A retried mutation with a stale guard or a
+new identity is how a small failure becomes a duplicated graph.
 
 The patch journals its own changes and reverses them exactly on a late failure. When restoration is
 verified the result reports `rollback_status="restored"` and the asset stays usable. When it cannot
@@ -211,6 +217,31 @@ phase, a dirty package or an unverified rollback as success.
 One operation per request, inside `migration`, never mixed with the authoring shell. Selectors and
 identities come from the live context and reads; the shapes below are the contract, not a substitute
 for `describe_node` and the schema.
+
+### Large-island prune is unsupported at this candidate
+
+`max_scanned_nodes`, `scan_limit`, `scanned_nodes`, `scanned_links` and `complete` bound the native
+traversal of the asset. They say nothing about whether the MCP response can deliver the inventory: the
+MCP layer has its own response budget (`resources/mcp-tool-reference.md`), above which the largest
+list is truncated with `_truncated` metadata or the whole response is replaced with
+`RESPONSE_TOO_LARGE`. A large island therefore cannot be pruned through MCP at this reviewed
+candidate — a preview can deliver an incomplete `removable` set, and an apply can lose its phase
+statuses, fingerprints and durable locators, including the outcome of a mutation that already ran.
+
+**The fail-closed response-bound guard is NOT implemented.** There is no preflight size check, no
+`approval_complete` refusal and no outcome-preserving compact response at this candidate. The
+large-island contract is owned by
+[etelyatn/CortexSandbox#102](https://github.com/etelyatn/CortexSandbox/issues/102); until it lands,
+treat a large-island MCP prune as unsupported, never attempt it through MCP, and never invent a
+node-count cap in its place.
+
+**Stop and reconcile** whenever an inventory or an outcome is truncated, missing or ambiguous: a
+`_truncated` marker, `RESPONSE_TOO_LARGE`, a lost or partial response, a `removable` set you cannot
+prove is the preview's complete set, or an apply whose phase statuses did not arrive. Never proceed on
+a partial approval set, never rebuild missing GUIDs from a read to force an approval, and never re-send
+the mutation. Read the current state, reconcile the identities already issued, and re-preview. Reading
+the response does not prevent the mutation: when the outcome is lost the mutation may already have
+happened, so a response is a report, never a pre-mutation gate.
 
 **`replace_entry`** — replace a stale inherited implementation entry while preserving the downstream
 body:
@@ -250,10 +281,13 @@ another graph, or a partial selection (neither a fresh transfer nor a complete r
  "approved_node_guids":["…"]}
 ```
 
-Preview without `approved_node_guids` publishes the partition. Echo exactly its `removable` set in
-the approved intent, **preview that exact intent again**, then apply with its new validation hash:
-approval changes the reviewed request. `awaiting_approval` flips after approval; `reused` marks an
-idempotent replay.
+Preview without `approved_node_guids` publishes the partition. This route is for a small island whose
+preview arrived complete: echo exactly its `removable` set in the approved intent, **preview that
+exact intent again**, then apply with its new validation hash — approval changes the reviewed request.
+`awaiting_approval` flips after approval; `reused` marks an idempotent replay. If the preview or the
+apply response was truncated, oversized, lost or ambiguous — or you cannot prove the approved set is
+the delivered `removable` set — **Stop and reconcile** instead of approving a subset; see
+**Large-island prune is unsupported at this candidate**.
 `complete=false` means the scan budget was exhausted — it never means "empty island". Never send an
 empty approved set, and never substitute disconnect-plus-orphan-deletion for ownership-aware
 pruning: a node the entry does not uniquely own is `shared` or listed in `blocked_nodes` and stays.
@@ -271,6 +305,7 @@ pruning: a node the entry does not uniquely own is `shared` or listed in `blocke
 | Rollback unverified | Stop writes; preserve residual detail and escalate. |
 | Save failed after verified apply | Report applied-but-unsaved state; do not replay graph mutation. |
 | Lost response | Read current state first; an absent source alone does not prove a destructive operation succeeded. |
+| Truncated or oversized response | **Stop and reconcile**: the mutation may already have happened; never proceed on a partial approval set and never re-send. |
 
 ## Examples
 

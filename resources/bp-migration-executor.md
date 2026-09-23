@@ -94,6 +94,13 @@ Rules for this branch:
   migration plan carries explicit persistence authority.
 - A node or link the entry does not uniquely own is `shared` or `blocked` in the preview partition and
   **stays**. `complete=false` means the scan budget was exhausted, never "nothing else to remove".
+- `complete`, `scan_limit`, `scanned_nodes` and `max_scanned_nodes` bound the **native traversal** of
+  the asset, not delivery of the response. Large-island MCP prune is **unsupported** at this candidate:
+  the MCP response budget can truncate the preview inventory or replace the apply response, and the
+  fail-closed response-bound guard is not implemented
+  (https://github.com/etelyatn/CortexSandbox/issues/102). When an inventory or an outcome is truncated,
+  missing or ambiguous, **Stop and reconcile** — never approve a partial set, never re-send the
+  mutation, and never treat a response read as a pre-mutation gate: the mutation may already have run.
 - A STAYING node that references a migrated variable is still a reported manual rewire — never a
   silent ownership decision, and never a graph rewrite.
 - If the operation is unavailable in the running editor, the operation is **blocked**: record the
