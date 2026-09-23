@@ -31,12 +31,29 @@ through `graph_cmd(command="apply_patch", params={...})`, or through
 envelope and owns the envelope `asset_path`:
 
 - `patch.asset_path` that conflicts with the envelope asset (including an explicit `null`) is
-  refused before forwarding.
-- Legacy update fields supplied next to `patch` are refused as a mixed contract.
-- `mode="update"` without `patch` fails with a migration-shaped error. The legacy batch update route
-  was removed and is never used as a fallback.
+  refused before forwarding with `INVALID_PATCH`.
+- Legacy update fields supplied next to `patch` are refused as a mixed contract
+  (`MIXED_UPDATE_CONTRACT`); the stale-write guard belongs inside `patch.expected_fingerprint`.
+- `mode="update"` without `patch` fails with `MIGRATION_REQUIRED` and the message
+  "mode='update' requires a 'patch' object". The legacy batch update route was removed and is never
+  used as a fallback.
 
 Create mode is a separate, unchanged route; this guide covers updates to existing assets.
+
+### Refusal codes
+
+| Code | Raised when |
+|---|---|
+| `MIGRATION_REQUIRED` | `mode="update"` arrived without a `patch` object (the removed legacy route is never a fallback). |
+| `MIXED_UPDATE_CONTRACT` | Legacy update fields were supplied beside `patch`. |
+| `INVALID_PATCH` | The facade rejects the patch's own shape: a conflicting `patch.asset_path`, a non-object or empty `patch`, or a flag that is not a JSON boolean. |
+| `INVALID_FIELD` | Native shape validation: an unknown field, a malformed flag type (a boolean is never coerced), a missing required selector, an unmapped reference, a `replace_entry` parent-call target. |
+| `STALE_PRECONDITION` | The fingerprint or the preview token no longer matches the live state; nothing was mutated. |
+| `DIRTY_EDITOR_STATE` | `save=true` against a package that is not clean. |
+| `LIMIT_EXCEEDED` | The request or the scanned state exceeds a published bound. |
+| `PIN_TYPE_MISMATCH` | A boundary mapping is type-incompatible or targets an expanded (struct-split) pin. |
+| `INVALID_OPERATION` | The asset or graph state cannot carry the request: an unverified-rollback block, a cross-graph duplicate identity, a graph that is not the target declaration's graph, a prune entry identity owned by several graphs. |
+| `UNSUPPORTED_OPERATION` | An unknown `migration.op`; only the published operations are accepted. |
 
 ### Envelope
 
@@ -76,11 +93,14 @@ budgets). Read them live; this guide does not restate numbers that the contract 
    node GUIDs, pin names and current links you will connect to or update.
 
 Outputs and event parameters are **edges**, not defaults. A structured endpoint must be wired: create
-(or reuse) a `Self` node and wire its output to `Outer`. There is no `$self` magic object reference,
-and a caller-supplied object literal in `defaults` in place of an edge is refused rather than
-coerced. Tagged defaults are for unconnected input pins only; a default and an edge on the same
-input, a default on an output pin, a kind that contradicts the pin's native storage mode and an
-unresolvable class/object path all fail preflight.
+(or reuse) a `Self` node and wire its output to the create node's outer input — the input Blueprint
+displays as `Outer`, whose addressable name `graph.describe_node` publishes is `self`. Address every
+pin by the `PinName` describe publishes, never by a display or friendly name: a `DynamicCast` result
+pin is `As` plus the target's display name, and a variable node's pin is the variable name. There is
+no `$self` magic object reference, and a caller-supplied object literal in `defaults` in place of an
+edge is refused rather than coerced. Tagged defaults are for unconnected input pins only; a default
+and an edge on the same input, a default on an output pin, a kind that contradicts the pin's native
+storage mode and an unresolvable class/object path all fail preflight.
 
 ## Preview
 
