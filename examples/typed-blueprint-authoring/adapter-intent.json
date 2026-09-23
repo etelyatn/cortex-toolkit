@@ -1,0 +1,98 @@
+{
+  "nodes": [
+    {
+      "client_id": "self",
+      "node_class": "Self"
+    },
+    {
+      "client_id": "title_label",
+      "node_class": "VariableGet",
+      "params": {
+        "variable_name": "TitleLabel"
+      }
+    },
+    {
+      "client_id": "host_cast",
+      "node_class": "DynamicCast",
+      "params": {
+        "class": "/Game/Temp/CortexGraphAuthoring_<live: run>/WBP_CortexGraphAuthoringHost.WBP_CortexGraphAuthoringHost_C",
+        "is_pure": false
+      }
+    },
+    {
+      "client_id": "model",
+      "node_class": "ConstructObject",
+      "params": {
+        "class": "/Game/Temp/CortexGraphAuthoring_<live: run>/BP_CortexGraphAuthoringModel.BP_CortexGraphAuthoringModel_C"
+      }
+    },
+    {
+      "client_id": "record",
+      "node_class": "CallFunction",
+      "params": {
+        "owner_class": "/Game/Temp/CortexGraphAuthoring_<live: run>/WBP_CortexGraphAuthoringHost.WBP_CortexGraphAuthoringHost_C",
+        "function_name": "RecordObservedTitle"
+      },
+      "defaults": {
+        "Title": {
+          "kind": "text",
+          "literal": "CortexGraphAuthoring"
+        }
+      }
+    },
+    {
+      "client_id": "store_model",
+      "node_class": "VariableSet",
+      "params": {
+        "variable_name": "ModelRef"
+      }
+    }
+  ],
+  "connections": [
+    {
+      "from": {"entry": true, "pin": "then"},
+      "to": {"client_id": "model", "pin": "execute"}
+    },
+    {
+      "from": {"client_id": "model", "pin": "then"},
+      "to": {"client_id": "host_cast", "pin": "execute"}
+    },
+    {
+      "from": {"client_id": "host_cast", "pin": "then"},
+      "to": {"client_id": "record", "pin": "execute"}
+    },
+    {
+      "from": {"client_id": "record", "pin": "then"},
+      "to": {"client_id": "store_model", "pin": "execute"}
+    },
+    {
+      "from": {"client_id": "self", "pin": "self"},
+      "to": {"client_id": "model", "pin": "self"}
+    },
+    {
+      "from": {"entry": true, "pin": "Title"},
+      "to": {"client_id": "model", "pin": "Title"}
+    },
+    {
+      "from": {"client_id": "title_label", "pin": "TitleLabel"},
+      "to": {"client_id": "host_cast", "pin": "Object"}
+    },
+    {
+      "from": {"client_id": "host_cast", "pin": "As<live: cast target display name>"},
+      "to": {"client_id": "record", "pin": "self"}
+    },
+    {
+      "from": {"client_id": "model", "pin": "ReturnValue"},
+      "to": {"client_id": "record", "pin": "Model"}
+    },
+    {
+      "from": {"client_id": "record", "pin": "ReturnValue"},
+      "to": {"client_id": "store_model", "pin": "ModelRef"}
+    }
+  ],
+  "pin_updates": [],
+  "dry_run": true,
+  "compile": true,
+  "save": false,
+  "allow_noop": false
+}

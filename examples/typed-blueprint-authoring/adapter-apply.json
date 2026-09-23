@@ -1,0 +1,4 @@
+{
+  "dry_run": false,
+  "expected_validation_hash": "<live: validation_hash returned by the preview>"
+}
