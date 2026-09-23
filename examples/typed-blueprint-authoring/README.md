@@ -13,30 +13,87 @@ Editor lease.
 ## Conventions
 
 - A fragment contains **only** envelope fields (`target`, `nodes`, `connections`, `pin_updates`,
-  `migration`, the flag fields and the apply-only `expected_validation_hash`). Nothing else is
-  added, so a fragment can be lifted into a request without translation.
+  `migration`, the flag fields and the apply-only `expected_validation_hash`). Nothing else is added,
+  so a fragment can be lifted into a request without translation.
 - Every value the run must supply is written as a `<live: …>` token. A token is never a real value:
-  there is no GUID, no hash and no token literal in these files.
-- Names that the fixture itself declares (the designer widget variable, the Blueprint variable, the
-  recording function, the entry's parameter) are written literally and are listed below as
-  fixture-owned, so a live mismatch is a fixture change, not a guess.
+  there is no GUID, no hash and no token literal in these files, and every token below is declared.
+- Names the fixture itself declares (the designer widget variable, the Blueprint variable, the
+  recording function, the entry's parameter, the native fixture base class) are written literally and
+  are listed as fixture-owned, so a live mismatch is a fixture change, not a guess.
 - Pin names follow the engine's addressable `PinName`, which is what `graph.describe_node` returns
   and what the patch resolves: `execute`, `then`, `self` (a Self node's output **and** the create
   node's outer input, whose Blueprint-facing friendly name is `Outer`), `Object` (a cast's input),
-  `ReturnValue`. A pin allocated from a class selector is written as a token because its name is
-  derived from the class at allocation time.
+  `ReturnValue`. A pin allocated from a class selector is a token, because its name is derived from
+  the class at allocation time.
+- Envelope fields the harness always adds and no fragment carries: `asset_path`, `patch_id` (a fresh
+  UUID per mutation set), `expected_fingerprint` (from `graph.get_authoring_context`), and `target`
+  unless the fragment shows it.
+
+## Files
+
+| Fixture | Shell | Purpose |
+|---|---|---|
+| `adapter-intent.json` | authoring | Preview of the generic `PresentTitle` adapter. |
+| `adapter-apply.json` | overlay | The apply step of that preview: `dry_run=false` plus the preview token. |
+| `replace-entry-intent.json` | migration | Preview of `replace_entry` on the stale inherited `PresentTitle` entry. |
+| `copy-subgraph-intent.json` | migration | Preview of `copy_subgraph` with one explicit boundary mapping. |
+| `move-subgraph-intent.json` | migration | Preview of `move_subgraph`, same selection and boundary shape, different destination graph. |
+| `prune-island-intent.json` | migration | Preview of `prune_island`: the partition, no approved set. |
+| `prune-island-apply.json` | migration | The apply: same graph and entry, plus the caller's echo of the preview's `removable` set. |
+| `negative/*.json` | descriptor | Requests that must be refused, with the code, the message fragment and where the refusal is enforced. |
+
+Every migration fixture is a preview (`dry_run=true`) except `prune-island-apply.json`. The apply
+step of every other fragment is the same intent with `dry_run=false` and
+`expected_validation_hash` from the preview, exactly as `adapter-apply.json` shows; nothing else
+changes between preview and apply.
 
 ## Live bindings
+
+**Run scope**
 
 | Token | Binds to | Supplied by |
 |---|---|---|
 | `<live: run>` | The run label of the declared asset root `/Game/Temp/CortexGraphAuthoring_<run>/` (the T15 brief spells it `<run>`). | The scenario's declared run root. |
-| `<live: cast target display name>` | The display name half of a `DynamicCast` result pin. The engine names that pin `PN_CastedValuePrefix + <target display name>` (prefix `As`), so it cannot be checked in. | `graph.describe_node` for the cast node. |
-| `<live: validation_hash returned by the preview>` | The preview token. | The `dry_run=true` response. |
+| `<live: asset_path>` | The asset under authoring. | The scenario fixture. |
+| `<live: the reviewed graph.apply_patch envelope>` | The one envelope the facade forwards. | The checked-in fragments in this directory. |
 
-Envelope fields the harness always adds and no fragment carries: `asset_path`, `patch_id` (a fresh
-UUID per mutation set), `expected_fingerprint` (from `graph.get_authoring_context`), and `target`
-unless the fragment shows it.
+**Identity from context and reads**
+
+| Token | Binds to | Supplied by |
+|---|---|---|
+| `<live: source graph_guid>` | The graph the request mutates (`graph_ref.graph_guid`). | `graph.get_authoring_context`. |
+| `<live: destination graph_guid>` | The second graph of a transfer, or the graph of a negative case. | `list_graphs` / a candidate read. |
+| `<live: selected node GUID>` | A node of the selected set. | A graph read. |
+| `<live: first selected node GUID>` | The first node of a two-node selection. | A graph read. |
+| `<live: second selected node GUID>` | The second node of the same selection. | A graph read. |
+| `<live: selected source node GUID>` | The selected node one crossing edge leaves. | A graph read. |
+| `<live: existing destination node GUID>` | The destination-side node a boundary mapping targets. | A destination graph read. |
+| `<live: destination node GUID>` | A destination-side node named by a boundary mapping or a negative case. | A destination graph read. |
+| `<live: stale entry node_guid>` | The stale entry `replace_entry` replaces. | A graph read. |
+| `<live: island entry node_guid>` | The entry whose uniquely owned island `prune_island` removes. | A graph read. |
+| `<live: legacy node spec>` | A legacy batch node specification, used only by a refused facade call. | The negative case's author. |
+| `<live: legacy connection spec>` | A legacy batch connection specification, used only by a refused facade call. | The negative case's author. |
+
+**Pins from `graph.describe_node` and reads**
+
+| Token | Binds to | Supplied by |
+|---|---|---|
+| `<live: cast target display name>` | The display name half of a `DynamicCast` result pin; the engine names that pin `PN_CastedValuePrefix + <target display name>` (prefix `As`). | `graph.describe_node` for the cast node. |
+| `<live: stale entry input pin>` | An input pin of the stale entry. | `graph.describe_node` / a read. |
+| `<live: stale entry output pin>` | An output pin of the stale entry. | `graph.describe_node` / a read. |
+| `<live: replacement entry input pin>` | The replacement entry's pin the stale input is re-wired to. | `graph.describe_node` for the implementation target. |
+| `<live: replacement entry output pin>` | The replacement entry's pin the stale output is re-wired to. | `graph.describe_node` for the implementation target. |
+| `<live: crossing source pin name>` | The selected-side pin of a crossing edge. | `graph.describe_node` / a read. |
+| `<live: destination pin name>` | The destination-side pin that edge is mapped to. | `graph.describe_node` / a read. |
+| `<live: struct-expanded destination pin>` | A destination pin whose struct is split, which the transfer cannot prove. | A read of an expanded pin in the negative scenario. |
+
+**Values returned by a preview**
+
+| Token | Binds to | Supplied by |
+|---|---|---|
+| `<live: validation_hash returned by the preview>` | The token required by an apply. | The `dry_run=true` response. |
+| `<live: a token from a preview of an earlier state>` | A deliberately stale token, used only by the negative case. | An earlier preview. |
+| `<live: removable set published by the preview>` | The `removable` list the caller approves. | The `prune_island` preview response. |
 
 ## `adapter-intent.json` — authoring preview
 
@@ -84,6 +141,46 @@ values and nothing else changed, so the applied intent is provably the previewed
 
 `save` stays `false` in both: persistence is a separate, explicitly authorized step.
 
+## Migration fragments
+
+- **`replace-entry-intent.json`** — the fixture's declared implementation target
+  (`/Script/CortexSandbox.CortexGraphAuthoringWidgetBase.PresentTitle`), the stale entry's graph and
+  GUID, and a `pin_map` mapping every visible pin of the replacement terminator exactly once
+  (`remove_shadowing_member: false`, so a same-named Blueprint variable is reported rather than
+  removed). `target` is required here.
+- **`copy-subgraph-intent.json`** / **`move-subgraph-intent.json`** — a two-node selection, the
+  destination graph, and one boundary mapping per crossing edge. `target` must be absent; the graphs
+  are named inside `migration`. `move_subgraph` needs a destination graph different from the source.
+- **`prune-island-intent.json`** — the entry whose island is measured; the preview publishes
+  `removable`, `shared`, `blocked`, `external_edges`, `complete` and the scan counts.
+- **`prune-island-apply.json`** — the same graph and entry plus
+  `approved_node_guids: [<live: removable set published by the preview>]`. An approved set is never
+  sent empty, and `complete=false` on the preview means the scan budget was exhausted, not that the
+  island is empty.
+
+## Negative fixtures
+
+Each descriptor names the request, the code, a message fragment, and where the refusal is enforced.
+Codes appear in the guide's refusal table; the checks assert that traceability.
+
+| Case | Surface | Code | Enforced by |
+|---|---|---|---|
+| `update-without-patch` | facade | `MIGRATION_REQUIRED` | Plugin facade test `test_update_without_patch_reports_migration_error_and_never_calls_editor`. |
+| `mixed-legacy-update-fields-with-patch` | facade | `MIXED_UPDATE_CONTRACT` | Plugin facade test `test_update_mixed_legacy_fields_with_patch_fail_locally`. |
+| `coerced-boolean-flag` | facade | `INVALID_PATCH` | Plugin facade test `test_update_rejects_non_boolean_patch_flags_locally` (flags are never coerced). |
+| `unsupported-migration-op` | native | `UNSUPPORTED_OPERATION` | Native migration planner: only the published operations are accepted. |
+
+**Bound live (`live_only: true`)** — these cases only exist against real state, so nothing in this
+repository can prove them; they are declared here and must be exercised by the consuming scenario
+under an Editor lease.
+
+| Case | Surface | Code | Live condition |
+|---|---|---|---|
+| `stale-validation-token` | native | `STALE_PRECONDITION` | The token comes from a preview of an earlier state; nothing is mutated. |
+| `expanded-boundary-pin` | native | `PIN_TYPE_MISMATCH` | The destination pin is struct-expanded, which the transfer cannot prove. |
+| `cross-graph-duplicate-identity` | native | `INVALID_OPERATION` | The planned destination identity is already owned by another graph. |
+| `parent-call-replace-entry` | native | `INVALID_FIELD` | The implementation target resolves to a native declaration whose `call_kind` is `parent`; `replace_entry` preserves the body and never authors a parent call. |
+
 ## Expected phases
 
 | Step | Expected result |
@@ -91,10 +188,12 @@ values and nothing else changed, so the applied intent is provably the previewed
 | Preview | `changed=true`, every phase status `not_requested`, a `validation_hash`, `node_mappings` for all six client ids, `locators` for the target, and an unchanged fingerprint/dirty state. |
 | Apply | `apply_status=applied`, `compile_status=compiled` (one target compile), `readback_status=matched`, `save_status=not_requested`, `dirty_after=true`, `blocked=false`. |
 | Repeat with the same `patch_id` | `apply_status=unchanged`, `reused_client_ids` naming the existing nodes, no compile, no save. |
+| Migration preview | The bounded inventory above, exactly as published: transfers report `crossing_edges`/`boundary`/`dependencies`/`removal_set`/`internal_edges`/`node_count`; prune reports its partition and scan counts. |
+| Accepted replay | `replayed_with_absent_source=true` with a diagnostic on preview and apply when the named source locator is already gone. |
 
 ## Bound live (not proven by the toolkit checks)
 
 These need the Editor and belong to the consuming scenario: the canonical class/member selectors and
 pin names, the fingerprint and preview token, the deterministic identity mapping, the tagged-default
-readback, the cast-failure/null route, and every phase status above. A fixture mismatch found there
-is a fixture correction, never a workaround in the guidance.
+readback, the cast-failure/null route, every phase status above, and every `live_only` negative case.
+A fixture mismatch found there is a fixture correction, never a workaround in the guidance.

@@ -1,0 +1,25 @@
+{
+  "migration": {
+    "op": "move_subgraph",
+    "source": {
+      "graph_ref": {"graph_guid": "<live: source graph_guid>"},
+      "node_guids": ["<live: first selected node GUID>", "<live: second selected node GUID>"]
+    },
+    "destination": {
+      "graph_ref": {"graph_guid": "<live: destination graph_guid>"}
+    },
+    "boundary": [
+      {
+        "from": {"node_guid": "<live: selected source node GUID>", "pin": "<live: crossing source pin name>"},
+        "to": {"node_guid": "<live: existing destination node GUID>", "pin": "<live: destination pin name>"}
+      }
+    ]
+  },
+  "nodes": [],
+  "connections": [],
+  "pin_updates": [],
+  "dry_run": true,
+  "compile": true,
+  "save": false,
+  "allow_noop": false
+}

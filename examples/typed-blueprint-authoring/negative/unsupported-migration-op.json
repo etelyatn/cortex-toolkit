@@ -1,0 +1,27 @@
+{
+  "case": "unsupported-migration-op",
+  "surface": "native",
+  "call": "graph_cmd(command=\"apply_patch\", ...)",
+  "request": {
+    "migration": {
+      "op": "relocate_nodes",
+      "source": {
+        "graph_ref": {"graph_guid": "<live: source graph_guid>"},
+        "node_guids": ["<live: selected node GUID>"]
+      },
+      "destination": {"graph_ref": {"graph_guid": "<live: destination graph_guid>"}}
+    },
+    "nodes": [],
+    "connections": [],
+    "pin_updates": [],
+    "dry_run": true,
+    "compile": true,
+    "save": false
+  },
+  "expected": {
+    "code": "UNSUPPORTED_OPERATION",
+    "message_contains": "Unsupported migration operation",
+    "enforced_by": "Plugins/UnrealCortex/Source/CortexGraph/Private/Operations/CortexGraphMigrationOps.cpp (published migration operations)"
+  },
+  "live_only": false
+}

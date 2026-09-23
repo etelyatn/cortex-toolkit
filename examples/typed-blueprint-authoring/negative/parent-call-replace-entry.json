@@ -1,0 +1,37 @@
+{
+  "case": "parent-call-replace-entry",
+  "surface": "native",
+  "call": "graph_cmd(command=\"apply_patch\", ...)",
+  "request": {
+    "target": {
+      "implementation": {
+        "owner_class": "/Script/CortexSandbox.CortexGraphAuthoringWidgetBase",
+        "function_name": "PresentTitle",
+        "call_kind": "parent"
+      }
+    },
+    "migration": {
+      "op": "replace_entry",
+      "source": {
+        "graph_ref": {"graph_guid": "<live: source graph_guid>"},
+        "entry_node_guid": "<live: stale entry node_guid>"
+      },
+      "pin_map": [
+        {"entry": "input", "from_pin": "<live: stale entry input pin>", "to_pin": "<live: replacement entry input pin>"}
+      ],
+      "remove_shadowing_member": false
+    },
+    "nodes": [],
+    "connections": [],
+    "pin_updates": [],
+    "dry_run": true,
+    "compile": true,
+    "save": false
+  },
+  "expected": {
+    "code": "INVALID_FIELD",
+    "message_contains": "replace_entry preserves the body and never authors a parent call",
+    "enforced_by": "live"
+  },
+  "live_only": true
+}

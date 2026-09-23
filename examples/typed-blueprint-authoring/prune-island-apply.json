@@ -1,0 +1,18 @@
+{
+  "migration": {
+    "op": "prune_island",
+    "source": {
+      "graph_ref": {"graph_guid": "<live: source graph_guid>"},
+      "entry_node_guid": "<live: island entry node_guid>"
+    },
+    "approved_node_guids": ["<live: removable set published by the preview>"]
+  },
+  "nodes": [],
+  "connections": [],
+  "pin_updates": [],
+  "dry_run": false,
+  "compile": true,
+  "save": false,
+  "allow_noop": false,
+  "expected_validation_hash": "<live: validation_hash returned by the preview>"
+}

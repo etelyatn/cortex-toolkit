@@ -478,5 +478,112 @@ class TypedBlueprintRoutingTests(unittest.TestCase):
         self.assertIn("typed-blueprint-authoring", _read("README.md"))
 
 
+def _fixture(name: str) -> dict:
+    return json.loads((EXAMPLES / name).read_text(encoding="utf-8"))
+
+
+def _negative(name: str) -> dict:
+    return json.loads((EXAMPLES / "negative" / name).read_text(encoding="utf-8"))
+
+
+class TypedBlueprintFixtureTests(unittest.TestCase):
+    def test_p1_migration_fixtures_match_their_published_shells(self):
+        for name, op in (
+            ("replace-entry-intent.json", "replace_entry"),
+            ("copy-subgraph-intent.json", "copy_subgraph"),
+            ("move-subgraph-intent.json", "move_subgraph"),
+            ("prune-island-intent.json", "prune_island"),
+        ):
+            with self.subTest(fixture=name):
+                fragment = _fixture(name)
+                validate_intent_fragment(fragment)
+                self.assertEqual(fragment["migration"]["op"], op)
+                self.assertIn(op, PUBLISHED_MIGRATION_OPS)
+                self.assertIs(fragment["dry_run"], True)
+                self.assertIs(fragment["save"], False)
+                if op in ("copy_subgraph", "move_subgraph", "prune_island"):
+                    self.assertNotIn("target", fragment)
+                else:
+                    self.assertIn("implementation", fragment["target"])
+
+    def test_transfer_fixtures_map_every_crossing_edge_with_a_pin_pair(self):
+        for name in ("copy-subgraph-intent.json", "move-subgraph-intent.json"):
+            with self.subTest(fixture=name):
+                fragment = _fixture(name)
+                boundary = fragment["migration"]["boundary"]
+                self.assertTrue(boundary, "a transfer with crossing edges must publish its boundary mappings")
+                for entry in boundary:
+                    for side in ("from", "to"):
+                        endpoint = entry[side]
+                        self.assertEqual(set(endpoint), {"node_guid", "pin"})
+                        self.assertTrue(LIVE_TOKEN.search(endpoint["node_guid"]), "identity comes from a read")
+                        self.assertTrue(LIVE_TOKEN.search(endpoint["pin"]), "the pin name comes from describe_node")
+
+    def test_prune_apply_echoes_the_approved_preview_partition(self):
+        preview = _fixture("prune-island-intent.json")
+        apply = _fixture("prune-island-apply.json")
+        validate_intent_fragment(apply)
+        self.assertEqual(apply["migration"]["op"], "prune_island")
+        self.assertEqual(apply["migration"]["source"], preview["migration"]["source"])
+        self.assertNotIn("approved_node_guids", preview["migration"], "the preview publishes the partition")
+        approved = apply["migration"]["approved_node_guids"]
+        self.assertTrue(approved, "an approved set is never empty")
+        self.assertTrue(all(LIVE_TOKEN.search(value) for value in approved), "the set comes from the preview")
+        self.assertIs(apply["dry_run"], False)
+        self.assertIn("expected_validation_hash", apply)
+
+    def test_apply_overlay_matches_the_preview_intent(self):
+        preview = _fixture("adapter-intent.json")
+        overlay = _fixture("adapter-apply.json")
+        self.assertEqual(set(overlay), {"dry_run", "expected_validation_hash"}, "the apply step changes only these two")
+        self.assertIs(overlay["dry_run"], False)
+        request = {**preview, **overlay}
+        validate_intent_fragment(request)
+        self.assertIs(request["dry_run"], False)
+        self.assertTrue(LIVE_TOKEN.search(request["expected_validation_hash"]))
+        self.assertEqual(request["nodes"], preview["nodes"], "the applied intent is the previewed intent")
+
+    def test_negative_fixtures_are_traceable_and_live_only_ones_are_named(self):
+        guide = _read("resources/typed-blueprint-authoring.md")
+        readme = (EXAMPLES / "README.md").read_text(encoding="utf-8")
+        cases = _negative_cases()
+        self.assertTrue(cases, "the refused requests must be checked in")
+        self.assertGreaterEqual(len(cases), 6)
+        for path in cases:
+            descriptor = json.loads(path.read_text(encoding="utf-8"))
+            with self.subTest(case=path.name):
+                self.assertEqual(
+                    set(descriptor), {"case", "surface", "call", "request", "expected", "live_only"}
+                )
+                self.assertIn(descriptor["surface"], {"facade", "native"})
+                self.assertTrue(descriptor["expected"]["code"])
+                self.assertIn(
+                    descriptor["expected"]["code"],
+                    guide,
+                    "a refused code must be documented in the guide",
+                )
+                if descriptor["live_only"]:
+                    self.assertEqual(
+                        descriptor["expected"]["enforced_by"],
+                        "live",
+                        "a live-only case has no static enforcer to name",
+                    )
+                    self.assertIn(descriptor["case"], readme, "live-only cases must be declared in the README")
+                else:
+                    self.assertNotEqual(descriptor["expected"]["enforced_by"], "live")
+                if descriptor["surface"] == "native":
+                    validate_intent_fragment(descriptor["request"])
+
+    def test_every_live_token_is_declared_in_the_readme(self):
+        readme = (EXAMPLES / "README.md").read_text(encoding="utf-8")
+        tokens = []
+        for path in sorted(EXAMPLES.glob("*.json")) + _negative_cases():
+            tokens.extend(validate_no_fabricated_live_value(path))
+        self.assertTrue(tokens, "the fixtures must declare what the run supplies")
+        for token in sorted(set(tokens)):
+            with self.subTest(token=token):
+                self.assertIn(token, readme, "every live token must be declared in the fixtures README")
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,23 @@
+{
+  "case": "stale-validation-token",
+  "surface": "native",
+  "call": "graph_cmd(command=\"apply_patch\", ...)",
+  "request": {
+    "nodes": [
+      {"client_id": "print_msg", "node_class": "CallFunction",
+       "params": {"function_name": "KismetSystemLibrary.PrintString"}}
+    ],
+    "connections": [],
+    "pin_updates": [],
+    "dry_run": false,
+    "compile": true,
+    "save": false,
+    "expected_validation_hash": "<live: a token from a preview of an earlier state>"
+  },
+  "expected": {
+    "code": "STALE_PRECONDITION",
+    "message_contains": "expected_validation_hash does not match current preflight intent",
+    "enforced_by": "live"
+  },
+  "live_only": true
+}
