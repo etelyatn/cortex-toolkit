@@ -70,7 +70,7 @@ The native envelope (all fields published by the live schema):
 | Field | Notes |
 |---|---|
 | `asset_path` | Full asset path; the request must name the same asset the facade forwards. |
-| `target` | Locator: `graph_ref` with a canonical `graph_guid` (plus optional `subgraph_path`), or `implementation` with `owner_class` + `function_name`. Required by the authoring shell and by `replace_entry`; must be **absent** for `copy_subgraph` / `move_subgraph` / `prune_island`, which address their graphs inside `migration`. |
+| `target` | Locator: `graph_ref` with a canonical `graph_guid` (plus optional `subgraph_path`), or `implementation` with `owner_class` + `function_name`. In `graph_ref`, `graph_guid` names the **target** graph — a root graph or a nested composite child, exactly as `graph.get_authoring_context` publishes it; `subgraph_path`, when supplied, must equal that target's own root-relative path and is verified, so a pair that disagrees is refused (`INVALID_FIELD`) instead of addressing another graph. Pass a discovered locator through unchanged; never substitute a different GUID or path. Required by the authoring shell and by `replace_entry`; must be **absent** for `copy_subgraph` / `move_subgraph` / `prune_island`, which address their graphs inside `migration`. |
 | `patch_id` | Caller-generated UUID that deterministically derives the identity of every new node. Reuse it for an idempotent repeat, never for a different mutation set. |
 | `expected_fingerprint` | Stale-write guard copied from `graph.get_authoring_context`. Never fabricate or reuse a fingerprint across edits. |
 | `nodes`, `connections`, `pin_updates` | The authoring shell. One family identifier per node, tagged defaults, structured edges. |
