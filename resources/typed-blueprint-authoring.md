@@ -84,7 +84,10 @@ budgets). Read them live; this guide does not restate numbers that the contract 
 ### Discovery before a request
 
 1. `graph.get_authoring_context` for the asset: candidate graphs (with canonical GUIDs, kind,
-   mutability, subgraph paths), the current fingerprint, and the published families.
+   mutability, subgraph paths), the current fingerprint, and the published families. Note that its
+   `target` parameter currently resolves only `graph_ref`: asking it to resolve an `implementation`
+   target fails with `UNSUPPORTED_OPERATION`, so take the fingerprint without a target and supply
+   `target.implementation` (`owner_class` + `function_name`) from the declaration you read.
 2. `graph.describe_node` for every family you intend to use. It returns the canonical class, the
    accepted construction parameters and the pins that will exist, including the pins allocated from
    a class selector or an exposed-on-spawn input. Use its names; never guess a pin, an alias or a
