@@ -21,7 +21,7 @@
   },
   "expected": {
     "code": "INVALID_OPERATION",
-    "message_contains": "a cross-graph duplicate identity is not a state this operation may repair",
+    "message_contains": "already exists in graph",
     "enforced_by": "live"
   },
   "live_only": true

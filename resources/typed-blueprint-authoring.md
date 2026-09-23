@@ -54,13 +54,13 @@ Create mode is a separate, unchanged route; this guide covers updates to existin
 | `MIGRATION_REQUIRED` | `mode="update"` arrived without a `patch` object (the removed legacy route is never a fallback). |
 | `MIXED_UPDATE_CONTRACT` | Legacy update fields were supplied beside `patch`. |
 | `INVALID_PATCH` | The facade rejects the patch's own shape: a conflicting `patch.asset_path`, a non-object or empty `patch`, or a flag that is not a JSON boolean. |
-| `INVALID_FIELD` | Native shape validation: an unknown field, a malformed flag type (a boolean is never coerced), a missing required selector, an unmapped reference, a `replace_entry` parent-call target. |
+| `INVALID_FIELD` | Native shape validation: an unknown field, a malformed flag type (a boolean is never coerced), a missing required selector, or an unmapped reference. |
 | `STALE_PRECONDITION` | The fingerprint or the preview token no longer matches the live state; nothing was mutated. |
 | `DIRTY_EDITOR_STATE` | `save=true` against a package that is not clean. |
 | `LIMIT_EXCEEDED` | The request itself exceeds a published bound — node, edge, client-id length, boundary-entry or mapped-pin counts, or the published request size — or a graph-wide scan of the affected graphs exceeded `max_scanned_nodes` while planning a non-prune request; that refusal reports `scan_limit`, `scanned_nodes` and `complete=false`. |
 | `TYPE_MISMATCH` | A transfer boundary mapping is not type-compatible through the destination schema, or its destination pin is an expanded (struct-split) pin the transfer cannot prove. |
 | `PIN_TYPE_MISMATCH` | A pin-to-pin connection inside a patch is disallowed by the target schema during preflight. |
-| `INVALID_OPERATION` | The asset or graph state cannot carry the request: an unverified-rollback block, a cross-graph duplicate identity, a graph that is not the target declaration's graph, a prune entry identity owned by several graphs, or a `prune_island` scan that exhausted the published `max_scanned_nodes` budget — that refusal reports `scan_limit`, `scanned_nodes`, `scanned_links` and `complete=false`, and an incomplete partition is refused instead of being treated as an empty island. |
+| `INVALID_OPERATION` | The asset or graph state cannot carry the request: an ineligible `replace_entry` parent call, an unverified-rollback block, a cross-graph duplicate identity, a graph that is not the target declaration's graph, a prune entry identity owned by several graphs, or a `prune_island` scan that exhausted the published `max_scanned_nodes` budget — that refusal reports `scan_limit`, `scanned_nodes`, `scanned_links` and `complete=false`, and an incomplete partition is refused instead of being treated as an empty island. |
 | `UNSUPPORTED_OPERATION` | An unknown `migration.op`; only the published operations are accepted. |
 
 ### Envelope
@@ -134,9 +134,9 @@ identity in `node_mappings` (`reused_client_ids` names the deterministic nodes i
 A migration preview publishes its bounded inventory so you never have to read a private plan:
 transfers publish `crossing_edges`, `boundary`, `dependencies`, `removal_set`, `internal_edges`,
 `node_count` and both graph GUIDs; `prune_island` publishes a partition (`removable`, `shared`,
-`blocked`, `external_edges`, `complete`, scan counts). Like diagnostics, the informational lists are
-bounded and carry a single omission marker; the `removable` set is published complete because you
-must echo it exactly.
+`blocked_nodes`, `external_edges`, `complete`, scan counts). `blocked` itself remains the Boolean
+asset-block status. Like diagnostics, the informational lists are bounded and carry a single omission
+marker; the `removable` set is published complete because you must echo it exactly.
 
 `replayed_with_absent_source` is published on preview and apply. It is `true` when the source
 locator you named no longer exists and the request was accepted as an idempotent replay of work this
@@ -250,11 +250,13 @@ another graph, or a partial selection (neither a fresh transfer nor a complete r
  "approved_node_guids":["…"]}
 ```
 
-Preview without `approved_node_guids` publishes the partition; apply echoes exactly the `removable`
-set you approved (`awaiting_approval` flips on the apply, `reused` marks an idempotent replay).
+Preview without `approved_node_guids` publishes the partition. Echo exactly its `removable` set in
+the approved intent, **preview that exact intent again**, then apply with its new validation hash:
+approval changes the reviewed request. `awaiting_approval` flips after approval; `reused` marks an
+idempotent replay.
 `complete=false` means the scan budget was exhausted — it never means "empty island". Never send an
 empty approved set, and never substitute disconnect-plus-orphan-deletion for ownership-aware
-pruning: a node the entry does not uniquely own is `shared` or `blocked` and stays.
+pruning: a node the entry does not uniquely own is `shared` or listed in `blocked_nodes` and stays.
 
 ## When something is wrong
 

@@ -12,8 +12,9 @@
       "entry_node_guid": "<live: stale entry node_guid>"
     },
     "pin_map": [
-      {"entry": "input", "from_pin": "<live: stale entry input pin>", "to_pin": "<live: replacement entry input pin>"},
-      {"entry": "output", "from_pin": "<live: stale entry output pin>", "to_pin": "<live: replacement entry output pin>"}
+      {"entry": "output", "from_pin": "OutputDelegate", "to_pin": "OutputDelegate"},
+      {"entry": "output", "from_pin": "<live: stale entry output pin>", "to_pin": "<live: replacement entry output pin>"},
+      {"entry": "output", "from_pin": "Title", "to_pin": "Title"}
     ],
     "remove_shadowing_member": false
   },

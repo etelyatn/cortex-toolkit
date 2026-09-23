@@ -43,7 +43,7 @@ plugin scenario under an Editor lease.
 | `copy-subgraph-intent.json` | migration | Preview of `copy_subgraph` with one explicit boundary mapping. |
 | `move-subgraph-intent.json` | migration | Preview of `move_subgraph`, same selection and boundary shape, different destination graph. |
 | `prune-island-intent.json` | migration | Preview of `prune_island`: the partition, no approved set. |
-| `prune-island-apply.json` | migration | The apply: same graph and entry, plus the caller's echo of the preview's `removable` set. |
+| `prune-island-apply.json` | migration | The apply overlay: same graph and entry, the approved `removable` set, and a token from a fresh preview of that approved intent. |
 | `negative/*.json` | descriptor | Requests that must be refused, with the code, the message fragment and where the refusal is enforced. |
 
 Every migration fixture is a preview (`dry_run=true`) except `prune-island-apply.json`. The apply
@@ -83,9 +83,7 @@ changes between preview and apply.
 | Token | Binds to | Supplied by |
 |---|---|---|
 | `<live: cast target display name>` | The display name half of a `DynamicCast` result pin; the engine names that pin `PN_CastedValuePrefix + <target display name>` (prefix `As`). | `graph.describe_node` for the cast node. |
-| `<live: stale entry input pin>` | An input pin of the stale entry. | `graph.describe_node` / a read. |
 | `<live: stale entry output pin>` | An output pin of the stale entry. | `graph.describe_node` / a read. |
-| `<live: replacement entry input pin>` | The replacement entry's pin the stale input is re-wired to. | `graph.describe_node` for the implementation target. |
 | `<live: replacement entry output pin>` | The replacement entry's pin the stale output is re-wired to. | `graph.describe_node` for the implementation target. |
 | `<live: crossing source pin name>` | The selected-side pin of a crossing edge. | `graph.describe_node` / a read. |
 | `<live: destination pin name>` | The destination-side pin that edge is mapped to. | `graph.describe_node` / a read. |
@@ -149,18 +147,19 @@ values and nothing else changed, so the applied intent is provably the previewed
 
 - **`replace-entry-intent.json`** — the fixture's declared implementation target
   (`/Script/CortexSandbox.CortexGraphAuthoringWidgetBase.PresentTitle`), the stale entry's graph and
-  GUID, and a `pin_map` mapping every visible pin of the replacement terminator exactly once
-  (`remove_shadowing_member: false`, so a same-named Blueprint variable is reported rather than
-  removed). `target` is required here.
+  GUID, and a `pin_map` mapping each mappable entry output (`OutputDelegate`, `then`, `Title`)
+  exactly once (`remove_shadowing_member: false`, so a same-named Blueprint variable is reported
+  rather than removed). `target` is required here.
 - **`copy-subgraph-intent.json`** / **`move-subgraph-intent.json`** — a two-node selection, the
   destination graph, and one boundary mapping per crossing edge. `target` must be absent; the graphs
   are named inside `migration`. `move_subgraph` needs a destination graph different from the source.
 - **`prune-island-intent.json`** — the entry whose island is measured; the preview publishes
-  `removable`, `shared`, `blocked`, `external_edges`, `complete` and the scan counts.
+  `removable`, `shared`, `blocked_nodes`, `external_edges`, `complete` and scan counts; `blocked`
+  remains the Boolean asset-block status.
 - **`prune-island-apply.json`** — the same graph and entry plus
-  `approved_node_guids: [<live: removable set published by the preview>]`. An approved set is never
-  sent empty, and `complete=false` on the preview means the scan budget was exhausted, not that the
-  island is empty.
+  `approved_node_guids: [<live: removable set published by the preview>]`. Since approval changes
+  the intent, preview it again with that exact set and use **that** token for the apply. An approved
+  set is never empty; `complete=false` means the scan budget was exhausted, not an empty island.
 
 ## Negative fixtures
 
@@ -183,7 +182,7 @@ under an Editor lease.
 | `stale-validation-token` | native | `STALE_PRECONDITION` | The token comes from a preview of an earlier state; nothing is mutated. |
 | `expanded-boundary-pin` | native | `TYPE_MISMATCH` | The destination pin is struct-expanded, which the transfer cannot prove. |
 | `cross-graph-duplicate-identity` | native | `INVALID_OPERATION` | The planned destination identity is already owned by another graph. |
-| `parent-call-replace-entry` | native | `INVALID_FIELD` | The implementation target resolves to a native declaration whose `call_kind` is `parent`; `replace_entry` preserves the body and never authors a parent call. |
+| `parent-call-replace-entry` | native | `INVALID_OPERATION` | `call_kind=parent` on `PresentTitle` is refused because it is not a native event; `replace_entry` never authors that parent call. |
 
 ## Expected phases
 
