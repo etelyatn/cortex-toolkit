@@ -25,7 +25,7 @@
     "save": false
   },
   "expected": {
-    "code": "PIN_TYPE_MISMATCH",
+    "code": "TYPE_MISMATCH",
     "message_contains": "is an expanded struct pin, which the transfer cannot prove",
     "enforced_by": "live"
   },

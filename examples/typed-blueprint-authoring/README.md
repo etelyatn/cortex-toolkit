@@ -6,9 +6,13 @@ harness supplies the envelope fields that only the Editor can know, and the frag
 fabricated fingerprint, validation token, GUID or pin that the live contract must decide.
 
 Validation: `python -m unittest discover -s tests -p 'test_typed_blueprint_authoring_guidance.py' -v`
-from the toolkit root. Those checks prove guidance and JSON shape only; they do not prove Unreal
-behaviour. The live bindings they name are exercised by the consuming plugin scenario under an
-Editor lease.
+from the toolkit root. Those checks prove guidance and JSON *shape* only; they do not prove Unreal
+behaviour, and they deliberately carry **no** catalog of families, operations, default tags, limits or
+selectors. A value the check does not know about is not rejected by it: families and selectors are
+**accepted live** by `graph.describe_node` and the native preflight, migration operations by the
+planner, tags by the native pin-defaults owner, and limits by
+`graph.get_authoring_context`. The live bindings these fixtures name are exercised by the consuming
+plugin scenario under an Editor lease.
 
 ## Conventions
 
@@ -177,7 +181,7 @@ under an Editor lease.
 | Case | Surface | Code | Live condition |
 |---|---|---|---|
 | `stale-validation-token` | native | `STALE_PRECONDITION` | The token comes from a preview of an earlier state; nothing is mutated. |
-| `expanded-boundary-pin` | native | `PIN_TYPE_MISMATCH` | The destination pin is struct-expanded, which the transfer cannot prove. |
+| `expanded-boundary-pin` | native | `TYPE_MISMATCH` | The destination pin is struct-expanded, which the transfer cannot prove. |
 | `cross-graph-duplicate-identity` | native | `INVALID_OPERATION` | The planned destination identity is already owned by another graph. |
 | `parent-call-replace-entry` | native | `INVALID_FIELD` | The implementation target resolves to a native declaration whose `call_kind` is `parent`; `replace_entry` preserves the body and never authors a parent call. |
 

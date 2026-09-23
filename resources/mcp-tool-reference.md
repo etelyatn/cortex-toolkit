@@ -96,7 +96,7 @@ Cache TTL is 60 seconds. On expiry, re-send the original command with `limit` to
 
 ### Profile-aware live schema contract
 
-- `profile_operation_schema(profile, domain, command)` — returns a live-editor-backed contract with policy gating (`policy_allowed`), execution shape (`router`/`batch`), retry budget (`budget_remaining`), and restart guidance. Structured editor failures remain nested as `unreal_error: {code, message, details}`, including after retry-budget exhaustion. The default `UMGAuthoring` profile permits `umg`, `graph`, and `core` domains only.
+- `profile_operation_schema(profile, domain, command)` — returns a live-editor-backed contract with policy gating (`policy_allowed`), execution shape (`router`/`batch`), retry budget (`budget_remaining`), and restart guidance. Structured editor failures remain nested as `unreal_error: {code, message, details}`, including after retry-budget exhaustion. The default `UMGAuthoring` profile permits `umg`, `graph`, and `core` domains only. That gating is schema discovery, not call interception: a direct router call is not blocked by the profile, so the effective restriction is whatever filtering the external host applies — report a `policy_allowed: false` response as a stop signal, not as proof that a direct call would fail.
 
 ### Strict router envelope
 

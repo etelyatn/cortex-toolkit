@@ -1,16 +1,13 @@
 """Guidance and fixture checks for the typed Blueprint authoring workflow.
 
-Scope: this module proves toolkit guidance and checked-in JSON shape only. It never contacts the
-Editor and never speaks to the MCP layer, so it cannot prove Unreal behaviour; the live bindings it
-names are exercised by the consuming plugin scenario under an Editor lease.
-
-The published contract has exactly one owner: the connected Editor
-(``graph.get_authoring_context`` / ``graph.describe_node`` / ``core.get_operation_schema``) and its
-native implementation in ``Plugins/UnrealCortex/Source/CortexGraph``. ``PUBLISHED_FAMILIES`` and
-``PUBLISHED_MIGRATION_OPS`` exist only so a checked-in fixture cannot silently invent a node family
-or a migration operation. They are check guard rails, not a registry the toolkit uses to build
-calls: no alias table, limit table or selector catalog is reproduced here, and the guidance defers
-to the live schema for all of them.
+Scope: this module proves toolkit guidance and checked-in JSON *shape* only. It never contacts the
+Editor and never speaks to the MCP layer, so it cannot prove Unreal behaviour. In particular it does
+**not** carry a catalog of supported families, migration operations, default tags, limits or
+selectors: those are published by the live contract (``graph.get_authoring_context`` /
+``graph.describe_node`` / ``core.get_operation_schema``, owned by
+``Plugins/UnrealCortex/Source/CortexGraph``), and a value this check does not know about is validated
+by that contract, not rejected here. Supported-value acceptance for the fixtures below is exercised
+live by the consuming plugin scenario under an Editor lease.
 """
 
 from __future__ import annotations
@@ -25,33 +22,6 @@ ROOT = Path(__file__).resolve().parents[1]
 GUIDE = ROOT / "resources/typed-blueprint-authoring.md"
 EXAMPLES = ROOT / "examples/typed-blueprint-authoring"
 README = EXAMPLES / "README.md"
-
-# Slice of the graph authoring contract the checked-in fixtures rely on.
-PUBLISHED_FAMILIES = (
-    "CallFunction",
-    "VariableGet",
-    "VariableSet",
-    "Self",
-    "DynamicCast",
-    "ConstructObject",
-    "Event",
-)
-PUBLISHED_MIGRATION_OPS = ("replace_entry", "copy_subgraph", "move_subgraph", "prune_island")
-TAGGED_DEFAULT_KINDS = (
-    "class",
-    "soft_class",
-    "object",
-    "soft_object",
-    "text",
-    "bool",
-    "int",
-    "real",
-    "float",
-    "string",
-    "name",
-    "enum",
-    "null",
-)
 
 FRAGMENT_FIELDS = {
     "asset_path",
@@ -120,9 +90,12 @@ def _validate_tagged_default(pin_name: str, default, context: str) -> None:
             f"{context}.defaults['{pin_name}'] must not express an edge as a default ('{key}')",
         )
     kind = default.get("kind")
+    # The accepted tag values are published by the live contract (a tagged default is validated by
+    # the native pin-defaults owner); this check only requires a non-empty tag and forbids an edge
+    # hidden inside a default.
     _require(
-        isinstance(kind, str) and kind in TAGGED_DEFAULT_KINDS,
-        f"{context}.defaults['{pin_name}'] needs a published 'kind' tag, got {kind!r}",
+        isinstance(kind, str) and kind,
+        f"{context}.defaults['{pin_name}'] needs a non-empty 'kind' tag, got {kind!r}",
     )
     for json_path, text in _strings(default, f"{context}.defaults['{pin_name}']"):
         _require("$self" not in text, f"{json_path} must not use a magic self reference")
@@ -145,6 +118,12 @@ def _validate_endpoint(endpoint, context: str) -> None:
 
 
 def _validate_migration_shell(fragment: dict, migration: dict) -> None:
+    """Apply the shell rules this check knows, keyed by the shells the contract publishes.
+
+    An operation this check does not know is left to the live contract: it is not rejected here, so a
+    newly published operation never invalidates a checked-in fixture (its acceptance is validated
+    live). The rules below are structural facts about the known shells, not a supported-value list.
+    """
     op = migration["op"]
     source = migration.get("source")
     _require(isinstance(source, dict), "migration.source must be an object")
@@ -189,7 +168,8 @@ def _validate_migration_shell(fragment: dict, migration: dict) -> None:
                 "an approved set is the caller's echo of the preview's removable list; it is never sent empty",
             )
         return
-    raise ShapeError(f"migration.op {op!r} is not a published migration operation")
+    # An unknown operation is accepted structurally and validated live: this check cannot know which
+    # operations a newer plugin publishes.
 
 
 def validate_intent_fragment(fragment: dict) -> None:
@@ -229,7 +209,11 @@ def validate_intent_fragment(fragment: dict) -> None:
         client_id = node.get("client_id")
         _require(CLIENT_ID.match(client_id or "") is not None, f"node.client_id {client_id!r} is invalid")
         _require(client_id != "entry", "node.client_id 'entry' is reserved for the implementation entry")
-        _require(node.get("node_class") in PUBLISHED_FAMILIES, f"node_class {node.get('node_class')!r} is not published")
+        node_class = node.get("node_class")
+        _require(
+            isinstance(node_class, str) and node_class,
+            f"node '{client_id}' needs a node_class; the accepted families are published live",
+        )
         if "params" in node:
             _require(isinstance(node["params"], dict), f"node '{client_id}' params must be an object")
         if "defaults" in node:
@@ -274,13 +258,12 @@ def validate_intent_fragment(fragment: dict) -> None:
         for array_field in ("boundary", "pin_map", "approved_node_guids"):
             if array_field in migration:
                 _require(isinstance(migration[array_field], list), f"migration.{array_field} must be an array")
-        if migration["op"] in PUBLISHED_MIGRATION_OPS:
-            for shell_field in ("nodes", "connections", "pin_updates"):
-                _require(
-                    fragment.get(shell_field, []) == [],
-                    f"a migration request carries no authoring '{shell_field}' array",
-                )
-            _validate_migration_shell(fragment, migration)
+        for shell_field in ("nodes", "connections", "pin_updates"):
+            _require(
+                fragment.get(shell_field, []) == [],
+                f"a migration request carries no authoring '{shell_field}' array",
+            )
+        _validate_migration_shell(fragment, migration)
 
 
 def validate_no_fabricated_live_value(path: Path) -> list:
@@ -354,7 +337,7 @@ class TypedBlueprintGuidanceTests(unittest.TestCase):
                 with self.assertRaises(ShapeError):
                     validate_intent_fragment({"nodes": [node], "connections": []})
 
-    def test_adapter_intent_matches_the_published_intent_shape(self):
+    def test_adapter_intent_matches_the_intent_shape(self):
         intent = json.loads((EXAMPLES / "adapter-intent.json").read_text(encoding="utf-8"))
         validate_intent_fragment(intent)
         self.assertNotIn("target", intent)
@@ -487,7 +470,7 @@ def _negative(name: str) -> dict:
 
 
 class TypedBlueprintFixtureTests(unittest.TestCase):
-    def test_p1_migration_fixtures_match_their_published_shells(self):
+    def test_p1_migration_fixtures_match_their_shell_shapes(self):
         for name, op in (
             ("replace-entry-intent.json", "replace_entry"),
             ("copy-subgraph-intent.json", "copy_subgraph"),
@@ -498,13 +481,59 @@ class TypedBlueprintFixtureTests(unittest.TestCase):
                 fragment = _fixture(name)
                 validate_intent_fragment(fragment)
                 self.assertEqual(fragment["migration"]["op"], op)
-                self.assertIn(op, PUBLISHED_MIGRATION_OPS)
                 self.assertIs(fragment["dry_run"], True)
                 self.assertIs(fragment["save"], False)
                 if op in ("copy_subgraph", "move_subgraph", "prune_island"):
                     self.assertNotIn("target", fragment)
                 else:
                     self.assertIn("implementation", fragment["target"])
+
+    def test_the_check_accepts_values_only_the_live_contract_knows(self):
+        """A published value this check does not know must not invalidate a checked-in fixture."""
+        future = {
+            "nodes": [
+                {"client_id": "later", "node_class": "SomeFutureFamily",
+                 "defaults": {"Value": {"kind": "some_future_tag"}}},
+            ],
+            "connections": [],
+        }
+        validate_intent_fragment(future)
+        validate_intent_fragment(
+            {
+                "migration": {"op": "some_future_operation", "source": {"graph_ref": {"graph_guid": "<live: graph>"}}},
+                "nodes": [],
+                "connections": [],
+                "pin_updates": [],
+            }
+        )
+        readme = (EXAMPLES / "README.md").read_text(encoding="utf-8")
+        self.assertIn("accepted live", readme, "the fixtures must say where supported values are accepted")
+
+    def test_transfer_boundary_refusals_use_the_engine_type_mismatch_code(self):
+        descriptor = _negative("expanded-boundary-pin.json")
+        self.assertEqual(
+            descriptor["expected"]["code"],
+            "TYPE_MISMATCH",
+            "the transfer planner returns TYPE_MISMATCH for a boundary pin, not PIN_TYPE_MISMATCH",
+        )
+        guide = _read("resources/typed-blueprint-authoring.md")
+        self.assertIn("| `TYPE_MISMATCH` |", guide, "the guide must document the real code")
+        boundary_row = re.search(r"^\| `TYPE_MISMATCH` \|.*$", guide, re.M)
+        self.assertIn("boundary", boundary_row.group(0))
+
+    def test_scan_budget_exhaustion_is_documented_as_an_invalid_operation(self):
+        guide = _read("resources/typed-blueprint-authoring.md")
+        limit_row = re.search(r"^\| `LIMIT_EXCEEDED` \|.*$", guide, re.M)
+        self.assertIsNotNone(limit_row)
+        self.assertNotIn("scan", limit_row.group(0), "an exhausted prune scan is not a LIMIT_EXCEEDED refusal")
+        invalid_row = re.search(r"^\| `INVALID_OPERATION` \|.*$", guide, re.M)
+        self.assertIsNotNone(invalid_row)
+        self.assertIn("scan", invalid_row.group(0))
+        self.assertIn("complete=false", invalid_row.group(0))
+        pin_row = re.search(r"^\| `PIN_TYPE_MISMATCH` \|.*$", guide, re.M)
+        self.assertIsNotNone(pin_row)
+        self.assertNotIn("expanded", pin_row.group(0))
+        self.assertNotIn("boundary", pin_row.group(0))
 
     def test_transfer_fixtures_map_every_crossing_edge_with_a_pin_pair(self):
         for name in ("copy-subgraph-intent.json", "move-subgraph-intent.json"):
