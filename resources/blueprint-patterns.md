@@ -622,11 +622,10 @@ blueprint_cmd(command="graph_search_nodes", params={
 # Results inside composites include "subgraph_path": "MyComposite"
 ```
 
-**Authoring inside a composite** — a composite's graph is a target like any other. Read it with
-`graph_cmd(command="get_subgraph", params={"include_subgraphs": true, ...})` to learn its tunnel
-boundary node ids, and take the target locator from `graph.get_authoring_context`, whose composite
-choices publish the composite's **own** `graph_guid` together with its root-relative
-`subgraph_path`:
+**Authoring inside a composite** — a composite's graph is a target like any other. Read the bound
+graph with `graph.get_subgraph`, then take its locator from `graph.get_authoring_context`. Each
+composite choice publishes the child's own `graph_guid`, `graph_kind`, and root-relative
+`subgraph_path`; pass those values through unchanged:
 
 ```python
 # Step 1: create the Blueprint and add the Composite node to EventGraph
@@ -636,14 +635,34 @@ blueprint_compose(
         {"name": "BeginPlay", "class": "Event", "params": {"function_name": "Actor.ReceiveBeginPlay"}},
         {"name": "MyComposite", "class": "Composite"},
     ],
-    connections=[{"from": "BeginPlay.then", "to": "MyComposite.execute"}]
+    connections=[{"from": "BeginPlay.then", "to": "MyComposite.execute"}],
 )
 
-# Step 2: preview one patch whose target is the composite's subgraph (one target per request).
-# graph_guid is the COMPOSITE's own GUID from graph.get_authoring_context, not the EventGraph's.
+# Step 2: get the canonical asset object path and discover the child graph locator.
+asset_path = "/Game/Blueprints/BP_CompositeActor.BP_CompositeActor"
+authoring_context = graph_cmd(command="get_authoring_context", params={"asset_path": asset_path})
+root_choice = next(
+    choice for choice in authoring_context["graph_choices"]
+    if choice["graph_kind"] == "ubergraph" and not choice.get("subgraph_path")
+)
+composite_choice = next(
+    choice for choice in authoring_context["graph_choices"] if choice.get("subgraph_path")
+)
+composite_graph = graph_cmd(command="get_subgraph", params={
+    "asset_path": asset_path,
+    "graph_name": root_choice["graph_name"],
+    "subgraph_path": composite_choice["subgraph_path"],
+})
+graph_ref = {
+    "graph_guid": composite_choice["graph_guid"],
+    "graph_kind": composite_choice["graph_kind"],
+    "subgraph_path": composite_choice["subgraph_path"],
+}
+
+# Use the actual tunnel-entry node GUID from composite_graph; its execution output pin is "then".
 graph_cmd(command="apply_patch", params={
-    "asset_path": "/Game/Blueprints/BP_CompositeActor",
-    "target": {"graph_ref": {"graph_guid": composite_graph_guid, "subgraph_path": "MyComposite"}},
+    "asset_path": asset_path,
+    "target": {"graph_ref": graph_ref},
     "patch_id": "<caller-generated UUID>",
     "expected_fingerprint": authoring_context["fingerprint"],
     "nodes": [
@@ -652,7 +671,8 @@ graph_cmd(command="apply_patch", params={
          "defaults": {"InString": {"kind": "string", "value": "Inside composite!"}}},
     ],
     "connections": [
-        {"from": {"node_guid": "<tunnel entry node guid>"}, "to": {"client_id": "print_msg", "pin": "execute"}}
+        {"from": {"node_guid": "<live: tunnel entry node guid>", "pin": "then"},
+         "to": {"client_id": "print_msg", "pin": "execute"}},
     ],
     "pin_updates": [],
     "dry_run": True, "compile": True, "save": False,

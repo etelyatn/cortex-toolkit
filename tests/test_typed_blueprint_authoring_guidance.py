@@ -510,8 +510,49 @@ class TypedBlueprintRoutingTests(unittest.TestCase):
                 self.assertIn("blocked", text.lower())
         self.assertIn("disconnect-plus-orphan", executor, "the raw cleanup substitute must be explicitly refused")
 
+
+
+    def test_composite_example_uses_discovered_target_and_complete_endpoints(self):
+        patterns = _read("resources/blueprint-patterns.md")
+        section = patterns.split("**Authoring inside a composite**", 1)[1].split("### Review Blueprint", 1)[0]
+        example = section.split("```python", 1)[1].split("```", 1)[0]
+
+        self.assertIn(
+            'asset_path = "/Game/Blueprints/BP_CompositeActor.BP_CompositeActor"',
+            example,
+            "asset_path uses the canonical Blueprint object path",
+        )
+        self.assertIn('authoring_context = graph_cmd(command="get_authoring_context"', example)
+        self.assertIn('"graph_name": root_choice["graph_name"]', example)
+        self.assertIn("root_choice = next(", example)
+        self.assertIn(
+            'if choice["graph_kind"] == "ubergraph" and not choice.get("subgraph_path")',
+            example,
+        )
+        self.assertIn("composite_choice = next(", example)
+        self.assertIn(
+            'choice for choice in authoring_context["graph_choices"] if choice.get("subgraph_path")',
+            example,
+            "the target choice must come from the live context",
+        )
+        for field in ("graph_guid", "graph_kind", "subgraph_path"):
+            self.assertIn(f'"{field}": composite_choice["{field}"]', example)
+        self.assertIn('"target": {"graph_ref": graph_ref}', example)
+        self.assertIn('composite_graph = graph_cmd(command="get_subgraph"', example)
+        self.assertIn(
+            '"from": {"node_guid": "<live: tunnel entry node guid>", "pin": "then"}',
+            example,
+            "the tunnel source is a complete endpoint",
+        )
+        self.assertIn(
+            '"to": {"client_id": "print_msg", "pin": "execute"}',
+            example,
+            "the destination is a complete endpoint",
+        )
+
     def test_guide_is_reachable_from_the_readme(self):
         self.assertIn("typed-blueprint-authoring", _read("README.md"))
+
 
 
 def _fixture(name: str) -> dict:
