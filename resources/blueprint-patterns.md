@@ -623,9 +623,10 @@ blueprint_cmd(command="graph_search_nodes", params={
 ```
 
 **Authoring inside a composite** — a composite's graph is a target like any other. Read it with
-`graph_cmd(command="get_subgraph", params={"include_subgraphs": true, ...})` to learn its
-`subgraph_path` and its tunnel boundary node ids, then use the guarded patch
-(`resources/typed-blueprint-authoring.md`) with that `subgraph_path` in `target.graph_ref`:
+`graph_cmd(command="get_subgraph", params={"include_subgraphs": true, ...})` to learn its tunnel
+boundary node ids, and take the target locator from `graph.get_authoring_context`, whose composite
+choices publish the composite's **own** `graph_guid` together with its root-relative
+`subgraph_path`:
 
 ```python
 # Step 1: create the Blueprint and add the Composite node to EventGraph
@@ -638,10 +639,11 @@ blueprint_compose(
     connections=[{"from": "BeginPlay.then", "to": "MyComposite.execute"}]
 )
 
-# Step 2: preview one patch whose target is the composite's subgraph (one target per request)
+# Step 2: preview one patch whose target is the composite's subgraph (one target per request).
+# graph_guid is the COMPOSITE's own GUID from graph.get_authoring_context, not the EventGraph's.
 graph_cmd(command="apply_patch", params={
     "asset_path": "/Game/Blueprints/BP_CompositeActor",
-    "target": {"graph_ref": {"graph_guid": graph_guid, "subgraph_path": "MyComposite"}},
+    "target": {"graph_ref": {"graph_guid": composite_graph_guid, "subgraph_path": "MyComposite"}},
     "patch_id": "<caller-generated UUID>",
     "expected_fingerprint": authoring_context["fingerprint"],
     "nodes": [
@@ -662,12 +664,11 @@ Then send the identical intent with `dry_run=False` and the preview's `validatio
 **Safety rules:**
 - Tunnel boundary nodes (`is_tunnel_boundary: true`) are structural — never delete or rewire them
 - Composite names must not contain dots (the path separator)
-- The v1 patch target is `graph_ref` only; `subgraph_path` selects the composite inside it
+- The v1 patch target is `graph_ref` only: `graph_guid` names the target graph itself and `subgraph_path`, when supplied, must equal that target's root-relative path. Pass the locator you discovered through unchanged — substituting another graph's GUID, or a root GUID with a child's path, is refused (`INVALID_FIELD`)
 - Each request targets a single graph or composite level — preview and apply twice to touch two
 
 **Error codes:**
-- `SUBGRAPH_NOT_FOUND` — no composite with that name found in the graph
-- `SUBGRAPH_DEPTH_EXCEEDED` — path exceeds the 5-level depth limit
+- `SUBGRAPH_NOT_FOUND` / `SUBGRAPH_DEPTH_EXCEEDED` — from the read/inspection route (`graph_get_subgraph`, name-plus-path); the guarded patch route instead refuses an unmatched target identity with `GRAPH_NOT_FOUND` and a mismatched GUID/path pair with `INVALID_FIELD`
 
 ### Review Blueprint
 ```

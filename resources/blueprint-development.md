@@ -310,7 +310,7 @@ graph_get_subgraph(
 
 - **Tunnel boundary nodes** (`is_tunnel_boundary: true`) are structural entry/exit nodes — **do not delete or rewire them**. They represent the composite's execution and data pin interface to the outer graph. Use `graph_get_subgraph` to inspect their pins before connecting new nodes to the execution flow inside a composite.
 - **Composite names must not contain dots** (dots are the path separator).
-- **`subgraph_path` cannot be used with `blueprint_compose(mode="create")`** — the Blueprint does not exist yet. Authoring inside a composite is existing-asset work: use the guarded patch workflow in `resources/typed-blueprint-authoring.md` with the composite's `subgraph_path` in `target.graph_ref`.
+- **`subgraph_path` cannot be used with `blueprint_compose(mode="create")`** — the Blueprint does not exist yet. Authoring inside a composite is existing-asset work: use the guarded patch workflow in `resources/typed-blueprint-authoring.md` with the composite's `subgraph_path` in `target.graph_ref`, whose `graph_guid` must be that composite's **own** GUID (not the outer graph's) as `graph.get_authoring_context` publishes it.
 - **Each request targets one subgraph** — to change both the top-level graph and a composite, preview and apply twice: once for the top-level target and once for the composite's `subgraph_path`. Never mix two targets in one patch.
 
 ### Error Codes
