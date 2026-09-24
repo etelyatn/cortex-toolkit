@@ -151,7 +151,7 @@ impact_analysis(
 
 Read commands (`graph_get_subgraph`, `graph_get_subgraph`, `graph_search_nodes`) accept a `compact` boolean (default `true`). See "Compact vs Verbose Graph Reads" above.
 
-**Whole-graph/custom-event removal:** use `blueprint_cmd(command="remove_graph")` with preview then apply; the preview's `expected_fingerprint` and `expected_validation_hash` guard the apply. This route is distinct from `graph.apply_patch`; see the [MCP tool reference](mcp-tool-reference.md#blueprint).
+**Whole-graph/custom-event removal:** use `blueprint_cmd(command="remove_graph")` with preview then apply; pass the preview response's `fingerprint_before` and `validation_hash` as the apply request's `expected_fingerprint` and `expected_validation_hash`, respectively. This route is distinct from `graph.apply_patch`; see the [MCP tool reference](mcp-tool-reference.md#blueprint).
 
 **graph_add_node node types** (use short name or full `UK2Node_*` name):
 
