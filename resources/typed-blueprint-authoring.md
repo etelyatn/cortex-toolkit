@@ -58,10 +58,10 @@ Create mode is a separate, unchanged route; this guide covers updates to existin
 | `INVALID_FIELD` | Native shape validation: an unknown field, a malformed flag type (a boolean is never coerced), a missing required selector, or an unmapped reference. |
 | `STALE_PRECONDITION` | The fingerprint or the preview token no longer matches the live state; nothing was mutated. |
 | `DIRTY_EDITOR_STATE` | `save=true` against a package that is not clean. |
-| `LIMIT_EXCEEDED` | A published request bound is exceeded, a non-prune graph scan exceeds `max_scanned_nodes`, or the bounded prune boundary refuses an incomplete/oversized preview or prospective apply. Preview refusals report `approval_complete=false`, `response_size_chars`, `max_response_chars`, `removable_count` and `approved_count`; prospective-apply refusals report `approval_complete=false`, `prospective_apply_size_chars`, `max_response_chars`, `removable_count` and `approved_count`. |
+| `LIMIT_EXCEEDED` | A published request bound is exceeded, a non-prune graph scan exceeds `max_scanned_nodes`, or the MCP prune response-capacity boundary refuses an oversized or incomplete in-band preview or an oversized prospective apply. Preview response-capacity refusals report `approval_complete=false`, `response_size_chars`, `max_response_chars`, `removable_count` and `approved_count`; prospective-apply response-capacity refusals report `approval_complete=false`, `prospective_apply_size_chars`, `max_response_chars`, `removable_count` and `approved_count`. |
 | `TYPE_MISMATCH` | A transfer boundary mapping is not type-compatible through the destination schema, or its destination pin is an expanded (struct-split) pin the transfer cannot prove. |
 | `PIN_TYPE_MISMATCH` | A pin-to-pin connection inside a patch is disallowed by the target schema during preflight. |
-| `INVALID_OPERATION` | The asset or graph state cannot carry the request: an ineligible `replace_entry` parent call, an unverified-rollback block, a cross-graph duplicate identity, a graph that is not the target declaration's graph, a prune entry identity owned by several graphs, or a `prune_island` scan that exhausted the published `max_scanned_nodes` budget — that refusal reports `scan_limit`, `scanned_nodes`, `scanned_links` and `complete=false`, and an incomplete partition is refused instead of being treated as an empty island. |
+| `INVALID_OPERATION` | The asset or graph state cannot carry the request: an ineligible `replace_entry` parent call, an unverified-rollback block, a cross-graph duplicate identity, a graph that is not the target declaration's graph, a prune entry identity owned by several graphs, or native prune scan exhaustion beyond `max_scanned_nodes`. Native scan exhaustion reports `scan_limit`, `scanned_nodes`, `scanned_links` and `complete=false`; this is distinct from an MCP response-capacity refusal, and the incomplete partition is never treated as an empty island. |
 | `UNSUPPORTED_OPERATION` | An unknown `migration.op`; only the published operations are accepted. |
 
 ### Envelope
@@ -223,10 +223,14 @@ The `graph.apply_patch` profile publishes the MCP-owned
 not define a prune node-count cap.
 
 A prune preview is complete-or-refuse: MCP accepts it only when native `complete=true` and the
-serialized preview fits the response budget. A capacity or incomplete-preview refusal returns
-`approval_complete=false`, `response_size_chars`, `max_response_chars`, `removable_count` and
-`approved_count`; the refusal envelope itself fits the same response budget. An incomplete native
-scan remains incomplete and is never treated as an empty or approvable partition.
+serialized preview fits the response budget. A response-capacity refusal returns `LIMIT_EXCEEDED`
+for an oversized or incomplete in-band preview, with `approval_complete=false`, `response_size_chars`,
+`max_response_chars`, `removable_count` and `approved_count`; the refusal envelope itself fits the
+same response budget.
+A native scan exhaustion returns `INVALID_OPERATION` with `scan_limit`, `scanned_nodes`,
+`scanned_links` and `complete=false`. That is a native traversal refusal, not a response-capacity
+refusal, and it does not use the response-capacity refusal fields. In either case, an incomplete
+partition is never treated as an empty or approvable island.
 
 For a prune apply, the MCP boundary performs a pre-mutation, non-mutating native preflight.
 The preflight uses `dry_run=true` and `save=false`, omits `expected_validation_hash`, and does not

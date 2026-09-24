@@ -511,6 +511,26 @@ class TypedBlueprintRoutingTests(unittest.TestCase):
         self.assertIn("bounded complete-or-refuse mcp prune route is implemented", readme)
         self.assertIn("oversized apply is refused before mutation", readme)
 
+    def test_native_scan_refusal_is_distinct_from_response_capacity_refusal(self):
+        guide = _read("resources/typed-blueprint-authoring.md")
+        rows = guide.splitlines()
+        limit_row = next(row for row in rows if row.startswith("| `LIMIT_EXCEEDED`"))
+        invalid_operation_row = next(row for row in rows if row.startswith("| `INVALID_OPERATION`"))
+        self.assertIn("response-capacity", limit_row.casefold())
+        self.assertNotIn("native scan exhaustion", limit_row.casefold())
+        self.assertIn("non-prune graph scan", limit_row.casefold())
+        self.assertIn("native scan exhaustion", invalid_operation_row.casefold())
+        for field in ("scan_limit", "scanned_nodes", "scanned_links", "`complete=false`"):
+            with self.subTest(field=field):
+                self.assertIn(field, invalid_operation_row)
+
+        bounded_section = guide.split("### Bounded prune response and apply preflight", 1)[1]
+        bounded_section = bounded_section.split("### Lossless large-island inventory retrieval remains unsupported", 1)[0]
+        bounded_section = " ".join(bounded_section.split())
+        self.assertIn("response-capacity refusal returns `LIMIT_EXCEEDED`", bounded_section)
+        self.assertIn("native scan exhaustion returns `INVALID_OPERATION`", bounded_section)
+        self.assertIn("not a response-capacity refusal", bounded_section)
+
     def test_widget_graph_authoring_is_routed_out_of_the_stop_on_error_batch(self):
         text = _read("skills/cortex-umg/SKILL.md")
         self.assertIn("typed-blueprint-authoring", text)
