@@ -31,8 +31,9 @@ rebuild/reload path. Never fall back to `core_cmd(batch)` composition, to the re
 `blueprint_compose` update batch, to `run_python`, or to raw describe/add/connect calls to reach the
 same mutation.
 
-`graph.apply_patch` is a standalone command: it is **not nestable inside a rollback-enabled Core
-batch**, because an outer batch cannot undo its compile or its save boundary. Call it directly
+`graph.apply_patch` is a standalone command: every `core_cmd(batch_query)` rejects it before any
+subcommand executes, regardless of rollback settings. Unrelated batches remain available. The patch
+owns its own compile and save boundary; an outer batch cannot undo either. Call it directly
 through `graph_cmd(command="apply_patch", params={...})`, or through
 `blueprint_compose(mode="update", asset_path=..., patch={...})`, which forwards exactly one reviewed
 envelope and owns the envelope `asset_path`:
@@ -57,10 +58,10 @@ Create mode is a separate, unchanged route; this guide covers updates to existin
 | `INVALID_FIELD` | Native shape validation: an unknown field, a malformed flag type (a boolean is never coerced), a missing required selector, or an unmapped reference. |
 | `STALE_PRECONDITION` | The fingerprint or the preview token no longer matches the live state; nothing was mutated. |
 | `DIRTY_EDITOR_STATE` | `save=true` against a package that is not clean. |
-| `LIMIT_EXCEEDED` | The request itself exceeds a published bound — node, edge, client-id length, boundary-entry or mapped-pin counts, or the published request size — or a graph-wide scan of the affected graphs exceeded `max_scanned_nodes` while planning a non-prune request; that refusal reports `scan_limit`, `scanned_nodes` and `complete=false`. |
+| `LIMIT_EXCEEDED` | A published request bound is exceeded, a non-prune graph scan exceeds `max_scanned_nodes`, or the MCP prune response-capacity boundary refuses an oversized or incomplete in-band preview or an oversized prospective apply. Preview response-capacity refusals report `approval_complete=false`, `response_size_chars`, `max_response_chars`, `removable_count` and `approved_count`; prospective-apply response-capacity refusals report `approval_complete=false`, `prospective_apply_size_chars`, `max_response_chars`, `removable_count` and `approved_count`. |
 | `TYPE_MISMATCH` | A transfer boundary mapping is not type-compatible through the destination schema, or its destination pin is an expanded (struct-split) pin the transfer cannot prove. |
 | `PIN_TYPE_MISMATCH` | A pin-to-pin connection inside a patch is disallowed by the target schema during preflight. |
-| `INVALID_OPERATION` | The asset or graph state cannot carry the request: an ineligible `replace_entry` parent call, an unverified-rollback block, a cross-graph duplicate identity, a graph that is not the target declaration's graph, a prune entry identity owned by several graphs, or a `prune_island` scan that exhausted the published `max_scanned_nodes` budget — that refusal reports `scan_limit`, `scanned_nodes`, `scanned_links` and `complete=false`, and an incomplete partition is refused instead of being treated as an empty island. |
+| `INVALID_OPERATION` | The asset or graph state cannot carry the request: an ineligible `replace_entry` parent call, an unverified-rollback block, a cross-graph duplicate identity, a graph that is not the target declaration's graph, a prune entry identity owned by several graphs, or native prune scan exhaustion beyond `max_scanned_nodes`. A graph-wide preflight scan refusal reports `scan_limit`, `scanned_nodes` and `complete=false`; an island-partition scan exhaustion also reports `scanned_links`. Both are native `INVALID_OPERATION` refusals, distinct from MCP response-capacity refusal; an incomplete partition is never treated as an empty island. |
 | `UNSUPPORTED_OPERATION` | An unknown `migration.op`; only the published operations are accepted. |
 
 ### Envelope
@@ -131,18 +132,15 @@ A preview never mutates, never compiles and never saves. It reports `changed`, `
 before/after fingerprint and dirty state, the planned `locators`, and every planned or reused
 identity in `node_mappings` (`reused_client_ids` names the deterministic nodes it would reuse).
 
-A migration preview publishes its bounded inventory so you never have to read a private plan:
-transfers publish `crossing_edges`, `boundary`, `dependencies`, `removal_set`, `internal_edges`,
-`node_count` and both graph GUIDs; `prune_island` publishes a partition (`removable`, `shared`,
-`blocked_nodes`, `external_edges`, `complete`, scan counts). `blocked` itself remains the Boolean
-asset-block status. Like diagnostics, the informational lists are bounded and carry a single omission
-marker, and the response as a whole is bounded by the MCP layer's response budget
-(`resources/mcp-tool-reference.md`): an inventory larger than that budget arrives truncated
-(`_truncated`) or is replaced with `RESPONSE_TOO_LARGE`, so no response is promised to deliver every
-`removable` GUID. Native scan completeness — `complete`, `scan_limit`, `scanned_nodes`,
-`scanned_links` and the published `max_scanned_nodes` — describes the traversal of the asset only; it
-is neither MCP response completeness nor MCP response capacity. See **Large-island prune is
-unsupported at this candidate** below.
+Migration previews publish a bounded inventory: transfers report `crossing_edges`, `boundary`,
+`dependencies`, `removal_set`, `internal_edges`, `node_count` and graph GUIDs; `prune_island` reports
+its partition and scan counts. Prune approval uses a dedicated complete-or-refuse boundary, not
+generic list truncation: the complete native preview is accepted only when its serialized response
+fits `max_response_chars=40000`. Otherwise the caller receives a bounded refusal, never a partial
+`removable` approval set. A native graph-wide preflight scan refusal reports `scan_limit`,
+`scanned_nodes` and `complete=false`; an island-partition scan exhaustion also reports `scanned_links`.
+These fields describe native traversal, not MCP response capacity. See **Bounded prune response and apply
+preflight** below for refusal fields and the exact apply sequence.
 
 `replayed_with_absent_source` is published on preview and apply. It is `true` when the source
 locator you named no longer exists and the request was accepted as an idempotent replay of work this
@@ -218,30 +216,61 @@ One operation per request, inside `migration`, never mixed with the authoring sh
 identities come from the live context and reads; the shapes below are the contract, not a substitute
 for `describe_node` and the schema.
 
-### Large-island prune is unsupported at this candidate
+### Bounded prune response and apply preflight
 
-`max_scanned_nodes`, `scan_limit`, `scanned_nodes`, `scanned_links` and `complete` bound the native
-traversal of the asset. They say nothing about whether the MCP response can deliver the inventory: the
-MCP layer has its own response budget (`resources/mcp-tool-reference.md`), above which the largest
-list is truncated with `_truncated` metadata or the whole response is replaced with
-`RESPONSE_TOO_LARGE`. A large island therefore cannot be pruned through MCP at this reviewed
-candidate — a preview can deliver an incomplete `removable` set, and an apply can lose its phase
-statuses, fingerprints and durable locators, including the outcome of a mutation that already ran.
+The `graph.apply_patch` profile publishes the MCP-owned
+`mcp_limits.max_response_chars=40000`. This is a delivery limit, not a native request parameter.
+`max_scanned_nodes` remains the native traversal bound; it is not a response-capacity limit and does
+not define a prune node-count cap.
 
-**The fail-closed response-bound guard is NOT implemented.** There is no preflight size check, no
-`approval_complete` refusal and no outcome-preserving compact response at this candidate. The
-large-island contract is owned by
-[etelyatn/CortexSandbox#102](https://github.com/etelyatn/CortexSandbox/issues/102); until it lands,
-treat a large-island MCP prune as unsupported, never attempt it through MCP, and never invent a
-node-count cap in its place.
+A prune preview is complete-or-refuse: MCP accepts it only when native `complete=true` and the
+serialized preview fits the response budget. A response-capacity refusal returns `LIMIT_EXCEEDED`
+for an oversized or incomplete in-band preview, with `approval_complete=false`, `response_size_chars`,
+`max_response_chars`, `removable_count` and `approved_count`; the refusal envelope itself fits the
+same response budget.
+A native graph-wide scan exhaustion returns `INVALID_OPERATION` with `scan_limit`, `scanned_nodes`
+and `complete=false` before the island-partition scan. An island-partition scan exhaustion also
+reports `scanned_links`. Both are native traversal refusals, not response-capacity refusals, and
+neither uses the response-capacity refusal fields. In either case, an incomplete partition is never
+treated as an empty or approvable island.
 
-**Stop and reconcile** whenever an inventory or an outcome is truncated, missing or ambiguous: a
-`_truncated` marker, `RESPONSE_TOO_LARGE`, a lost or partial response, a `removable` set you cannot
-prove is the preview's complete set, or an apply whose phase statuses did not arrive. Never proceed on
-a partial approval set, never rebuild missing GUIDs from a read to force an approval, and never re-send
-the mutation. Read the current state, reconcile the identities already issued, and re-preview. Reading
-the response does not prevent the mutation: when the outcome is lost the mutation may already have
-happened, so a response is a report, never a pre-mutation gate.
+For a prune apply, the MCP boundary performs a pre-mutation, non-mutating native preflight.
+The preflight uses `dry_run=true` and `save=false`, omits `expected_validation_hash`, and does not
+compile or save. It retains `expected_fingerprint` and the caller's approved GUIDs. The fresh preview's
+`validation_hash` must match the caller's `expected_validation_hash`, and the native approved GUID set
+must exactly match the nonempty set the caller approved. MCP estimates the prospective apply response;
+if it exceeds `max_response_chars`, it returns `LIMIT_EXCEEDED` with `prospective_apply_size_chars`
+before dispatching the mutation. The bounded refusal envelope also fits the budget. If it fits, MCP sends
+the mutation once, and native code revalidates the current state.
+
+Use this approval sequence:
+
+1. Request the partition preview and receive the complete `removable` inventory.
+2. Approve that exact GUID set, then request an exact approved-set preview.
+3. Apply with the **second preview token**, which is bound to the exact approved set.
+
+The partition-preview token alone does not authorize the later set. The MCP boundary refuses
+`limit`, `cursor`, `offset` and `page` on every `graph.apply_patch` before native dispatch; generic
+pagination never participates in mutation approval. Unrelated read pagination remains separate from
+the mutation boundary.
+
+Prune mutation dispatch is one-shot. After an ambiguous transport result, a lost response, or an
+unexpected oversized post-apply response, do not blindly retry. Reconcile by patch identity and
+readback first. A compact post-apply response preserves authoritative outcome/error fields and sets
+`reconciliation_required=true` when data is omitted.
+
+### Lossless large-island inventory retrieval remains unsupported
+
+An island can be pruned through MCP only when its complete preview and conservative prospective
+apply response fit the response budget; otherwise the safe pre-mutation refusal applies. A separate
+lossless or resumable large-island inventory retrieval is future scope and outside #102. The
+bounded response guard is tracked at [CortexSandbox #102](https://github.com/etelyatn/CortexSandbox/issues/102).
+
+**Stop and reconcile** whenever an inventory or outcome is missing or ambiguous. Never approve a
+partial set, reconstruct GUIDs from a read to force approval, or send a second mutation to discover
+the first mutation's result. Read current state, reconcile the identities already issued, and obtain
+a fresh preview before any newly authorized mutation.
+
 
 **`replace_entry`** — replace a stale inherited implementation entry while preserving the downstream
 body:
@@ -281,13 +310,17 @@ another graph, or a partial selection (neither a fresh transfer nor a complete r
  "approved_node_guids":["…"]}
 ```
 
-Preview without `approved_node_guids` publishes the partition. This route is for a small island whose
-preview arrived complete: echo exactly its `removable` set in the approved intent, **preview that
-exact intent again**, then apply with its new validation hash — approval changes the reviewed request.
-`awaiting_approval` flips after approval; `reused` marks an idempotent replay. If the preview or the
-apply response was truncated, oversized, lost or ambiguous — or you cannot prove the approved set is
-the delivered `removable` set — **Stop and reconcile** instead of approving a subset; see
-**Large-island prune is unsupported at this candidate**.
+Preview without `approved_node_guids` publishes the partition. The MCP route returns a complete
+preview or a capacity refusal, never a partial approval inventory. For a complete preview, echo
+exactly its `removable` set in the approved intent, **preview that exact intent again**, then apply
+with its new validation hash — approval changes the reviewed request. `awaiting_approval` flips after
+approval; `reused` marks an idempotent replay.
+
+A preview or prospective-apply capacity refusal is pre-mutation; do not approve an incomplete or
+unavailable inventory. After a lost or ambiguous apply outcome, or an unexpected oversized
+post-apply response, **Stop and reconcile** before any retry. Lossless retrieval of inventories too
+large for the bounded route remains future scope; see the preceding section.
+
 `complete=false` means the scan budget was exhausted — it never means "empty island". Never send an
 empty approved set, and never substitute disconnect-plus-orphan-deletion for ownership-aware
 pruning: a node the entry does not uniquely own is `shared` or listed in `blocked_nodes` and stays.
@@ -305,7 +338,7 @@ pruning: a node the entry does not uniquely own is `shared` or listed in `blocke
 | Rollback unverified | Stop writes; preserve residual detail and escalate. |
 | Save failed after verified apply | Report applied-but-unsaved state; do not replay graph mutation. |
 | Lost response | Read current state first; an absent source alone does not prove a destructive operation succeeded. |
-| Truncated or oversized response | **Stop and reconcile**: the mutation may already have happened; never proceed on a partial approval set and never re-send. |
+| Unexpected oversized post-apply or ambiguous outcome | **Stop and reconcile** current state before any retry; never proceed on a partial approval set or resend. A preview/apply-preflight capacity refusal is pre-mutation and is not an approval. |
 
 ## Examples
 

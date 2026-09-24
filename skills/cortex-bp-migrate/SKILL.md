@@ -1128,12 +1128,17 @@ unless the plan carries explicit persistence authority. If the running editor do
 operation, the operation is **blocked**: record the editor identity, leave the asset untouched, and
 return the blocker. Never substitute raw disconnect/orphan deletion, a batch, or `run_python`.
 
-Large-island MCP prune is **unsupported** at this candidate: `complete`, `scanned_nodes` and
-`max_scanned_nodes` bound the native traversal, not delivery, and the MCP response budget can truncate
-the preview inventory or replace the apply response. The fail-closed response-bound guard is not
-implemented (https://github.com/etelyatn/CortexSandbox/issues/102). When an inventory or an outcome is
-truncated, missing or ambiguous, **Stop and reconcile** — never approve a partial set, never re-send
-the mutation, and never treat a response read as a pre-mutation gate: the mutation may already have run.
+The bounded complete-or-refuse MCP prune route is implemented; oversized apply is refused before
+mutation. Preview delivery and prospective apply size are checked before the mutating call; follow
+the exact partition → approved-set preview → apply-with-second-token workflow in
+`resources/typed-blueprint-authoring.md`. `max_scanned_nodes` bounds native traversal, not response
+capacity, and `graph.apply_patch` is not paginated for mutation approval.
+
+Only lossless large-island inventory retrieval remains unsupported and is future scope; the bounded
+response guard is tracked at
+[CortexSandbox #102](https://github.com/etelyatn/CortexSandbox/issues/102). After an ambiguous
+transport or post-apply result, **Stop and reconcile** by readback before any retry; never approve a
+partial inventory or blindly resend the mutation.
 
 **Tier 3 pause (When `goal: redesign` and `redesign_tier: 3`):** After the executor phase completes, present the `## Manual Migration Steps` checklist from migration-plan.md to the user. Pause and wait for user confirmation that manual steps are done before proceeding to VERIFY. Ask the user:
 ```
