@@ -94,13 +94,17 @@ Rules for this branch:
   migration plan carries explicit persistence authority.
 - A node or link the entry does not uniquely own is `shared` or `blocked` in the preview partition and
   **stays**. `complete=false` means the scan budget was exhausted, never "nothing else to remove".
-- `complete`, `scan_limit`, `scanned_nodes` and `max_scanned_nodes` bound the **native traversal** of
-  the asset, not delivery of the response. Large-island MCP prune is **unsupported** at this candidate:
-  the MCP response budget can truncate the preview inventory or replace the apply response, and the
-  fail-closed response-bound guard is not implemented
-  (https://github.com/etelyatn/CortexSandbox/issues/102). When an inventory or an outcome is truncated,
-  missing or ambiguous, **Stop and reconcile** — never approve a partial set, never re-send the
-  mutation, and never treat a response read as a pre-mutation gate: the mutation may already have run.
+- `max_scanned_nodes` bounds native traversal, not MCP response capacity; there is no separate
+  prune-node cap. Prune uses the bounded complete-or-refuse MCP route, and an oversized apply is
+  refused before mutation. Use a partition preview, an exact approved-set preview, then apply with
+  the second preview token; never paginate mutation approval. Every `core_cmd(batch_query)` rejects
+  nested `graph.apply_patch` before any subcommand, regardless of rollback settings.
+- Only lossless large-island inventory retrieval remains unsupported and is future scope; the bounded
+  response guard is tracked at
+  [CortexSandbox #102](https://github.com/etelyatn/CortexSandbox/issues/102).
+- If an inventory or apply outcome is missing or ambiguous, **Stop and reconcile** before any newly
+  authorized mutation; never approve a partial set or retry blindly. See
+  [`resources/typed-blueprint-authoring.md`](resources/typed-blueprint-authoring.md).
 - A STAYING node that references a migrated variable is still a reported manual rewire — never a
   silent ownership decision, and never a graph rewrite.
 - If the operation is unavailable in the running editor, the operation is **blocked**: record the

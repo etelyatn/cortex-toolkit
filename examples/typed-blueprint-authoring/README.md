@@ -43,7 +43,7 @@ plugin scenario under an Editor lease.
 | `copy-subgraph-intent.json` | migration | Preview of `copy_subgraph` with one explicit boundary mapping. |
 | `move-subgraph-intent.json` | migration | Preview of `move_subgraph`, same selection and boundary shape, different destination graph. |
 | `prune-island-intent.json` | migration | Preview of `prune_island`: the partition, no approved set. |
-| `prune-island-apply.json` | migration | The apply overlay: same graph and entry, the approved `removable` set, and a token from a fresh preview of that approved intent. This is the small supported island case, where the preview delivered its inventory in full. |
+| `prune-island-apply.json` | migration | The apply overlay: the approved `removable` set and a token from a fresh preview of that exact approved intent. The bounded MCP route accepts only complete previews within its response budget. |
 | `negative/*.json` | descriptor | Requests that must be refused, with the code, the message fragment and where the refusal is enforced. |
 
 Every migration fixture is a preview (`dry_run=true`) except `prune-island-apply.json`. The apply
@@ -161,13 +161,21 @@ values and nothing else changed, so the applied intent is provably the previewed
   the intent, preview it again with that exact set and use **that** token for the apply. An approved
   set is never empty; `complete=false` means the scan budget was exhausted, not an empty island.
 
-These two are the **small supported island** route only. Large-island MCP prune is **unsupported** at
-this reviewed candidate: the MCP response budget (`resources/mcp-tool-reference.md`) can truncate the
-preview inventory or replace the whole response, and the fail-closed response-bound guard is not
-implemented (https://github.com/etelyatn/CortexSandbox/issues/102). If a preview or an apply response
-is truncated, oversized, lost or ambiguous — or the approved set cannot be proven to be the delivered
-`removable` set — **Stop and reconcile** instead of approving a subset: reading the response afterwards
-does not prevent the mutation, which may already have happened.
+The bounded complete-or-refuse MCP prune route is implemented; an oversized apply is refused before
+mutation when the conservative prospective result exceeds the budget. Only lossless large-island
+inventory retrieval remains unsupported and is future scope; the bounded response guard is tracked
+at [CortexSandbox #102](https://github.com/etelyatn/CortexSandbox/issues/102). Details and exact
+refusal fields live in [`resources/typed-blueprint-authoring.md`](../../resources/typed-blueprint-authoring.md).
+
+`max_response_chars=40000` is the MCP response budget, while `max_scanned_nodes` bounds native
+traversal; no separate prune-node cap exists. Approve only a complete delivered inventory, preview
+the exact approved set again, and apply with that second preview token. `graph.apply_patch` mutation
+approval is not paginated, and every `core_cmd(batch_query)` rejects it before any subcommand,
+regardless of rollback settings.
+
+After a lost, oversized or ambiguous apply outcome, **Stop and reconcile** by reading current state.
+Never approve a partial set, blindly resend the mutation, or treat response readback as a
+pre-mutation gate.
 
 ## Negative fixtures
 

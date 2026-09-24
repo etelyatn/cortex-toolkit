@@ -394,23 +394,35 @@ GUIDE_CONTRACT_NEEDLES = (
     ("blocked", "missing live support blocks instead of falling back"),
 )
 
-# TK-01: the MCP response budget bounds *delivery*, so the guide publishes the large-island prune
-# limitation instead of promising that the response always carries the complete `removable` set.
-LARGE_PRUNE_LIMITATION_NEEDLES = (
-    ("https://github.com/etelyatn/CortexSandbox/issues/102", "the follow-up that owns lossless large-island delivery"),
-    ("NOT implemented", "the fail-closed response-bound guard is not implemented at this candidate"),
-    ("max_scanned_nodes", "native scan completeness is a traversal bound, not a delivery or capacity promise"),
-    ("Stop and reconcile", "a truncated, missing or ambiguous inventory/outcome is reconciled before acting"),
-    ("does not prevent the mutation", "a response read is never a pre-mutation gate"),
+# The shared guide owns the bounded prune workflow; routing surfaces carry a concise, consistent
+# statement and link back rather than duplicating the algorithm.
+BOUNDED_PRUNE_GUIDE_NEEDLES = (
+    ("max_response_chars=40000", "the MCP response budget is explicit"),
+    ("complete-or-refuse", "accepted previews are complete or refused"),
+    ("approval_complete", "capacity refusals cannot be mistaken for approved inventories"),
+    ("response_size_chars", "preview refusal reports the measured response size"),
+    ("max_response_chars", "preview refusal reports the response budget"),
+    ("removable_count", "preview refusal reports the removable count"),
+    ("approved_count", "preview refusal reports the approved count"),
+    ("prospective_apply_size_chars", "apply refusal reports prospective size"),
+    ("refusal envelope", "the refusal itself is guaranteed to fit"),
+    ("pre-mutation", "oversized apply is refused before mutation"),
+    ("partition preview", "the first preview measures the full partition"),
+    ("exact approved-set preview", "the caller-approved set is previewed exactly"),
+    ("second preview token", "apply uses the exact-set preview token"),
+    ("max_scanned_nodes", "native scan bounds remain distinct"),
+    ("native traversal", "native scan bounds are not response capacity"),
+    ("mutation approval", "prune approval is never generically paginated"),
+    ("regardless of rollback settings", "graph patches are rejected from every Core batch"),
+    ("one-shot", "mutation dispatch is never blindly retried"),
+    ("Stop and reconcile", "ambiguous outcomes require readback reconciliation"),
+    ("lossless large-island inventory retrieval remains unsupported", "only lossless large-inventory retrieval is deferred"),
 )
 
-# Corrections that must not be re-introduced: unconditional MCP delivery, and a post-hoc response
-# read described as if it were the pre-mutation check.
-UNCONDITIONAL_COMPLETENESS_PROMISE = re.compile(
-    r"`removable` set is (?:always )?published complete|removable set is published complete", re.I
-)
-POST_HOC_MUTATION_GUARD = re.compile(
-    r"check(?:ing|s)? the response[^.\n]{0,30}(?<!not )prevents? the mutation", re.I
+ROUTED_PRUNE_SUMMARY_NEEDLES = (
+    ("bounded complete-or-refuse", "the implemented boundary is described"),
+    ("oversized apply is refused before mutation", "apply refusal happens before mutation"),
+    ("only lossless large-island inventory retrieval remains unsupported", "only lossless retrieval remains deferred"),
 )
 
 
@@ -421,11 +433,12 @@ class TypedBlueprintRoutingTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertIn("resources/typed-blueprint-authoring.md", text)
 
-    def test_batch_guide_does_not_confuse_stop_with_rollback(self):
-        text = (ROOT / "resources/batch-pipeline-guide.md").read_text(encoding="utf-8")
+    def test_batch_guide_rejects_graph_patch_in_every_batch(self):
+        text = " ".join(_read("resources/batch-pipeline-guide.md").split()).casefold()
         self.assertIn("stop_on_error is not rollback", text)
         self.assertIn("graph.apply_patch", text)
-        self.assertIn("not nestable", text)
+        self.assertIn("every `core_cmd(batch_query)`", text)
+        self.assertIn("regardless of rollback settings", text)
 
     def test_no_affected_file_prescribes_the_removed_legacy_update_route(self):
         for path in ROUTED_FILES:
@@ -452,39 +465,30 @@ class TypedBlueprintRoutingTests(unittest.TestCase):
             with self.subTest(needle=needle):
                 self.assertIn(needle, guide, why)
 
-    def test_guide_publishes_the_large_prune_limitation_and_the_stop_rule(self):
-        guide = _read("resources/typed-blueprint-authoring.md")
-        for needle, why in LARGE_PRUNE_LIMITATION_NEEDLES:
+    def test_guide_publishes_the_bounded_prune_contract_and_stop_rule(self):
+        guide = " ".join(_read("resources/typed-blueprint-authoring.md").split())
+        for needle, why in BOUNDED_PRUNE_GUIDE_NEEDLES:
             with self.subTest(needle=needle):
-                self.assertIn(needle, guide, why)
-        self.assertIsNone(
-            UNCONDITIONAL_COMPLETENESS_PROMISE.search(guide),
-            "the guide must not promise that the MCP response always delivers the complete removable set",
-        )
-        self.assertIsNone(
-            POST_HOC_MUTATION_GUARD.search(guide),
-            "a response read reports the mutation; it never prevents it",
-        )
+                self.assertIn(needle.casefold(), guide.casefold(), why)
 
-    def test_every_prune_routing_resource_publishes_the_large_prune_limitation(self):
-        for path in (
+    def test_every_prune_routing_resource_describes_bounded_prune_and_deferred_retrieval(self):
+        paths = (
             "examples/typed-blueprint-authoring/README.md",
             "resources/bp-migration-executor.md",
             "resources/mcp-tool-reference.md",
             "skills/cortex-bp-migrate/SKILL.md",
-        ):
-            text = _read(path)
+        )
+        for path in paths:
+            text = " ".join(_read(path).split())
             with self.subTest(path=path):
                 self.assertIn(
                     "https://github.com/etelyatn/CortexSandbox/issues/102",
                     text,
-                    "the follow-up is linked wherever prune is routed",
+                    "the bounded-response issue remains linked wherever prune is routed",
                 )
-                self.assertIn("unsupported", text, "large-island MCP prune is declared unsupported")
-                self.assertIsNone(
-                    UNCONDITIONAL_COMPLETENESS_PROMISE.search(text),
-                    f"{path} re-introduces the complete-delivery promise",
-                )
+                for needle, why in ROUTED_PRUNE_SUMMARY_NEEDLES:
+                    with self.subTest(needle=needle):
+                        self.assertIn(needle.casefold(), text.casefold(), why)
 
     def test_widget_graph_authoring_is_routed_out_of_the_stop_on_error_batch(self):
         text = _read("skills/cortex-umg/SKILL.md")
