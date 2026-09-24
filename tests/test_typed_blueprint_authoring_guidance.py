@@ -519,17 +519,22 @@ class TypedBlueprintRoutingTests(unittest.TestCase):
         self.assertIn("response-capacity", limit_row.casefold())
         self.assertNotIn("native scan exhaustion", limit_row.casefold())
         self.assertIn("non-prune graph scan", limit_row.casefold())
-        self.assertIn("native scan exhaustion", invalid_operation_row.casefold())
-        for field in ("scan_limit", "scanned_nodes", "scanned_links", "`complete=false`"):
+        self.assertIn("native prune scan exhaustion", invalid_operation_row.casefold())
+        for field in ("scan_limit", "scanned_nodes", "`complete=false`"):
             with self.subTest(field=field):
                 self.assertIn(field, invalid_operation_row)
+        self.assertIn("island-partition scan exhaustion also reports `scanned_links`", invalid_operation_row)
 
+        guide_lower = guide.casefold()
+        self.assertIn("graph-wide preflight scan refusal", guide_lower)
+        self.assertIn("island-partition scan exhaustion also reports `scanned_links`", guide_lower)
         bounded_section = guide.split("### Bounded prune response and apply preflight", 1)[1]
         bounded_section = bounded_section.split("### Lossless large-island inventory retrieval remains unsupported", 1)[0]
         bounded_section = " ".join(bounded_section.split())
         self.assertIn("response-capacity refusal returns `LIMIT_EXCEEDED`", bounded_section)
-        self.assertIn("native scan exhaustion returns `INVALID_OPERATION`", bounded_section)
-        self.assertIn("not a response-capacity refusal", bounded_section)
+        self.assertIn("native graph-wide scan exhaustion returns `INVALID_OPERATION`", bounded_section)
+        self.assertIn("island-partition scan exhaustion also reports `scanned_links`", bounded_section)
+        self.assertIn("not response-capacity refusals", bounded_section)
 
     def test_widget_graph_authoring_is_routed_out_of_the_stop_on_error_batch(self):
         text = _read("skills/cortex-umg/SKILL.md")
