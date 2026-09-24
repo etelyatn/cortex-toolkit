@@ -303,13 +303,17 @@ another graph, or a partial selection (neither a fresh transfer nor a complete r
  "approved_node_guids":["…"]}
 ```
 
-Preview without `approved_node_guids` publishes the partition. This route is for a small island whose
-preview arrived complete: echo exactly its `removable` set in the approved intent, **preview that
-exact intent again**, then apply with its new validation hash — approval changes the reviewed request.
-`awaiting_approval` flips after approval; `reused` marks an idempotent replay. If the preview or the
-apply response was truncated, oversized, lost or ambiguous — or you cannot prove the approved set is
-the delivered `removable` set — **Stop and reconcile** instead of approving a subset; see
-**Large-island prune is unsupported at this candidate**.
+Preview without `approved_node_guids` publishes the partition. The MCP route returns a complete
+preview or a capacity refusal, never a partial approval inventory. For a complete preview, echo
+exactly its `removable` set in the approved intent, **preview that exact intent again**, then apply
+with its new validation hash — approval changes the reviewed request. `awaiting_approval` flips after
+approval; `reused` marks an idempotent replay.
+
+A preview or prospective-apply capacity refusal is pre-mutation; do not approve an incomplete or
+unavailable inventory. After a lost or ambiguous apply outcome, or an unexpected oversized
+post-apply response, **Stop and reconcile** before any retry. Lossless retrieval of inventories too
+large for the bounded route remains future scope; see the preceding section.
+
 `complete=false` means the scan budget was exhausted — it never means "empty island". Never send an
 empty approved set, and never substitute disconnect-plus-orphan-deletion for ownership-aware
 pruning: a node the entry does not uniquely own is `shared` or listed in `blocked_nodes` and stays.
@@ -327,7 +331,7 @@ pruning: a node the entry does not uniquely own is `shared` or listed in `blocke
 | Rollback unverified | Stop writes; preserve residual detail and escalate. |
 | Save failed after verified apply | Report applied-but-unsaved state; do not replay graph mutation. |
 | Lost response | Read current state first; an absent source alone does not prove a destructive operation succeeded. |
-| Truncated or oversized response | **Stop and reconcile**: the mutation may already have happened; never proceed on a partial approval set and never re-send. |
+| Unexpected oversized post-apply or ambiguous outcome | **Stop and reconcile** current state before any retry; never proceed on a partial approval set or resend. A preview/apply-preflight capacity refusal is pre-mutation and is not an approval. |
 
 ## Examples
 

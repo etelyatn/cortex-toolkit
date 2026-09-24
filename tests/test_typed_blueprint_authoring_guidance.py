@@ -490,6 +490,27 @@ class TypedBlueprintRoutingTests(unittest.TestCase):
                     with self.subTest(needle=needle):
                         self.assertIn(needle.casefold(), text.casefold(), why)
 
+    def test_routed_prune_guidance_does_not_call_bounded_responses_unsupported(self):
+        paths = (
+            "resources/typed-blueprint-authoring.md",
+            "examples/typed-blueprint-authoring/README.md",
+        )
+        obsolete_claims = (
+            "large-island prune is unsupported at this candidate",
+            "unsupported large-island case above",
+        )
+        for path in paths:
+            text = " ".join(_read(path).split()).casefold()
+            with self.subTest(path=path):
+                for claim in obsolete_claims:
+                    self.assertNotIn(claim, text)
+        guide = " ".join(_read("resources/typed-blueprint-authoring.md").split()).casefold()
+        self.assertIn("pre-mutation refusal applies", guide)
+        self.assertIn("unexpected oversized post-apply response", guide)
+        readme = " ".join(_read("examples/typed-blueprint-authoring/README.md").split()).casefold()
+        self.assertIn("bounded complete-or-refuse mcp prune route is implemented", readme)
+        self.assertIn("oversized apply is refused before mutation", readme)
+
     def test_widget_graph_authoring_is_routed_out_of_the_stop_on_error_batch(self):
         text = _read("skills/cortex-umg/SKILL.md")
         self.assertIn("typed-blueprint-authoring", text)

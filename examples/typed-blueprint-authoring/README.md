@@ -95,7 +95,7 @@ changes between preview and apply.
 |---|---|---|
 | `<live: validation_hash returned by the preview>` | The token required by an apply. | The `dry_run=true` response. |
 | `<live: a token from a preview of an earlier state>` | A deliberately stale token, used only by the negative case. | An earlier preview. |
-| `<live: removable set published by the preview>` | The `removable` list the caller approves. | The `prune_island` preview response — only when that response arrived complete; a truncated or oversized preview is not approvable. |
+| `<live: removable set published by the preview>` | The `removable` list the caller approves. | The `prune_island` preview response; the bounded route returns a complete inventory or a capacity refusal, never a partial approval inventory. |
 
 ## `adapter-intent.json` — authoring preview
 
@@ -173,9 +173,10 @@ the exact approved set again, and apply with that second preview token. `graph.a
 approval is not paginated, and every `core_cmd(batch_query)` rejects it before any subcommand,
 regardless of rollback settings.
 
-After a lost, oversized or ambiguous apply outcome, **Stop and reconcile** by reading current state.
-Never approve a partial set, blindly resend the mutation, or treat response readback as a
-pre-mutation gate.
+After a lost or ambiguous apply outcome, or an unexpected oversized post-apply response, **Stop and
+reconcile** by reading current state. A preview or apply-preflight capacity refusal is pre-mutation;
+never approve a partial set, blindly resend the mutation, or treat response readback as a pre-mutation
+gate.
 
 ## Negative fixtures
 
@@ -207,7 +208,7 @@ under an Editor lease.
 | Preview | `changed=true`, every phase status `not_requested`, a `validation_hash`, `node_mappings` for all six client ids, `locators` for the target, and an unchanged fingerprint/dirty state. |
 | Apply | `apply_status=applied`, `compile_status=compiled` (one target compile), `readback_status=matched`, `save_status=not_requested`, `dirty_after=true`, `blocked=false`. |
 | Repeat with the same `patch_id` | `apply_status=unchanged`, `reused_client_ids` naming the existing nodes, no compile, no save. |
-| Migration preview | The bounded inventory above, exactly as published, when the response fits the MCP budget: transfers report `crossing_edges`/`boundary`/`dependencies`/`removal_set`/`internal_edges`/`node_count`; prune reports its partition and scan counts. A truncated or oversized prune response is the unsupported large-island case above: reconcile it, never approve part of it. |
+| Migration preview | The bounded inventory above, exactly as published, when the response fits the MCP budget: transfers report `crossing_edges`/`boundary`/`dependencies`/`removal_set`/`internal_edges`/`node_count`; prune returns a complete partition or a capacity refusal, never a partial inventory. An oversized prospective apply response is refused before mutation; follow the exact approved-set sequence in the guide. |
 | Accepted replay | `replayed_with_absent_source=true` with a diagnostic on preview and apply when the named source locator is already gone. |
 
 ## Bound live (not proven by the toolkit checks)
