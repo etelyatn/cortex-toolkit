@@ -33,7 +33,7 @@ Router commands use **bare names** — e.g., `get_info`, `create`, `list` (NOT `
 
 ### Large Responses — Auto-Truncation
 
-When a response exceeds 40KB, the MCP layer finds the largest list with 10+ items, binary-searches for the max item count that fits, and returns `_truncated` metadata:
+When a generic MCP response exceeds 40,000 characters, the response formatter finds the largest list with 10+ items, binary-searches for the max item count that fits, and returns `_truncated` metadata:
 
 ```json
 {
@@ -48,14 +48,14 @@ When a response exceeds 40KB, the MCP layer finds the largest list with 10+ item
 
 If no truncatable list exists, the response is replaced with `{"_error": "RESPONSE_TOO_LARGE"}`.
 
-This budget bounds **delivery**, and it applies to the guarded graph patch workflow
-(`resources/typed-blueprint-authoring.md`): a large `prune_island` inventory can arrive truncated, and
-an oversized apply response can lose the phase statuses of a mutation that already ran. Large-island
-MCP prune is therefore **unsupported** at this reviewed candidate — the fail-closed response-bound guard
-is not implemented; the follow-up is
-https://github.com/etelyatn/CortexSandbox/issues/102. When an inventory or an outcome is truncated,
-missing or ambiguous, **Stop and reconcile**: never proceed on a partial approval set, never rebuild
-GUIDs from a read to force an approval, and never treat a response read as a pre-mutation gate.
+This budget bounds generic response delivery. `graph.apply_patch` prune uses a dedicated
+complete-or-refuse boundary at `mcp_limits.max_response_chars=40000`: an incomplete or oversized
+preview is refused rather than truncated, and an oversized apply is refused before mutation. Only
+lossless large-island inventory retrieval remains unsupported future scope; the bounded response
+guard is tracked at [CortexSandbox #102](https://github.com/etelyatn/CortexSandbox/issues/102).
+See [`resources/typed-blueprint-authoring.md`](resources/typed-blueprint-authoring.md). **Stop and reconcile**
+after any ambiguous or lost outcome; never approve a partial inventory, retry blindly, or treat a
+response read as a pre-mutation gate.
 
 ### Pagination
 
@@ -302,14 +302,15 @@ Real apply requires `dry_run=false` and `apply=true`. The MCP response is intent
 
 Use `describe_node` before raw `add_node` authoring to inspect the accepted class, parameters, and pins. Correct an invalid request before attempting the mutation. Invoke it as `graph.describe_node` through `graph_cmd`.
 
-`get_authoring_context` publishes the candidate graphs (with canonical GUIDs, kind, mutability and
-subgraph paths), the current authoring fingerprint and the published limits; `apply_patch` previews
-and applies one guarded graph patch. Both are documented in `resources/typed-blueprint-authoring.md`;
-read their live schema (`core.get_operation_schema`) before building a request, because the names,
-defaults, limits and families published there are the contract. A `prune_island` inventory is subject
-to the response budget above: until the bounded guard lands
-(https://github.com/etelyatn/CortexSandbox/issues/102), a large-island MCP prune is unsupported and
-must not be attempted.
+`get_authoring_context` publishes candidate graphs, canonical GUIDs, mutability, subgraph paths,
+fingerprint and native limits; `apply_patch` previews and applies one guarded graph patch. Read the
+live schema before building requests. The bounded complete-or-refuse MCP prune route is implemented;
+oversized apply is refused before mutation. Only lossless large-island inventory retrieval remains
+unsupported future scope; the bounded response guard is tracked at
+[CortexSandbox #102](https://github.com/etelyatn/CortexSandbox/issues/102).
+See [`resources/typed-blueprint-authoring.md`](resources/typed-blueprint-authoring.md) for the exact
+preflight and refusal fields. Every `core_cmd(batch_query)` rejects nested `graph.apply_patch` before
+any subcommand, regardless of rollback settings; mutation approval is not paginated.
 
 `list_graphs` returns user-visible Blueprint graphs. Top-level entries include `kind`
 (`ubergraph`, `function`, `macro`, `delegate`, or `interface_impl`); `interface_impl`

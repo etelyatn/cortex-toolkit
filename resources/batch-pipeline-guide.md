@@ -280,14 +280,14 @@ Three different failure contracts, and only two of them belong to a batch:
   as rollback-safe) covers direct node/link mutations the batch itself performed. An unverified
   rollback returns `DIRTY_EDITOR_STATE`. Read the published schema for which commands are
   rollback-safe rather than assuming.
-- **`graph.apply_patch` is a standalone transaction, not nestable in a batch.** It owns its own
-  reversible mutation, its own single target compile, its own authoritative readback and its own
-  explicit save boundary; an outer batch cannot undo a compile or a save. Because the command is
-  **not nestable** inside a rollback-enabled Core batch, call it directly through
-  `graph_cmd(command="apply_patch", ...)` or through
-  `blueprint_compose(mode="update", asset_path=..., patch={...})`, preview first, and apply with the
-  preview token. Where the capability is missing, stop and report — never compose raw
-  `graph.add_node`/`graph.connect` steps as a substitute.
+- **`graph.apply_patch` is a standalone mutation, not nestable in a batch.** Every
+  `core_cmd(batch_query)` containing it is rejected by the MCP router before any
+  subcommand executes, regardless of rollback settings; unrelated batch commands remain available.
+  The patch owns its reversible mutation, target compile, authoritative readback and explicit save
+  boundary, none of which an outer batch can undo. Call it directly through
+  `blueprint_compose(mode="update", asset_path=..., patch={...})`. For prune, follow the complete-or-
+  refuse preflight and exact approved-set sequence in `resources/typed-blueprint-authoring.md`;
+  never compose raw `graph.add_node`/`graph.connect` steps as a substitute.
 
 See `resources/typed-blueprint-authoring.md` for the guarded graph workflow, its phases and its
 recovery rules.
