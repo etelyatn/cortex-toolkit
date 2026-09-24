@@ -447,6 +447,16 @@ class TypedBlueprintRoutingTests(unittest.TestCase):
                 with self.subTest(path=path, pattern=pattern.pattern[:48]):
                     self.assertIsNone(pattern.search(text), f"{path} still prescribes the removed legacy update call")
 
+
+    def test_whole_graph_removal_uses_blueprint_router_not_patch(self):
+        catalog = _read("resources/mcp-tool-reference.md")
+        development = _read("resources/blueprint-development.md")
+        self.assertIn('blueprint_cmd(command="remove_graph")', catalog)
+        self.assertIn('blueprint_cmd(command="remove_graph")', development)
+        self.assertIn("expected_validation_hash", catalog)
+        self.assertIn("not `graph.apply_patch`", catalog)
+        self.assertIn("distinct from `graph.apply_patch`", development)
+        self.assertIn("cortex-blueprint.md#guarded-graph-removal", catalog)
     def test_update_route_guidance_names_the_guarded_patch(self):
         for path in (
             "skills/cortex-blueprint/SKILL.md",

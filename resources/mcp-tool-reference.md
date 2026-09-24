@@ -9,7 +9,7 @@ Tools fall into three categories:
 - **Composites (7):** `blueprint_compose`, `material_compose`, `material_instance_compose`, `widget_compose`, `level_compose`, `scenario_compose`, `statetree_compose` — declarative creation workflows; `blueprint_compose(mode="update")` is a facade over one guarded `graph.apply_patch` envelope
 - **Standalone (3):** `editor_restart`, `schema_generate`, `qa_test_step`
 
-Rule: New asset creation → composite. Isolated edits to existing assets → router. Existing-asset **graph** changes → the guarded `graph.apply_patch` workflow (`resources/typed-blueprint-authoring.md`): context → describe → preview → apply → readback, persistence only on explicit authority. The removed legacy update batch is never a fallback.
+Rule: New asset creation → composite. Isolated edits to existing assets → router. Existing-asset graph edits → the guarded `graph.apply_patch` workflow (`resources/typed-blueprint-authoring.md`): context → describe → preview → apply → readback, persistence only on explicit authority. Whole function/macro/extra-event-graph or custom-event removal → `blueprint_cmd(command="remove_graph")` preview → apply instead, never a patch or compose workflow. The removed legacy update batch is never a fallback.
 
 ## Naming Convention
 
@@ -282,7 +282,9 @@ Real apply requires `dry_run=false` and `apply=true`. The MCP response is intent
 - **Structure:** `add_variable`, `remove_variable`, `add_function`, `get_class_defaults`, `set_class_defaults`, `configure_timeline`, `set_component_defaults`, `add_scs_component`, `remove_scs_component`, `rename_scs_component`
 - **Class Settings:** `add_interface`, `remove_interface`, `set_tick_settings`, `set_replication_settings`
 - **Migration:** `analyze_for_migration`, `cleanup_migration`, `remove_scs_component`, `rename_scs_component`, `recompile_dependents`, `fixup_redirectors`, `compare_blueprints`
-- **Graph maintenance:** `delete_orphaned_nodes`, `search`
+- **Graph maintenance:** `delete_orphaned_nodes`, `remove_graph`, `search`
+
+`remove_graph` deletes a whole function, macro, extra event graph, or custom event through `blueprint_cmd(command="remove_graph")`; it is not `graph.apply_patch` or `blueprint_compose`. It requires strict boolean `dry_run`, `compile`, and `save`; optional strict `cascade_exec_chain` defaults to `false`. Preview (`dry_run=true`, `save=false`) returns `fingerprint_before` and `validation_hash`; apply requires both as `expected_fingerprint` and `expected_validation_hash`. `compile=false` never saves, and `save=true` requires `compile=true` and a clean starting package; EventGraph and ConstructionScript are protected. Full semantics: [CortexBlueprint system reference](https://github.com/etelyatn/CortexSandbox/blob/main/docs/systems/cortex-blueprint.md#guarded-graph-removal).
 - **Level Blueprint:** Use `get_level_blueprint(map_path)` (standalone tool) to get a synthetic path, then use `graph_cmd` commands. Save with `level_cmd(command="save_level")`, not `blueprint_cmd(command="save")`.
 
 ### Composite
