@@ -121,7 +121,7 @@ Never query graphs one-by-one in sequential tool calls.
 
 ### Before Destructive Operations
 
-Before **deleting a Blueprint**, **removing a public function or variable**, or **renaming a public API**, run `impact_analysis` (CortexReflect tool) to understand blast radius:
+Before **deleting a Blueprint**, **removing a whole function, macro, extra event graph, or custom event** (`blueprint_cmd(command="remove_graph")`), **removing a public function or variable**, or **renaming a public API**, run `impact_analysis` (CortexReflect tool) to understand blast radius:
 
 ```python
 impact_analysis(
@@ -150,6 +150,8 @@ impact_analysis(
 `graph_list_graphs` top-level entries include `kind` (`ubergraph`, `function`, `macro`, `delegate`, or `interface_impl`). `interface_impl` entries also include `owning_interface`. Delegate graphs are readable but not mutable through generic write/layout graph tools.
 
 Read commands (`graph_get_subgraph`, `graph_get_subgraph`, `graph_search_nodes`) accept a `compact` boolean (default `true`). See "Compact vs Verbose Graph Reads" above.
+
+**Whole-graph/custom-event removal:** use `blueprint_cmd(command="remove_graph")` with preview then apply; the preview's `expected_fingerprint` and `expected_validation_hash` guard the apply. This route is distinct from `graph.apply_patch`; see the [MCP tool reference](mcp-tool-reference.md#blueprint).
 
 **graph_add_node node types** (use short name or full `UK2Node_*` name):
 
@@ -814,7 +816,7 @@ clean starting package; it happens only after a verified readback and is never i
   without a `patch`: that route was removed and is refused
 - Calling `graph_add_node` or `graph_connect` N times in separate tool calls to reach the same result
   — build one intent and preview/apply it
-- Calling `graph_remove_node` N times for bulk deletion — a migration request or one reviewed patch
+- Calling `graph_remove_node` N times for bulk deletion — whole function/macro/extra-event/custom-event removal uses `blueprint_cmd(command="remove_graph")`; supported node-island changes still use one reviewed patch
 - Never substitute `core_cmd(batch)` composition, `editor_cmd(run_python)` or raw add/connect calls
   when `graph.apply_patch` is missing or refuses: stop and report the blocker
 
