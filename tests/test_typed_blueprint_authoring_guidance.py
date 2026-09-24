@@ -471,6 +471,11 @@ class TypedBlueprintRoutingTests(unittest.TestCase):
             with self.subTest(needle=needle):
                 self.assertIn(needle.casefold(), guide.casefold(), why)
 
+    def test_guide_rejects_mutation_pagination_for_every_graph_apply_patch(self):
+        guide = " ".join(_read("resources/typed-blueprint-authoring.md").split()).casefold()
+        self.assertIn("every `graph.apply_patch` before native dispatch", guide)
+        self.assertIn("unrelated read pagination remains separate", guide)
+
     def test_every_prune_routing_resource_describes_bounded_prune_and_deferred_retrieval(self):
         paths = (
             "examples/typed-blueprint-authoring/README.md",

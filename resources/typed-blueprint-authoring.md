@@ -249,9 +249,10 @@ Use this approval sequence:
 2. Approve that exact GUID set, then request an exact approved-set preview.
 3. Apply with the **second preview token**, which is bound to the exact approved set.
 
-The partition-preview token alone does not authorize the later set. Do not use generic pagination
-(`limit`, `cursor`, `offset` or `page`) for mutation approval; those fields are refused on prune
-`graph.apply_patch`. Unrelated read pagination remains separate from the mutation boundary.
+The partition-preview token alone does not authorize the later set. The MCP boundary refuses
+`limit`, `cursor`, `offset` and `page` on every `graph.apply_patch` before native dispatch; generic
+pagination never participates in mutation approval. Unrelated read pagination remains separate from
+the mutation boundary.
 
 Prune mutation dispatch is one-shot. After an ambiguous transport result, a lost response, or an
 unexpected oversized post-apply response, do not blindly retry. Reconcile by patch identity and
