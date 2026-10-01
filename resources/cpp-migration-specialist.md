@@ -50,9 +50,9 @@ Any operation where the value affects game state or other logic depends on it:
 
 | Example | Why C++ |
 |---------|---------|
-| `SetVisibility(false)` to hide an object during state change (dead, inactive) | Logic controls visibility — other systems may check it |
+| State behind dead/inactive visibility | Native owns state and simulation visibility if gameplay depends on it; BP owns UI visibility treatment |
 | `SetLocation` to move an actor based on game state or player input | Game logic depends on the position |
-| `SetColor` where color encodes game state (team color, damage flash, status indicator) | Logic depends on the color value |
+| Semantic state behind a team color, damage flash, or status indicator | Native owns the state; BP owns color, style, animation, and layout |
 | State machines, branching, gameplay systems | Core game logic |
 | Data processing (inventory, save/load, replication) | Correctness-critical |
 | Tick-driven computation | Performance-sensitive |
@@ -71,13 +71,13 @@ Operations where NO other logic reads or reacts to the value:
 | Procedural geometry (door frames, wall segments, fence posts) | Spatial construction designers tune |
 | Construction Script visual-sync nodes | See Visual Sync Classification in cpp-migration.md |
 
-**Key:** Same function, different intent. `SetVisibility` that hides a game object as part of state → C++. `SetVisibility` for a cosmetic fade nobody reads → Blueprint.
+**Key:** Separate state from rendering. Native owns state and simulation visibility where gameplay depends on it; Blueprint owns UI visibility, fades, styling, and other visual treatment of that state.
 
 ### Conversion Level Guidelines
 
 - **Minimal:** Only migrate code that is actively causing problems (profiler hotspots, compilation issues).
 - **Recommended:** Migrate all logic-driven code. Keep purely cosmetic operations in BP.
-- **Everything:** Migrate everything. Still keep visual-sync construction script nodes in BP per the classification rules.
+- **Everything:** Migrate functionality within the agreed ownership boundary. Keep designer-owned presentation and visual-sync construction script nodes in BP; follow the widget ownership and naming checks in cortex-bp-migrate.
 
 ## Phase 1: Blueprint Analysis
 
@@ -359,7 +359,7 @@ Generate one `.h`/`.cpp` pair per target class. **All classes must go in the sam
 - Include paths reference real headers (from include path table)
 - Forward declarations used correctly (pointers only in .h)
 - Class hierarchy matches UE conventions (A prefix for Actors, U for UObjects, F for structs)
-- Constructor sets all default values from BP Class Defaults
+- Constructor preserves native-owned gameplay defaults from BP Class Defaults; designer-owned visual defaults stay in the Blueprint.
 - Parent class matches what `get_blueprint_info` returned
 
 #### Architecture Presentation (When Goal = "Redesign/restructure")

@@ -23,9 +23,9 @@ Decision framework and patterns for migrating Blueprint logic to C++.
 ### Moves to C++ (logic-driven)
 
 Any operation where the value affects game state or other logic depends on it:
-- `SetVisibility(false)` to hide an object during a game state change — logic controls it
+- Native state that hides an object during a game state change; Blueprint owns the UI visibility treatment. Native visibility mutation is appropriate when simulation depends on it.
 - `SetLocation` to move an actor based on game state or player input — logic depends on position
-- `SetColor` where the color encodes game state (team color, damage flash) — logic depends on color
+- Native team/damage/status state; Blueprint owns the corresponding color, style, animation, and layout.
 - State machines, branching, data processing, tick-driven computation
 - Even a 2-node operation, if it's logic-driven, belongs in C++
 
@@ -39,7 +39,7 @@ Operations where NO other logic reads or reacts to the value:
 - Procedural geometry (door frames, wall segments) where no gameplay depends on positions
 - Construction Script visual-sync nodes (see classification below)
 
-**Key:** Same function, different intent. `SetVisibility` that hides a game object as part of state → C++. `SetVisibility` for a cosmetic fade nobody reads → Blueprint.
+**Key:** Separate state from rendering. Native owns state and simulation visibility where gameplay depends on it; Blueprint owns UI visibility, fades, styling, and other visual treatment of that state.
 
 ### Conversion Level Guidelines
 
@@ -47,7 +47,7 @@ Operations where NO other logic reads or reacts to the value:
 
 **Recommended level:** Migrate all logic-driven code. Keep purely cosmetic operations in BP.
 
-**Everything level:** Migrate everything. Still keep visual-sync construction script nodes in BP.
+**Everything level:** Migrate functionality within the ownership boundary; keep designer-owned presentation/defaults and visual-sync construction nodes in BP.
 
 ## Migration Outcomes
 
@@ -198,7 +198,7 @@ void UMyWidget::HandleConfirmClicked()
 **Key rules for Widget migration:**
 - Use `meta = (BindWidget)` for required widgets, `meta = (BindWidgetOptional)` for optional
 - Use `meta = (BindWidgetAnim)` with `Transient` for animation bindings
-- Widget variable names must match the UMG designer widget names exactly
+- Choose clear role-based names before generation; rename native BindWidget fields and Designer widgets together using reference-aware Unreal operations. Names must match exactly; Designer widget classes must be assignment-compatible with the native property types. Keep styling/layout/animation authored in BP; expose semantic state through existing presentation hooks. See cortex-bp-migrate: Widget migration ownership and naming.
 - Override `NativeConstruct()` for runtime init (replaces BP Construct event)
 - Override `NativePreConstruct()` for design-time preview if needed
 - Bind delegates in `NativeConstruct()` with null checks
