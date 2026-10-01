@@ -85,6 +85,7 @@ Widget Blueprint analysis requirements:
 - Read V4 typed arrays including `scs_components`, `dynamic_components`, `widgets`, `widget_animations`, `widget_bindings`, and `entity_summary`
 - Use `graph_logic_node_count` as a migration complexity signal in addition to total node count
 - Identify BindWidget candidates, animation usage, property bindings, named slots, and ListView entry widget metadata
+- Keep widget labels and localized templates in editable Blueprint FText defaults, preserving String Table identities/placeholders and verifying save/reload against the final native parent; native code retains state-based text selection.
 
 Gather complete information about the target Blueprint:
 
@@ -288,7 +289,7 @@ Generate complete, compilable C++ files:
 
 **Source file (.cpp):**
 - Include the header + all necessary includes (from include path table)
-- **Constructor (REQUIRED for every class):**
+- **Constructor (when native setup is needed):**
   ```cpp
   AMyActor::AMyActor()
   {

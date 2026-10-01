@@ -228,6 +228,8 @@ void UMyWidget::HandleConfirmClicked()
 
 ### Widget Migration Decision Override
 
+Keep widget label references and localized format templates in editable Widget Blueprint FText defaults; preserve String Table IDs/keys and format arguments. Native code selects the appropriate label and formats dynamic values. Verify defaults after save/reload against the final native parent rather than copying table paths/keys into constructors.
+
 | Condition | Override Decision |
 |----------|-------------------|
 | Widget is layout-only with style tweaks | Keep BP |
