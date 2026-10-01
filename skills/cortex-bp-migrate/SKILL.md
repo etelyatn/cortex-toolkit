@@ -9,6 +9,23 @@ Migrate a Blueprint to C++ using either:
 - Full mode (default): 4-stage pipeline, ANALYZE → PLAN → EXECUTE → COMPLETE, with hard gates
 - Fast mode (`--fast`): 3-stage streamlined flow with a single approval gate for eligible simple migrations
 
+## Blueprint/C++ completion checks
+
+Before analysis or generation, read the project's `.agents/skills/ripper-blueprint-cpp-principles/SKILL.md` when it exists. Apply its four principles, including current project/Unreal conventions and meaningful naming, during the work and include its evidence-backed checklist in the completion report for every migration mode, including fast mode and "Everything possible". Audits/plans report inspected/planned coverage, not implemented delivery. This is a check within the existing pipeline, not another stage.
+
+If the project has no shared principles skill, use this same four-part report against its agreed C++/Blueprint ownership boundary and the widget rules below:
+
+```markdown
+### Blueprint/C++ check
+
+- [ ] Project and Unreal conventions — <Relevant project rules, Unreal patterns, reflected APIs and logical names; evidence or exception.>
+- [ ] Correct ownership — <Native functionality/state and Blueprint presentation; evidence or exception.>
+- [ ] Editable presentation — <Designer-owned visuals, localized FText references and templates; evidence or exception.>
+- [ ] Verified integration — <Applicable references, build/compile, save/reload and affected behavior; evidence or gaps.>
+```
+
+Start unchecked; mark [x] only for completed scoped checks supported by actual evidence. Keep missing verification unchecked with its precise gap, and use N/A with a factual reason for genuine exceptions. Bare ticks, a native build alone, and matching display text do not prove Blueprint or localization integration. Do not add tests, runtime runs, or review stages solely to fill the checklist; unmet mandatory acceptance still requires correction or existing authorized disposition.
+
 ## Widget migration ownership and naming
 
 For Widget Blueprints, migrate gameplay/state/action decisions and lifecycle to C++; keep designer-owned rendering in the Widget Blueprint. This applies in every mode, including "Everything possible" and fast mode.
