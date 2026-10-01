@@ -9,6 +9,34 @@ Migrate a Blueprint to C++ using either:
 - Full mode (default): 4-stage pipeline, ANALYZE → PLAN → EXECUTE → COMPLETE, with hard gates
 - Fast mode (`--fast`): 3-stage streamlined flow with a single approval gate for eligible simple migrations
 
+## Blueprint/C++ completion checks
+
+Before analysis or generation, read the project's `.agents/skills/ripper-blueprint-cpp-principles/SKILL.md` when it exists. Apply its four principles, including current project/Unreal conventions and meaningful naming, during the work and include its evidence-backed checklist in the completion report for every migration mode, including fast mode and "Everything possible". Audits/plans report inspected/planned coverage, not implemented delivery. This is a check within the existing pipeline, not another stage.
+
+If the project has no shared principles skill, use this same four-part report against its agreed C++/Blueprint ownership boundary and the widget rules below:
+
+```markdown
+### Blueprint/C++ check
+
+- [ ] Project and Unreal conventions — <Relevant project rules, Unreal patterns, reflected APIs and logical names; evidence or exception.>
+- [ ] Correct ownership — <Native functionality/state and Blueprint presentation; evidence or exception.>
+- [ ] Editable presentation — <Designer-owned visuals, localized FText references and templates; evidence or exception.>
+- [ ] Verified integration — <Applicable references, build/compile, save/reload and affected behavior; evidence or gaps.>
+```
+
+Start unchecked; mark [x] only for completed scoped checks supported by actual evidence. Keep missing verification unchecked with its precise gap, and use N/A with a factual reason for genuine exceptions. Bare ticks, a native build alone, and matching display text do not prove Blueprint or localization integration. Do not add tests, runtime runs, or review stages solely to fill the checklist; unmet mandatory acceptance still requires correction or existing authorized disposition.
+
+## Widget migration ownership and naming
+
+For Widget Blueprints, migrate gameplay/state/action decisions and lifecycle to C++; keep designer-owned rendering in the Widget Blueprint. This applies in every mode, including "Everything possible" and fast mode.
+
+- Native owns purchases, eligibility, data selection, subscriptions, entry recycling, and the semantic state (for example, locked or tutorial-active). Blueprint owns how that state looks: sizes, colors, fonts, padding, transforms, styles, animation, and layout. A color or visibility change driven by gameplay is not automatically a reason to hardcode its visual treatment in C++.
+- Reuse the existing Designer tree and presentation functions. Send semantic state to a small Blueprint presentation hook where needed. Existing native text/image assignment is appropriate for binding model data; visual templates and display policies must remain editable in Blueprint defaults or existing presentation graphs. Do not introduce a view-model framework just for migration.
+- Author widget labels and localized format templates as editable FText in the owning Widget Blueprint Class Defaults, preserving existing String Table IDs/keys and format arguments. C++ chooses labels from semantic state and formats model values; it should not embed designer-owned String Table paths/keys or presentation text in constructors. Keep approved copy/translations in the project's localization source and String Tables, not duplicate Blueprint literals. During migration, serialize defaults against the final native parent, then save/reload and verify typed String Table metadata and rendered labels; matching display text alone is insufficient.
+- Before generating BindWidget fields, record old Designer name -> proposed native/Designer name. Follow project naming conventions, with descriptive PascalCase role names such as DescriptionRichTextBlock, UpgradeImage, BuyButton, and BalanceTextBlock. Do not copy placeholder names, numeric suffixes, or prefixes such as DescriptionText_1, Insert_Image_Here, Txt_ButtonText, or WBP_BuyButton into native APIs. Name methods for their actual effects.
+- Rename the native field and Designer widget together using Unreal's reference-aware widget rename operation. Preserve graph references, animation targets, delegate/property bindings, focus targets, and references in child/referencing Blueprints. Do not perform raw UObject renames or binary replacements. Do not weaken required bindings to BindWidgetOptional to hide a mismatch.
+- Before completion, inspect the C++ diff for presentation literals/setters and the Blueprint for retained styling/animation. Compile all affected widgets, confirm exact binding name/type pairs, and check the real owning screen after recycling/reopening. A native build alone does not prove repaired widget bindings or unchanged presentation.
+
 ## Entry Point
 
 Parse user input for:
@@ -434,9 +462,9 @@ Ask the user one question at a time:
 
 ### Logic vs Cosmetic Check
 
-Before recommending what to migrate, classify each element by intent — does game logic depend on the value?
+Before recommending what to migrate, separate the semantic decision from its visual treatment. Does game logic depend on the value, or does it only render that state?
 
-**Moves to C++ (logic-driven):** Any operation where the value affects game state or other logic depends on it. Even SetVisibility or SetLocation, if logic controls it (e.g., hiding during state change, positioning based on game rules).
+**Moves to C++ (logic-driven):** State, action eligibility, and values that affect game rules, persistence, collision, or simulation. For UI, migrate the decision to show a locked/tutorial/selected state; keep its color, sizing, layout, and animation treatment authored in BP. A gameplay trigger alone does not make visual parameters native responsibilities.
 
 **Stays in BP (purely cosmetic):** Operations where NO other logic reads or reacts to the value — decorative colors, visual-only material swaps, spatial construction for decorative geometry (door frames, wall segments where no gameplay depends on positions).
 
