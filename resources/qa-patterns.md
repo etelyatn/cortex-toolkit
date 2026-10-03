@@ -49,6 +49,36 @@ editor_cmd(command="inject_input_sequence", params={
 
 **Known limitation:** `editor_cmd(command="inject_key", ...)` and `editor_cmd(command="inject_input_sequence", ...)` only confirm Slate dispatch, not game receipt. Always verify effects with `observe_game_state` or `wait_for_condition` after injecting input.
 
+**Typed/sustained Enhanced Input:**
+```python
+editor_cmd(command="inject_input_continuous", params={
+    "action_name": "/Game/Input/IA_Move.IA_Move",
+    "value": {"x": 0, "y": 1},
+    "mode": "start"
+})
+# Observe the mechanic through QA state/assertions before declaring success.
+editor_cmd(command="inject_input_continuous", params={
+    "action_name": "/Game/Input/IA_Move.IA_Move", "mode": "stop"
+})
+```
+Use the actual loaded action path and its value type; axis meanings come from the
+project's binding, not Cortex. `inject_input_action` lasts one frame. Continuous
+start/update/stop normally return immediately; optional positive start-only duration
+defers until expiry/cancellation and must fit the native float delay.
+Input values must be actual JSON numbers, not numeric strings; Axis1D must fit float.
+Update cannot acquire another subsystem's injection. Stop is idempotent for unowned
+actions and does not cancel game-managed injection. `injecting` describes Cortex
+ownership, not every native injection. Disconnect/PIE end cancels owned runs.
+Native values are queued for a subsequent world tick; already queued input can
+drain after stop. A successful response does not prove a binding/mechanic reacted.
+Session-wide ownership is not multi-agent isolation.
+
+For visual assertions, inspect screenshot `view`, `pie_active`, `camera_available`
+and `camera_provenance`. A PIE world can exist while the active view is editor/SIE;
+game-view camera pose is unavailable. Default camera mutation rejects possessed
+PIE. Its explicit override affects only a transient editor client, not game camera.
+
+
 ## Session Recording and Replay
 
 Record player sessions during PIE and replay them for regression testing.

@@ -451,9 +451,24 @@ blendspaces, retargeting, runtime preview, Sequencer, and Control Rig are out of
 - **PIE lifecycle:** `start_pie`, `stop_pie`, `get_pie_state`, `pause_pie`, `resume_pie`, `restart_pie`
 - **Viewport:** `get_viewport_info`, `capture_screenshot`, `set_viewport_camera`, `focus_actor`, `set_viewport_mode`
 - **Utilities:** `get_editor_state`, `get_recent_logs`, `execute_console_command`, `set_time_dilation`, `get_world_info`
-- **Input injection** (requires active PIE): `inject_key`, `inject_input_sequence`
+- **Input injection** (requires active PIE): `inject_key`, `inject_mouse`, `inject_input_action`, `inject_input_continuous`, `inject_input_sequence`
 
 See `qa-patterns.md` for input injection documentation.
+
+Enhanced Input uses canonical `action_name`, not `action`: finite numeric `value` or
+`{x,y,z}` shaped to the action type. Continuous start/update/stop is immediate unless
+a positive start-only `duration_ms` requests deferred completion. Updates require
+the same session-owned subsystem/action; stop does not stop game-managed injections.
+Cleanup stops owned native entries on disconnect/PIE end; ownership is session-wide.
+Confirm gameplay effects, not only registration.
+
+`capture_screenshot` redraws the active viewport and returns `view`, `pie_active` and
+`camera_available`. Only `camera_provenance=editor_client` has a `camera` pose; game-view
+pose is unavailable, not guessed. No `source` selector. `set_viewport_camera` requires
+`location={x,y,z}` and optionally `rotation={pitch,yaw,roll}`. Possessed PIE rejects by
+default; Boolean `allow_during_pie=true` changes only the transient editor client,
+not the rendered game camera. Read `editor_camera_visible`; engine restoration may
+discard the override. Ejected/SIE editor views remain controllable.
 
 ### Standalone
 

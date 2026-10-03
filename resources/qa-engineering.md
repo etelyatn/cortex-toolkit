@@ -80,7 +80,7 @@ qa_cmd(command="cancel_replay")
 - Start with connectivity checks (`get_status`, editor PIE state).
 - Capture screenshots on assertion failures.
 - Persist findings as report artifacts whenever a scenario run completes.
-- Never run two `editor_cmd(command="inject_input_sequence", ...)` calls concurrently — sequences share a single callback slot (see ED-001 in cortex-editor-tech-debt.md).
+- Serialize conflicting input scenarios: callbacks are keyed (ED-001 is fixed), but concurrent agents still interleave input (ED-003). Continuous ownership is session-wide, not a per-client lock; disconnect cancels Cortex-owned runs.
 
 ## CortexReflect Tools
 
