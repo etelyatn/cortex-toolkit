@@ -47,7 +47,7 @@
 - Produces (used by later tasks and by both hooks):
   - `cortex_project_dir` → prints the project dir on stdout, returns 0; returns 1 when none found.
   - `cortex_walk_up_for_project <dir>` → prints the nearest ancestor (≤20 levels) containing `*.uproject` or `.cortex`, returns 0; returns 1 otherwise.
-  - `cortex_config_raw_value <file> <key>` → prints the last raw scalar value for `key` in `file`, or nothing.
+  - `cortex_config_raw_value <file> <key>` → prints `present:<value>` when the key line exists in `file` (value may be empty), and nothing when the file or key is absent.
   - `cortex_hook_enabled <key>` → returns 0 when the effective switch is truthy, 1 otherwise (default disabled).
 
 - [ ] **Step 1: Write the failing test**
@@ -312,11 +312,15 @@ cortex_walk_up_for_project() {
     return 1
 }
 
-# Print the raw value assigned to key in a Cortex config file (last match).
+# Look up key in a Cortex config file. Prints "present:<value>" (the value may be
+# empty) when the key line exists, and nothing when the file or key is absent, so
+# callers can tell a present-but-empty/empty-scalar key apart from a missing key.
 cortex_config_raw_value() {
-    local file="$1" key="$2"
+    local file="$1" key="$2" value
     [ -f "$file" ] || return 0
-    sed -n "s/^[[:space:]]*$key[[:space:]]*:[[:space:]]*\([^#[:space:]]*\).*/\1/p" "$file" | tail -n 1
+    grep -q "^[[:space:]]*$key[[:space:]]*:" "$file" 2>/dev/null || return 0
+    value=$(sed -n "s/^[[:space:]]*$key[[:space:]]*:[[:space:]]*\([^#[:space:]]*\).*/\1/p" "$file" | tail -n 1)
+    printf 'present:%s\n' "$value"
 }
 
 # Return 0 when the effective hooks.<key> switch is truthy; 1 otherwise.
@@ -324,9 +328,11 @@ cortex_hook_enabled() {
     local key="$1" dir value
     dir=$(cortex_project_dir) || return 1
     value=$(cortex_config_raw_value "$dir/.cortex/config.local.yaml" "$key")
+    # A present marker wins even when the local value is empty (empty => disabled);
+    # fall through to config.yaml only when config.local.yaml does not define the key.
     [ -n "$value" ] || value=$(cortex_config_raw_value "$dir/.cortex/config.yaml" "$key")
     case "$value" in
-        true|True|TRUE|yes|Yes|YES|on|On|ON|1) return 0 ;;
+        present:true|present:True|present:TRUE|present:yes|present:Yes|present:YES|present:on|present:On|present:ON|present:1) return 0 ;;
         *) return 1 ;;
     esac
 }
@@ -570,6 +576,16 @@ case "$OUT" in
   *"INJECTED:# Cortex Project Context"*) fail "config.local.yaml false must disable injection" ;;
 esac
 
+# An empty local value still shadows config.yaml and means disabled.
+cat > "$PROJECT/.cortex/config.local.yaml" <<'YAML'
+hooks:
+  session_context:
+YAML
+OUT=$(run_probe)
+case "$OUT" in
+  *"INJECTED:# Cortex Project Context"*) fail "empty config.local.yaml value must shadow config.yaml" ;;
+esac
+
 rm -f "$PROJECT/.cortex/config.local.yaml"
 cat > "$PROJECT/.cortex/config.yaml" <<'YAML'
 hooks:
@@ -597,14 +613,19 @@ const TRUTHY = new Set(['true', 'True', 'TRUE', 'yes', 'Yes', 'YES', 'on', 'On',
 
 // Opt-in gate mirroring hooks/hook-config.sh: session context is disabled
 // unless hooks.session_context is truthy in .cortex/config.yaml, with a
-// per-machine override in .cortex/config.local.yaml.
+// per-machine override in .cortex/config.local.yaml. A key line present in
+// config.local.yaml — even with an empty or comment-only value — shadows
+// config.yaml and evaluates to disabled.
 function hookEnabled(projectDir, key) {
+  const assignment = new RegExp(`^[ \\t]*${key}[ \\t]*:[ \\t]*([^#\\s]+)`, 'm');
+  const emptyAssignment = new RegExp(`^[ \\t]*${key}[ \\t]*:([ \\t]*#.*)?$`, 'm');
   for (const file of ['config.local.yaml', 'config.yaml']) {
     const configPath = path.join(projectDir, '.cortex', file);
     if (!fs.existsSync(configPath)) continue;
-    const match = fs.readFileSync(configPath, 'utf8')
-      .match(new RegExp(`^[ \\t]*${key}[ \\t]*:[ \\t]*([^#\\s]+)`, 'm'));
+    const text = fs.readFileSync(configPath, 'utf8');
+    const match = text.match(assignment);
     if (match) return TRUTHY.has(match[1]);
+    if (emptyAssignment.test(text)) return false;
   }
   return false;
 }
