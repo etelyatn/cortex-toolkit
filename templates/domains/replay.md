@@ -77,7 +77,8 @@ but its acknowledgement was lost; recover the admitted run through `list_recordi
 
      Example:
      - Smoke: replay #103, expect Completed, then a human verifies the menu opened
-     - Regression: replay #104 for the door interaction; expect Completed and no guard Error
+     - Regression: replay #104 (pose-only) for the door interaction; expect Completed, or a
+       pose-guard Error if the door no longer starts where it was recorded
 -->
 
 ## Drift / Known Issues
@@ -86,6 +87,8 @@ but its acknowledgement was lost; recover the admitted run through `list_recordi
      environment. Note recordings that need re-recording and why.
 
      Example:
-     - #104 fails with REPLAY_UI_GUARD_FAILED local_position_mismatch after the HUD layout
-       change on 2026-10-04 — needs human re-recording
+     - #103 fails with REPLAY_UI_GUARD_FAILED local_position_mismatch after the menu layout change
+       on 2026-10-04 — its tagged Slate control moved; needs human re-recording
+     - #104 (pose-only) fails with REPLAY_POSE_GUARD_FAILED position_delta_cm after the door moved —
+       needs human re-recording
 -->
