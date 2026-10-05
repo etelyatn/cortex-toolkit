@@ -138,17 +138,24 @@ later release, not shipped behaviour** — never present them as available.
 ## Guard failure diagnostics
 
 A guard failure finalizes the run `Error`, suppresses the blocked press and every later event, and
-releases replay-owned held input exactly once. `execution_error.details` is bounded and carries the
-affected event `sequence`, kind, guard type and the expected/actual evidence:
+releases replay-owned held input exactly once. The error `code` identifies the failure family; there
+is no uniform `sequence`/kind/guard-type envelope. `execution_error.details` is bounded and carries
+only the fields listed per code:
 
 - `REPLAY_POSE_GUARD_FAILED` — `position_delta_cm`, `pawn_rotation_delta_degrees`,
-  `control_rotation_delta_degrees`, `max_scale_delta` against the fixed tolerances.
+  `control_rotation_delta_degrees` and `max_scale_delta`, the measured deviation against the fixed
+  tolerances. No event sequence or kind.
 - `REPLAY_UI_GUARD_FAILED` — `reason` (`identity_mismatch`, `local_position_mismatch`,
   `unequivocal_mismatch`, `wait_not_permitted`, `missing_expected_selector`), `observation`,
-  `tolerance`, `local_error`, `actual_x`, `actual_y` and `expected_identity_sha256`.
-- `REPLAY_UI_WAIT_TIMEOUT` — the readiness budget expired before the press could be dispatched.
-- `REPLAY_TIMING_ERROR` — dispatch lateness exceeded the fixed 100 ms accidental-lateness bound;
-  `sequence` and `lateness_ms` identify the affected event.
+  `tolerance`, `local_error`, `actual_x`, `actual_y`, plus `expected_identity_sha256` only when the
+  guard recorded an expected selector. No event sequence or kind.
+- `REPLAY_UI_WAIT_TIMEOUT` — no `details` object; the error message names the blocked event sequence.
+- `REPLAY_TIMING_ERROR` — `sequence` and `lateness_ms` identify the affected event. This is the only
+  guard diagnostic that carries an event `sequence`, and it carries no kind.
+
+Do not infer a missing `sequence`, kind or guard type from `waiting`, progress or coverage counters:
+only `REPLAY_TIMING_ERROR` puts an event `sequence` in `details`, and the UI-wait-timeout message is
+the only other place a blocked sequence appears.
 
 Agents report drift with this evidence and ask the human to re-record; they do not retry, nudge,
 change thresholds, teleport after time zero, or edit the recording.

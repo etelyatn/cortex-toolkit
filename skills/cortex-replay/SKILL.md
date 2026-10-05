@@ -76,11 +76,14 @@ If a request mixes starting and checking, run the phases in order. Never start a
    `Completed` means the validated input sequence finished dispatching — not that every event was
    consumed or the feature behaved correctly. Never report gameplay pass/fail from it.
 2. An `Error` state is still a successful status query. Read `execution_error.code`, `execution_error.message`
-   and `execution_error.details`. Guard failures (`REPLAY_POSE_GUARD_FAILED`,
-   `REPLAY_UI_GUARD_FAILED`, `REPLAY_UI_WAIT_TIMEOUT`) carry the affected event `sequence` and
-   expected/actual deviation: pose `position_delta_cm`, `pawn_rotation_delta_degrees`,
-   `control_rotation_delta_degrees`, `max_scale_delta`; UI `local_error`, `actual_x`, `actual_y`,
-   `tolerance`, `observation` and `reason`.
+   and `execution_error.details`. Details are per-code, not a uniform envelope:
+   `REPLAY_POSE_GUARD_FAILED` carries `position_delta_cm`, `pawn_rotation_delta_degrees`,
+   `control_rotation_delta_degrees` and `max_scale_delta`; `REPLAY_UI_GUARD_FAILED` carries `reason`,
+   `observation`, `tolerance`, `local_error`, `actual_x`, `actual_y` and (only when an expected
+   selector exists) `expected_identity_sha256`; `REPLAY_UI_WAIT_TIMEOUT` carries no `details` (its
+   message names the blocked event sequence); `REPLAY_TIMING_ERROR` carries `sequence` and
+   `lateness_ms`. Only the timing error puts an event `sequence` in `details` — do not infer a missing
+   sequence, kind or guard type from other counters.
 3. **Uncertain start:** if `start_replay` returns `REPLAY_START_OUTCOME_UNKNOWN`
    (`outcome: "unknown"`, `recovery_required: true`), the start was dispatched but its acknowledgement
    was lost. Do NOT reissue start. Recover through the live surface: query `list_recordings` and match
@@ -158,8 +161,10 @@ revocation — you may still read that run's status — but that recording is de
 ## Drift Reporting
 
 When a guard error shows that the recorded pose or UI target no longer matches, the correct output is
-a concise report — recording ID, run ID/state, error code, affected event sequence and the
-expected/actual deviation — plus a request for the human to re-record from the correct environment.
+a concise report — recording ID, run ID/state, error code and the expected/actual deviation the error
+does provide — plus a request for the human to re-record from the correct environment. Include an
+affected event sequence only when the error supplies one (`REPLAY_TIMING_ERROR`); pose and UI guard
+errors do not, so do not invent one.
 Do not retry, adjust thresholds, move the player, enable anything, or claim the gameplay succeeded.
 
 ## Progress Discipline
