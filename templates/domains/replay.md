@@ -53,8 +53,10 @@ but its acknowledgement was lost; recover the admitted run through `list_recordi
      Record the human-enabled recordings this project expects to replay here — integer ID,
      short purpose, recorded map and any guard-coverage warning. Example:
 
-     - #103 "Pause menu" — /Game/Maps/TestMap; screen-space UMG menu open; full UI coverage
-     - #104 "Door interaction" — /Game/Maps/TestMap; pose-only coverage (untagged dynamic button)
+     - #103 "Pause menu" — /Game/Maps/TestMap; menu press on an authored tagged Slate control, so it
+       is UI-guarded on the shipped tagged-Slate route
+     - #104 "Door interaction" — /Game/Maps/TestMap; pose-only coverage (screen-space UMG button with
+       no tagged-Slate identity, so capture marks it ui_guard_unavailable)
 -->
 
 ## Environment
