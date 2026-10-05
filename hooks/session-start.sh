@@ -1,14 +1,21 @@
 #!/usr/bin/env bash
 # Cortex session-start hook — injects project memory into session context.
 # Runs at session start/resume/clear/compact.
+#
+# Opt-in: runs only when hooks.session_context is true in the project's
+# .cortex/config.yaml (or config.local.yaml); disabled otherwise.
 
-CORTEX_DIR=".cortex"
+set -uo pipefail
+
+TOOLKIT_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." 2>/dev/null && pwd)
+# shellcheck source=hooks/hook-config.sh
+. "$TOOLKIT_ROOT/hooks/hook-config.sh"
+
+PROJECT_DIR=$(cortex_project_dir) || exit 0
+cortex_hook_enabled session_context || exit 0
+
+CORTEX_DIR="$PROJECT_DIR/.cortex"
 CONTEXT_FILE="$CORTEX_DIR/context.md"
-
-# No .cortex/ directory — skip silently
-if [ ! -d "$CORTEX_DIR" ]; then
-  exit 0
-fi
 
 echo "# Cortex Project Context"
 echo ""
