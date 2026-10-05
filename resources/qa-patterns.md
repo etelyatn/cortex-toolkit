@@ -79,42 +79,20 @@ game-view camera pose is unavailable. Default camera mutation rejects possessed
 PIE. Its explicit override affects only a transient editor client, not game camera.
 
 
-## Session Recording and Replay
+## Session Recording and Replay (Moved to CortexReplay)
 
-Record player sessions during PIE and replay them for regression testing.
+QA no longer records or replays input; the legacy QA recording commands were removed in the
+CortexReplay cutover. Recorded physical-input replay now belongs to the `replay` domain
+(`cortex-replay` skill, `replay_cmd`), where a human captures and enables a recording and an AI
+replays it once under fixed press-only guards.
 
-### Record a Session
-```python
-qa_cmd(command="start_recording", params={"name": "smoke_test_01"})
-# ... perform test actions via move_to, interact, inject_key, etc. ...
-qa_cmd(command="stop_recording")
-# Returns: session file path and frame count
-```
-
-### Replay a Recorded Session
-```python
-qa_cmd(command="replay_session", params={
-    "path": "Saved/QASessions/smoke_test_01.json",
-    "on_failure": "continue"  # "continue" = keep going on assertion failure, "stop" = halt immediately
-})
-# Deferred response — completes when replay finishes
-```
-
-### Cancel an In-Progress Replay
-```python
-qa_cmd(command="cancel_replay")
-```
-
-**Constraints:**
-- PIE must be active for both recording and replay
-- Recording and replay are mutually exclusive (`SessionBusy` error)
-- `replay_session` is a deferred (async) command — it completes when replay finishes
-
-**Typical regression workflow:**
-```
-start_pie → start_recording → (perform test actions) → stop_recording
-→ restart_pie → replay_session → (verify assertions pass)
-```
+- QA keeps its semantic surface: `move_to`, `interact`, `wait_for`, `assert_state`, `qa_test_step`,
+  `scenario_compose`.
+- AI replay is one-shot and never retried; recover an unknown start through `list_recordings` /
+  `get_run`, then report the terminal `state`.
+- `Completed` means the recorded sequence finished dispatching — it is not a gameplay pass/fail
+  verdict, and there is no assertion/report artifact per event.
+- Follow the `cortex-replay` skill and `resources/replay-workflow.md` for replay runs.
 
 ## Benchmark Tests
 

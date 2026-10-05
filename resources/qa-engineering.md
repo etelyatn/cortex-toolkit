@@ -44,35 +44,25 @@ For each scenario step:
 
 **Limitation:** `editor_cmd(command="inject_key", ...)` and `editor_cmd(command="inject_input_sequence", ...)` only confirm that the Slate event was dispatched — they cannot verify the game reacted. Always follow direct input with an `observe_game_state` or `wait_for_condition` to check the effect.
 
-## Session Recording and Replay
+## Session Recording and Replay (Moved to CortexReplay)
 
-Record player sessions and replay them for regression testing.
+QA no longer records or replays input. The legacy QA `start_recording`, `stop_recording`,
+`replay_session` and `cancel_replay` commands were removed; the old raw-event recorder could not
+reconstruct faithful physical UI playback. Recorded physical-input replay now belongs to the
+`replay` domain: a human captures and enables a recording in the CortexReplay window, and an AI
+replays it once through `replay_cmd` under the `cortex-replay` skill.
 
-**Record a session:**
-```python
-qa_cmd(command="start_recording", params={"name": "door_interaction_test"})
-# ... player performs actions during PIE ...
-qa_cmd(command="stop_recording")
-# Returns: {"path": "Saved/QASessions/door_interaction_test.json", "frame_count": N}
-```
+For QA work, keep using the retained semantic surface — world queries, `move_to`, `interact`,
+`wait_for`, `assert_state`, `qa_test_step` and `scenario_compose`. For recorded human flows, route to
+`cortex-replay` and read `resources/replay-workflow.md`. Do not attempt to re-add recording through
+QA or to convert legacy session files: existing `Saved/CortexQA/Recordings/` content is preserved but
+is not a valid physical-input recording.
 
-**Replay a recorded session:**
-```python
-qa_cmd(command="replay_session", params={
-    "path": "Saved/QASessions/door_interaction_test.json",
-    "on_failure": "continue"  # or "stop"
-})
-# Deferred response — returns when replay completes or fails
-```
+### Constraints
 
-**Cancel an in-progress replay:**
-```python
-qa_cmd(command="cancel_replay")
-```
-
-**Constraints:**
-- Recording and replay are mutually exclusive — only one can be active at a time (`SessionBusy` error if violated).
-- Both require an active PIE session (`PIE_NOT_ACTIVE` if PIE is not running).
+- Physical replay requires a rendered, correctly focused PIE surface; QA still requires active PIE for
+  its semantic actions.
+- A replay run is AI-originated and one-shot; a completed replay is not a gameplay pass/fail verdict.
 
 ## Tooling Rules
 
