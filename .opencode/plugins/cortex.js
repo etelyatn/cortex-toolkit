@@ -43,6 +43,27 @@ function assembleContext(projectDir) {
   return parts.join('\n');
 }
 
+const TRUTHY = new Set(['true', 'True', 'TRUE', 'yes', 'Yes', 'YES', 'on', 'On', 'ON', '1']);
+
+// Opt-in gate mirroring hooks/hook-config.sh: session context is disabled
+// unless hooks.session_context is truthy in .cortex/config.yaml, with a
+// per-machine override in .cortex/config.local.yaml. A key line present in
+// config.local.yaml — even with an empty or comment-only value — shadows
+// config.yaml and evaluates to disabled.
+function hookEnabled(projectDir, key) {
+  const assignment = new RegExp(`^[ \\t]*${key}[ \\t]*:[ \\t]*([^#\\s]+)`, 'm');
+  const emptyAssignment = new RegExp(`^[ \\t]*${key}[ \\t]*:([ \\t]*#.*)?$`, 'm');
+  for (const file of ['config.local.yaml', 'config.yaml']) {
+    const configPath = path.join(projectDir, '.cortex', file);
+    if (!fs.existsSync(configPath)) continue;
+    const text = fs.readFileSync(configPath, 'utf8');
+    const match = text.match(assignment);
+    if (match) return TRUTHY.has(match[1]);
+    if (emptyAssignment.test(text)) return false;
+  }
+  return false;
+}
+
 function toolMapping() {
   return [
     '## OpenCode Tool Mapping',
@@ -87,6 +108,7 @@ export const CortexPlugin = async ({ directory }) => {
     },
 
     'experimental.chat.messages.transform': async (_input, output) => {
+      if (!hookEnabled(projectDir, 'session_context')) return;
       if (!output.messages || !output.messages.length) return;
       const firstUser = output.messages.find((m) => m.info.role === 'user');
       if (!firstUser || !firstUser.parts.length) return;
@@ -96,6 +118,7 @@ export const CortexPlugin = async ({ directory }) => {
     },
 
     'experimental.session.compacting': async (_input, output) => {
+      if (!hookEnabled(projectDir, 'session_context')) return;
       output.context = output.context || [];
       output.context.push(getProjectContextOnly());
     }
