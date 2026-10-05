@@ -324,7 +324,9 @@ first match, so prefer unique names. Authoring does not rely on that resolution 
 `graph_ref` carrying a canonical `graph_guid` (plus an optional `subgraph_path`) taken from
 `graph.get_authoring_context`.
 
-`auto_layout` — repositions nodes using execution-first left-to-right layout with parameter grouping. `mode`: `"full"` repositions all nodes; `"incremental"` only repositions nodes at position (0,0). Optional `graph_name`, `horizontal_spacing`, `vertical_spacing`.
+`auto_layout` — repositions node bodies using execution-first left-to-right layout with parameter grouping. `mode`: `"full"` repositions eligible non-comment nodes; `"incremental"` only repositions nodes at `(0,0)` while reserving established bodies without moving them. Optional `graph_name`, `horizontal_spacing`, `vertical_spacing`. To target a composite child, supply both the root `graph_name` and its dot-separated `subgraph_path`; a child path without a root is refused.
+
+The response reports eligible `node_count`, `graphs_processed`, actual `changed_node_count`, and `unchanged`. A repeated unchanged layout does not dirty the asset. Layout never saves implicitly: use explicit asset persistence after inspection. Read graph/node data with `compact: false` to verify positions, and inspect the actual Blueprint Editor surface; a success response alone is not visual or save/reload proof.
 
 ### Compact Serialization (default for read commands)
 
