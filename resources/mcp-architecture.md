@@ -32,7 +32,7 @@ Built-in commands (no namespace): `get_status`, `get_capabilities`
 
 ## Connection Guard (PreToolUse Hook)
 
-The `cortex-core` plugin includes a PreToolUse hook that gates every `cortex_mcp` tool call, ensuring the editor and CortexCore TCP server are ready before any MCP command executes.
+The `cortex-core` plugin includes a PreToolUse hook that gates every `cortex_mcp` tool call, ensuring the editor and CortexCore TCP server are ready before any MCP command executes. The guard is **disabled by default** and runs only when `hooks.editor_guard: true` is set in `.cortex/config.yaml` (or a per-machine override in `.cortex/config.local.yaml`); when disabled it exits immediately without probing or launching the editor.
 
 **Fast path (~50ms):** Port file exists + TCP socket responds → hook exits silently, no delay.
 

@@ -56,7 +56,15 @@ function hookEnabled(projectDir, key) {
   for (const file of ['config.local.yaml', 'config.yaml']) {
     const configPath = path.join(projectDir, '.cortex', file);
     if (!fs.existsSync(configPath)) continue;
-    const text = fs.readFileSync(configPath, 'utf8');
+    let text;
+    try {
+      text = fs.readFileSync(configPath, 'utf8');
+    } catch {
+      // Unreadable config (permissions, lock, or a directory in place of the
+      // file) degrades to disabled, mirroring hooks/hook-config.sh, which treats
+      // a non-file config as absent and falls through to the next candidate.
+      continue;
+    }
     const match = text.match(assignment);
     if (match) return TRUTHY.has(match[1]);
     if (emptyAssignment.test(text)) return false;

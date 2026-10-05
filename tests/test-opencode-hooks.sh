@@ -114,4 +114,23 @@ case "$OUT" in
   *"INJECTED:# Cortex Project Context"*) fail "editor_guard must not enable session context" ;;
 esac
 
+# --- unreadable config degrades to disabled, never throws ------------------
+rm -f "$PROJECT/.cortex/config.yaml"
+mkdir "$PROJECT/.cortex/config.yaml"
+OUT=$(run_probe) || fail "probe must not throw when config.yaml cannot be read"
+assert_contains "INJECTED:" "$OUT" "probe still runs with unreadable config"
+assert_contains "skills" "$(printf '%s\n' "$OUT" | grep '^SKILLS:')" "skills directory stays registered with unreadable config"
+case "$OUT" in
+  *"INJECTED:# Cortex Project Context"*) fail "unreadable config must degrade to disabled" ;;
+esac
+case "$OUT" in
+  *"COMPACT:[]"*) ;;
+  *) fail "unreadable config must not push compaction context: $OUT" ;;
+esac
+rmdir "$PROJECT/.cortex/config.yaml"
+cat > "$PROJECT/.cortex/config.yaml" <<'YAML'
+hooks:
+  editor_guard: true
+YAML
+
 echo "opencode hook opt-in tests passed"
