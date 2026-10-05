@@ -136,6 +136,23 @@ hooks:
 YAML
 assert_eq on "$(flag "$PROJECT" session_context)" "config.local.yaml true overrides config.yaml false"
 
+# A local key that is present but empty/null is a real override: it stays
+# disabled and must NOT fall through to the base config's truthy value.
+cat > "$PROJECT/.cortex/config.yaml" <<'YAML'
+hooks:
+  editor_guard: true
+YAML
+cat > "$PROJECT/.cortex/config.local.yaml" <<'YAML'
+hooks:
+  editor_guard:
+YAML
+assert_eq off "$(flag "$PROJECT" editor_guard)" "empty local override disables despite config.yaml true"
+cat > "$PROJECT/.cortex/config.local.yaml" <<'YAML'
+hooks:
+  editor_guard:  # explicitly off
+YAML
+assert_eq off "$(flag "$PROJECT" editor_guard)" "commented empty local override disables despite config.yaml true"
+
 # --- 5. Truthy / non-truthy literal handling -------------------------------
 rm -f "$PROJECT/.cortex/config.local.yaml"
 for value in true True TRUE yes on 1; do
@@ -157,6 +174,35 @@ assert_eq off "$(
     bash -c '. "$1"; if cortex_hook_enabled session_context; then echo on; else echo off; fi' \
     _ "$GATE_LIB"
 )" "project without .cortex/.uproject is disabled"
+
+# Genuinely no discoverable project: copy the packaged hooks outside any Unreal
+# project, unset CLAUDE_PROJECT_DIR, and prove the disabled path is a silent no-op.
+OUTSIDE="$WORK/outside-project"
+mkdir -p "$OUTSIDE/hooks"
+cp "$ROOT_DIR/hooks/"*.sh "$OUTSIDE/hooks/"
+run_hook_no_project() {
+  ( cd "$OUTSIDE" && env -u CLAUDE_PROJECT_DIR -u UE_PATH -u CORTEX_EDITOR_PID \
+      PATH="$POISON:$NO_EDITOR:$PATH" bash "$OUTSIDE/hooks/$1" )
+}
+set +e
+OUT=$(run_hook_no_project check-ue-editor.sh 2>"$WORK/err.txt"); RC=$?
+set -e
+assert_eq 0 "$RC" "no-project check hook exit code"
+assert_eq "" "$OUT" "no-project check hook stdout"
+assert_eq "" "$(cat "$WORK/err.txt")" "no-project check hook stderr"
+
+set +e
+OUT=$(run_hook_no_project session-start.sh 2>"$WORK/err.txt"); RC=$?
+set -e
+assert_eq 0 "$RC" "no-project session hook exit code"
+assert_eq "" "$OUT" "no-project session hook stdout"
+assert_eq "" "$(cat "$WORK/err.txt")" "no-project session hook stderr"
+
+# The walk-up helper must fail for a bare directory (no .uproject / .cortex).
+if ( cd "$OUTSIDE" && bash -c '. "$1"; cortex_walk_up_for_project "$2" >/dev/null' \
+      _ "$OUTSIDE/hooks/hook-config.sh" "$OUTSIDE" ); then
+  fail "cortex_walk_up_for_project should fail for a bare temp dir"
+fi
 
 # --- 7. Session hook: default off, opt-in prints context -------------------
 cat > "$PROJECT/.cortex/context.md" <<'MD'

@@ -46,11 +46,15 @@ cortex_walk_up_for_project() {
     return 1
 }
 
-# Print the raw value assigned to key in a Cortex config file (last match).
+# Look up key in a Cortex config file. Prints "present:<value>" (the value may be
+# empty) when the key line exists, and nothing when the file or key is absent, so
+# callers can tell a present-but-empty/empty-scalar key apart from a missing key.
 cortex_config_raw_value() {
-    local file="$1" key="$2"
+    local file="$1" key="$2" value
     [ -f "$file" ] || return 0
-    sed -n "s/^[[:space:]]*$key[[:space:]]*:[[:space:]]*\([^#[:space:]]*\).*/\1/p" "$file" | tail -n 1
+    grep -q "^[[:space:]]*$key[[:space:]]*:" "$file" 2>/dev/null || return 0
+    value=$(sed -n "s/^[[:space:]]*$key[[:space:]]*:[[:space:]]*\([^#[:space:]]*\).*/\1/p" "$file" | tail -n 1)
+    printf 'present:%s\n' "$value"
 }
 
 # Return 0 when the effective hooks.<key> switch is truthy; 1 otherwise.
@@ -58,9 +62,11 @@ cortex_hook_enabled() {
     local key="$1" dir value
     dir=$(cortex_project_dir) || return 1
     value=$(cortex_config_raw_value "$dir/.cortex/config.local.yaml" "$key")
+    # A present marker wins even when the local value is empty (empty => disabled);
+    # fall through to config.yaml only when config.local.yaml does not define the key.
     [ -n "$value" ] || value=$(cortex_config_raw_value "$dir/.cortex/config.yaml" "$key")
     case "$value" in
-        true|True|TRUE|yes|Yes|YES|on|On|ON|1) return 0 ;;
+        present:true|present:True|present:TRUE|present:yes|present:Yes|present:YES|present:on|present:On|present:ON|present:1) return 0 ;;
         *) return 1 ;;
     esac
 }
