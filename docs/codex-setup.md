@@ -16,7 +16,7 @@ codex plugin add cortex-toolkit@cortex-toolkit
 ```
 
 Restart Codex if it was already running.
-When Codex prompts to review toolkit hooks, trust them if you want automatic editor connection checks and session context loading.
+When Codex prompts to review toolkit hooks, trust them if you want them available. Hooks are **opt-in and disabled by default**: the PreToolUse editor guard runs only when `hooks.editor_guard: true` is set in `.cortex/config.yaml`, and the SessionStart context hook runs only when `hooks.session_context: true` is set.
 
 ## How Skills Are Discovered
 
@@ -24,11 +24,11 @@ Codex discovers skills from the installed `cortex-toolkit` plugin manifest at `.
 
 The plugin does not bundle `.mcp.json`; keep MCP configuration in your Unreal project because it needs project-specific absolute paths.
 
-Codex also discovers `hooks/hooks.json` from the plugin. The PreToolUse hook guards `cortex_mcp` tool calls by checking the Unreal Editor connection, and the SessionStart hook loads Cortex project context.
+Codex also discovers `hooks/hooks.json` from the plugin. The hooks are opt-in: the PreToolUse hook guards `cortex_mcp` tool calls by checking the Unreal Editor connection only when `hooks.editor_guard: true` is set, and the SessionStart hook loads Cortex project context only when `hooks.session_context: true` is set in `.cortex/config.yaml`.
 
 ## Limitations
 
-- **Hooks require trust in Codex** — Codex prompts before running new or changed toolkit hooks.
+- **Hooks require trust in Codex** — Codex prompts before running new or changed toolkit hooks, and trusted hooks still do nothing until `hooks.editor_guard` or `hooks.session_context` is enabled in `.cortex/config.yaml`.
 - **Operational skills need a local editor** — Skills like `/cortex-editor` and `/cortex-build` require a local Unreal Editor and are not functional in Codex cloud environments.
 - **MCP only** — Interact with Unreal Engine via the `cortex_mcp` MCP server.
 

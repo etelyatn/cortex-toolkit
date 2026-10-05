@@ -44,11 +44,11 @@ Replace the UnrealCortex path with your actual plugin location, for example `Plu
 
 Open the Unreal Editor before using live MCP tools. CortexCore writes the port file during editor startup, and the MCP server discovers it automatically.
 
-Codex discovers `hooks/hooks.json` automatically after install. On first use, review and trust the hooks when prompted. The PreToolUse hook checks the Unreal Editor connection before `cortex_mcp` calls, and the SessionStart hook loads Cortex project context.
+Codex discovers `hooks/hooks.json` automatically after install. On first use, review and trust the hooks when prompted. Hooks are **opt-in and disabled by default**: the PreToolUse editor guard runs only when `hooks.editor_guard: true` is set in `.cortex/config.yaml`, and the SessionStart context hook runs only when `hooks.session_context: true` is set. With no config, hooks are trusted but do nothing.
 
 ## Limitations
 
-- **Hooks require trust in Codex** — the `hooks/` directory is packaged and Codex prompts before running new or changed hooks.
+- **Hooks require trust in Codex** — the `hooks/` directory is packaged and Codex prompts before running new or changed hooks. Trust alone does not run them: with no `.cortex/config.yaml` opt-in, the hooks do nothing.
 - **Operational skills need a local editor** — Skills like `/cortex-editor` and `/cortex-build` require a local Unreal Editor and are not functional in Codex cloud environments.
 - **MCP tools only** — Use the `cortex_mcp` server tools directly (configured in `.mcp.json`).
 

@@ -2,56 +2,37 @@
 # PreToolUse guard: ensure Unreal Editor + CortexCore TCP are ready
 # before any cortex_mcp tool call.
 #
+# Opt-in: runs only when hooks.editor_guard is true in the project's
+# .cortex/config.yaml (or config.local.yaml); disabled otherwise, including a
+# fresh install with no config. See README "Agent Hooks (opt-in)".
+#
 # Fast path (~50ms): port file valid + TCP responds → exit 0 silently
 # Start path: lock-protected editor launch, 180s two-phase poll
 # Fail path: exit 2 with Claude-directive stderr
 
 set -uo pipefail
 
-# Walk up from a starting directory looking for *.uproject
-_walk_up_for_uproject() {
-    local dir="$1" parent
-    for _ in $(seq 1 20); do
-        if ls "$dir"/*.uproject 2>/dev/null | head -1 | grep -q .; then
-            echo "$dir"; return 0
-        fi
-        parent=$(dirname "$dir")
-        [ "$parent" = "$dir" ] && break
-        dir="$parent"
-    done
-    return 1
-}
-
-# Resolve project root: CLAUDE_PROJECT_DIR → walk-up from CWD → walk-up from script location
-# The third fallback handles subagents whose CWD differs from the project root.
-_find_project_dir() {
-    if [ -n "${CLAUDE_PROJECT_DIR:-}" ] && [ -d "$CLAUDE_PROJECT_DIR" ]; then
-        echo "$CLAUDE_PROJECT_DIR"; return 0
-    fi
-    _walk_up_for_uproject "$(pwd)" && return 0
-    local script_dir
-    script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd) || return 1
-    _walk_up_for_uproject "$script_dir"
-}
-
-if [ -n "${CORTEX_CONFIG_TEST_MODE:-}" ] && [ -n "${PROJECT_DIR:-}" ]; then
-    PROJECT_DIR="$PROJECT_DIR"
-else
-    PROJECT_DIR=$(_find_project_dir) || {
-    cat >&2 <<'EOF'
-Could not find the Unreal project root directory.
-Tell the user: the PreToolUse hook could not locate a .uproject file.
-Checked CLAUDE_PROJECT_DIR, walked up from CWD, and walked up from script location.
-Ask them to set CLAUDE_PROJECT_DIR or ensure the cortex-toolkit is inside the project tree.
-Do not proceed with MCP tool calls until the user resolves this.
-EOF
-        exit 2
-    }
-fi
-LOCK_DIR="$PROJECT_DIR/Saved/cortex-ue-editor-starting.lock"
-RESTART_LOCK="$PROJECT_DIR/Saved/CortexRestarting.lock"
 TOOLKIT_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." 2>/dev/null && pwd)
 CORTEX_CONFIG_LOADER="$TOOLKIT_ROOT/lib/cortex_config.py"
+
+# shellcheck source=hooks/hook-config.sh
+. "$TOOLKIT_ROOT/hooks/hook-config.sh"
+
+if [ -n "${CORTEX_CONFIG_TEST_MODE:-}" ]; then
+    # Internal test entrypoints (tests/test-check-ue-editor-config.sh) drive
+    # individual functions directly and bypass the opt-in gate.
+    if [ -z "${PROJECT_DIR:-}" ]; then
+        echo "PROJECT_DIR is required when CORTEX_CONFIG_TEST_MODE is set" >&2
+        exit 2
+    fi
+else
+    # Opt-in gate: no project or no explicit opt-in → no-op with no side effects.
+    PROJECT_DIR=$(cortex_project_dir) || exit 0
+    cortex_hook_enabled editor_guard || exit 0
+fi
+
+LOCK_DIR="$PROJECT_DIR/Saved/cortex-ue-editor-starting.lock"
+RESTART_LOCK="$PROJECT_DIR/Saved/CortexRestarting.lock"
 
 _python_bin() {
     if command -v python >/dev/null 2>&1; then

@@ -61,6 +61,8 @@ ProjectRoot/
 | `cortex-toolkit/hooks/check-ue-editor.sh` | PreToolUse guard — auto-verifies/starts editor before MCP calls |
 | `cortex-toolkit/hooks/hooks.json` | Hook configuration (PreToolUse + SessionStart) |
 
+The `check-ue-editor.sh` guard is **disabled by default** and runs only when `hooks.editor_guard: true` is set in `.cortex/config.yaml` (or a per-machine override in `.cortex/config.local.yaml`).
+
 ## Content Organization Rules
 
 - DataTables go in `Content/Data/` with `DT_` prefix
