@@ -586,6 +586,13 @@ case "$OUT" in
   *"INJECTED:# Cortex Project Context"*) fail "empty config.local.yaml value must shadow config.yaml" ;;
 esac
 
+# A whitespace-only local value is also present and shadows config.yaml.
+printf 'hooks:\n  session_context:%s\n' '   ' > "$PROJECT/.cortex/config.local.yaml"
+OUT=$(run_probe)
+case "$OUT" in
+  *"INJECTED:# Cortex Project Context"*) fail "whitespace-only config.local.yaml value must shadow config.yaml" ;;
+esac
+
 rm -f "$PROJECT/.cortex/config.local.yaml"
 cat > "$PROJECT/.cortex/config.yaml" <<'YAML'
 hooks:
@@ -618,7 +625,7 @@ const TRUTHY = new Set(['true', 'True', 'TRUE', 'yes', 'Yes', 'YES', 'on', 'On',
 // config.yaml and evaluates to disabled.
 function hookEnabled(projectDir, key) {
   const assignment = new RegExp(`^[ \\t]*${key}[ \\t]*:[ \\t]*([^#\\s]+)`, 'm');
-  const emptyAssignment = new RegExp(`^[ \\t]*${key}[ \\t]*:([ \\t]*#.*)?$`, 'm');
+  const emptyAssignment = new RegExp(`^[ \\t]*${key}[ \\t]*:[ \\t]*(#.*)?$`, 'm');
   for (const file of ['config.local.yaml', 'config.yaml']) {
     const configPath = path.join(projectDir, '.cortex', file);
     if (!fs.existsSync(configPath)) continue;
