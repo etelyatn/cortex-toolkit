@@ -42,6 +42,11 @@ Set up the project for UnrealCortex.
  9. Summarize the engine path, detected domains, created files, MCP settings, and recommended next actions.
  10. If the user works in Codex, run the **Codex Verification Gate** below before declaring setup complete. "Config written" and "Codex ready" are separate states.
 
+Agent hooks are opt-in and disabled by default. Do not enable them unless the
+user asks: mention `hooks.editor_guard` and `hooks.session_context` in
+`.cortex/config.yaml` only if they want automatic editor checks or session
+context injection.
+
 If the plugin is missing, stop and tell the user to add the UnrealCortex submodule first.
 If the plugin is explicitly disabled in the `.uproject`, stop until they enable it.
 
