@@ -52,7 +52,7 @@ const TRUTHY = new Set(['true', 'True', 'TRUE', 'yes', 'Yes', 'YES', 'on', 'On',
 // config.yaml and evaluates to disabled.
 function hookEnabled(projectDir, key) {
   const assignment = new RegExp(`^[ \\t]*${key}[ \\t]*:[ \\t]*([^#\\s]+)`, 'm');
-  const emptyAssignment = new RegExp(`^[ \\t]*${key}[ \\t]*:([ \\t]*#.*)?$`, 'm');
+  const emptyAssignment = new RegExp(`^[ \\t]*${key}[ \\t]*:[ \\t]*(#.*)?$`, 'm');
   for (const file of ['config.local.yaml', 'config.yaml']) {
     const configPath = path.join(projectDir, '.cortex', file);
     if (!fs.existsSync(configPath)) continue;

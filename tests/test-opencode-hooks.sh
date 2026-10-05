@@ -97,6 +97,13 @@ case "$OUT" in
   *"INJECTED:# Cortex Project Context"*) fail "empty config.local.yaml value must shadow config.yaml" ;;
 esac
 
+# A whitespace-only local value (no comment) still counts as present/disabled.
+printf 'hooks:\n  session_context:%s\n' '   ' > "$PROJECT/.cortex/config.local.yaml"
+OUT=$(run_probe)
+case "$OUT" in
+  *"INJECTED:# Cortex Project Context"*) fail "whitespace-only config.local.yaml value must shadow config.yaml" ;;
+esac
+
 rm -f "$PROJECT/.cortex/config.local.yaml"
 cat > "$PROJECT/.cortex/config.yaml" <<'YAML'
 hooks:
