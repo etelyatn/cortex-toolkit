@@ -13,8 +13,8 @@ its status and cancels it. There is no AI recording, editing, permission or dele
 
 | Command | Purpose |
 |---------|---------|
-| `replay.list_recordings` | Live eligible recording page (ascending ID) with map, start pose, guard-coverage summary, the active AI run and recent terminal AI-run summaries. Paged by `after_recording_id` / `page_size`. |
-| `replay.get_recording` | One eligible recording's metadata, recorded start pose and guard-coverage warning. |
+| `replay.list_recordings` | Live eligible recording page (ascending ID) with map, prerequisites and guard-coverage summary (no start pose), the active AI run and recent terminal AI-run summaries. Paged by `after_recording_id` / `page_size`. |
+| `replay.get_recording` | One eligible recording's metadata, `initial_state` (recorded pawn transform and control rotation) and guard-coverage warning. |
 | `replay.start_replay` | Accept one AI replay run and return its `Preparing` identity (`run_id`). One-shot; never inside a Core batch and never resent. |
 | `replay.get_run` | Live AI run state or retained terminal result. |
 | `replay.cancel_replay` | Cancel that AI-originated run or return its existing terminal state. |

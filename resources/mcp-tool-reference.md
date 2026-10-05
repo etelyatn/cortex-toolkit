@@ -502,12 +502,13 @@ Optional domain — registered only when live capabilities prove the editor expo
 Human-captured physical-input recordings are discovered, started once, tracked and cancelled here;
 recording, editing, permission and deletion are human-only in the CortexReplay window.
 
-- `list_recordings` — live eligible recording page (ascending integer ID) with map, recorded start
-  pose and guard-coverage summary; also returns `active_ai_run` and up to 100 `recent_ai_runs`
-  terminal summaries from the last 24 hours. Paged with `after_recording_id` and `page_size` (1..100,
-  default 20). Generic `limit`/`cursor`/`offset`/`page` are rejected.
-- `get_recording` — one eligibility-checked recording's metadata, recorded start pose and
-  guard-coverage warning. No input rows or arbitrary file access.
+- `list_recordings` — live eligible recording page (ascending integer ID) with map, prerequisites and
+  guard-coverage summary (no start pose — read `get_recording`'s `initial_state`); also returns
+  `active_ai_run` and up to 100 `recent_ai_runs` terminal summaries from the last 24 hours. Paged
+  with `after_recording_id` and `page_size` (1..100, default 20). Generic
+  `limit`/`cursor`/`offset`/`page` are rejected.
+- `get_recording` — one eligibility-checked recording's metadata, `initial_state` (recorded pawn
+  transform and control rotation) and guard-coverage warning. No input rows or arbitrary file access.
 - `start_replay` — accept one AI run and return `run_id` plus `state: "Preparing"`. One-shot: never
   inside a Core batch and never automatically resent. Acceptance is not completion.
 - `get_run` — live run state or retained terminal result (`Completed`, `Cancelled`, `Interrupted`,

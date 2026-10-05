@@ -14,8 +14,8 @@ identical in native parsing, the MCP boundary and live capabilities.
 
 | Command | Parameters | Result |
 |---|---|---|
-| `list_recordings` | `after_recording_id` (optional, positive int32), `page_size` (optional, 1..100, default 20) | Live eligible recording page, ascending ID, each row with map, recorded start pose and guard-coverage summary; `has_more`, `next_after_recording_id`, `editor_instance_id`, `active_ai_run` and `recent_ai_runs` |
-| `get_recording` | `recording_id` (required, positive int32) | Eligible recording metadata, recorded start pose and guard-coverage warning; no input rows or arbitrary file access |
+| `list_recordings` | `after_recording_id` (optional, positive int32), `page_size` (optional, 1..100, default 20) | Live eligible recording page, ascending ID; each row carries map, prerequisites and guard-coverage summary (**no start pose** — read `get_recording.initial_state`); `has_more`, `next_after_recording_id`, `editor_instance_id`, `active_ai_run` and `recent_ai_runs` |
+| `get_recording` | `recording_id` (required, positive int32) | Eligible recording metadata, `initial_state` (recorded pawn transform and control rotation) and guard-coverage warning; no input rows or arbitrary file access |
 | `start_replay` | `recording_id` (required, positive int32) | Synchronous acceptance: `run_id`, `recording_id`, `editor_instance_id`, `state: "Preparing"` |
 | `get_run` | `run_id` (required, canonical lower-case UUID) | Live AI run state or retained terminal result with progress, wait substate and error details |
 | `cancel_replay` | `run_id` (required, canonical lower-case UUID) | Cancels that AI-originated run or returns its existing terminal state |
@@ -98,12 +98,13 @@ guard:
 | Maximum scale-component error | ≤ 0.001 |
 | UI normalized local x/y absolute error | ≤ 0.005 |
 
-For an identifiable UI pointer press the guard also resolves the recorded structured widget identity
-and hit-tests the live pointer against it after preceding motion is processed. Visibility, enabled
-state and hit-testability are required. A different actionable widget is an immediate mismatch; the
-pointer is never relocated and the click is never retargeted. Releases, cleanup releases and motion
-are not gated, so press protection does not promise that a later OnClicked/OnReleased/drag action
-succeeded — this press-only limit is surfaced in the recording popup, AI metadata and run results.
+For a pointer press on the shipped tagged-Slate route the guard also resolves the recorded tagged
+widget identity and hit-tests the live pointer against it after preceding motion is processed.
+Visibility, enabled state and hit-testability are required. A different widget is a mismatch; the
+pointer is never relocated and the click is never retargeted. A press with no resolvable tagged-Slate
+identity carries only the pose guard (partial coverage). Releases, cleanup releases and motion are not
+gated, so press protection does not promise that a later OnClicked/OnReleased/drag action succeeded —
+this press-only limit is surfaced in the recording popup, AI metadata and run results.
 
 When a required UI target is missing, not yet ready, or its layout/input processing is pending, replay
 may wait up to 1 second per press and at most 5 seconds cumulatively per run — only with neutral input
@@ -118,15 +119,21 @@ keeps only its pose guard — that is explicit partial coverage, surfaced as a w
 supported identity becoming unavailable at playback is an error, never an automatic downgrade.
 Coverage is fixed by capture; AI permission does not upgrade it.
 
-### Supported UI identity matrix
+### UI identity: tagged runtime Slate only
 
-| Target family | Required guard support | Explicitly unavailable cases |
-|---|---|---|
-| Screen-space UMG/CommonUI | Authored named Button/Slider and other pointer controls under a uniquely identified player-owned root; nested authored instances distinguished by ancestry | Untagged duplicate roots; virtualized/dynamic instances without an authored stable discriminator |
-| Native runtime Slate | Uniquely authored tagged pointer control under a uniquely identified selected runtime root | Untagged anonymous controls; type/caption/index alone is not identity |
-| World-space Widget Component | Authored named controls under a saved-map actor and named component with a proven physical hardware-input hit-test route | Runtime-spawned owners without stable identity; virtual-pointer routes whose selected device/component or fresh hit cannot be proven |
+The shipped capture/playback route supports exactly one UI guard identity: an authored unique root tag
+plus an authored unique target tag on a runtime Slate control under the selected runtime root. Capture
+resolves only that route and playback rejects any non-Slate / non-root-tag identity as unavailable.
 
-These rows are acceptance obligations, not permission to label every target unsupported.
+| Target | Shipped status |
+|---|---|
+| Authored tagged runtime Slate pointer control under a uniquely identified selected runtime root | **Supported** — guarded |
+| Untagged/anonymous Slate controls; type, caption or index alone | Unavailable — not an identity |
+| Screen-space UMG/CommonUI authored ancestry | Unavailable — capture marks `ui_guard_unavailable` (`unobservable_pointer_route`); pose guard only |
+| World-space Widget Component / saved-actor routes | Unavailable — same partial-coverage marking; no UI-target protection |
+
+UMG/CommonUI and world-space Widget Component identity are **planned acceptance obligations for a
+later release, not shipped behaviour** — never present them as available.
 
 ## Guard failure diagnostics
 

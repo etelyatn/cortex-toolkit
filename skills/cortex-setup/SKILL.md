@@ -34,7 +34,7 @@ Set up the project for UnrealCortex.
    - `CortexStateTree` -> `statetree`
    - `CortexAnimation` -> `anim`
    - `CortexReplay` -> `replay`
-5. Create `.cortex/config.yaml`, `.cortex/context.md`, and `.cortex/domains/*.md` for detected domains. Copy each detected domain's `templates/domains/<domain>.md` to `.cortex/domains/<domain>.md`; generate `.cortex/domains/replay.md` from `templates/domains/replay.md` only when `CortexReplay` is detected, never from another module's mapping. Ensure `.gitignore` contains `.cortex/config.local.yaml`.
+5. Create `.cortex/config.yaml`, `.cortex/context.md`, and `.cortex/domains/*.md` for detected domains. Domain files use the established names, not the module id: `CortexBlueprint` -> `blueprint` -> `.cortex/domains/blueprints.md` (the `cortex-blueprint` skill reads `blueprints.md`). Generate `.cortex/domains/replay.md` from `templates/domains/replay.md` only when `CortexReplay` is detected, never for another module. When a detected domain has a matching template file, copy it; otherwise create a minimal placeholder for that domain. Ensure `.gitignore` contains `.cortex/config.local.yaml`.
  6. Create or update `.mcp.json` so `mcpServers.cortex_mcp` runs `uv run --directory {plugin_root}/MCP cortex-mcp` with `CORTEX_PROJECT_DIR={project_root}`.
  7. If the user works in OpenCode, ask whether to configure OpenCode. If yes, read the project's `opencode.json` (or start from `{}`), preserve all existing top-level keys and all existing `mcp` entries, and upsert:
     - the `cortex_mcp` MCP entry — same command and `CORTEX_PROJECT_DIR` as `.mcp.json`, using the absolute project root (forward slashes);

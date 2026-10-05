@@ -30,10 +30,11 @@ If a request mixes starting and checking, run the phases in order. Never start a
    set to the returned `next_after_recording_id` while `has_more` is true. Pages are not a snapshot:
    each request rechecks current eligibility, so a library change below the cursor needs a fresh
    first page.
-2. Only AI-enabled, complete recordings appear, each with map, recorded start pose and a
-   guard-coverage summary. The same response carries `active_ai_run` (the current AI operation, if
-   any) and up to 100 `recent_ai_runs` terminal summaries finalized within the last 24 hours
-   (`recovery_window_seconds`, `recovery_max_terminal_runs`).
+2. Only AI-enabled, complete recordings appear, each with map, prerequisites and a guard-coverage
+   summary. A list row does **not** carry the recorded pose — read `get_recording`'s `initial_state`
+   for the pawn transform and control rotation. The same response carries `active_ai_run` (the current
+   AI operation, if any) and up to 100 `recent_ai_runs` terminal summaries finalized within the last
+   24 hours (`recovery_window_seconds`, `recovery_max_terminal_runs`).
 3. Select the exact integer `recording_id` from a row. Never guess an ID, use an array index, a
    name or a timestamp. A guessed valid-but-disabled ID is denied.
 4. If a recording is missing or denied, stop and ask the human to enable AI use or fix its coverage
@@ -102,9 +103,11 @@ human capture or playback run.
 
 - Guards are press-only. Immediately before each non-repeat key-down, pointer-button-down and
   double-click, the live pose is compared with the recorded pose (≤ 0.5 cm location, ≤ 0.5° pawn and
-  control rotation, ≤ 0.001 scale). An identifiable UI press additionally re-resolves its structured
-  widget identity and hit-tests the pointer (≤ 0.005 normalized local error). Releases and motion are
-  never gated, so a successful guard is not proof that a later click/release/drag effect succeeded.
+  control rotation, ≤ 0.001 scale). A press on the shipped **tagged runtime Slate** route additionally
+  re-resolves its tagged widget identity and hit-tests the pointer (≤ 0.005 normalized local error);
+  a press whose UI identity is unavailable carries only the pose guard and is reported as partial
+  coverage. Releases and motion are never gated, so a successful guard is not proof that a later
+  click/release/drag effect succeeded.
 - A pending or not-yet-ready intended target may be waited for: up to 1 second per press and at most
   5 seconds cumulatively per run, only with neutral input (no replay-owned key/button held, no active
   pointer capture or drag) and continued ownership/focus/eligibility. Waiting never absorbs movement,
@@ -114,17 +117,30 @@ human capture or playback run.
   retry, nudge movement, teleport after time zero, change a threshold, or re-record the sequence
   yourself.
 
-### Supported UI identity and partial coverage
+### UI identity: tagged runtime Slate only (partial coverage)
 
-| Target family | Supported guard identity | Explicitly unavailable |
-|---|---|---|
-| Screen-space UMG/CommonUI | Authored named pointer controls under a uniquely identified player-owned root; nested authored instances distinguished by authored ancestry | Untagged duplicate roots; virtualized/dynamic instances without a stable authored discriminator |
-| Native runtime Slate | Uniquely authored tagged pointer control under a uniquely identified selected runtime root | Untagged anonymous controls; type, caption or index alone is not identity |
-| World-space Widget Component | Authored named controls under a saved-map actor and named component with a proven physical hardware-input hit-test route | Runtime-spawned owners without stable identity; virtual-pointer routes with an unprovable device/component or fresh hit |
+The shipped capture and playback route supports exactly one UI guard identity: a uniquely **authored
+tagged runtime Slate** pointer control — an authored unique root tag plus an authored unique target
+tag under the selected runtime root. Capture resolves it at each pointer-down/double-click boundary;
+playback re-resolves and hit-tests the same tagged Slate target.
 
-This matrix is the acceptance contract, not permission to label every target unsupported. A required
-target that becomes unavailable at playback is an error, never a silent downgrade. Coverage is fixed
-by capture; AI permission does not extend it.
+Everything else is unavailable in this release:
+
+| Target | Status |
+|---|---|
+| Authored tagged runtime Slate pointer control under a uniquely identified selected runtime root | **Supported** — guarded |
+| Untagged/anonymous Slate controls; type, caption or index alone | Unavailable — not an identity |
+| Screen-space UMG/CommonUI (including nested authored instances) | Unavailable — capture marks each press `ui_guard_unavailable` (`unobservable_pointer_route`); only the pose guard applies |
+| World-space Widget Component / saved-actor routes | Unavailable — same partial-coverage marking; no UI-target protection is claimed |
+
+UMG/CommonUI and world-space Widget Component identity are **planned acceptance obligations for a
+later release, not available now** — never promise or imply that a recording's UI press is protected
+on those routes.
+
+A recording with unavailable UI-target presses has explicit partial coverage and must be reported,
+never hidden or "upgraded". If a previously supported tagged-Slate target becomes unavailable at
+playback it is an error, never a silent downgrade; coverage is fixed by capture and AI permission
+does not extend it.
 
 ## What This Skill Cannot Do
 
