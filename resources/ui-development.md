@@ -35,6 +35,24 @@ Use `slot.` prefix with `set_property`/`get_property` for slot-level layout cont
 `slot_properties` and `slot_type` for the selected widget. Note: root widgets have no
 slot — using `slot.` prefix on a root widget returns an error.
 
+**Designer property bindings:** existing `get_widget` / `get_tree` accept
+`include_property_bindings=true`. Require `property_binding_state.reader_complete=true`
+and retain its whole-asset fingerprint. Widget reads filter targets; tree reads include
+orphan records and unresolved raw source identities.
+
+- `set_property_binding`: required asset/widget/`property_name`/`expected_fingerprint`.
+  Explicit `binding=null` clears; an object creates/replaces a compatible property path
+  or pure/const function. Omitted/empty values refuse, as do duplicate targets and stale
+  guards. No pagination fields, including null.
+- Binding repair is isolated from hierarchy/style batches and graph patches. Re-inspect
+  after every mutation. Literal `set_property` does not clear a Designer binding.
+- Clear before retiring source members. Compile and save explicitly, then inspect a
+  freshly loaded asset. Preserve widget defaults, hierarchy, style, animations and all
+  retained serialized records. Oversized orphan inspection is an explicit incomplete
+  size refusal, not an empty list or an impossible missing-widget retry.
+
+See `resources/umg-patterns.md` for binding payload examples.
+
 **Animations:** `create_animation`, `list_animations`, `remove_animation`, `list_animation_bindings`, `remove_animation_binding`
 
 - `list_animation_bindings`: inspects canonical `FWidgetAnimationBinding` records, possessables, tracks, channels, and returns a scoped `domain_signature` fingerprint.
@@ -58,6 +76,8 @@ slot — using `slot.` prefix on a root widget returns an error.
   - **HorizontalBoxSlot / VerticalBoxSlot / OverlaySlot**: `padding` (`left`/`top`/`right`/`bottom`)
   - All other slot types / root widgets: `null`
 
+- **`property_binding_state`** — opt-in only via `include_property_bindings=true`;
+  serialized records, scope/counts, completeness, diagnostics and asset-level fingerprint.
 Use `slot_type` to determine how to interpret `slot` before reading layout values.
 
 ## Layout Patterns

@@ -149,6 +149,38 @@ umg_cmd(command="get_widget", params={"asset_path": "/Game/UI/WBP_HUD", "widget_
 
 **Tip:** Check `slot_type` before reading `slot` to know which fields to expect.
 
+### Inspect and Set Designer Property Bindings
+
+Reuse `umg_cmd`; property bindings are distinct from animation bindings and literal property values.
+
+```python
+state = umg_cmd(command="get_widget", params={
+    "asset_path": "/Game/UI/WBP_HUD", "widget_name": "ProgressDisplay",
+    "include_property_bindings": True,
+})
+# Require property_binding_state.reader_complete=true; retain its fingerprint.
+umg_cmd(command="set_property_binding", params={
+    "asset_path": "/Game/UI/WBP_HUD", "widget_name": "ProgressDisplay",
+    "property_name": "Percent", "binding": None,
+    "expected_fingerprint": state["property_binding_state"]["fingerprint"],
+})
+```
+
+Explicit `binding=None` clears; `{}` or omitted `binding` refuses. An object authors a
+binding: `{"kind":"property","source_path":["ElapsedValue"]}` or
+`{"kind":"function","function_name":"GetElapsedPercent"}`. Sources must exist and be
+compatible; property-bound functions must be pure/const. Compile source declarations
+explicitly first when necessary. Re-inspect before each write; duplicates and stale
+fingerprints refuse without mutation.
+
+Use `get_tree(include_property_bindings=True)` for asset-wide inspection, including
+records targeting deleted widgets. Unresolved source identities remain visible.
+Oversized inspection returns `RESPONSE_TOO_LARGE` with false reader completeness, not
+an empty list; orphan records cannot be recovered through missing-widget reads.
+Pagination fields are unsupported. No implicit compile/save/reload: compile and save
+explicitly through existing Blueprint/Core commands. Literal `set_property` does not
+clear a binding.
+
 ### Duplicate and Customize
 ```python
 umg_cmd(command="duplicate_widget", params={"asset_path": "/Game/UI/WBP_Screen", "widget_name": "BtnTemplate", "new_name": "BtnVariant"})
