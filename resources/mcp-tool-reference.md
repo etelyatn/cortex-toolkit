@@ -467,6 +467,13 @@ blendspaces, retargeting, runtime preview, Sequencer, and Control Rig are out of
 
 See `qa-patterns.md` for input injection documentation.
 
+`execute_console_command` requires active PIE. It first preserves world Exec dispatch,
+then processes unhandled input through the console manager with the same PIE world.
+Handled input is not dispatched again. Unknown input returns `CONSOLE_COMMAND_FAILED`;
+inactive PIE returns `PIE_NOT_ACTIVE`. Success means dispatch was accepted, not that a
+void callback completed without an application error. Verify the command's observable
+effect or callback logs rather than relying only on `status: "ok"`.
+
 Enhanced Input uses canonical `action_name`, not `action`: finite numeric `value` or
 `{x,y,z}` shaped to the action type. Continuous start/update/stop is immediate unless
 a positive start-only `duration_ms` requests deferred completion. Updates require
