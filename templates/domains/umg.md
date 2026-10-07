@@ -55,3 +55,15 @@
   - Unshared binding: if a widget target has multiple property tracks (e.g., RenderOpacity and Scale) under a single binding record, removing that binding removes the possessable and all associated tracks.
   - Shared possessable: a possessable and its tracks are retained only while another UMG binding record still references its GUID. When multiple UMG binding records share the same GUID, removing one binding record preserves the shared MovieScene possessable and tracks for the remaining records.
 -->
+
+## Designer Property Binding Conventions
+
+<!-- WHY: A literal property write does not retire a serialized Designer binding.
+     Inspect through umg.get_widget or umg.get_tree with include_property_bindings=true.
+     get_tree includes orphan targets and unresolved sources. Require reader_complete=true
+     and pass the returned asset-level fingerprint to umg.set_property_binding.
+     Explicit binding=null clears; a validated object creates/replaces. Empty/omitted
+     binding is not clear. Missing widgets, ambiguous targets and stale guards refuse.
+     Clear before retiring source members, then compile/save explicitly and inspect a
+     freshly loaded asset. Do not change literal defaults, hierarchy, styles or animations
+     as a binding-removal workaround. See resources/umg-patterns.md for payloads. -->

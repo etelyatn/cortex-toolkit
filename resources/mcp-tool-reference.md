@@ -378,6 +378,16 @@ See `blueprint-patterns.md` for node class short names and full node type table.
 
 `set_widget_variable` changes the designer-variable flag on an existing Widget Blueprint. Inspect the current widget tree first and pass its current `expected_fingerprint`. Invoke it as `umg.set_widget_variable` through `umg_cmd`.
 
+**Designer property bindings:** opt in with `include_property_bindings=true` on
+`get_widget` (widget scope) or `get_tree` (asset scope, including orphan targets).
+`property_binding_state` includes complete serialized source identities, reader
+completeness and an asset-level fingerprint. `set_property_binding` requires asset,
+widget, target `property_name`, explicit `binding` and `expected_fingerprint`.
+An object creates/replaces a compatible property path or pure function; explicit null
+clears. Omitted/empty values refuse; duplicate targets and stale guards are non-destructive.
+No implicit compile/save/reload and no pagination fields. This uses existing `umg_cmd`,
+not a new MCP tool, and does not change literal `set_property` or animation bindings.
+
 ### Composite
 
 - `widget_compose` — atomic creation of a new UMG Widget Blueprint with an initial widget hierarchy
