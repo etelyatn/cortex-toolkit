@@ -87,8 +87,81 @@ Creates the Widget Blueprint, adds the full hierarchy, applies styling, compiles
 umg_cmd(command="add_widget", params={"asset_path": "/Game/UI/WBP_Screen", "parent": "PnlContent", "class": "TextBlock", "name": "TxtTitle"})
 umg_cmd(command="set_anchor", params={"asset_path": "/Game/UI/WBP_Screen", "widget_name": "TxtTitle", "anchor": "top_center"})
 umg_cmd(command="set_text",   params={"asset_path": "/Game/UI/WBP_Screen", "widget_name": "TxtTitle", "text": "Hello"})
-umg_cmd(command="create_animation", params={"asset_path": "/Game/UI/WBP_Screen", "name": "FadeIn"})
+umg_cmd(command="create_animation", params={"asset_path": "/Game/UI/WBP_Screen", "animation_name": "FadeIn", "length": 0.3})
 ```
+
+### Author Animation Content (guarded — opacity / color tracks)
+
+`create_animation` creates only an **empty** named animation. Binding a Designer widget and
+authoring its property tracks is a guarded `umg_cmd` sequence — never a hierarchy/style batch,
+never a `widget_compose` animation entry, and never nested inside `core_cmd(batch)`. Each
+authoring write (and each removal) consumes a full animation content-guard fingerprint
+(signature **v2**) from `list_animation_bindings`; a stale or version-1 guard refuses without
+mutation. `dry_run` defaults to **true**, so preview first and re-issue with `dry_run: false`.
+
+```python
+ASSET = "/Game/UI/WBP_Screen"
+
+# 0. Create the empty animation (length in seconds). Existing animations: skip.
+umg_cmd(command="create_animation", params={"asset_path": ASSET, "animation_name": "FadeIn", "length": 0.3})
+
+# 1. Inspect: retain the animation content-guard fingerprint.
+guard = umg_cmd(command="list_animation_bindings",
+                params={"asset_path": ASSET, "animation_name": "FadeIn"})["fingerprint"]
+
+# 2. Bind the ordinary Designer widget. "Decoration" is an Image here.
+selector = umg_cmd(command="ensure_animation_binding",
+                   params={"asset_path": ASSET, "animation_name": "FadeIn", "widget_name": "Decoration",
+                           "expected_fingerprint": guard, "dry_run": False})["matched_selector"]
+# selector = {binding_guid, widget_name, slot_widget_name: "", is_root_widget: false}
+
+# 3. Author a float opacity track. Sections are half-open [start_seconds, end_seconds).
+guard = umg_cmd(command="list_animation_bindings",
+                params={"asset_path": ASSET, "animation_name": "FadeIn"})["fingerprint"]
+umg_cmd(command="set_animation_property_track",
+        params={"asset_path": ASSET, "animation_name": "FadeIn", "selector": selector,
+                "property_path": "RenderOpacity",
+                "track": {"type": "float", "sections": [{
+                    "start_seconds": 0.0, "end_seconds": 0.3, "keys": [
+                        {"time_seconds": 0.0, "value": 0.0, "interpolation": "linear"},
+                        {"time_seconds": 0.3, "value": 1.0, "interpolation": "linear"}]}]},
+                "expected_fingerprint": guard, "dry_run": False})
+
+# 4. Author a linear-color track (four independent RGBA channels) on the same Image.
+guard = umg_cmd(command="list_animation_bindings",
+                params={"asset_path": ASSET, "animation_name": "FadeIn"})["fingerprint"]
+umg_cmd(command="set_animation_property_track",
+        params={"asset_path": ASSET, "animation_name": "FadeIn", "selector": selector,
+                "property_path": "ColorAndOpacity",
+                "track": {"type": "color", "sections": [{
+                    "start_seconds": 0.0, "end_seconds": 0.3, "keys": [
+                        {"time_seconds": 0.0, "value": {"r": 0.0, "g": 0.0, "b": 0.0, "a": 1.0}, "interpolation": "linear"},
+                        {"time_seconds": 0.3, "value": {"r": 1.0, "g": 0.5, "b": 0.25, "a": 1.0}, "interpolation": "linear"}]}]},
+                "expected_fingerprint": guard, "dry_run": False})
+
+# 5. Persist explicitly — authoring never compiles or saves implicitly.
+blueprint_cmd(command="compile", params={"asset_path": ASSET})
+blueprint_cmd(command="save", params={"asset_path": ASSET})
+```
+
+Authoring contract limits:
+
+- **Ordinary named Designer widgets only** — `is_root_widget` must be `false` and
+  `slot_widget_name` empty. `is_root_widget=true` user-widget bindings, slot bindings and
+  dynamic bindings are out of scope.
+- **`float` and linear-color (`FLinearColor`) tracks only**; `linear` or `constant` interpolation,
+  no cubic. Color keys use linear RGBA objects with exactly `r`/`g`/`b`/`a`.
+- **At most 8 sections and 64 logical keys per track**; a color track expands to four channels.
+  Times are quantized to the MovieScene tick resolution; sections are half-open `[start, end)`
+  with `start < end`.
+- **`track: null` clears exactly one property track** and keeps the binding. Removing the whole
+  binding record (and its possessable/tracks) is `remove_animation_binding`.
+- Inspect the authored result with
+  `umg_cmd(command="list_animation_bindings", params={"asset_path": ASSET, "animation_name": "FadeIn", "include_track_content": True})`.
+  A detailed read that exceeds the response ceiling returns `_error: "RESPONSE_TOO_LARGE"` with
+  `reader_complete: false` and summary counts — not a silently truncated page.
+- After any hierarchy/style batch or `widget_compose`, take a **fresh** fingerprint before the
+  first guarded animation write.
 
 ### Control Slot Layout
 ```python

@@ -53,10 +53,19 @@ orphan records and unresolved raw source identities.
 
 See `resources/umg-patterns.md` for binding payload examples.
 
-**Animations:** `create_animation`, `list_animations`, `remove_animation`, `list_animation_bindings`, `remove_animation_binding`
+**Animations:** `create_animation`, `list_animations`, `remove_animation`, `list_animation_bindings`, `ensure_animation_binding`, `set_animation_property_track`, `remove_animation_binding`
 
-- `list_animation_bindings`: inspects canonical `FWidgetAnimationBinding` records, possessables, tracks, channels, and returns a scoped `domain_signature` fingerprint.
+- `list_animation_bindings`: inspects canonical `FWidgetAnimationBinding` records, possessables, tracks, channels, and returns a version-2 content-guard `fingerprint`. Opt into per-track `property_path`, evaluation state and sections/channels with `include_track_content: true`; a detailed read over the response ceiling returns `RESPONSE_TOO_LARGE` with `reader_complete: false`, never a partial page.
+- `ensure_animation_binding`: creates or resolves the ordinary Designer-widget binding (`widget_name`; `is_root_widget` stays `false`). Requires the content-guard `expected_fingerprint`; `dry_run` defaults to `true`.
+- `set_animation_property_track`: creates, replaces or clears exactly one `float`/linear-color property track on an existing binding via `selector` + `property_path` + `track`. `track: null` clears one property track and keeps the binding. Same fingerprint guard and `dry_run` default.
 - `remove_animation_binding`: surgically removes a single animation binding by selector (`{widget_name, slot_widget_name, binding_guid, is_root_widget}`) using optimistic locking (`expected_fingerprint`). Preserves shared MovieScene possessables and tracks. Defaults to `dry_run: true` and `save: false`.
+
+**Animation authoring is a guarded sequence, not a batch:** `create_animation` makes an empty
+animation; bind and author it with `ensure_animation_binding` → `set_animation_property_track`,
+each consuming a fresh `list_animation_bindings` fingerprint. Ordinary named Designer widgets only,
+`float`/`FLinearColor` tracks with `linear`/`constant` keys, at most 8 sections and 64 logical keys
+per track. No implicit compile/save — compile and save explicitly afterwards, and never nest an
+authoring write inside `core_cmd(batch)`. See `resources/umg-patterns.md` for the concrete workflow.
 
 ### get_widget — Full Response Fields
 
@@ -150,7 +159,10 @@ persistence only under explicit authority. A stop-on-error batch cannot undo the
 save boundary, so never nest a patch inside one, and never substitute raw add/connect calls or
 `run_python` for it. Designer-widget repair (`umg.set_widget_variable`) stays a separate, isolated
 operation: after it, refresh the authoring context and take a fresh fingerprint before any patch
-touches that widget.
+touches that widget. **Animation authoring is also not this workflow.** Post-compose (or post-batch)
+binding and property-track authoring goes through the guarded `ensure_animation_binding` /
+`set_animation_property_track` sequence with a fresh `list_animation_bindings` fingerprint; it is
+never folded into a hierarchy/style batch.
 
 Use `core_cmd(batch)` with `stop_on_error: true` and `$ref` wiring. See `resources/batch-pipeline-guide.md` for full syntax.
 
