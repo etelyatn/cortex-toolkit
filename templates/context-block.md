@@ -20,4 +20,5 @@ Editor lifecycle: load the `cortex-editor` skill to start/verify/reconnect the U
 | Animation | Skeletal animation assets, notifies, curves, sections, sockets | `cortex-animation` | `anim_cmd` |
 | UMG | UMG widgets — menus, HUDs, dialogs | `cortex-umg` | `umg_cmd` `widget_compose` |
 | QA | PIE testing, assertions, scenario exploration | `cortex-qa` | `qa_cmd` `qa_test_step` `scenario_compose` |
+| Replay | Replay human-enabled recordings in PIE, check run status, recover an uncertain start | `cortex-replay` | `replay_cmd` |
 | Reflect | Class hierarchy, usages, refactor impact | `cortex-reflect` | `reflect_cmd` |

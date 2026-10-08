@@ -27,6 +27,10 @@ Built-in commands (no namespace): `get_status`, `get_capabilities`
 
 - **Location:** `Plugins/UnrealCortex/MCP/src/cortex_mcp/`
 - **Tools:** explicit registration from `Plugins/UnrealCortex/MCP/src/cortex_mcp/tools/`
+- **Optional domains:** `gen`, `anim` and `replay` are not `CORE_DOMAINS`. Their router tools are
+  registered only when the persisted capabilities cache (or live `get_capabilities`) proves the
+  editor exposes them; without that proof the tool is absent, and its command signatures never
+  imply the domain is registered.
 - **Run:** `uv run --directory Plugins/UnrealCortex/MCP cortex-mcp`
 - **Config:** `.mcp.json` in project root
 
