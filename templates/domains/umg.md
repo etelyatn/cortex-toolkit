@@ -54,6 +54,14 @@
 - Binding removal vs track deletion: `remove_animation_binding` removes an entire target-binding record, not an individual property track.
   - Unshared binding: if a widget target has multiple property tracks (e.g., RenderOpacity and Scale) under a single binding record, removing that binding removes the possessable and all associated tracks.
   - Shared possessable: a possessable and its tracks are retained only while another UMG binding record still references its GUID. When multiple UMG binding records share the same GUID, removing one binding record preserves the shared MovieScene possessable and tracks for the remaining records.
+  - Renaming a Designer widget (`umg.rename_widget`) propagates the binding record's WidgetName and its possessable; prefer it over delete/recreate. A stale animation content-guard fingerprint refuses without mutation.
+  - Author new binding/track content through the guarded `umg.ensure_animation_binding` and
+    `umg.set_animation_property_track` sequence: inspect with `umg.list_animation_bindings` to get the
+    version-2 content-guard fingerprint, preview with `dry_run` (default true), apply, then compile
+    and save explicitly. Ordinary named Designer widgets only (`float` / `FLinearColor` tracks,
+    linear/constant keys, at most 8 sections and 64 logical keys per track); `track: null` clears one
+    property track and keeps the binding. Authoring is a guarded transaction performed after any
+    hierarchy/style batch or `widget_compose`, never inside one.
 -->
 
 ## Designer Property Binding Conventions

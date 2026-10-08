@@ -42,6 +42,13 @@ Follow this workflow:
 - For NEW widget screens: MUST use `widget_compose`. Individual tools (`add_widget`, `set_text`, `set_color`, `set_font`, `set_brush`, `set_padding`, `set_anchor`, `set_alignment`, `set_size`, `set_visibility`, `create_animation`) are PROHIBITED.
 - For EXISTING widgets with 2+ **hierarchy/style** changes: MUST use `core_cmd(batch)` with `stop_on_error: true` and `$ref` wiring. Never make N sequential individual tool calls — use the batch pipeline (see `resources/batch-pipeline-guide.md`).
 - For **Widget Blueprint graph** work — event graphs, functions, typed adapters, bounded graph migration — the stop-on-error batch is NOT the route. Use the guarded `graph.apply_patch` workflow in `resources/typed-blueprint-authoring.md`: live context, `graph.describe_node` for canonical selectors and pins, preview, apply with the preview token, canonical readback, persistence only under explicit authority. A batch cannot undo the patch's compile or save boundary, so never nest the patch inside one, and never fall back to raw add/connect calls or `run_python` if the command is unavailable.
+- For **UMG animation content** — binding a Designer widget and authoring opacity/color tracks — use the guarded `umg_cmd` sequence, never a hierarchy/style batch and never a `widget_compose` animation entry. `create_animation` creates an **empty** animation only.
+  1. `umg_cmd(command="list_animation_bindings", params={...})` → retain the version-2 content-guard `fingerprint`.
+  2. `umg_cmd(command="ensure_animation_binding", params={"asset_path":..., "animation_name":..., "widget_name":..., "expected_fingerprint":...})` → preview (`dry_run` defaults true), then apply to get `matched_selector`.
+  3. `umg_cmd(command="set_animation_property_track", params={"asset_path":..., "animation_name":..., "selector": <matched_selector>, "property_path": "RenderOpacity", "track": {...}, "expected_fingerprint":...})` → preview then apply. `track: null` clears exactly one property track and keeps the binding.
+  4. Compile and save explicitly (`blueprint_cmd(command="compile")` then `blueprint_cmd(command="save")`) — authoring never compiles or saves implicitly.
+- Animation authoring is limited to ordinary named Designer widgets (`is_root_widget: false`, empty `slot_widget_name`) with `float`/`FLinearColor` tracks, `linear`/`constant` keys, at most 8 sections and 64 logical keys per track. `is_root_widget=true` user-widget bindings, slot/dynamic bindings, object/bool/custom tracks, double and cubic interpolation are out of scope. See `resources/umg-patterns.md` for the concrete workflow.
+- After `widget_compose` or any hierarchy/style batch, take a **fresh** `list_animation_bindings` fingerprint before the first guarded animation write, and never nest animation writes inside `core_cmd(batch)`.
 - For animation binding removal: inspect with `umg_cmd(list_animation_bindings)` to acquire a valid fingerprint, then call `umg_cmd(remove_animation_binding)` before deleting target widgets. Animation-binding repair remains its own operation and is never folded into a graph patch.
 - Individual tools are only acceptable for a single isolated change on an existing widget.
 - Designer-widget repair is a separate, isolated operation: inspect the current tree/fingerprint, then call `umg_cmd(command="set_widget_variable", ...)` and pass `expected_fingerprint`. Afterwards refresh the authoring context and take a **fresh** fingerprint — a graph patch that reads or writes that widget must never reuse the pre-repair fingerprint, and the repair is never part of the patch transaction. New screens still use `widget_compose`.
@@ -81,7 +88,7 @@ Follow this workflow:
 3. Inspect widget trees (hierarchy, nesting depth, panel usage)
 4. Check properties (anchors, padding, fonts, visibility)
 5. Verify naming conventions (descriptive names, no defaults)
-6. Review animations (screen transitions, feedback, and bindings via `list_animation_bindings`)
+6. Review animations (screen transitions, feedback, and authored property tracks via `list_animation_bindings` with `include_track_content: true`)
 7. Cross-reference against project style guide
 
 ### 3. Verify Results
