@@ -81,11 +81,12 @@ Root: VerticalBox
 widget_compose(asset_path="/Game/UI/WBP_YourScreen", root_class="CanvasPanel", widgets=[...], animations=[...])
 ```
 Creates the Widget Blueprint, adds the full hierarchy, applies styling, compiles, and saves — all in one atomic call.
+A `padding` dict in a widget spec is applied as the nested `padding` object on `umg.set_padding`.
 
 ### Build a Screen Incrementally (modifying existing widgets)
 ```python
 umg_cmd(command="add_widget", params={"asset_path": "/Game/UI/WBP_Screen", "parent": "PnlContent", "class": "TextBlock", "name": "TxtTitle"})
-umg_cmd(command="set_anchor", params={"asset_path": "/Game/UI/WBP_Screen", "widget_name": "TxtTitle", "anchor": "top_center"})
+umg_cmd(command="set_anchor", params={"asset_path": "/Game/UI/WBP_Screen", "widget_name": "TxtTitle", "preset": "TopCenter"})
 umg_cmd(command="set_text",   params={"asset_path": "/Game/UI/WBP_Screen", "widget_name": "TxtTitle", "text": "Hello"})
 umg_cmd(command="create_animation", params={"asset_path": "/Game/UI/WBP_Screen", "animation_name": "FadeIn", "length": 0.3})
 ```
@@ -184,6 +185,36 @@ umg_cmd(command="add_widget",     params={"asset_path": "/Game/UI/WBP_Screen", "
 umg_cmd(command="remove_widget",  params={"asset_path": "/Game/UI/WBP_Screen", "widget_name": "BtnOld"})
 umg_cmd(command="get_tree",       params={"asset_path": "/Game/UI/WBP_Screen"})  # verify
 ```
+
+### Bounded Tree Reads (get_tree)
+
+`get_tree` bounds a traversal instead of paging it:
+
+- `depth` — deepest retained level, root is level 0 (strict integer `>= 0`); absent ⇒ unlimited.
+- `max_nodes` — maximum emitted widgets, root included (strict integer `>= 1`); absent ⇒ unlimited.
+- `names_only` — keep hierarchy/name/child counts, drop class identity (`class`, `is_user_widget`,
+  `widget_blueprint`).
+- `include_property_bindings` — unchanged; appends the asset-wide `property_binding_state`.
+
+The response reports exact asset-wide `total_widgets` (never reduced by the budget),
+`returned_widgets`, `tree_complete` (`!(depth cut || node cut)`) and `reasons` (one entry per cut
+reason). `tree_complete=false` means the tree you got is a bounded slice — do not treat missing
+children as absent. A branch stopped by either budget keeps its real `child_count` and is marked
+`incomplete: true`; a true leaf omits `child_count`/`children` entirely (leaf nodes no longer carry
+`children: []`).
+
+```python
+# Lean hierarchy of a deep screen
+umg_cmd(command="get_tree", params={"asset_path": "/Game/UI/WBP_Inventory", "depth": 3, "names_only": True})
+# Exact total widget count without a full tree
+umg_cmd(command="get_tree", params={"asset_path": "/Game/UI/WBP_Inventory", "depth": 0, "max_nodes": 1})
+```
+
+There is no pagination: re-request with a smaller `depth`/`max_nodes` or `names_only=true`. When
+`include_property_bindings=true` and the combined payload exceeds the response ceiling the command
+returns a refusal envelope (`_error="RESPONSE_TOO_LARGE"`, `reader_complete=false`, `asset_path`,
+`total_widgets`, `returned_widgets`, `max_response_chars`) with no `root` — narrow the request instead
+of retrying.
 
 ### Inspect Widget Layout (get_widget)
 

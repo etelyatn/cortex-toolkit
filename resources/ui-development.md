@@ -26,7 +26,14 @@ Build game UI using UMG widgets — menus, HUDs, dialogs, popups, and complex in
 
 ## UMG Tools
 
-**Tree:** `add_widget`, `remove_widget`, `reparent`, `get_tree`, `get_widget`, `list_widget_classes`, `duplicate_widget`
+- **Tree:** `add_widget`, `remove_widget`, `reparent`, `get_tree`, `get_widget`, `list_widget_classes`, `duplicate_widget`
+
+`get_tree` is bounded rather than paged: `depth` (root = level 0) and `max_nodes` cap the traversal,
+`names_only=true` keeps hierarchy/name/child counts but drops class identity, and the response reports
+exact `total_widgets`, `returned_widgets`, `tree_complete` and `reasons`. Treat `tree_complete=false` as
+"bounded slice", not "leaf": a cut branch keeps its real `child_count` and sets `incomplete: true`, while
+a true leaf omits `child_count`/`children` (no more empty `children: []`). Re-request with a smaller
+`depth`/`max_nodes` or `names_only=true` — there is no pagination.
 
 **Properties:** `set_color`, `set_text`, `set_font`, `set_brush`, `set_padding`, `set_anchor`, `set_alignment`, `set_size`, `set_visibility`, `set_property`, `get_property`, `get_schema`
 
@@ -112,7 +119,7 @@ Widget `class` can also be a user Widget Blueprint asset path (for example
 
 ## Styling Notes
 
-- `set_font` supports `family` for engine fonts or font asset paths (for example `Roboto` or `/Game/Fonts/MyFont`)
+- `set_font` supports `family` for engine fonts or font asset paths (for example `Roboto` or `/Game/Fonts/MyFont`), plus `outline_size` and `outline_color`
 
 ## MANDATORY Pipeline — New Widget Screen Creation
 
@@ -176,7 +183,7 @@ Use `core_cmd(batch)` with `stop_on_error: true` and `$ref` wiring. See `resourc
       {"command": "umg.add_widget", "params": {"asset_path": "/Game/UI/WBP_HUD", "widget_class": "TextBlock", "name": "HealthLabel", "parent": "RootCanvas"}},
       {"command": "umg.set_text", "params": {"asset_path": "/Game/UI/WBP_HUD", "widget_name": "HealthLabel", "text": "Health"}},
       {"command": "umg.add_widget", "params": {"asset_path": "/Game/UI/WBP_HUD", "widget_class": "ProgressBar", "name": "HealthBar", "parent": "RootCanvas"}},
-      {"command": "umg.set_anchor", "params": {"asset_path": "/Game/UI/WBP_HUD", "widget_name": "HealthBar", "anchor": "TopLeft"}}
+      {"command": "umg.set_anchor", "params": {"asset_path": "/Game/UI/WBP_HUD", "widget_name": "HealthBar", "preset": "TopLeft"}}
     ]
   }
 }

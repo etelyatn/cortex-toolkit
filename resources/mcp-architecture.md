@@ -23,6 +23,8 @@ Commands are namespaced: `{domain}.{command}`
 
 Built-in commands (no namespace): `get_status`, `get_capabilities`
 
+The Python router adds a **Python-only** `detail` parameter to `get_capabilities` (`names` default / `full`). It is validated and stripped before the native call — the native command receives no `detail` — and `detail=names` (the default) drops every command's `params` signature inventory. Ask for `detail=full` (or use `get_operation_schema` / `profile_operation_schema`) when you need per-command parameter signatures.
+
 ## MCP Server
 
 - **Location:** `Plugins/UnrealCortex/MCP/src/cortex_mcp/`

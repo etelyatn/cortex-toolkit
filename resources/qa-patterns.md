@@ -16,6 +16,25 @@ Bug detection patterns and classification for exploratory and scenario-driven ga
 - Repeated error logs during scenario execution.
 - Frame rate drops below defined threshold for sustained periods.
 
+## Log Evidence and `log_coverage`
+
+Log-based findings come from `qa_test_step` / `run_scenario`, which attach a per-step and summary
+`log_coverage` object (`{complete, lost_before_cursor, window_end_cursor, count, cause}`). It is built
+on a single one-shot finite `editor.get_recent_logs` window — a `count_only` baseline watermark, then
+`since_cursor` with a pinned `until_cursor`, `limit=200`, page cap 50 — with **no retry or poll**.
+
+- `complete=true` — the whole window was read; a missing error is evidence of absence.
+- `complete=false` — coverage is unknown. `cause` names the limiting factor: front eviction
+  (`lost_before_cursor`), an MCP/native size refusal, a read failure, non-advancing pagination, a
+  missing watermark, or the page cap. Never report "no errors" from an incomplete window; report the
+  gap and, if a specific error is suspected, re-run with a tighter filter (severity/category) or a
+  smaller window.
+
+Severity detection reads `entries[].severity` (canonical lowercase `log|warning|error`) from
+`editor.get_recent_logs`; the removed `logs[].level` field and the `"Error:"` text heuristic are no
+longer used. The standalone `get_recent_logs` tool only exposes `severity`, `since_seconds`,
+`since_cursor`, `category` — use `editor_cmd` for `until_cursor`/`limit`/`count_only`.
+
 ## Input-Driven Testing Patterns
 
 **Single interaction:** Use `interact_with` — it handles look-at + key press + timeout in one call.

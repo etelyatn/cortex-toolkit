@@ -33,6 +33,12 @@ query_class_detail("AMyCharacter", detail="properties")
 query_class_detail("AMyCharacter", detail="full", include_inherited=True)
 ```
 
+`query_class_detail` (Python) accepts `summary|properties|full`, defaults to `summary`, refuses an
+unknown value client-side, and maps `properties` to a native `full` read plus a Python allowlist. The
+**native** `reflect.class_detail` command (reached through `reflect_cmd`) accepts only `summary`/`full`
+and refuses anything else with `INVALID_FIELD` instead of degrading to the expensive full read —
+callers that previously passed an ad-hoc value such as `"name"` must now pass `summary`.
+
 ## Common Patterns
 
 ### Understand a class hierarchy
@@ -42,6 +48,15 @@ query_class_hierarchy("ACharacter", depth=3, include_blueprint=True)
 ```
 
 Returns flat list with `parent` and `depth` fields — easy to read and reason about.
+
+The native `reflect.class_hierarchy` (reached through `reflect_cmd`) returns the nested tree plus
+counts and a `truncated` flag, and now only emits a flat `classes` array when
+`include_flat_classes=true`. `truncated` is the authoritative completeness signal: the `max_results`
+budget is shared by the whole recursive walk, so a short list does not prove the hierarchy is complete,
+and there is no pagination — re-request with a larger `max_results`/`depth`. The standalone
+`query_class_hierarchy` flattens the tree itself and forwards `truncated`, so a `true` value means the
+walk stopped early; treat its `total_classes`/child counts as possibly incomplete and widen
+`max_results`/`depth` when it reports truncation.
 
 ### Full class context in one call
 

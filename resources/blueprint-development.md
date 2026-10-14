@@ -141,7 +141,7 @@ impact_analysis(
 
 **Structure:** `add_blueprint_variable`, `remove_blueprint_variable`, `add_blueprint_function`, `configure_timeline`, `set_component_defaults`, `add_scs_component`, `remove_scs_component`, `rename_scs_component`
 
-**Class Defaults (CDO):** `get_class_defaults`, `set_class_defaults`
+**Class Defaults (CDO):** `get_class_defaults`, `set_class_defaults`, `list_settable_defaults`, `list_inherited_properties`
 
 **Class Settings:** `add_interface`, `remove_interface`, `set_tick_settings`, `set_replication_settings`
 
@@ -340,23 +340,55 @@ To restrict search to a specific subgraph, provide both `graph_name` and `subgra
 
 Use `get_class_defaults` and `set_class_defaults` to read and write default property values on a Blueprint's Class Default Object. This configures both inherited C++ UPROPERTY defaults and Blueprint variable defaults.
 
-### Discovery Mode — Find Settable Properties
+`get_class_defaults` has two mutually exclusive modes, selected by whether `properties` is non-empty.
+Reading the *wrong* mode is the usual mistake — a no-`properties` call is a **metadata discovery page**,
+not a value read.
 
-Call `get_class_defaults` with no property names to discover all settable properties:
+### Discovery Mode — Find Settable Properties (no values)
+
+Call `get_class_defaults` with no `properties` to discover the admitted property population. The result is
+metadata only (`type`, `category`, `defined_in`, `accepted_formats`) and **paged**:
 
 ```python
 get_class_defaults(blueprint_path="/Game/Blueprints/BP_Character")
-# Returns all settable properties with type, current value, category, and defined_in
+# values_included=false; one page of up to 100 records
+# discovery_pagination: {offset: 0, limit: 100, returned: 100, next_offset: 100, is_complete: false}
 ```
 
-### Selective Mode — Read Specific Properties
+This was a behaviour change: a no-`properties` call previously returned values for the whole
+population. Pass `include_values=true` for a full unpaged effective-value read of the discovery
+population, or page the metadata with `discovery_offset`/`discovery_limit` (defaults `0`/`100`, limit
+1–200) and follow `discovery_pagination.next_offset` while `is_complete == false`. `include_members=true`
+expands one level of struct-member path/type metadata (member *values* only with `include_values=true`).
+
+### Selective Mode — Read Specific Properties (values by default)
 
 ```python
 get_class_defaults(
     blueprint_path="/Game/Blueprints/BP_Character",
     properties=["MaxHealth", "MovementSpeed", "bCanJump"]
 )
+# Non-empty `properties` ⇒ an effective-value read of just those paths; unpaged; values included.
 ```
+
+### Inherited Delta — `changed_only`
+
+`get_class_defaults(changed_only=true)` returns only defaults that differ from the parent-class
+baseline (inherited delta). It requires `include_values=true` (explicit `false` refuses) and excludes
+`include_members` (refuses). The delta view reports `value_mode="inherited_delta"`, `baseline_class`,
+and `effective_values_complete=false` (values are deltas, not a complete effective read),
+`echo_complete` and `omitted_equal_properties` (a property listed there provably equals its baseline;
+absence means it differed). A comparison that could not be completed is flagged via
+`echo_complete=false` plus `incomplete`/`issues` on the record — never reported as equal. This is only
+on `get_class_defaults`; `list_settable_defaults`/`list_inherited_properties` refuse `changed_only`.
+
+### Related Lists — Settable vs Inherited
+
+`list_settable_defaults` and `list_inherited_properties` list the same admitted population with the same
+read contract as the `get_class_defaults` discovery mode (metadata by default, `include_values` for
+values, `discovery_offset`/`discovery_limit` paging). Both changed from a "settable form with accepted
+formats for the whole population" to a metadata-first paged read — consumers that read values must pass
+`include_values=true`.
 
 ### Setting Defaults
 
@@ -370,8 +402,25 @@ set_class_defaults(
     }
 )
 # Auto-compiles and auto-saves by default
-# Returns per-property results with previous_value, new_value, success
+# Per-property results carry `changed` in every mode; the value echo depends on `echo` (below)
 ```
+
+Every property result carries `changed` (an exact native comparison for precision-sensitive roots, a
+JSON comparison otherwise). The `echo` selector controls only the echo, never what is applied, compiled
+or saved:
+
+- `echo="full"` — always returns `previous_value` + `new_value`.
+- `echo="diff"` (default) — **omits the echo when nothing changed**; for a struct root returns a
+  `changes` map of relative leaf paths (plus `value_encodings` when a wide int64 leaf was encoded as a
+  decimal string); for a scalar/collection root returns the `previous_value`/`new_value` pair (plus a
+  singular `value_encoding="decimal_string"` for a wide int64 leaf).
+- `echo="none"` — returns only `changed`.
+
+`FSoftObjectPath`, `FGameplayTag`, `FGameplayTagContainer` and `FInstancedStruct` roots are always
+echoed atomically, never as relative leaf paths. An invalid `echo` (or a non-string) refuses
+`INVALID_FIELD`. This is the default break for echo consumers: unchanged properties no longer echo, and
+struct roots echo `changes` instead of a full pair. Request `echo="full"` when you need the old
+complete pair, and read `changed` for a changed/unchanged verdict.
 
 ### Object Reference Properties
 
@@ -395,8 +444,28 @@ set_class_defaults(
 
 - `compile` (default: true) -- auto-compile after setting properties
 - `save` (default: true) -- auto-save Blueprint to disk after setting properties
+- `echo` (default: `"diff"`) -- per-property echo mode: `diff|full|none` (see above)
 
 Set both to `false` when making multiple batches of changes, then manually compile and save at the end.
+
+### Optional Parameters and Omission Semantics
+
+`get_class_defaults` parameters and defaults (the standalone tool exposes all of these except
+`changed_only`, which is only reachable through the `blueprint_cmd`/`blueprint_compose` passthrough):
+
+| Param | Default | Effect |
+|-------|---------|--------|
+| `properties` | empty | Non-empty ⇒ value read of those paths; empty ⇒ metadata discovery |
+| `include_values` | `true` for a selected read, `false` for discovery | Include `value` per property; forced `true` with `changed_only` |
+| `include_members` | `false` | One level of struct-member metadata (values only with `include_values`) |
+| `changed_only` | `false` | Inherited-delta read (requires `include_values=true`; refuses `include_members`) |
+| `discovery_offset` | `0` | Metadata-discovery page offset (ignored by selected reads) |
+| `discovery_limit` | `100` | Metadata-discovery page size (1–200) |
+
+Absent fields are verdicts, not missing data: no `value` ⇒ not requested (or an incomplete delta
+comparison); no `members` ⇒ `include_members=false`; no `discovery_pagination` ⇒ the read was not a
+paged metadata read; no `total_properties` ⇒ the read had a `properties` selector (or was paged).
+Malformed `properties`/control types refuse `INVALID_FIELD` before any asset load.
 
 ### CDO vs Actor Properties
 
