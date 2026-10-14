@@ -257,13 +257,14 @@ blueprint_cmd(command="save", params={"asset_path": "/Game/Blueprints/BP_HelloWo
 
 ### Configure Class Defaults (CDO)
 ```
-blueprint_cmd(get_class_defaults, blueprint_path)                 ← discover all settable properties
+blueprint_cmd(get_class_defaults, blueprint_path)                 ← discover settable property METADATA (paged, no values)
 → blueprint_cmd(set_class_defaults, blueprint_path, properties)   ← set defaults with auto-compile + auto-save
 ```
 
 **Example: Configure a Character Blueprint**
 ```python
-# 1. Discover available properties
+# 1. Discover available properties — metadata only, one page (default limit 100).
+#    For values, pass include_values=true; to page, follow discovery_pagination.next_offset.
 blueprint_cmd(command="get_class_defaults", params={"blueprint_path": "/Game/Blueprints/BP_Enemy"})
 
 # 2. Set multiple defaults in one call
@@ -276,7 +277,8 @@ blueprint_cmd(command="set_class_defaults", params={
         "DefaultInputAction": "/Game/Input/IA_EnemyAI"
     }
 })
-# Returns per-property results: type, previous_value, new_value, success
+# Every property result carries `changed`; the value echo depends on `echo`
+# (default "diff": no echo when unchanged, `changes` for a struct root, a previous/new pair for a scalar)
 # Auto-compiles and auto-saves by default
 ```
 
