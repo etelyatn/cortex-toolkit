@@ -19,21 +19,24 @@ Most domain commands are accessed through **router tools** (`{domain}_cmd`). A f
 |-------------|---------|---------|
 | **Router tool** | `{domain}_cmd(command="name", params={...})` | `blueprint_cmd(command="get_info", params={"asset_path": "/Game/BP"})` |
 | **Composite tool** | `{domain}_compose(spec)` | `blueprint_compose(...)` for new asset creation |
-| **Standalone tool** (Reflect, some Editor/QA) | Direct function call | `query_class_hierarchy(class_name="AActor")` |
+| **Standalone tool** (Reflect, some Editor/QA) | Direct function call | `query_class_hierarchy(root="AActor")` |
 
 Router commands use **bare names** — e.g., `get_info`, `create`, `list` (NOT `get_blueprint_info`, `unknown_blueprint_command`).
 
 **When in doubt:** Use the router tool `{domain}_cmd` with the bare command name from the lists below.
 
-> Each router tool's docstring contains these same signatures. On parameter errors, re-read — never guess.
+> Router docstrings list command **names only**; parameter signatures are published through the
+> capability inventory and `core.get_operation_schema`. On parameter errors, re-read — never guess.
 
 ### Standalone tools vs the router passthrough
 
 A standalone tool and the router route to the same native command but do **not** expose the same
 parameters. The router passes parameters through verbatim, so any native parameter is reachable there
-even when the standalone tool omits it. The one exception is the pagination controls the Python layer
-itself owns for the commands that page in Python: `limit`/`cursor` are consumed by those page owners
-(`limit` is range-checked to 1–200) instead of being forwarded. Eight routed commands now enforce their
+even when the standalone tool omits it. Two exceptions are the Python-owned pagination controls:
+`limit`/`cursor` are consumed by the commands that page in Python, and a `limit` outside 1–200 is
+refused before dispatch with `INVALID_LIMIT` for any command — so an out-of-range `limit` returns that
+rather than the native `INVALID_FIELD` a strict command gives an in-range undeclared `limit`. Eight
+routed commands now enforce their
 declared parameter set
 — `umg.set_text`, `umg.set_font`, `umg.set_padding`, `umg.set_anchor`, `umg.set_alignment`,
 `umg.set_size`, `data.list_data_assets`, `data.search_assets` — so for those an undeclared parameter is
