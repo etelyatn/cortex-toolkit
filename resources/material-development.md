@@ -111,6 +111,12 @@ Use `get_material_node_pins` to query actual pin names on any node. This is the 
 
 **Graph (modify existing only):** `list_nodes`, `get_node`, `get_node_pins`, `add_node`, `remove_node`, `list_connections`, `connect`, `disconnect`, `set_node_property`, `set_material_node_property`, `auto_layout`
 
+`get_node` accepts an optional `properties` selector (array of non-empty property names). Omitted/empty
+returns every editable property; a selected read keys `properties` by the requested selector and
+validates the root segment against the same editable admission as the full read (a dotted path cannot
+cross a non-editable root). An unknown or non-editable name refuses with `PropertyNotFound`. Use it
+instead of reading the whole node when you only need one or two values.
+
 **Collections:** `list_collections`, `get_collection`, `create_collection`, `delete_collection`, `add_collection_parameter`, `remove_collection_parameter`, `set_collection_parameter`
 
 ## Common Material Patterns
