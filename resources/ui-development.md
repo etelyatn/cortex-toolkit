@@ -26,7 +26,14 @@ Build game UI using UMG widgets — menus, HUDs, dialogs, popups, and complex in
 
 ## UMG Tools
 
-**Tree:** `add_widget`, `remove_widget`, `reparent`, `get_tree`, `get_widget`, `list_widget_classes`, `duplicate_widget`
+- **Tree:** `add_widget`, `remove_widget`, `reparent`, `get_tree`, `get_widget`, `list_widget_classes`, `duplicate_widget`
+
+`get_tree` is bounded rather than paged: `depth` (root = level 0) and `max_nodes` cap the traversal,
+`names_only=true` keeps hierarchy/name/child counts but drops class identity, and the response reports
+exact `total_widgets`, `returned_widgets`, `tree_complete` and `reasons`. Treat `tree_complete=false` as
+"bounded slice", not "leaf": a cut branch keeps its real `child_count` and sets `incomplete: true`, while
+a true leaf omits `child_count`/`children` (no more empty `children: []`). Re-request with a smaller
+`depth`/`max_nodes` or `names_only=true` — there is no pagination.
 
 **Properties:** `set_color`, `set_text`, `set_font`, `set_brush`, `set_padding`, `set_anchor`, `set_alignment`, `set_size`, `set_visibility`, `set_property`, `get_property`, `get_schema`
 
