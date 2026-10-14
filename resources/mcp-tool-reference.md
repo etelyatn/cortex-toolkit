@@ -453,6 +453,14 @@ See [`resources/typed-blueprint-authoring.md`](resources/typed-blueprint-authori
 preflight and refusal fields. Every `core_cmd(batch_query)` rejects nested `graph.apply_patch` before
 any subcommand, regardless of rollback settings; mutation approval is not paginated.
 
+Reviewed `retire_entries` additionally accepts an explicit closed `orphan_component_node_guids`
+inventory of exact supported ordinary nodes. `entry_node_guids` may be omitted only for a nonempty
+closed orphan inventory; an explicitly empty entry array is invalid, and `additional_node_guids`
+still requires entries. VariableGet/Set require resolved class-owned properties; BreakStruct requires
+a resolved reflected struct; exact ExecutionSequence and Select are admitted. External consumers,
+subclasses and graph owners still refuse. Preview, exact approval, fingerprints, validation hash,
+required compile/readback and explicit save remain mandatory; this is not arbitrary node deletion.
+
 `list_graphs` returns user-visible Blueprint graphs. Top-level entries include `kind`
 (`ubergraph`, `function`, `macro`, `delegate`, or `interface_impl`); `interface_impl`
 entries also include `owning_interface`. Delegate graphs are readable but not mutable
@@ -534,7 +542,7 @@ smaller `depth`/`max_nodes` or `names_only=true`.
 
 `list_animation_bindings` returns canonical `FWidgetAnimationBinding` records, possessables, tracks, channels, and a version-2 content-guard `fingerprint`. Add `include_track_content: true` to include each supported float/color track's `property_path`, `type`, canonical evaluation state and sections/channels with per-channel `{frame_number, time_seconds, value, interpolation}`. A detailed page that exceeds the response ceiling returns `_error: "RESPONSE_TOO_LARGE"` with `reader_complete: false` and summary counts instead of a partial page; `pagination.is_complete` independently reports whether every binding was returned. `remove_animation_binding` surgically removes a single binding record by selector (`{widget_name, slot_widget_name, binding_guid, is_root_widget}`) using optimistic locking (`expected_fingerprint`), defaulting to `dry_run=true` and `save=false`. Shared MovieScene possessables and tracks are preserved. Renaming a Designer widget propagates its binding `WidgetName` and possessable name; a stale `expected_fingerprint` refuses with `STALE_PRECONDITION` and the current fingerprint, without mutation.
 
-**Guarded animation authoring:** `ensure_animation_binding` creates or resolves the ordinary Designer-widget binding for `widget_name` (the flag stays `is_root_widget: false`; root-user-widget, slot and dynamic bindings are refused). `set_animation_property_track` creates, replaces or clears exactly one `float`/linear-color property track on an existing binding, addressed by `selector`, `property_path` and a `track` object (`type` plus half-open `sections` with `time_seconds`/`value`/`interpolation` keys); `track: null` clears one property track while retaining the binding. Both commands require the full content-guard `fingerprint` from `list_animation_bindings` as `expected_fingerprint`, reject any supplied cursor/limit/offset field, default `dry_run` to `true`, and never compile or save. Limits: ordinary Designer widgets, at most 8 sections and 64 logical keys per track, and a 32,000-character prospective response budget. See `resources/umg-patterns.md` for the full workflow.
+**Guarded animation authoring:** `ensure_animation_binding` creates or resolves the ordinary Designer-widget binding for `widget_name` (the flag stays `is_root_widget: false`; root-user-widget, slot and dynamic bindings are refused). `set_animation_property_track` creates, replaces or clears exactly one `float`, `FLinearColor` or `FSlateColor` property track on an existing binding, addressed by `selector`, `property_path` and a `track` object (`type` plus half-open `sections` with `time_seconds`/`value`/`interpolation` keys). Both color properties use `type: "color"` with linear RGBA keys. A section optionally accepts `completion_mode: "RestoreState"` (default) or `"KeepState"`; completion state is fingerprinted. `track: null` clears one property track while retaining the binding. Both commands require the full content-guard `fingerprint` from `list_animation_bindings` as `expected_fingerprint`, reject any supplied cursor/limit/offset field, default `dry_run` to `true`, and never compile or save. Limits: ordinary Designer widgets, at most 8 sections and 64 logical keys per track, and a 32,000-character prospective response budget. See `resources/umg-patterns.md` for the full workflow.
 
 `set_widget_variable` changes the designer-variable flag on an existing Widget Blueprint. Inspect the current widget tree first and pass its current `expected_fingerprint`. Invoke it as `umg.set_widget_variable` through `umg_cmd`.
 
@@ -631,6 +639,11 @@ blendspaces, retargeting, runtime preview, Sequencer, and Control Rig are out of
 - **Viewport:** `get_viewport_info`, `capture_screenshot`, `set_viewport_camera`, `focus_actor`, `set_viewport_mode`
 - **Utilities:** `get_editor_state`, `get_recent_logs`, `execute_console_command`, `set_time_dilation`, `get_world_info`
 - **Input injection** (requires active PIE): `inject_key`, `inject_mouse`, `inject_input_action`, `inject_input_continuous`, `inject_input_sequence`
+
+`inject_mouse` takes required `action: "click" | "move" | "scroll"`, optional numeric screen-space
+`x`/`y` (current cursor by default), optional `button: "left" | "right" | "middle"` (default left
+for click), and numeric `delta` required for scroll. It has no duration parameter or object-valued
+delta. A handled Slate dispatch does not prove the intended UI control received a click.
 
 See `qa-patterns.md` for input injection documentation.
 

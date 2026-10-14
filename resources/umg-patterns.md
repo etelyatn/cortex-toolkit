@@ -150,11 +150,15 @@ Authoring contract limits:
 - **Ordinary named Designer widgets only** — `is_root_widget` must be `false` and
   `slot_widget_name` empty. `is_root_widget=true` user-widget bindings, slot bindings and
   dynamic bindings are out of scope.
-- **`float` and linear-color (`FLinearColor`) tracks only**; `linear` or `constant` interpolation,
-  no cubic. Color keys use linear RGBA objects with exactly `r`/`g`/`b`/`a`.
+- **`float`, linear-color (`FLinearColor`) and Slate-color (`FSlateColor`) tracks**; `linear` or
+  `constant` interpolation, no cubic. Both color property types use `type: "color"` and linear
+  RGBA keys with exactly `r`/`g`/`b`/`a`.
 - **At most 8 sections and 64 logical keys per track**; a color track expands to four channels.
   Times are quantized to the MovieScene tick resolution; sections are half-open `[start, end)`
   with `start < end`.
+- Each section optionally accepts `completion_mode: "RestoreState"` (default) or `"KeepState"`.
+  RestoreState restores the pre-animation property; KeepState retains the final evaluated value.
+  Completion modes are per section and are included in the content fingerprint.
 - **`track: null` clears exactly one property track** and keeps the binding. Removing the whole
   binding record (and its possessable/tracks) is `remove_animation_binding`.
 - Inspect the authored result with
