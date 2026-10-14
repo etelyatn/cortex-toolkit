@@ -181,5 +181,5 @@ Generate LLM-readable project schema files in `.cortex/schema/`.
 1. Verify the Unreal Editor is running and the MCP connection is healthy. If not, direct the user to `cortex-editor`.
 2. Call `schema_generate` with `domain: "all"`.
 3. Review the output under `.cortex/schema/` and flag or remove engine-only or marketplace noise if it leaked through.
-4. Read `.cortex/schema/_catalog.md` to verify the generated files.
+4. Read `.cortex/schema/_catalog.md` to verify the generated files. The catalog's Blueprint section is now an entry point only — it emits counts plus a relative link to `blueprints.md`, where the class identity lives; do not expect class names inline in `_catalog.md`.
 5. Report which files were generated and any errors.
