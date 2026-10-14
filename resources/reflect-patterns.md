@@ -54,9 +54,9 @@ counts and a `truncated` flag, and now only emits a flat `classes` array when
 `include_flat_classes=true`. `truncated` is the authoritative completeness signal: the `max_results`
 budget is shared by the whole recursive walk, so a short list does not prove the hierarchy is complete,
 and there is no pagination — re-request with a larger `max_results`/`depth`. The standalone
-`query_class_hierarchy` flattens the tree itself and does **not** surface `truncated`; treat its
-`total_classes`/child counts as possibly incomplete and widen `max_results`/`depth` when a hierarchy
-looks cut off.
+`query_class_hierarchy` flattens the tree itself and forwards `truncated`, so a `true` value means the
+walk stopped early; treat its `total_classes`/child counts as possibly incomplete and widen
+`max_results`/`depth` when it reports truncation.
 
 ### Full class context in one call
 

@@ -31,7 +31,10 @@ Router commands use **bare names** — e.g., `get_info`, `create`, `list` (NOT `
 
 A standalone tool and the router route to the same native command but do **not** expose the same
 parameters. The router passes parameters through verbatim, so any native parameter is reachable there
-even when the standalone tool omits it. Eight routed commands now enforce their declared parameter set
+even when the standalone tool omits it. The one exception is the pagination controls the Python layer
+itself owns for the commands that page in Python: `limit`/`cursor` are consumed by those page owners
+(`limit` is range-checked to 1–200) instead of being forwarded. Eight routed commands now enforce their
+declared parameter set
 — `umg.set_text`, `umg.set_font`, `umg.set_padding`, `umg.set_anchor`, `umg.set_alignment`,
 `umg.set_size`, `data.list_data_assets`, `data.search_assets` — so for those an undeclared parameter is
 refused with `INVALID_FIELD` naming the accepted set (as is a missing declared-required parameter)
