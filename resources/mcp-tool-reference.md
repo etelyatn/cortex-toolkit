@@ -27,6 +27,26 @@ Router commands use **bare names** — e.g., `get_info`, `create`, `list` (NOT `
 
 > Each router tool's docstring contains these same signatures. On parameter errors, re-read — never guess.
 
+### Standalone tools vs the router passthrough
+
+A standalone tool and the router route to the same native command but do **not** expose the same
+parameters. The router passes parameters through verbatim, so any native parameter is reachable there
+even when the standalone tool omits it. Known divergences:
+
+| Command | Standalone tool exposes | Native-only (router only) |
+|---------|------------------------|---------------------------|
+| `blueprint.get_class_defaults` | `asset_path`, `properties`, `blueprint_path`, `include_values`, `include_members`, `discovery_offset`, `discovery_limit` | `changed_only` |
+| `blueprint.set_class_defaults` | `asset_path`, `properties`, `compile`, `save`, `expected_fingerprint`, `items`, `blueprint_path` | `echo` |
+| `editor.get_recent_logs` | `severity`, `since_seconds`, `since_cursor`, `category` | `until_cursor`, `limit`, `count_only` |
+| `core.get_capabilities` | — | Python-only `detail` (`names` default / `full`) |
+
+`get_capabilities` also differs the other way: the Python router adds a **Python-only** `detail`
+parameter (`names|full`, default `names`) that is validated and stripped before the native call — the
+native command receives no `detail`, and the default MCP view drops every command's `params` signature
+inventory. Use `detail=full` (or `get_operation_schema` / `profile_operation_schema`) when you need the
+per-command parameter signatures. Native `get_capabilities` itself declares no params and is not
+self-listed in the `core` domain's command array.
+
 ---
 
 ## Response Handling
@@ -57,12 +77,38 @@ See [`resources/typed-blueprint-authoring.md`](resources/typed-blueprint-authori
 after any ambiguous or lost outcome; never approve a partial inventory, retry blindly, or treat a
 response read as a pre-mutation gate.
 
+### Complete-or-refuse reads
+
+Reads that own an explicit selector never silently shorten a payload. When the condensed JSON would
+exceed the 40,000-character ceiling they return a refusal envelope instead of a partial page, and the
+generic `_truncated` marker is never used for them:
+
+```json
+{
+  "_error": "RESPONSE_TOO_LARGE",
+  "_message": "data.get_data_asset response exceeds 40000 characters; the complete read was refused.",
+  "reader_complete": false,
+  "_suggestion": "Select the needed members with 'fields' instead of reading the whole DataAsset."
+}
+```
+
+`reader_complete=false` is the authoritative signal — never treat the absence of `_truncated` as proof
+that a read was complete. Refusing reads narrow the request instead of retrying unchanged:
+`data.get_data_asset` (`fields`), `material.get_node` (`properties`), `umg.get_tree`
+(`depth`/`max_nodes`/`names_only`), `graph.get_subgraph` (`node_ids`/`include_edges`),
+`blueprint.get_class_defaults` / `list_settable_defaults` / `list_inherited_properties`
+(`properties`/`include_values`/`discovery_limit`), `data.get_data_catalog` (`sections`,
+`include_asset_paths=false`), `get_capabilities` (`detail=names`), and
+`reflect.class_detail`/`query_class_context` (`detail=summary`).
+
 ### Pagination
 
-All list commands support opt-in cursor-based pagination via two parameters:
+Pagination is **owned by the command**, not the transport. Two mechanisms exist and are not
+interchangeable:
 
-- **`limit`** (integer, 1–200) — triggers pagination; returns first page with `_pagination` metadata
-- **`cursor`** — opaque token from `_pagination.next_cursor`; returns next page without re-calling C++
+**Python cursor pages** — for list commands the Python layer caches, pass a Python-only `limit`
+(integer 1–200) for a first page with `_pagination` metadata, then pass `cursor` (opaque token from
+`_pagination.next_cursor`) to fetch the next page without re-calling C++:
 
 ```json
 {
@@ -78,13 +124,35 @@ All list commands support opt-in cursor-based pagination via two parameters:
 
 Cache TTL is 60 seconds. On expiry, re-send the original command with `limit` to restart.
 
+**Native-owned windows** — `data.query_datatable`, `data.search_datatable_content`,
+`data.search_assets`, `level.list_actors`, `reflect.find_overrides`, `reflect.find_usages`,
+`reflect.get_dependencies`, `reflect.get_referencers`, `reflect.search`, `statetree.list_assets`,
+`editor.list_cvars`, `editor.get_recent_logs`, `anim.list_assets`, `gen.list_jobs`. Their
+`limit`/`offset` (or the command's own cursor fields) are forwarded to the owner unchanged and the
+native window is authoritative: no Python `cursor` is accepted (it is refused with `INVALID_CURSOR`),
+the native `limit=0` "unlimited" sentinel keeps its owner meaning, and an oversized page refuses
+rather than being shortened. Read the command's own completeness field — `is_complete`, `has_more`,
+`truncated`, `tree_complete`, `next_offset`, `next_cursor` — instead of assuming a fixed page size or
+a uniform `_pagination` envelope.
+
+### Projection, filtering, and paging are different parameters
+
+Do not conflate them:
+
+- **Projection** (`fields`) is a whitelist of response keys or property paths. It never changes
+  *which* objects are returned; omitting a key means "not requested", not "not present".
+- **Filtering** (`class_names`, `path_prefixes`, `query`, `class_name`) selects the population.
+- **Paging** (`offset`/`limit`, `since_cursor`/`until_cursor`, `discovery_offset`/`discovery_limit`)
+  selects a slice of an already-filtered, already-ordered population. If your filter has no effect,
+  check the parameter *name* against the command's schema before assuming the data is absent.
+
 ### Error Codes
 
 | Code | Meaning | Recovery |
 |------|---------|----------|
-| `RESPONSE_TOO_LARGE` | Response too large, no truncatable list found | Add filters or use `fields` param |
-| `INVALID_LIMIT` | `limit` not an integer in [1, 200] | Pass an integer in range |
-| `INVALID_CURSOR` | Cursor token is malformed | Restart pagination with `limit` |
+| `RESPONSE_TOO_LARGE` | Nothing truncatable, or a complete-or-refuse read refused an oversized page | Narrow the request: selectors/`fields`/`detail`/`sections`/`depth`/`limit` (see the refusal's `_suggestion`) |
+| `INVALID_LIMIT` | Python `limit` not an integer in [1, 200] | Pass an integer in range, or use the command's native window |
+| `INVALID_CURSOR` | Cursor token malformed, **or** a Python `cursor` was sent to a native-owned window | Restart Python pagination with `limit`; for a native window use its own `offset`/`since_cursor` |
 | `CURSOR_EXPIRED` | Cached results expired (60s TTL) | Re-send original command with `limit` |
 
 ---
@@ -272,6 +340,35 @@ Preview a migration queue:
 
 Real apply requires `dry_run=false` and `apply=true`. The MCP response is intentionally compact; inspect the JSON report on disk for per-operation results, warnings, failures, and query-back payloads.
 
+### Read contracts
+
+`search_assets` — `query` is a case-insensitive substring over asset name *or* object path;
+`class_names` is an **exact** class-name filter (subclasses excluded); `path_prefixes` are canonical
+mounted package folders (`/Game/X`, recursive on folder boundaries). Rows are projected over the
+caller's `fields` whitelist (default `[path, name, class_name]`; allowed
+`path|name|class_name|package_path`). It is **natively paged** by `offset`/`limit` (defaults `0`/`50`)
+over a deterministic canonical object-path order applied *before* paging, so pages are stable:
+`total_matches` is the exact filtered population independent of the page, and the next page is
+`offset = next_offset` while `is_complete == false`. `count_only=true` returns before ordering with
+`assets=[]`, `count=0`, exact `total_matches`, `is_complete=true`. Malformed arrays/prefixes/fields
+refuse `INVALID_FIELD` before any registry fetch. The former scalar `class_filter`/`path_filter` reads
+and the `total_before_limit` field are gone.
+
+`list_data_assets` — the filter parameter is `class_name` (optional, subclass-aware via `IsChildOf`);
+`path_filter` is unchanged. A caller still passing `class_filter` is silently not filtered, because the
+field is no longer read at all.
+
+`get_data_asset` — `fields` (optional array of non-empty paths) turns the read into a path-keyed
+selected read; omitted/empty keeps the previous full deep reflected read. An unresolvable path refuses
+`PropertyNotFound`. `partial`/`issues` are always present (`issues` may be empty); `warnings` appears
+only when package capture produced warnings.
+
+`get_data_catalog` — `sections` (allowed `datatables|gameplay_tags|data_assets|string_tables|curve_tables`;
+omitted/empty builds every section; an unknown name refuses `INVALID_FIELD`). A section key absent from
+the response means that section was not requested. `include_asset_paths` (default `false`) controls the
+per-class `asset_paths` inventory inside `data_asset_classes[]`; the default response no longer carries
+it. Reachable from both `data_cmd` and `core_cmd`.
+
 ---
 
 ## Blueprint (`blueprint_cmd`)
@@ -286,6 +383,35 @@ Real apply requires `dry_run=false` and `apply=true`. The MCP response is intent
 
 `remove_graph` deletes a whole function, macro, extra event graph, or custom event through `blueprint_cmd(command="remove_graph")`; it is not `graph.apply_patch` or `blueprint_compose`. It requires strict boolean `dry_run`, `compile`, and `save`; optional strict `cascade_exec_chain` defaults to `false`. Preview (`dry_run=true`, `save=false`) returns `fingerprint_before` and `validation_hash`; apply requires both as `expected_fingerprint` and `expected_validation_hash`. `compile=false` never saves, and `save=true` requires `compile=true` and a clean starting package; EventGraph and ConstructionScript are protected. Full semantics: [CortexBlueprint system reference](https://github.com/etelyatn/CortexSandbox/blob/main/docs/systems/cortex-blueprint.md#guarded-graph-removal).
 - **Level Blueprint:** Use `get_level_blueprint(map_path)` (standalone tool) to get a synthetic path, then use `graph_cmd` commands. Save with `level_cmd(command="save_level")`, not `blueprint_cmd(command="save")`.
+
+### Class default reads and writes
+
+`get_class_defaults`, `list_settable_defaults` and `list_inherited_properties` share one read contract.
+`properties` is a **selector**: non-empty ⇒ an effective-value read of those paths (unpaged, `value`
+present by default). Empty/absent ⇒ **metadata discovery** over the whole admitted population, paged by
+`discovery_offset`/`discovery_limit` (defaults `0`/`100`, limit 1–200) and **without values** unless
+`include_values=true`. Omission is a verdict, not a missing field: no `value` ⇒ not requested (or
+`include_members`/`changed_only` semantics below); no `discovery_pagination` ⇒ the read was not a paged
+metadata read; no `total_properties` ⇒ the read had a `properties` selector. Follow
+`discovery_pagination.next_offset` while `is_complete == false`.
+
+`include_members=true` expands one level of struct-member metadata (member *values* only with
+`include_values=true`). `changed_only=true` (only on `get_class_defaults`) switches to an
+**inherited-delta read**: it requires `include_values=true` (explicit `false` refuses), excludes
+`include_members` (refuses), and reports `value_mode="inherited_delta"`, `baseline_class`,
+`effective_values_complete=false`, `echo_complete`, and `omitted_equal_properties` — a root listed there
+provably equals its baseline; an incomplete comparison is flagged, never reported as equal.
+`list_settable_defaults`/`list_inherited_properties` refuse `changed_only`. Bad `properties`/control types
+refuse `INVALID_FIELD` before any asset load.
+
+`set_class_defaults` gained a per-property `echo` selector (string, default `"diff"`; one of
+`diff|full|none`, anything else refuses `INVALID_FIELD`); it affects only the echo, never what is applied,
+compiled or saved. Every property record carries `changed` in every mode. `echo=full` returns the
+`previous_value`/`new_value` pair; `echo=diff` (default) omits the echo entirely when unchanged, returns
+a `changes` map of relative leaf paths for a struct root (plus `value_encodings` for a wide int64 leaf),
+and the `previous_value`/`new_value` pair for a scalar/collection root; `echo=none` returns only
+`changed`. `FSoftObjectPath`, `FGameplayTag`, `FGameplayTagContainer` and `FInstancedStruct` roots are
+always echoed atomically, never as leaf paths.
 
 ### Composite
 
@@ -359,6 +485,11 @@ See `blueprint-patterns.md` for node class short names and full node type table.
 - **Collections:** `list_collections`, `get_collection`, `create_collection`, `delete_collection`, `add_collection_parameter`, `remove_collection_parameter`, `set_collection_parameter`
 - **Dynamic Instances (PIE):** `list_dynamic_instances`, `get_dynamic_instance`, `create_dynamic_instance`, `destroy_dynamic_instance`, `set_dynamic_parameter`, `get_dynamic_parameter`, `list_dynamic_parameters`, `set_dynamic_parameters`, `reset_dynamic_parameter`
 
+`get_node` accepts an optional `properties` selector (array of non-empty property names). Omitted/empty
+keeps the previous full editable read. A selected read keys `properties` by the requested selector and
+validates the root segment against the same editable admission as the full read (a dotted path cannot
+cross a non-editable root); an unknown or non-editable name refuses `PropertyNotFound`.
+
 ### Composites
 
 - `material_compose` — atomic creation of a new Material with nodes and connections
@@ -373,6 +504,20 @@ See `blueprint-patterns.md` for node class short names and full node type table.
 - **Animations:** `create_animation`, `list_animations`, `remove_animation`, `list_animation_bindings`, `ensure_animation_binding`, `set_animation_property_track`, `remove_animation_binding`
 
 `get_widget` returns `render_transform`, `slot_type` (e.g. `"CanvasPanelSlot"`, `null` for root), and `slot` (layout details vary by slot type).
+
+`get_tree` is a bounded read. `depth` (root is level 0; present values must be strict integers `>= 0`)
+and `max_nodes` (widgets emitted, root included; strict integer `>= 1`) cap the traversal; both are
+absent ⇒ unlimited. `names_only=true` keeps hierarchy/name/child counts and drops class identity.
+The response reports exact asset-wide `total_widgets` (never reduced by the budget),
+`returned_widgets`, `tree_complete` (`!(depth cut || node cut)`) and a `reasons` array — one entry per
+cut reason. `tree_complete` and `returned_widgets` are the authoritative completeness signals; a branch
+stopped by either budget keeps its real `child_count` and is marked `incomplete: true` rather than
+pretending to be a leaf, and a true leaf omits `child_count`/`children` entirely (leaf nodes no longer
+carry `children: []`). With `include_property_bindings=true` the combined payload is measured as the
+condensed model-facing JSON: over the module ceiling the command returns a refusal envelope
+(`_error="RESPONSE_TOO_LARGE"`, `reader_complete=false`, `asset_path`, `total_widgets`,
+`returned_widgets`, `max_response_chars`) with no `root`. There is no pagination — re-request with a
+smaller `depth`/`max_nodes` or `names_only=true`.
 
 `list_animation_bindings` returns canonical `FWidgetAnimationBinding` records, possessables, tracks, channels, and a version-2 content-guard `fingerprint`. Add `include_track_content: true` to include each supported float/color track's `property_path`, `type`, canonical evaluation state and sections/channels with per-channel `{frame_number, time_seconds, value, interpolation}`. A detailed page that exceeds the response ceiling returns `_error: "RESPONSE_TOO_LARGE"` with `reader_complete: false` and summary counts instead of a partial page; `pagination.is_complete` independently reports whether every binding was returned. `remove_animation_binding` surgically removes a single binding record by selector (`{widget_name, slot_widget_name, binding_guid, is_root_widget}`) using optimistic locking (`expected_fingerprint`), defaulting to `dry_run=true` and `save=false`. Shared MovieScene possessables and tracks are preserved. Renaming a Designer widget propagates its binding `WidgetName` and possessable name; a stale `expected_fingerprint` refuses with `STALE_PRECONDITION` and the current fingerprint, without mutation.
 
@@ -412,6 +557,12 @@ not a new MCP tool, and does not change literal `set_property` or animation bind
 - **Discovery:** `list_actor_classes`, `list_component_classes`, `describe_class`
 - **Organization:** `attach_actor`, `detach_actor`, `set_tags`, `set_folder`, `group_actors`, `ungroup_actors`
 - **Level management:** `get_info`, `list_sublevels`, `load_sublevel`, `unload_sublevel`, `set_sublevel_visibility`, `list_data_layers`, `set_data_layer`, `save_level`, `save_all`
+
+`list_components` gained `include_properties` (boolean, default `false`). Only with `true` does each
+component carry `properties` (at most the first 20 admitted `CPF_Edit|CPF_BlueprintVisible` values),
+`total_property_count`, `returned_property_count` (≤ 20) and `properties_complete` (`total == returned`).
+The four property keys are absent because they were not requested — never because a component has no
+properties, which `properties_complete` distinguishes from a truncated page.
 
 ### Composite
 
@@ -469,6 +620,29 @@ blendspaces, retargeting, runtime preview, Sequencer, and Control Rig are out of
 
 See `qa-patterns.md` for input injection documentation.
 
+`get_recent_logs` is a finite, natively-paged log **window**, not a tail. Seven parameters:
+`severity` (`log|warning|error`, minimum level, default `log`), `since_seconds` (default `30.0`;
+**exactly `-1`** disables time filtering and any other negative refuses `INVALID_FIELD`),
+`since_cursor` (default `-1` ⇒ from the beginning of the ring), `until_cursor` (**inclusive**
+end-of-window watermark; rows past it are never attributed to this window), `limit`
+(1–2000, default `200`), `count_only` (default `false`), `category` (exact match, default `""`).
+The response reports `entries` (`{cursor, timestamp, category, message, severity}` — canonical
+lowercase severity), `count`, `next_cursor`, `latest_cursor`, `window_end_cursor`,
+`oldest_available_cursor`, `matched_count` (matches in the window regardless of page size),
+`has_more`, and `lost_before_cursor` (rows before the requested start were evicted from the ring).
+The window is `(since_cursor, window_end_cursor]`. Next page: `since_cursor = next_cursor` while
+`has_more == true`, **pinning `until_cursor = window_end_cursor` from the first page** so a
+late-arriving record is not attributed to this window. `count_only=true` returns `entries=[]`,
+`next_cursor=window_end_cursor`, `has_more=false` with exact `matched_count` — the standard way to
+capture a baseline watermark. `lost_before_cursor=false` means no loss was *proven*, not that history
+is complete. The former string `since_cursor`, duplicate `logs` array and scalar `cursor` field are
+gone.
+
+The standalone `get_recent_logs` tool exposes only `severity`, `since_seconds`, `since_cursor` and
+`category` and forwards only those; `until_cursor`, `limit` and `count_only` are reachable through the
+`editor_cmd` router passthrough. Prefer the standalone tool for a quick tail and `editor_cmd` for a
+pinned window.
+
 `execute_console_command` requires active PIE. It first preserves world Exec dispatch,
 then processes unhandled input through the console manager with the same PIE world.
 Handled input is not dispatched again. Unknown input returns `CONSOLE_COMMAND_FAILED`;
@@ -508,6 +682,16 @@ discard the override. Ejected/SIE editor views remain controllable.
 
 - `qa_test_step` — execute a single declarative QA test step (used by scenario runner)
 
+`qa_test_step` and `run_scenario` (scenario_compose) emit a per-step/summary `log_coverage` object
+(`{complete, lost_before_cursor, window_end_cursor, count, cause}`). It is built on a single one-shot
+finite `editor.get_recent_logs` window (a `count_only` baseline watermark, then `since_cursor` with a
+pinned `until_cursor`, `limit=200`, page cap 50) with no retry or poll. `complete=false` is forced by
+front eviction, an MCP/native size refusal, a read failure, non-advancing pagination, a missing
+watermark, or the page cap; `cause` names which. Treat `complete=false` as "log coverage unknown", not
+as "no errors occurred". The older unconditional `max_lines`/`cursor` reads are gone, and log-severity
+detection reads `recent_logs.entries[].severity` (lowercase) rather than the removed `logs[].level`
+plus `"Error:"` text heuristic.
+
 ### Composite
 
 - `scenario_compose` — atomic creation of a new QA scenario asset
@@ -516,10 +700,38 @@ discard the override. Ejected/SIE editor views remain controllable.
 
 ## Reflect
 
-Reflect has **standalone MCP tools** (not accessed through `reflect_cmd`):
-- `query_class_hierarchy`, `query_class_detail`, `query_class_context`, `query_overrides`, `query_usages`
-- `get_dependencies`, `get_referencers`, `impact_analysis`
-- `rebuild_graph_cache`, `reflect_cache_status`, `scan_project`
+Reflect is reachable **two ways**:
+- **Standalone MCP tools** (recommended, typed parameters): `query_class_hierarchy`,
+  `query_class_detail`, `query_class_context`, `query_overrides`, `query_usages`,
+  `get_dependencies`, `get_referencers`, `impact_analysis`, `rebuild_graph_cache`,
+  `reflect_cache_status`, `scan_project`
+- **The `reflect_cmd` router** for the native commands (`reflect.class_detail`,
+  `reflect.class_hierarchy`, `reflect.search`, `reflect.find_overrides`, `reflect.find_usages`,
+  `reflect.get_dependencies`, `reflect.get_referencers`)
+
+Standalone tools and native commands are not interchangeable:
+
+`query_class_detail` defaults to `detail="summary"` and accepts `summary|properties|full`, refusing an
+unknown value client-side; it maps `properties` to a native `full` read plus a Python allowlist and
+always injects `detail`. The **native** `reflect.class_detail` default is `full` and it accepts **only**
+`summary`/`full` — anything else refuses `INVALID_FIELD` (`Invalid detail '<x>'; expected 'summary' or
+'full'`) instead of degrading to the expensive full read. `summary` omits `properties`, `functions` and
+`components`. Callers that previously passed an ad-hoc value such as `"name"` and silently got `full`
+must now pass `summary`.
+
+`reflect.class_hierarchy` gained `include_flat_classes` (boolean, default `false`). The default response
+no longer emits `classes` (pass `include_flat_classes=true` for the flat name list). It now reports
+`total_classes`, `cpp_count`, `blueprint_count`, `project_cpp_count`, `engine_cpp_count`,
+`project_blueprint_count`, and a new `truncated` boolean set by the walk itself. `truncated` is the
+authoritative completeness signal: the `max_results` budget is shared by the whole recursive walk
+(intermediaries and deeper nodes consume it), so the emitted child count cannot prove completeness, and
+there is no pagination — re-request with a larger `max_results`/`depth`. `query_class_context` derives
+`children_complete = !truncated`, bounds children at `max_results=20`, and fetches the parent through a
+native `detail=summary` read.
+
+`reflect.search` response changed: `results` is unchanged, plus new `returned` (page length),
+`total_matches` (every match counted even past `limit`) and `truncated` (`total_matches > returned`).
+The former `total_results` — which was only the returned page length — is removed with no alias.
 
 ---
 
