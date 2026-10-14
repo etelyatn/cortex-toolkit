@@ -125,6 +125,8 @@ level_cmd("find_actors", params={"pattern": "*Destructible*"}) → level_compose
 ```
 level_cmd("list_components", params={"actor": "..."}) → level_cmd("get_component_property", params={"actor": "...", "component": "...", "property_path": "..."})
 ```
+`list_components` defaults to metadata only. Pass `include_properties=true` to read an inline snapshot of each
+component's first 20 editable values (see the response reference below for the cap metadata).
 
 ### Add and Configure Component
 ```
@@ -343,6 +345,14 @@ Note: The response uses `actor` (not `name`) for the actor identifier field.
 ```
 
 Note: The count field is `count` (not `component_count`).
+
+Each component carries `name`, `class`, `is_root` and `creation_method`
+(`Native|SimpleConstructionScript|UserConstructionScript|Instance|Unknown`). Passing
+`include_properties=true` adds `properties` (at most the first 20 admitted
+`CPF_Edit|CPF_BlueprintVisible` values), `total_property_count`, `returned_property_count` (≤ 20) and
+`properties_complete` (`total == returned`). Without the flag the property keys are absent because they
+were not requested — never because a component has no properties, which `properties_complete`
+distinguishes from a truncated page.
 
 ### list_sublevels
 ```json

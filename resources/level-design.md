@@ -172,7 +172,7 @@ Single tool for all level modifications. Pass an `operations` array:
 - `get_actor_property(actor, property_path)`
 
 ### Components
-- `list_components(actor)`
+- `list_components(actor, include_properties?)` — metadata by default; `include_properties=true` adds a capped (20) editable-value snapshot with `total_property_count`/`returned_property_count`/`properties_complete`
 - `add_component(actor, class_name, name?)`
 - `remove_component(actor, component)`
 - `get_component_property(actor, component, property_path)`
