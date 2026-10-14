@@ -31,7 +31,11 @@ Router commands use **bare names** — e.g., `get_info`, `create`, `list` (NOT `
 
 A standalone tool and the router route to the same native command but do **not** expose the same
 parameters. The router passes parameters through verbatim, so any native parameter is reachable there
-even when the standalone tool omits it. Known divergences:
+even when the standalone tool omits it. Eight routed commands now enforce their declared parameter set
+— `umg.set_text`, `umg.set_font`, `umg.set_padding`, `umg.set_anchor`, `umg.set_alignment`,
+`umg.set_size`, `data.list_data_assets`, `data.search_assets` — so for those an undeclared parameter is
+refused with `INVALID_FIELD` naming the accepted set (as is a missing declared-required parameter)
+instead of being silently dropped. Known divergences:
 
 | Command | Standalone tool exposes | Native-only (router only) |
 |---------|------------------------|---------------------------|
@@ -151,6 +155,8 @@ Do not conflate them:
 | Code | Meaning | Recovery |
 |------|---------|----------|
 | `RESPONSE_TOO_LARGE` | Nothing truncatable, or a complete-or-refuse read refused an oversized page | Narrow the request: selectors/`fields`/`detail`/`sections`/`depth`/`limit` (see the refusal's `_suggestion`) |
+| `INVALID_FIELD` | Parameter outside a command's declared set, or a declared-required parameter missing — on the enforcement-opted commands above; also a request that names no settable field | Pass only declared parameter names (the refusal lists the accepted set) and supply the declared-required ones |
+| `INVALID_PROPERTY_VALUE` | Value is not a token the command accepts (for example an unknown anchor `preset`, alignment or `size_rule`) | Use one of the values named in the refusal |
 | `INVALID_LIMIT` | Python `limit` not an integer in [1, 200] | Pass an integer in range, or use the command's native window |
 | `INVALID_CURSOR` | Cursor token malformed, **or** a Python `cursor` was sent to a native-owned window | Restart Python pagination with `limit`; for a native window use its own `offset`/`since_cursor` |
 | `CURSOR_EXPIRED` | Cached results expired (60s TTL) | Re-send original command with `limit` |
@@ -355,8 +361,9 @@ refuse `INVALID_FIELD` before any registry fetch. The former scalar `class_filte
 and the `total_before_limit` field are gone.
 
 `list_data_assets` — the filter parameter is `class_name` (optional, subclass-aware via `IsChildOf`);
-`path_filter` is unchanged. A caller still passing `class_filter` is silently not filtered, because the
-field is no longer read at all.
+`path_filter` is unchanged. The retired `class_filter` is refused with `INVALID_FIELD` naming the
+accepted parameters, because `list_data_assets` enforces its declared parameter set rather than
+silently ignoring an undeclared filter.
 
 `get_data_asset` — `fields` (optional array of non-empty paths) turns the read into a path-keyed
 selected read; omitted/empty keeps the previous full deep reflected read. An unresolvable path refuses
@@ -537,7 +544,8 @@ not a new MCP tool, and does not change literal `set_property` or animation bind
 
 ### Composite
 
-- `widget_compose` — atomic creation of a new UMG Widget Blueprint with an initial widget hierarchy
+- `widget_compose` — atomic creation of a new UMG Widget Blueprint with an initial widget hierarchy; a
+  `padding` dict in a widget spec is applied as the nested `padding` object on `umg.set_padding`
 
 ---
 

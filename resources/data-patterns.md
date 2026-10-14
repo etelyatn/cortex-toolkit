@@ -169,8 +169,9 @@ registry fetch. (The older scalar `class_filter`/`path_filter` reads and the `to
 are gone.)
 
 `list_data_assets` filters with `class_name` (optional, subclass-aware) and `path_filter`. The field
-was renamed from `class_filter`, which is no longer read at all — a caller still passing `class_filter`
-is silently unfiltered.
+was renamed from `class_filter`; `list_data_assets` enforces its declared parameter set, so a caller
+still passing `class_filter` is refused with `INVALID_FIELD` naming the accepted parameters instead of
+being silently unfiltered.
 
 `get_data_catalog` accepts `sections` (`datatables|gameplay_tags|data_assets|string_tables|curve_tables`;
 omitted/empty builds every section) and `include_asset_paths` (default `false`). A missing section key

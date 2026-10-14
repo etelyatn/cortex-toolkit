@@ -119,7 +119,7 @@ Widget `class` can also be a user Widget Blueprint asset path (for example
 
 ## Styling Notes
 
-- `set_font` supports `family` for engine fonts or font asset paths (for example `Roboto` or `/Game/Fonts/MyFont`)
+- `set_font` supports `family` for engine fonts or font asset paths (for example `Roboto` or `/Game/Fonts/MyFont`), plus `outline_size` and `outline_color`
 
 ## MANDATORY Pipeline — New Widget Screen Creation
 
@@ -183,7 +183,7 @@ Use `core_cmd(batch)` with `stop_on_error: true` and `$ref` wiring. See `resourc
       {"command": "umg.add_widget", "params": {"asset_path": "/Game/UI/WBP_HUD", "widget_class": "TextBlock", "name": "HealthLabel", "parent": "RootCanvas"}},
       {"command": "umg.set_text", "params": {"asset_path": "/Game/UI/WBP_HUD", "widget_name": "HealthLabel", "text": "Health"}},
       {"command": "umg.add_widget", "params": {"asset_path": "/Game/UI/WBP_HUD", "widget_class": "ProgressBar", "name": "HealthBar", "parent": "RootCanvas"}},
-      {"command": "umg.set_anchor", "params": {"asset_path": "/Game/UI/WBP_HUD", "widget_name": "HealthBar", "anchor": "TopLeft"}}
+      {"command": "umg.set_anchor", "params": {"asset_path": "/Game/UI/WBP_HUD", "widget_name": "HealthBar", "preset": "TopLeft"}}
     ]
   }
 }

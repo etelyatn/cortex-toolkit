@@ -81,11 +81,12 @@ Root: VerticalBox
 widget_compose(asset_path="/Game/UI/WBP_YourScreen", root_class="CanvasPanel", widgets=[...], animations=[...])
 ```
 Creates the Widget Blueprint, adds the full hierarchy, applies styling, compiles, and saves — all in one atomic call.
+A `padding` dict in a widget spec is applied as the nested `padding` object on `umg.set_padding`.
 
 ### Build a Screen Incrementally (modifying existing widgets)
 ```python
 umg_cmd(command="add_widget", params={"asset_path": "/Game/UI/WBP_Screen", "parent": "PnlContent", "class": "TextBlock", "name": "TxtTitle"})
-umg_cmd(command="set_anchor", params={"asset_path": "/Game/UI/WBP_Screen", "widget_name": "TxtTitle", "anchor": "top_center"})
+umg_cmd(command="set_anchor", params={"asset_path": "/Game/UI/WBP_Screen", "widget_name": "TxtTitle", "preset": "top_center"})
 umg_cmd(command="set_text",   params={"asset_path": "/Game/UI/WBP_Screen", "widget_name": "TxtTitle", "text": "Hello"})
 umg_cmd(command="create_animation", params={"asset_path": "/Game/UI/WBP_Screen", "animation_name": "FadeIn", "length": 0.3})
 ```
