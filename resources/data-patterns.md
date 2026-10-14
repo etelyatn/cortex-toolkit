@@ -148,6 +148,43 @@ export_* or export_bulk_json → inspect local files → optional export_schema_
 
 The MCP response is only the compact summary envelope. The report file on disk is the source of truth for per-operation status, warnings, failures, partial execution state, and query-back payloads. For `apply_import_ops_json`, read aggregate execution counts from nested `counts` keys such as `operations`, `validated`, `previewed`, `attempted`, `applied`, `failed`, `skipped`, and `save_failed`.
 
+## Asset Discovery, Search, and Read Contracts
+
+### Search and list (project-wide)
+
+```
+data_cmd("search_assets") → data_cmd("list_data_assets", class_name=...) → data_cmd("get_data_asset")
+```
+
+`search_assets` filters with `query` (case-insensitive substring over asset name **or** object path),
+`class_names` (**exact** class name, subclasses excluded) and `path_prefixes` (canonical mounted
+package folders such as `/Game/Data`, recursive on folder boundaries). `fields` is a **projection**
+whitelist over `path|name|class_name|package_path` (default `[path, name, class_name]`), not a filter.
+It is natively paged: `offset`/`limit` (defaults `0`/`50`) slice a deterministic canonical object-path
+order applied *before* paging, so pages are stable. `total_matches` is the exact filtered population
+independent of the page; follow `offset = next_offset` while `is_complete == false`.
+`count_only=true` returns `assets=[]`, `count=0`, exact `total_matches`, `is_complete=true` — use it
+for a cheap population count. Malformed arrays/prefixes/fields refuse `INVALID_FIELD` before any
+registry fetch. (The older scalar `class_filter`/`path_filter` reads and the `total_before_limit` field
+are gone.)
+
+`list_data_assets` filters with `class_name` (optional, subclass-aware) and `path_filter`. The field
+was renamed from `class_filter`, which is no longer read at all — a caller still passing `class_filter`
+is silently unfiltered.
+
+`get_data_catalog` accepts `sections` (`datatables|gameplay_tags|data_assets|string_tables|curve_tables`;
+omitted/empty builds every section) and `include_asset_paths` (default `false`). A missing section key
+means the section was not requested; the per-class `asset_paths` inventory is only emitted when
+`include_asset_paths=true`. It is reachable from both `data_cmd` and `core_cmd`.
+
+### Targeted vs full DataAsset reads
+
+`get_data_asset` accepts `fields`, a list of non-empty property paths. Omitted/empty keeps the previous
+full deep reflected read; a non-empty list returns only those paths, keyed by the requested path
+(consistent with class-default selected reads). An unresolvable path refuses
+`PropertyNotFound`. `partial` and `issues` are always present (`issues` may be empty); `warnings`
+appears only when package capture produced warnings.
+
 ## DataAsset Workflows
 
 ### Inspect
@@ -202,7 +239,7 @@ Run to validate after modifying Data MCP tools or C++ command handlers.
 ## Common Pitfalls
 
 - Always verify struct schema before adding rows — field names are case-sensitive
-- Use `core_cmd(command="search_assets")` to find assets by name when path is unknown
+- Use `data_cmd(command="search_assets")` to find assets by name or path when the path is unknown (project-wide); use `data_cmd(command="list_data_assets", params={"class_name": "..."})` for DataAsset-class-scoped discovery
 - GameplayTags must be registered before use in DataTable rows
 - `data_cmd(command="import_datatable_json")` overwrites existing rows with same key
 - Use `data_cmd(command="update_string_table")` for bulk StringTable edits; run `dry_run=true` first and apply only after inspecting `operation_results`
