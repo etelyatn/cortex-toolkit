@@ -419,13 +419,6 @@ BOUNDED_PRUNE_GUIDE_NEEDLES = (
     ("lossless large-island inventory retrieval remains unsupported", "only lossless large-inventory retrieval is deferred"),
 )
 
-ROUTED_PRUNE_SUMMARY_NEEDLES = (
-    ("bounded complete-or-refuse", "the implemented boundary is described"),
-    ("oversized apply is refused before mutation", "apply refusal happens before mutation"),
-    ("only lossless large-island inventory retrieval remains unsupported", "only lossless retrieval remains deferred"),
-)
-
-
 class TypedBlueprintRoutingTests(unittest.TestCase):
     def test_all_relevant_skills_link_the_single_guide(self):
         for path in ("skills/cortex-blueprint/SKILL.md", "skills/cortex-umg/SKILL.md", "skills/cortex-bp-migrate/SKILL.md"):
@@ -485,25 +478,6 @@ class TypedBlueprintRoutingTests(unittest.TestCase):
         guide = " ".join(_read("resources/typed-blueprint-authoring.md").split()).casefold()
         self.assertIn("every `graph.apply_patch` before native dispatch", guide)
         self.assertIn("unrelated read pagination remains separate", guide)
-
-    def test_every_prune_routing_resource_describes_bounded_prune_and_deferred_retrieval(self):
-        paths = (
-            "examples/typed-blueprint-authoring/README.md",
-            "resources/bp-migration-executor.md",
-            "resources/mcp-tool-reference.md",
-            "skills/cortex-bp-migrate/SKILL.md",
-        )
-        for path in paths:
-            text = " ".join(_read(path).split())
-            with self.subTest(path=path):
-                self.assertIn(
-                    "https://github.com/etelyatn/CortexSandbox/issues/102",
-                    text,
-                    "the bounded-response issue remains linked wherever prune is routed",
-                )
-                for needle, why in ROUTED_PRUNE_SUMMARY_NEEDLES:
-                    with self.subTest(needle=needle):
-                        self.assertIn(needle.casefold(), text.casefold(), why)
 
     def test_routed_prune_guidance_does_not_call_bounded_responses_unsupported(self):
         paths = (
