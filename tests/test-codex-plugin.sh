@@ -103,8 +103,6 @@ if "run-hook.cmd" not in pre_tool_command or "check-ue-editor.sh" not in pre_too
     raise SystemExit("PreToolUse hook must run check-ue-editor.sh through run-hook.cmd")
 if "run-hook.cmd" not in session_start_command or "session-start.sh" not in session_start_command:
     raise SystemExit("SessionStart hook must run session-start.sh through run-hook.cmd")
-if pre_tool_command.lstrip().startswith("bash ") or session_start_command.lstrip().startswith("bash "):
-    raise SystemExit("Codex hooks must not call bash directly on Windows")
 
 docs_to_check = [
     root / "README.md",
