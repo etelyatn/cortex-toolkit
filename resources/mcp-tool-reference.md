@@ -104,7 +104,8 @@ generic `_truncated` marker is never used for them:
 
 `reader_complete=false` is the authoritative signal — never treat the absence of `_truncated` as proof
 that a read was complete. Refusing reads narrow the request instead of retrying unchanged:
-`data.get_data_asset` (`fields`), `material.get_node` (`properties`), `umg.get_tree`
+`data.get_data_asset` (`fields`), `material.get_material` (`properties`/`include_input_state`),
+`material.list_connections` (`include_input_state`), `material.get_node` (`properties`), `umg.get_tree`
 (`depth`/`max_nodes`/`names_only`), `graph.get_subgraph` (`node_ids`/`include_edges`),
 `blueprint.get_class_defaults` / `list_settable_defaults` / `list_inherited_properties`
 (`properties`/`include_values`/`discovery_limit`), `data.get_data_catalog` (`sections`,
@@ -500,6 +501,7 @@ See `blueprint-patterns.md` for node class short names and full node type table.
 ## Material (`material_cmd`)
 
 - **Asset:** `list_materials`, `get_material`, `create_material`, `delete_material`, `set_material_property`
+- **Root inputs:** `set_material_input`
 - **Instances:** `list_instances`, `get_instance`, `create_instance`, `delete_instance`
 - **Parameters:** `list_parameters`, `get_parameter`, `set_parameter`, `set_parameters`, `reset_parameter`
 - **Graph:** `list_nodes`, `get_node`, `add_node`, `remove_node`, `list_connections`, `connect`, `disconnect`, `auto_layout`, `set_node_property`, `get_node_pins`
@@ -510,6 +512,198 @@ See `blueprint-patterns.md` for node class short names and full node type table.
 keeps the previous full editable read. A selected read keys `properties` by the requested selector and
 validates the root segment against the same editable admission as the full read (a dotted path cannot
 cross a non-editable root); an unknown or non-editable name refuses `PropertyNotFound`.
+
+### Root input state
+
+A root input (the `MaterialResult` pins) stores more than its connection: an output index, a channel
+mask, and — for constant-capable types — an inline `use_constant`/`constant` pair. `get_material` and
+`list_connections` expose that serialized state and `set_material_input` writes it. Do not inspect or
+edit it through expression-node commands: root inputs live on the material, not on a node.
+
+> Availability: these fields and `set_material_input` belong to the material input-state contract
+> ([UnrealCortex #184](https://github.com/etelyatn/UnrealCortex/issues/184)) and require a plugin build
+> that declares them. `core.get_operation_schema` against the connected editor is authoritative; an
+> older build answers `UNKNOWN_COMMAND` for the command and omits the read fields rather than silently
+> ignoring a patch.
+
+`get_material` keeps `asset_path` and adds optional `include_input_state` (boolean, default `false`)
+and `properties` (array of dotted reflected property paths). It always returns, beside the existing
+fields: `effective_blend_mode` (same complete enum naming as `blend_mode`), the serialized
+`can_masked_be_assumed_opaque` flag, and `warnings`. `sm6_warnings` remains its own established field.
+
+`include_input_state=true` adds `root_inputs`, one record per available serialized root input —
+including disconnected inputs — with these fields:
+
+| Field | Meaning |
+|---|---|
+| `input` | Canonical property-derived name (`BaseColor`, `OpacityMask`, `CustomizedUVs0`, …) |
+| `connected`, `source_node` | Current connection; `source_node` is `null` when disconnected |
+| `output_index`, `mask`, `mask_r`, `mask_g`, `mask_b`, `mask_a` | Native stored output index and channel flags |
+| `supports_constant` | The input type has an inline constant at all |
+| `inline_constant_allowed` | Material Editor authoring policy for that input |
+| `use_constant`, `constant` | Stored inline state; `null` when the type has no inline constant |
+
+`use_constant: null` / `constant: null` is a capability statement, not a missing or unreadable field.
+`supports_constant` is a type fact and `inline_constant_allowed` an editor authoring policy; neither is
+a compiler-precedence claim. `constant` is never reinterpreted: scalar is a number, color is
+`{r,g,b,a}`, vector3 is `{x,y,z}`, vector2 is `{x,y}`. Unsupported root inputs are absent, not invented.
+
+`list_connections` accepts the same `include_input_state` flag and returns the identical `root_inputs`
+projection beside `connections` and `count`. Edge enumeration stays connected-only: a disconnected
+input appears in `root_inputs`, never as an edge.
+
+Both extended reads are complete-or-refuse. An oversized projection returns `RESPONSE_TOO_LARGE` with
+`reader_complete: false` and supported narrowing guidance (select fewer `properties`, omit
+`include_input_state`, or read root state separately through `get_material`). These reads have no
+`limit`/`offset` paging, and a partial `root_inputs`/`connections` array is never presented as complete.
+
+### Writing root input state
+
+`set_material_input` requires `asset_path` and `input`; the patch may contain any of `use_constant`,
+`constant`, `output_index`, `mask`, `mask_r`, `mask_g`, `mask_b`, `mask_a`.
+
+- At least one patch field is required. Omitted fields preserve current state; empty, `null`, or
+  malformed values are refused, never treated as deletion.
+- `input` matches the canonical `EMaterialProperty` names a read returns (`ShadingModel`,
+  `CustomData0`, `CustomizedUVs0`, …); case, underscore and space differences are ignored
+  (`custom_data_0`, `CustomizedUV0`). Accepted aliases are `ClearCoat` for canonical `CustomData0` and
+  `ClearCoatRoughness` for canonical `CustomData1`; reads always report the canonical name. Any
+  available serialized root input is addressable even when the material domain or blend mode leaves it
+  inactive.
+- The whole patch is validated and staged before any transaction or edit notification. Unknown/absent
+  inputs, unknown fields, wrong types, non-finite or out-of-storage-range numbers, and invalid output
+  indices refuse without changing values, other inputs, or dirty state.
+- `constant`/`use_constant` require a constant-capable input; `use_constant: true` additionally
+  requires `inline_constant_allowed`. Setting `use_constant: false` on a capable disabled-inline input
+  is allowed.
+- `output_index` requires a connected expression and a valid output on it. Changing it initializes the
+  masks from that output; explicit mask fields in the same patch then override those defaults. Masks
+  accept integer `0` or `1` only — other numbers are refused, not truncated.
+- `use_constant: true` on a connected, allowed input is intentional state authoring, not an implicit
+  disconnect. The connection stays, the read reports the resulting condition, and `warnings` may
+  explain it.
+- Color and vector constants are replaced as complete objects; scalar constants are plain numbers.
+  There is no partial color/vector merge and no expression-object editing through this command.
+
+The response is `asset_path`, `updated: true`, `input_state` (the read projection for that input), and
+`warnings` using the same diagnostics as a read. No other input, node, or legacy blend override changes.
+Root-input, property and rewire writes never save implicitly; persist with
+`core_cmd(command="save_asset", ...)`.
+
+```python
+# scalar constant on a disconnected input (abridged response; no warning applies here)
+material_cmd(command="set_material_input", params={
+    "asset_path": "/Game/Materials/M_Simple",
+    "input": "Metallic",
+    "constant": 0.8,
+    "use_constant": True,
+})
+# -> {"asset_path": "/Game/Materials/M_Simple", "updated": true,
+#     "input_state": {"input": "Metallic", "connected": false,
+#                     "use_constant": true, "constant": 0.8},
+#     "warnings": []}
+
+# typed constants
+{"constant": {"r": 0.2, "g": 0.4, "b": 0.8, "a": 1.0}}   # color
+{"constant": {"x": 0.0, "y": 1.0, "z": 0.5}}              # vector3
+{"constant": {"x": 0.0, "y": 1.0}}                        # vector2
+{"constant": 0.75}                                        # scalar
+
+# select the second output of the connected texture and keep its mask
+material_cmd(command="set_material_input", params={
+    "asset_path": "/Game/Materials/M_Cutout",
+    "input": "OpacityMask",
+    "output_index": 1,
+})
+```
+
+### Effective blend mode and warnings
+
+`warnings` is response data (never UE warning logs) and never mutates the asset:
+
+- `BLEND_MODE_MISMATCH` — authored `blend_mode` and `effective_blend_mode` disagree. The usual case is
+  `bCanMaskedBeAssumedOpaque: true` on an authored Masked material: it is effectively Opaque.
+- `CONNECTED_EXPRESSION_IGNORED` — a connected constant-capable input has `use_constant: true`, the
+  legacy translator allows its inline constant, and the material is not using the new HLSL generator.
+  The message names that legacy-translator condition instead of claiming universal precedence. The new
+  translator prioritizes a valid connection, so the condition is not reported there. Root-input
+  warnings include the `input` field.
+
+Neither condition is repaired automatically on read or on an unrelated edit. Diagnose, repair
+explicitly, then read again and save explicitly:
+
+```python
+# 1. diagnose the opaque override
+material_cmd(command="get_material", params={"asset_path": "/Game/Materials/M_Cutout"})
+# -> {"blend_mode": "Masked", "effective_blend_mode": "Opaque",
+#     "can_masked_be_assumed_opaque": true,
+#     "warnings": [{"code": "BLEND_MODE_MISMATCH", "message": "..."}]}
+
+# 2. clear the override (top-level non-editable UPROPERTY authoring is preserved)
+material_cmd(command="set_material_property", params={
+    "asset_path": "/Game/Materials/M_Cutout",
+    "property_name": "bCanMaskedBeAssumedOpaque",
+    "value": False,
+})
+
+# 3. clear a legacy ignored connected constant instead, when that is the reported condition
+material_cmd(command="set_material_input", params={
+    "asset_path": "/Game/Materials/M_Cutout",
+    "input": "OpacityMask",
+    "use_constant": False,
+})
+
+# 4. confirm the warning cleared, then persist — input/property/rewire writes never save implicitly
+material_cmd(command="get_material", params={"asset_path": "/Game/Materials/M_Cutout"})
+core_cmd(command="save_asset", params={"asset_path": "/Game/Materials/M_Cutout"})
+```
+
+### Nested reflected properties
+
+`set_material_property` keeps `asset_path`, `property_name`, `value`; `property_name` may now be a
+dotted reflected path such as `EditorOnlyData.OpacityMask.UseConstant` or
+`EditorOnlyData.OpacityMask.Constant`.
+
+- The explicit `EditorOnlyData` prefix resolves through the material's editor-only data. The remaining
+  struct/object hops must stay inside objects owned by this material through their Outer chain;
+  referenced external assets refuse, and missing objects or null hops are neither created nor followed.
+- Root-input leaf paths use the same validation and policy as `set_material_input`. Whole-input or
+  `Expression` replacement through a generic path is refused — use `connect`/`disconnect`.
+- Array indexing is not part of the path grammar. Use `set_material_input` for `CustomizedUVs0`..
+  `CustomizedUVs7`; a path like `CustomizedUVs[0]` is not supported.
+- Unknown or unsupported paths and failed conversions return `INVALID_FIELD` with the requested path
+  and reason; any failed write preserves previous values and dirty state.
+
+```python
+material_cmd(command="get_material", params={
+    "asset_path": "/Game/Materials/M_Cutout",
+    "properties": ["EditorOnlyData.OpacityMask.UseConstant",
+                   "EditorOnlyData.OpacityMask.Constant"],
+})
+# -> {"properties": {"EditorOnlyData.OpacityMask.UseConstant": false,
+#                    "EditorOnlyData.OpacityMask.Constant": 1.0}, ...}
+
+material_cmd(command="set_material_property", params={
+    "asset_path": "/Game/Materials/M_Cutout",
+    "property_name": "EditorOnlyData.OpacityMask.UseConstant",
+    "value": False,
+})
+```
+
+Selected reads key their projection under `properties` by the requested path and validate the whole
+selector before returning anything — an invalid selector yields no partial projection. There is no
+separate `get_material_property` command.
+
+### Root connect and disconnect semantics
+
+`connect` validates before the transaction, connects through the native expression input so the masks
+match the selected output instead of retaining stale channels, and clears `use_constant` on that root
+input. `disconnect` removes the expression, keeps `output_index: 0` and the stored constant, and
+applies the Material Editor constant policy: inline constants are enabled for permitted
+constant-capable inputs, `use_constant` is forced `false` for `WorldPositionOffset`, `Anisotropy`,
+`PixelDepthOffset`, and `Displacement`, and nonconstant types are left without invented fields.
+`Material` and `MaterialResult` are both accepted root aliases. Expression-to-expression disconnect is
+not supported.
 
 ### Composites
 

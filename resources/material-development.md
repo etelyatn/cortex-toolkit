@@ -105,7 +105,7 @@ Use `get_material_node_pins` to query actual pin names on any node. This is the 
 
 **Composite (REQUIRED for new materials):** `material_compose` — builds entire material graph atomically
 
-**Assets:** `list_materials`, `get_material`, `create_material`, `delete_material`, `list_instances`, `get_instance`, `create_instance`, `delete_instance`, `set_material_property`
+**Assets:** `list_materials`, `get_material`, `create_material`, `delete_material`, `list_instances`, `get_instance`, `create_instance`, `delete_instance`, `set_material_property`, `set_material_input`
 
 **Parameters:** `list_parameters`, `get_parameter`, `set_parameter`, `set_parameters`, `reset_parameter`
 
@@ -143,7 +143,7 @@ instead of reading the whole node when you only need one or two values.
 
 ## Material-Level Properties
 
-Use `set_material_property` to configure material-level settings after creation (or in `material_compose` post-steps). This sets UProperty values directly on the UMaterial asset.
+Use `set_material_property` to configure material-level settings after creation (or in `material_compose` post-steps). It supports reflected properties on the UMaterial and dotted paths into its owned subobjects, including `EditorOnlyData.OpacityMask.UseConstant`. Use `set_material_input` for typed root constants, output indices, and component masks; inspect with `get_material(include_input_state=true)`. See the Material section of `mcp-tool-reference.md` for exact contracts, diagnostics and explicit-save examples.
 
 ### Common Properties
 
@@ -172,7 +172,8 @@ set_material_property("/Game/Materials/M_Glass", "BlendMode", "BLEND_Translucent
 
 | Tool | Target | Example Properties |
 |------|--------|--------------------|
-| `set_material_property` | UMaterial asset itself | MaterialDomain, BlendMode, ShadingModel, TwoSided |
+| `set_material_property` | UMaterial and owned reflected subobjects | MaterialDomain, BlendMode, TwoSided, EditorOnlyData.OpacityMask.UseConstant |
+| `set_material_input` | Serialized MaterialResult input | use_constant, typed constant, output_index, mask/mask_r/mask_g/mask_b/mask_a |
 | `set_material_node_property` | Expression node in graph | ParameterName, DefaultValue, Texture, SceneTextureId, SamplerType |
 
 ### Node Enum/Byte Properties
