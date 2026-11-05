@@ -396,7 +396,7 @@ it. Reachable from both `data_cmd` and `core_cmd`.
 `get_info` accepts an optional `compact` boolean parameter, **default `true`**. In compact mode, empty `inputs`/`outputs` arrays and the `source` field are omitted from the functions list — this mostly reduces noise from inherited functions. Pass `compact: false` when you need to distinguish `"blueprint"` vs `"inherited"` sources or verify full parameter signatures (e.g., during BP→C++ migration analysis).
 - **Structure:** `add_variable`, `remove_variable`, `add_function`, `get_class_defaults`, `set_class_defaults`, `configure_timeline`, `set_component_defaults`, `add_scs_component`, `remove_scs_component`, `rename_scs_component`
 - **Class Settings:** `add_interface`, `remove_interface`, `set_tick_settings`, `set_replication_settings`
-- **Migration:** `analyze_for_migration`, `cleanup_migration`, `remove_scs_component`, `rename_scs_component`, `recompile_dependents`, `fixup_redirectors`, `compare_blueprints`
+- **Migration:** `analyze_for_migration`, `cleanup_migration`, `remove_scs_component`, `rename_scs_component`, `recompile_dependents`, `fixup_redirectors`, `compare_blueprints`. `fixup_redirectors` is folder-wide and recursive by default and force-deletes unreferenced redirectors; the migration pipeline never calls it (see `resources/cpp-migration.md`). `remove_scs_component` and `rename_scs_component` always write the package; `rename_scs_component` also saves the dependents it touches.
 - **Graph maintenance:** `delete_orphaned_nodes`, `remove_graph`, `search`
 - **Text inventory and migration verification:** `export_text_inventory`, `export_snapshot`, `compare_snapshots`, `compile_all`
 
@@ -937,7 +937,7 @@ discard the override. Ejected/SIE editor views remain controllable.
 
 - `qa_test_step` — execute a single declarative QA test step (used by scenario runner)
 
-`qa_test_step` and `run_scenario` (scenario_compose) emit a per-step/summary `log_coverage` object
+`qa_test_step` and `scenario_compose` runs emit a per-step/summary `log_coverage` object
 (`{complete, lost_before_cursor, window_end_cursor, count, cause}`). It is built on a single one-shot
 finite `editor.get_recent_logs` window (a `count_only` baseline watermark, then `since_cursor` with a
 pinned `until_cursor`, `limit=200`, page cap 50) with no retry or poll. `complete=false` is forced by

@@ -39,7 +39,7 @@ For each task in your assigned range:
 
 When executing Blueprint cleanup tasks, follow this exact sequence.
 
-**Persistence rule (mandatory):** pass `"save": false` wherever a command offers `save` (`cleanup_migration`, `set_class_defaults`, `remove_graph`, `graph_cmd` `apply_patch`; `cleanup_migration` and `set_class_defaults` default to `true`) so edits stay staged and `core_cmd` `reload_asset` can still discard them. `rename_scs_component` and `remove_scs_component` have no `save` option and always write the package, including every staged edit. Tell the orchestrator BEFORE issuing any call that can write the package (those two, or any call without `save: false`); the orchestrator sets `asset_persisted: true` in the frontmatter first. After that point rollback needs source control, not `reload_asset`.
+**Persistence rule (mandatory):** pass `"save": false` wherever a command offers `save` (`cleanup_migration`, `set_class_defaults`, `remove_graph`, `graph_cmd` `apply_patch`; `cleanup_migration` and `set_class_defaults` default to `true`) so edits stay staged and `core_cmd` `reload_asset` can still discard them. `rename_scs_component` and `remove_scs_component` have no `save` option and always write the package, including every staged edit; `rename_scs_component` also saves each dependent Blueprint it touches. Tell the orchestrator BEFORE issuing any call that can write the package (those two, or any call without `save: false`); the orchestrator sets `asset_persisted: true` in the frontmatter first, and before the first `rename_scs_component` records and copies the dependent Blueprints (`touched_dependents`). Persistence is decided by the measured `package_saved_hash`, not by the flag alone. After that point rollback needs the file restore point (version control or `original_copy`), not `reload_asset`.
 
 **Redesign filter rule (When `goal: redesign` in frontmatter):** The Ground Truth Table contains `Target Class` and `Automated` columns (standardized format — same columns exist for all migrations). The global workflow steps still run in order (collision validation, reparent, verification gates). The `Automated` filter applies to **item-level cleanup operations only** (event disconnect/delete-orphans, function removal, variable removal, SCS component removal): operate only on rows where `Automated: Yes`. Items with `Automated: No` (Tier 3 secondary actor targets) must be left in the BP with annotation: "Skipped — manual migration to {TargetClass}". Report skipped items in the execution log.
 
@@ -54,7 +54,7 @@ When the C++ constructor creates components via `CreateDefaultSubobject` (Tier 1
 3. Inspect `analyze_for_migration.scs_collisions` before mutating:
    - For `severity: "adoptable"`, run the emitted `recommended_params` through
      `set_class_defaults`; qualified values such as `HealthComp@self` are intentional.
-   - For blocking collisions, run `rename_scs_component` using the recommended new name.
+   - For blocking collisions, run `rename_scs_component` using the recommended new name (it persists the package and the dependents it touches; see the persistence rule).
 4. If a C++ constructor name exactly replaces a BP-owned SCS node after the collision pass:
    - Remove the redundant SCS component using `remove_scs_component`.
    - If it returns `POTENTIAL_DATA_LOSS`, stop and surface `dirty_details` plus

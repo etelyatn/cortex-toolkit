@@ -85,7 +85,7 @@ A `padding` dict in a widget spec is applied as the nested `padding` object on `
 
 ### Build a Screen Incrementally (modifying existing widgets)
 ```python
-umg_cmd(command="add_widget", params={"asset_path": "/Game/UI/WBP_Screen", "parent": "PnlContent", "class": "TextBlock", "name": "TxtTitle"})
+umg_cmd(command="add_widget", params={"asset_path": "/Game/UI/WBP_Screen", "parent_name": "PnlContent", "widget_class": "TextBlock", "name": "TxtTitle"})
 umg_cmd(command="set_anchor", params={"asset_path": "/Game/UI/WBP_Screen", "widget_name": "TxtTitle", "preset": "TopCenter"})
 umg_cmd(command="set_text",   params={"asset_path": "/Game/UI/WBP_Screen", "widget_name": "TxtTitle", "text": "Hello"})
 umg_cmd(command="create_animation", params={"asset_path": "/Game/UI/WBP_Screen", "animation_name": "FadeIn", "length": 0.3})
@@ -185,7 +185,7 @@ umg_cmd(command="set_property", params={"asset_path": "/Game/UI/WBP_Screen", "wi
 umg_cmd(command="get_tree",       params={"asset_path": "/Game/UI/WBP_Screen"})
 # identify target widgets, then:
 umg_cmd(command="set_property",   params={"asset_path": "/Game/UI/WBP_Screen", "widget_name": "TxtTitle", "property_path": "ColorAndOpacity.R", "value": 1.0})
-umg_cmd(command="add_widget",     params={"asset_path": "/Game/UI/WBP_Screen", "parent": "PnlRoot", "class": "Button", "name": "BtnConfirm"})
+umg_cmd(command="add_widget",     params={"asset_path": "/Game/UI/WBP_Screen", "parent_name": "PnlRoot", "widget_class": "Button", "name": "BtnConfirm"})
 umg_cmd(command="remove_widget",  params={"asset_path": "/Game/UI/WBP_Screen", "widget_name": "BtnOld"})
 umg_cmd(command="get_tree",       params={"asset_path": "/Game/UI/WBP_Screen"})  # verify
 ```
@@ -318,7 +318,7 @@ clear a binding.
 ```python
 umg_cmd(command="duplicate_widget", params={"asset_path": "/Game/UI/WBP_Screen", "widget_name": "BtnTemplate", "new_name": "BtnVariant"})
 umg_cmd(command="set_text",  params={"asset_path": "/Game/UI/WBP_Screen", "widget_name": "BtnVariant", "text": "Variant"})
-umg_cmd(command="set_color", params={"asset_path": "/Game/UI/WBP_Screen", "widget_name": "BtnVariant", "r": 0.2, "g": 0.8, "b": 0.2})
+umg_cmd(command="set_color", params={"asset_path": "/Game/UI/WBP_Screen", "widget_name": "BtnVariant", "color": {"r": 0.2, "g": 0.8, "b": 0.2}})
 ```
 
 ### Vertical Fill Child Pattern

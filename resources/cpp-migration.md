@@ -459,19 +459,20 @@ blueprint_cmd(command="recompile_dependents", params={
 
 **Error cases:** `BlueprintNotFound` if `asset_path` does not exist.
 
-### rename and fixup_redirectors (archiving the backup only)
+**Side effect:** the command recompiles dependents but does not save them, so each recompiled dependent is left dirty in the editor. Report them and either save each explicitly (`blueprint_cmd` `save`) with the user's agreement or state that a later Save All will include them.
+
+### rename (archiving the backup only)
 
 Only the backup snapshot may be renamed or moved, because it has no referencers. Use this to archive it:
 
 ```python
 blueprint_cmd(command="rename", params={
     "source_path": "/Game/Blueprints/BP_Enemy_Backup",
-    "dest_path": "/Game/Migration/Backups/BP_Enemy_Backup",
+    "dest_path": "/Game/Migration/Backups/BP_Enemy_Backup",  # keep the recorded backup_path leaf (e.g. BP_Enemy_Backup2 after a collision)
 })
-blueprint_cmd(command="fixup_redirectors", params={"path": "/Game/Blueprints", "recursive": True})
 ```
 
-`rename` leaves a redirector at the source path; `fixup_redirectors` resolves it (`redirectors_found` may be `0`). Never use `rename` on the migrated Blueprint.
+`rename` leaves one redirector at the source path. It has no referencers and is harmless; leave it. Do not run `fixup_redirectors` as part of a migration: it is folder-wide and recursive by default and force-deletes unreferenced redirectors and rewrites referencers of the rest, which can touch unrelated assets. If cleanup is wanted, list first with `core_cmd(command="list_redirectors", params={"path": "/Game/Blueprints", "recursive": false})`, show the result to the user, and fix up only that single redirector path after explicit confirmation. Never use `rename` on the migrated Blueprint.
 
 ### compare_blueprints
 

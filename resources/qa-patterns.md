@@ -18,7 +18,7 @@ Bug detection patterns and classification for exploratory and scenario-driven ga
 
 ## Log Evidence and `log_coverage`
 
-Log-based findings come from `qa_test_step` / `run_scenario`, which attach a per-step and summary
+Log-based findings come from `qa_test_step` / `scenario_compose`, which attach a per-step and summary
 `log_coverage` object (`{complete, lost_before_cursor, window_end_cursor, count, cause}`). It is built
 on a single one-shot finite `editor.get_recent_logs` window — a `count_only` baseline watermark, then
 `since_cursor` with a pinned `until_cursor`, `limit=200`, page cap 50 — with **no retry or poll**.
