@@ -2,132 +2,91 @@
 
 # BP Migration Finalizer
 
-Handle the SWAP and COMPLETE phases. This is the most critical phase — mistakes here affect the live Blueprint. Follow each step exactly.
+Handle the FINALIZE and COMPLETE phases. The migrated Blueprint is the original asset, migrated in place, so nothing is renamed or swapped and every referencer keeps pointing at it. This phase makes the clean state durable and leaves the project consistent. Follow each step exactly.
+
+**Never rename, move or replace `BP_Name`.** Renaming an asset rewrites every referencer to the new path (`IAssetTools::RenameAssets` → `FAssetRenameManager::FixReferencesAndRename`), so the old rename-swap moved the whole project onto the backup. See "In-Place Migration Model" in the cortex-bp-migrate skill.
 
 ## Inputs
 
 You receive from the orchestrator:
 - **migration-plan.md** — the approved plan with YAML frontmatter
 - **Relevant sections of migration-plan.md** — Execution Log, Verification Results, Task List (orchestrator extracts these before dispatch)
-- **Task range** — which tasks to execute (e.g., "Tasks 18-22")
+- **Task range** — which tasks to execute (e.g., "Tasks 18-21")
 
-## SWAP Phase Protocol
+## FINALIZE Phase Protocol
 
 ### Fast Mode Compatibility
 
 **Detection:** Fast mode is identified by the task range prefix. Tasks prefixed with "Fast-" (e.g., Fast-14) indicate fast mode. Tasks without prefix (e.g., Task 19) indicate full mode. No separate mode flag is needed.
 
-**In fast mode (Fast-14), execute these SWAP Phase Protocol sections:**
-1. "Task: Execute Rename Swap" — full protocol (3-step rename sequence + rollback on failure)
-2. "Task: Remove Orphaned Nodes (Task 19b)" — full protocol
-3. "Task: Save Blueprint to Disk (Task 19c)" — full protocol
-4. "Task: Fix Redirectors and Recompile Dependents" — full protocol
-5. "Task: Write Final Report" — write `rollback.json` + append report to `migration-plan.md`
-
-**Skip these sections:**
-- "Task: Disable Auto-Save" — not needed (no dependents in fast mode)
-- "Task: Re-Enable Auto-Save" — not needed (was never disabled)
+**In fast mode (Fast-14), execute these sections in order:**
+1. "Task: Final Orphan Sweep and Clean Compile (Task 18)" — full protocol
+2. "Task: Save Blueprint to Disk (Task 19)" — full protocol
+3. "Task: Recompile Dependent Blueprints (Task 20)" — full protocol
+4. "Task: Write Final Report (Task 21)" — write `rollback.json` + append report to `migration-plan.md`
 
 **Changes from full mode:**
-- In Final Report, report "Tasks Completed: 14/14" (not 22/22)
+- In Final Report, report "Tasks Completed: 14/14" (not 21/21)
 - Set `backup_verified` but do NOT present the backup menu — return the value to orchestrator for auto-archive
 
-### Task: Disable Auto-Save
+### Task: Final Orphan Sweep and Clean Compile (Task 18)
 
-Disable editor auto-save before starting the swap. This prevents saving packages with unresolved redirectors mid-swap.
+Delete orphaned nodes that remain in the migrated graphs, then prove the Blueprint compiles clean:
 
-### Task: Execute Rename Swap
+1. Read the Node Mappings section from `migration-plan.md` and the execution log; the migrated graphs are the ones whose events were disconnected.
+2. For each such graph, call `blueprint_cmd(command="delete_orphaned_nodes", params={"asset_path": "/Game/.../BP_Name", "graph_name": "..."})`. It is idempotent: a graph with nothing orphaned reports zero deletions.
+3. Verify the remaining node count per graph with `graph_cmd(command="search_nodes", params={"asset_path": "...", "graph_name": "..."})` (no filter, compact rows). `blueprint_cmd` `graph_metrics` must report no `unreachable` nodes for the migrated graphs.
+4. Compile: `blueprint_cmd(command="compile", params={"asset_path": "/Game/.../BP_Name"})` — must be 0 errors, 0 warnings.
+5. Only proceed to Task 19 after the compile succeeds.
 
-Execute the rename swap as a 3-step sequence (NOT a single batch — redirectors must be fixed between steps):
-1. `rename_blueprint`: `BP_Name` -> `BP_Name_Backup`
-2. `fixup_redirectors` on the parent directory — CRITICAL: this resolves the redirector left at `BP_Name`'s original location. Without this step, step 3 can fail because UE's `FAssetToolsModule` may refuse to rename to a path occupied by a redirector.
-3. `rename_blueprint`: `BP_Name_Migration` -> `BP_Name`
-
-Rollback protocol: If step 3 fails after step 1 succeeded, immediately reverse step 1:
-- `rename_blueprint`: `BP_Name_Backup` -> `BP_Name`
-- Report the failure to orchestrator with both the original error and the rollback status
-- Do NOT leave the project in a state where `BP_Name` does not exist
-
-**Step 2b: Verify backup exists on disk**
-
-After rename swap completes:
-1. Verify backup asset on disk (or via MCP `get_info` on backup path):
-   ```bash
-   ls Content/**/BP_{Name}_Backup.uasset 2>/dev/null
-   ```
-2. If backup exists: record in `rollback.json`:
-   - `"backup_verified": true`
-   - `"backup_path": "/Game/.../BP_Name_Backup"`
-3. If backup does NOT exist:
-   - Set `"backup_verified": false` in `rollback.json`
-   - Report WARNING to orchestrator: "Backup asset not found on disk after rename swap. The original Blueprint may have been consumed by redirector resolution."
-   - Orchestrator must inform the user before proceeding to COMPLETE.
-
-**Backup status reporting:**
-- Report `backup_verified` status to the orchestrator in your return summary
-- The orchestrator handles the user-facing backup menu (Keep/Archive/Delete) — do NOT present backup options to the user from this phase
-
-**Rollback tracking (record in rollback.json):**
-- If first rename succeeded but second failed: reverse first rename
-- If both renames succeeded but save failed: reverse both renames, save
-- Record `git_commit_before` for C++ file rollback
-
-### Task: Remove Orphaned Nodes (Task 19b)
-
-After the rename swap succeeds, delete all orphaned nodes from migrated graphs:
-
-1. Read the Node Mappings section from `migration-plan.md` — use the orphaned node IDs as the deletion list
-2. For each graph with orphaned nodes:
-   - Call `delete_orphaned_nodes` with the list of node IDs for that graph
-   - Verify graph node count matches expected post-cleanup count via `graph_get_subgraph` (the default `compact=true` mode is fine here — you only need the total node count returned at the top level, which compact mode preserves)
-3. Compile Blueprint — must be 0 errors, 0 warnings
-4. Only proceed to Task 19c after compile succeeds
-
-**Do NOT save before compiling.** A save of a Blueprint with errors persists corrupt state to disk.
+**Do NOT save before the clean compile in this task.** Earlier EXECUTE calls (`remove_scs_component`, `rename_scs_component`) may already have persisted a compiled state; this task must not add a save of a Blueprint that has compile errors, because that would persist corrupt state to disk.
 
 **Order of deletion does not matter.** The underlying `RemoveNode` API breaks all pin links before destroying each node — no dangling references.
 
 **Do NOT call `RefreshAllNodes` after deletion.** That API is for type system changes (class renames, property additions), not node removal. It can cause unexpected pin reconnection on surviving nodes.
 
-### Task: Save Blueprint to Disk (Task 19c)
+### Task: Save Blueprint to Disk (Task 19)
 
-1. Call `save_blueprint` on the migrated Blueprint (now at the original path after rename swap)
+1. Call `blueprint_cmd(command="save", params={"asset_path": "/Game/.../BP_Name"})` on the migrated Blueprint (still at its original path)
 2. Verify response: `saved: true`
-3. Rationale: unsaved changes are lost if the editor closes unexpectedly. Save immediately after successful compile so the clean state is durable.
+3. `asset_persisted` must already be `true` before this call; the orchestrator sets it before the save task starts.
+4. Rationale: unsaved changes are lost if the editor closes unexpectedly. Save immediately after a successful compile so the clean state is durable. This is the only deliberate save of the migrated Blueprint in the pipeline (SCS removals may already have written the package).
 
-### Task: Fix Redirectors and Recompile Dependents
+### Task: Recompile Dependent Blueprints (Task 20)
 
-1. Identify all redirectors created by the swap
-2. For each dependent Blueprint (from impact analysis):
-   - Load the dependent
-   - Call `RefreshAllNodes` (clears stale GUIDs from reparenting)
-   - Recompile
-   - Verify 0 errors
-3. Delete resolved redirectors
-4. Verify no remaining redirector references via AssetRegistry query
+Reparenting changes the class layout, so Blueprints that depend on `BP_Name` can hold stale data.
 
-### Task: Re-Enable Auto-Save
+1. Call `blueprint_cmd(command="recompile_dependents", params={"asset_path": "/Game/.../BP_Name"})`
+2. Verify every dependent reports `status: success`. A dependent that fails is reported to the orchestrator with its `errors`; do not edit it.
+3. There is no redirector cleanup: nothing was renamed, so no redirector was created by this migration. Do not call `fixup_redirectors` here.
 
-Re-enable editor auto-save after swap is complete and all dependents are recompiled.
+**Backup verification (before returning):** confirm the snapshot is saved on disk with `core_cmd(command="asset_fingerprint", params={"paths": ["<backup_path>"]})` — a non-empty `package_saved_hash` and `is_dirty: false`. `get_info` alone is not enough: it also succeeds for an unsaved in-memory asset.
+- If saved: record `"backup_verified": true` and `"backup_path": "/Game/.../BP_Name_Backup"` in `rollback.json`.
+- If it does not exist: record `"backup_verified": false` and report WARNING to the orchestrator: "No backup snapshot exists. The original can only be recovered from source control." The orchestrator informs the user before COMPLETE.
+
+**Backup status reporting:** report `backup_verified` to the orchestrator in your return summary. The orchestrator handles the user-facing backup menu (Keep/Archive/Delete) — do NOT present backup options to the user from this phase, and never modify the backup.
 
 ## COMPLETE Phase Protocol
 
-### Task: Write Final Report
+### Task: Write Final Report (Task 21)
 
-Write `rollback.json` (the ONE file that remains separate — machine-readable for automated rollback):
+Write `rollback.json` (the ONE file that remains separate — machine-readable for rollback):
 ```json
 {
+  "blueprint": "/Game/.../BP_Name",
+  "asset_persisted": true,
   "backup_verified": true,
   "backup_path": "/Game/.../BP_Name_Backup",
-  "rename_steps": [
-    { "step": 1, "from": "BP_Name", "to": "BP_Name_Backup", "status": "completed" },
-    { "step": "1b", "action": "fixup_redirectors", "status": "completed" },
-    { "step": 2, "from": "BP_Name_Migration", "to": "BP_Name", "status": "completed" }
-  ],
+  "restore": {
+    "while_unpersisted": "core_cmd reload_asset on blueprint",
+    "after_persisted": "restore the .uasset from source control at git_commit_before, then core_cmd reload_asset"
+  },
   "cpp_files": ["Source/.../ClassName.h", "Source/.../ClassName.cpp"],
   "git_commit_before": "{hash}"
 }
 ```
+
+`rollback.json` never lists rename steps; the original path is unchanged. The backup is a comparison snapshot, not a restore source.
 
 Append final report to `migration-plan.md`. Use the Edit tool — if the `## Final Report` heading already exists, replace it; otherwise insert at the end.
 
@@ -140,7 +99,7 @@ Update frontmatter `status: completed`, `phase: complete`, `last_updated` as par
 |--------|-------|
 | Status | Completed |
 | Duration | {time} |
-| Tasks Completed | 22/22 |
+| Tasks Completed | 21/21 |
 | Tasks Skipped | 0 |
 | Backup | {path or "not preserved"} |
 | C++ Class | {ClassName} at {header_path} |
@@ -151,7 +110,7 @@ Update frontmatter `status: completed`, `phase: complete`, `last_updated` as par
 
 ### Files Modified
 - `Source/{Module}/{Module}.Build.cs` (if applicable)
-- `/Game/.../{BP_Name}.uasset` (reparented)
+- `/Game/.../{BP_Name}.uasset` (reparented in place)
 ```
 
 Do NOT write `report.json`. The final report is inline.
@@ -184,25 +143,19 @@ Return to orchestrator with structured crash report:
 
 ## Recovery
 
-If the swap fails:
+If a finalize task fails:
 - Do NOT attempt to fix it yourself
-- Return the exact failure state to the orchestrator
-- Include which rename step succeeded/failed
-- The orchestrator will present rollback options to the user
+- Return the exact failure state to the orchestrator, including which task failed and whether the compile or the save was the last step that succeeded
+- The orchestrator will present options and, if the user wants to undo, applies the In-Place Migration Model rollback (`reload_asset` while unpersisted, otherwise a confirmed source-control restore)
+- A failed or interrupted save leaves the previous on-disk state; Task 18 is idempotent and Tasks 19 and 20 are safe to re-run
 
 ## Output
 
 Write:
-- `docs/migration/blueprint-to-cpp/{BP_Name}/rollback.json` — rollback steps and status
+- `docs/migration/blueprint-to-cpp/{BP_Name}/rollback.json` — restore information
 - Append final report to `docs/migration/blueprint-to-cpp/{BP_Name}/migration-plan.md`
 
 ## Tools
 
-- `rename_blueprint`
-- `fixup_redirectors`
-- `recompile_dependent_blueprints`
-- `compile_blueprint`
-- `delete_orphaned_nodes`
-- `save_blueprint`
-- `graph_get_subgraph`
-
+- `blueprint_cmd` `delete_orphaned_nodes`, `compile`, `save`, `recompile_dependents`, `get_info`, `graph_metrics`
+- `graph_cmd` `search_nodes`

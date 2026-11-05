@@ -120,7 +120,7 @@ Skills are invoked with `/skill-name` in Claude Code. Each skill runs a focused 
 | Skill | Description |
 |-------|-------------|
 | `/cortex-blueprint` | Create, modify, review, debug, or reparent Blueprints — structure, graphs, variables, functions, inheritance, and best practices |
-| `/cortex-bp-migrate` | Migrate Blueprints to C++ using the V7 migration pipeline |
+| `/cortex-bp-migrate` | Migrate Blueprints to C++ in place (reparent, no rename swap); supports `--audit`, `--fast`, `--resume` |
 
 Existing-asset **graph** changes — typed adapters and the bounded `replace_entry` /
 `copy_subgraph` / `move_subgraph` / `prune_island` operations — follow one guarded workflow

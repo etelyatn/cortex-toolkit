@@ -42,12 +42,12 @@ data_cmd("list_datatables") → data_cmd("get_datatable_schema") → data_cmd("q
 
 ### Bulk Population
 ```
-reflect_cmd("get_struct_schema") → prepare JSON → data_cmd("import_datatable_json") → data_cmd("query_datatable") (verify)
+data_cmd("get_struct_schema") → prepare JSON → data_cmd("import_datatable_json") → data_cmd("query_datatable") (verify)
 ```
 
 ### Cross-Table Analysis
 ```
-core_cmd("batch") (multiple tables) → correlate by shared keys (FName, tags)
+core_cmd("batch_query") (multiple tables) → correlate by shared keys (FName, tags)
 ```
 
 ### Large Raw Exports

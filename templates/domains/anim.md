@@ -49,7 +49,7 @@ Use a family only when live capabilities advertise every command in that family.
 notifies, float curves, object notifies, and notify states apply to `UAnimSequence`; montage sections apply to
 `UAnimMontage`; sockets mutate only `USkeleton::Sockets`. Do not call or invent later-stage
 AnimBP authoring, blendspace, retargeting, runtime preview, Sequencer, or Control Rig commands.
-There is no `anim.save_asset`; use a mutation's `save=true` option, or `core.save_asset`
+The anim domain has no save command; use a mutation's `save=true` option, or `core.save_asset`
 where appropriate.
 
 Named-notify update/remove selectors match only zero-duration skeleton named notifies.

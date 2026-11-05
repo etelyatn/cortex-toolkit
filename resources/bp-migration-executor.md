@@ -4,6 +4,8 @@
 
 Execute PREPARE and EXECUTE phase tasks from the migration plan. You are a mechanical executor — do exactly what the plan says, in the order specified. Do not improvise or reorder.
 
+**Target asset:** every EXECUTE task runs on the original `BP_Name`, in place. `BP_Name_Backup` (created by Task 4) is a read-only snapshot: never edit, compile, reparent or clean it. Never rename or move `BP_Name`. See "In-Place Migration Model" in the cortex-bp-migrate skill.
+
 ## Inputs
 
 You receive from the orchestrator:
@@ -18,7 +20,7 @@ All input data is inline in migration-plan.md:
 
 - `resources/cpp-migration.md` — cleanup order and patterns
 - `resources/typed-blueprint-authoring.md` — the guarded `graph.apply_patch` route used by the bounded graph operations
-- `docs/unreal-coding-standards.md` — coding standards for any code adjustments
+- The consuming project's C++ coding standards (its own `docs/unreal-coding-standards.md` or equivalent when present) — standards for any code adjustments
 
 ## Execution Protocol
 
@@ -36,6 +38,8 @@ For each task in your assigned range:
 ## Cleanup Order (Mandatory — Never Reorder)
 
 When executing Blueprint cleanup tasks, follow this exact sequence.
+
+**Persistence rule (mandatory):** pass `"save": false` wherever a command offers `save` (`cleanup_migration`, `set_class_defaults`, `remove_graph`, `graph_cmd` `apply_patch`; `cleanup_migration` and `set_class_defaults` default to `true`) so edits stay staged and `core_cmd` `reload_asset` can still discard them. `rename_scs_component` and `remove_scs_component` have no `save` option and always write the package, including every staged edit. Tell the orchestrator BEFORE issuing any call that can write the package (those two, or any call without `save: false`); the orchestrator sets `asset_persisted: true` in the frontmatter first. After that point rollback needs source control, not `reload_asset`.
 
 **Redesign filter rule (When `goal: redesign` in frontmatter):** The Ground Truth Table contains `Target Class` and `Automated` columns (standardized format — same columns exist for all migrations). The global workflow steps still run in order (collision validation, reparent, verification gates). The `Automated` filter applies to **item-level cleanup operations only** (event disconnect/delete-orphans, function removal, variable removal, SCS component removal): operate only on rows where `Automated: Yes`. Items with `Automated: No` (Tier 3 secondary actor targets) must be left in the BP with annotation: "Skipped — manual migration to {TargetClass}". Report skipped items in the execution log.
 
@@ -64,12 +68,12 @@ This step is critical: if skipped, reparent will produce duplicate components (o
 After all conflicts resolved, proceed to Step 1 (standard collision validation for remaining non-conflicting components).
 
 1. Validate component name collisions (before reparent)
-2. Reparent to C++ class → verify compile
-3. Disconnect event entry exec pins — use `graph_disconnect` to break `PN_Then` on migrated event nodes.
-3b. Delete orphaned nodes — call `delete_orphaned_nodes` on each graph that had events disconnected. This removes dead node chains left after step 3. Event entry nodes are preserved (`UK2Node_Event` is skipped).
-4. Remove migrated functions → verify compile after each (leaf-first order from plan)
-5. Remove migrated variables → verify compile after each
-6. Remove migrated SCS components → verify compile after each
+2. Reparent to C++ class → verify compile. Either `blueprint_cmd(command="reparent", params={"asset_path": "/Game/.../BP_Name", "new_parent": "/Script/Module.ClassName"})`, or fold steps 2, 4 and 5 into one `blueprint_cmd(command="cleanup_migration", params={"asset_path": "...", "new_parent_class": "...", "remove_variables": [...], "remove_functions": [...], "compile": true, "save": false})` when the plan's task list schedules them together. Follow the plan's task structure.
+3. Disconnect event entry exec pins — use `graph_cmd(command="disconnect", params={"asset_path": "...", "node_id": "...", "pin_name": "<exec output pin>", "graph_name": "..."})` to break the exec output on migrated event nodes. Take `node_id` and the exact `pin_name` of the event's exec output (normally `then`) from `get_subgraph`; never guess either.
+3b. Delete orphaned nodes — call `blueprint_cmd(command="delete_orphaned_nodes", params={"asset_path": "...", "graph_name": "..."})` on each graph that had events disconnected. This removes dead node chains left after step 3. Event entry nodes are preserved (`UK2Node_Event` is skipped).
+4. Remove migrated functions → verify compile after each (leaf-first order from plan): `blueprint_cmd` `remove_graph` (preview with `dry_run: true`, then apply with explicit `compile` and `save: false`) or `cleanup_migration` `remove_functions`
+5. Remove migrated variables → verify compile after each: `blueprint_cmd` `remove_variable`
+6. Remove migrated SCS components → verify compile after each: `blueprint_cmd` `remove_scs_component` (persists the package)
 
 ## Bounded Graph Operations — Guarded, Never a Cleanup Substitute
 
@@ -109,7 +113,7 @@ Rules for this branch:
   silent ownership decision, and never a graph rewrite.
 - If the operation is unavailable in the running editor, the operation is **blocked**: record the
   editor/plugin identity, leave the asset untouched, and return the blocker to the orchestrator. Never
-  fall back to the raw disconnect/delete steps, to `core_cmd(batch)`, or to `editor_cmd(run_python)`.
+  fall back to the raw disconnect/delete steps, to `core_cmd(batch_query)`, or to `editor_cmd(run_python)`.
 - Report the phase statuses (`apply`/`compile`/`readback`/`save`/`rollback`) and the durable locators
   from the response in the execution log, exactly as the plan's verification expects.
 
@@ -135,7 +139,7 @@ If the count is 0, report: "No STAYING nodes reference migrated variables — cl
 |-----------|-------------------|--------|
 | Fast-7 | Step 1 | Validate collisions (auto-resolve if C++ name matches SCS name exactly; only stop if genuinely ambiguous) |
 | Fast-8 | Step 2 | Reparent to C++ class |
-| Fast-9 | Steps 3 + 3b | Disconnect events + delete orphaned nodes (full mode Tasks 11 + 11b combined into one fast task) |
+| Fast-9 | Steps 3 + 3b | Disconnect events + delete orphaned nodes (one task in both modes) |
 | Fast-10 | Step 4 | Remove migrated functions |
 | Fast-11 | Step 5 | Remove migrated variables |
 | Fast-12 | Step 6 | Remove migrated SCS components |
@@ -205,16 +209,11 @@ Do NOT write `03-node-mapping.json`. All execution data goes inline.
 
 ## Tools
 
-- `duplicate_blueprint`
-- `compile_blueprint`
-- `reparent_blueprint` — change a Blueprint's parent class (alternative to `cleanup_blueprint_migration` for standalone reparent)
-- `cleanup_blueprint_migration`
-- `graph_disconnect`
-- `delete_orphaned_nodes`
+- `blueprint_cmd` commands: `reparent`, `cleanup_migration`, `compile`, `delete_orphaned_nodes`, `remove_graph`, `remove_variable`, `remove_scs_component`, `rename_scs_component`, `set_class_defaults`, `add_interface` / `remove_interface` (use `remove_interface` to clean up stale interface references during migration), `get_info`, `analyze_for_migration`
+- `graph_cmd` `disconnect`, `get_subgraph`
 - `graph_cmd(command="apply_patch", ...)` — the guarded route for the bounded graph operations above
   (preview → apply with the preview token → readback); it is a standalone transaction and is never
   nested in a batch
-- `remove_scs_component`
-- `rename_scs_component`
-- `add_interface` / `remove_interface` — add or remove interface implementations (use `remove_interface` to clean up stale interface references during migration)
-- `save_blueprint`
+- `core_cmd` `reload_asset` — discard unsaved edits (orchestrator rollback only)
+
+Saving is not an executor tool: Task 19 in the finalizer persists the Blueprint.

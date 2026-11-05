@@ -6,6 +6,8 @@ Comprehensive reference for UnrealCortex batch command with $ref resolution and 
 
 The `batch` built-in command executes multiple commands sequentially with optional cross-step data references (`$ref`) and error handling control. This enables atomic multi-step operations like creating a material with nodes and connections in a single round-trip.
 
+**MCP access:** through MCP, send this as `core_cmd(command="batch_query", params={"commands": [...], "stop_on_error": true})`. The router forwards it to the editor's native `batch` command. The JSON envelopes below show that native `batch` command; `core_cmd` does not expose it under the name `batch`.
+
 ## Basic Usage
 
 ```json

@@ -37,7 +37,7 @@ longer used. The standalone `get_recent_logs` tool only exposes `severity`, `sin
 
 ## Input-Driven Testing Patterns
 
-**Single interaction:** Use `interact_with` — it handles look-at + key press + timeout in one call.
+**Single interaction:** Use `qa_cmd(command="interact")` — it handles look-at + key press + timeout in one call.
 
 **Hold mechanics (charge, sprint, aim):**
 ```
@@ -48,7 +48,7 @@ editor_cmd(command="inject_input_sequence", params={
   ]
 })
 ```
-Follow with `observe_game_state` to confirm stamina drain, sprint state, etc.
+Follow with `qa_cmd(command="observe_state")` to confirm stamina drain, sprint state, etc.
 
 **Combo / timed sequence:**
 ```
@@ -64,9 +64,9 @@ editor_cmd(command="inject_input_sequence", params={
 - `dispatched: true` but no game state change → input reached Slate but was not bound / no game mode active
 - `PIE_NOT_ACTIVE` error → PIE stopped or was never started
 - `INVALID_FIELD` error → bad key name or action string (fix the scenario)
-- `wait_for_condition` timeout after input → mechanic not responding; file as MAJOR
+- `qa_cmd(command="wait_for")` timeout after input → mechanic not responding; file as MAJOR
 
-**Known limitation:** `editor_cmd(command="inject_key", ...)` and `editor_cmd(command="inject_input_sequence", ...)` only confirm Slate dispatch, not game receipt. Always verify effects with `observe_game_state` or `wait_for_condition` after injecting input.
+**Known limitation:** `editor_cmd(command="inject_key", ...)` and `editor_cmd(command="inject_input_sequence", ...)` only confirm Slate dispatch, not game receipt. Always verify effects with `qa_cmd(command="observe_state")` or `qa_cmd(command="wait_for")` after injecting input.
 
 **Typed/sustained Enhanced Input:**
 ```python
@@ -143,7 +143,7 @@ QA and Editor tool coverage in `Plugins/UnrealCortex/MCP/tests/`:
 |-----------|----------|
 | `test_editor_e2e.py` | PIE lifecycle, viewport, screenshots, logs, console commands, time dilation |
 | `test_editor_lifecycle.py` | Editor startup/shutdown integration |
-| `test_qa_tools.py` | QA composites (move_player_to, interact_with, observe_game_state, wait_for_condition, assert_game_state) |
+| `test_qa_tools.py` | QA composites (`move_to`, `interact`, `observe_state`, `wait_for`, `assert_state`) |
 
 Run to validate after modifying Editor/QA MCP tools or C++ command handlers.
 

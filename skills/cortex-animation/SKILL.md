@@ -46,7 +46,7 @@ Named notify mutations apply only to zero-duration sequence skeleton named notif
 
 - Use `dry_run=true` before destructive or uncertain changes.
 - Treat stale fingerprint errors as a signal to re-inspect and ask whether to retry.
-- Do not invent later-stage AnimBP authoring, blendspace, retargeting, runtime preview, Sequencer, or Control Rig commands. There is no `anim.save_asset`; use a mutation's `save=true` option, or `core.save_asset` where appropriate.
+- Do not invent later-stage AnimBP authoring, blendspace, retargeting, runtime preview, Sequencer, or Control Rig commands. The anim domain has no save command; use a mutation's `save=true` option, or `core.save_asset` where appropriate.
 - If a command is absent from live capabilities, report that the requested animation authoring is unavailable.
 
 ## Verification

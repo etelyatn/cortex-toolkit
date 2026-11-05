@@ -83,7 +83,7 @@ each consuming a fresh `list_animation_bindings` fingerprint. Ordinary named Des
 `float`/`FLinearColor`/`FSlateColor` tracks with `linear`/`constant` keys, at most 8 sections and 64 logical keys
 per track. Completion is per section: RestoreState restores the pre-animation property; KeepState retains
 the final evaluated value. No implicit compile/save — compile and save explicitly afterwards, and never
-nest an authoring write inside `core_cmd(batch)`. See `resources/umg-patterns.md` for the concrete workflow.
+nest an authoring write inside `core_cmd(batch_query)`. See `resources/umg-patterns.md` for the concrete workflow.
 
 ### get_widget — Full Response Fields
 
@@ -138,7 +138,7 @@ When creating a new Widget Blueprint from scratch, you MUST use `widget_compose`
 This creates the Widget Blueprint, adds all widgets in hierarchy order, applies styling,
 and runs compile + save — all in a single atomic batch operation.
 
-Do NOT call individual tools (`create_blueprint`, `add_widget`, `set_text`, `set_color`, etc.)
+Do NOT call individual commands (`blueprint_cmd` `create`, `umg_cmd` `add_widget`, `set_text`, `set_color`, etc.)
 separately when creating from scratch.
 
 **Workflow:**
@@ -182,9 +182,11 @@ binding and property-track authoring goes through the guarded `ensure_animation_
 `set_animation_property_track` sequence with a fresh `list_animation_bindings` fingerprint; it is
 never folded into a hierarchy/style batch.
 
-Use `core_cmd(batch)` with `stop_on_error: true` and `$ref` wiring. See `resources/batch-pipeline-guide.md` for full syntax.
+Use `core_cmd(batch_query)` with `stop_on_error: true` and `$ref` wiring. See `resources/batch-pipeline-guide.md` for full syntax.
 
 **Example — add two widgets to an existing screen:**
+Raw native `batch` envelope; through MCP send the same `params` with `core_cmd(command="batch_query", ...)` (see `resources/batch-pipeline-guide.md`).
+
 ```json
 {
   "command": "batch",

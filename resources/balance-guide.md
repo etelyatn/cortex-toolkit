@@ -30,7 +30,7 @@ Framework for analyzing game balance using MCP data tools.
 
 ## Useful MCP Tool Combinations
 
-- `core_cmd(command="batch")` — pull multiple tables in one call for cross-analysis
+- `core_cmd(command="batch_query")` — pull multiple tables in one call for cross-analysis
 - `data_cmd(command="get_curve_table")` — extract numeric curves for regression analysis
 - `data_cmd(command="query_datatable")` — filter specific level ranges or categories
 - `data_cmd(command="resolve_tags")` — understand tag hierarchies for categorized data
