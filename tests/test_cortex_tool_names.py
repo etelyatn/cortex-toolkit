@@ -222,6 +222,23 @@ class CortexToolNameLint(unittest.TestCase):
             capture_output=True, text=True, cwd=ROOT,
         )
         self.assertEqual(0, result.returncode, result.stderr[-2000:])
+        print(f"\nDrift note: {result.stdout.strip()}")
+
+    def test_drift_is_one_directional(self) -> None:
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("sync_surface", ROOT / "scripts" / "sync-cortex-mcp-surface.py")
+        sync = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(sync)
+        fresh = json.loads(json.dumps(SURFACE))
+        self.assertEqual([], sync.removed_names(SURFACE, fresh))
+        extra = json.loads(json.dumps(SURFACE))
+        extra["domains"]["reflect"].append("brand_new_command")
+        self.assertEqual([], sync.removed_names(SURFACE, extra))
+        self.assertEqual(["reflect.brand_new_command"], sync.added_names(SURFACE, extra))
+        shrunk = json.loads(json.dumps(SURFACE))
+        shrunk["domains"]["graph"].remove("add_node")
+        self.assertEqual(["graph.add_node"], sync.removed_names(SURFACE, shrunk))
 
 
 if __name__ == "__main__":

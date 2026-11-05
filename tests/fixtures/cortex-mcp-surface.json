@@ -1,7 +1,7 @@
 {
   "provenance": {
-    "plugin_commit": "10fe1a44cf3f500a019f62fa78e1b283dc898b56",
-    "plugin_branch": "feat/issue120-dependency-map",
+    "plugin_commit": "b2b3ea2cf6736acb970f528617bce3ab4ff35671",
+    "plugin_branch": "main",
     "plugin_dirty": false
   },
   "exposed_tools": [

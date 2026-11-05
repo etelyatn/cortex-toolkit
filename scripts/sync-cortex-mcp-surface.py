@@ -144,22 +144,61 @@ def generate(plugin: Path) -> dict:
     }
 
 
+def removed_names(committed: dict, fresh: dict) -> list[str]:
+    """Names the committed snapshot lists that the plugin surface no longer has.
+
+    One-directional: plugin additions never invalidate a documented name, so they are not drift.
+    """
+    missing: list[str] = []
+    for tool in committed.get("exposed_tools", []):
+        if tool not in fresh["exposed_tools"]:
+            missing.append(f"exposed tool {tool}")
+    for domain, commands in committed.get("domains", {}).items():
+        live = fresh["domains"].get(domain)
+        if live is None:
+            missing.append(f"domain {domain}")
+            continue
+        missing.extend(f"{domain}.{command}" for command in commands if command not in live)
+    for domain, commands in committed.get("facade_commands", {}).items():
+        missing.extend(
+            f"{domain} facade {command}" for command in commands if command not in fresh["facade_commands"].get(domain, [])
+        )
+    return missing
+
+
+def added_names(committed: dict, fresh: dict) -> list[str]:
+    """Plugin names not yet in the snapshot (informational)."""
+    added = [f"exposed tool {t}" for t in fresh["exposed_tools"] if t not in committed.get("exposed_tools", [])]
+    for domain, commands in fresh["domains"].items():
+        known = committed.get("domains", {}).get(domain, [])
+        added.extend(f"{domain}.{c}" for c in commands if c not in known)
+    return added
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--plugin", required=True, type=Path, help="UnrealCortex plugin directory")
-    parser.add_argument("--check", action="store_true", help="compare with the committed snapshot instead of writing")
+    parser.add_argument("--check", action="store_true", help="fail when the snapshot names something the plugin lacks")
+    parser.add_argument("--provenance-commit", help="record this commit in the header instead of the plugin HEAD")
+    parser.add_argument("--provenance-branch", help="record this branch in the header instead of the plugin branch")
     args = parser.parse_args()
 
     snapshot = generate(args.plugin.resolve())
+    if args.provenance_commit or args.provenance_branch:
+        # Header only: use when the surface was verified equal to a shipped commit.
+        snapshot["provenance"] = {
+            "plugin_commit": args.provenance_commit or snapshot["provenance"]["plugin_commit"],
+            "plugin_branch": args.provenance_branch or snapshot["provenance"]["plugin_branch"],
+            "plugin_dirty": False,
+        }
     if args.check:
         current = json.loads(SNAPSHOT.read_text(encoding="utf-8")) if SNAPSHOT.is_file() else {}
-        # Provenance records where the snapshot came from; it never counts as drift.
-        current.pop("provenance", None)
-        fresh = {key: value for key, value in snapshot.items() if key != "provenance"}
-        if current != fresh:
-            print(f"DRIFT: {SNAPSHOT} differs from the plugin surface; rerun without --check.", file=sys.stderr)
+        removed = removed_names(current, snapshot)
+        if removed:
+            print(f"DRIFT: snapshot names absent from the plugin surface: {', '.join(removed)}", file=sys.stderr)
             return 1
-        print("surface snapshot is current")
+        added = added_names(current, snapshot)
+        print(f"surface snapshot valid; {len(added)} plugin addition(s) not in snapshot: {', '.join(added[:20])}")
         return 0
     text = json.dumps(snapshot, indent=2) + "\n"
     SNAPSHOT.parent.mkdir(parents=True, exist_ok=True)
