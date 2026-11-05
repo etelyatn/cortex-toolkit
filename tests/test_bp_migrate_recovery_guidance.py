@@ -56,6 +56,15 @@ class BpMigrateRecoveryGuidance(unittest.TestCase):
         self.assertNotIn("after the call, add any dependent", SKILL)
         self.assertIn("total_unfiltered", EXECUTOR)
 
+    def test_dependent_verification_is_role_aware(self) -> None:
+        verify = section(ROLLBACK, "3. **Verify disk and memory.**", "4. Abort")
+        for token in ("Owning original", "Dependent that inherits", "Reference-only dependent", "export_snapshot",
+                      "inherited:<name>", "does NOT walk parent SCS nodes"):
+            self.assertIn(token, verify)
+        # list_scs_components is only prescribed for the owner, never for every dependent
+        self.assertNotIn("list_scs_components` on each dependent", verify)
+        self.assertLess(verify.index("Owning original"), verify.index("list_scs_components"))
+
     def test_verify_crash_is_reconciled_by_readback(self) -> None:
         recovery = section(SKILL, "3. **Re-verify asset state before resuming**", "4. Resume from `failed_task`")
         self.assertNotIn("VERIFY is read-only", recovery)
