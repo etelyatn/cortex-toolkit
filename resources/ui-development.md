@@ -26,7 +26,7 @@ Build game UI using UMG widgets — menus, HUDs, dialogs, popups, and complex in
 
 ## UMG Tools
 
-- **Tree:** `add_widget`, `remove_widget`, `reparent`, `get_tree`, `get_widget`, `list_widget_classes`, `duplicate_widget`
+- **Tree:** `add_widget`, `remove_widget`, `reparent`, `get_tree`, `get_widget`, `list_widget_classes`, `duplicate_widget`, `rename_widget`
 
 `get_tree` is bounded rather than paged: `depth` (root = level 0) and `max_nodes` cap the traversal,
 `names_only=true` keeps hierarchy/name/child counts but drops class identity, and the response reports
@@ -34,6 +34,16 @@ exact `total_widgets`, `returned_widgets`, `tree_complete` and `reasons`. Treat 
 "bounded slice", not "leaf": a cut branch keeps its real `child_count` and sets `incomplete: true`, while
 a true leaf omits `child_count`/`children` (no more empty `children: []`). Re-request with a smaller
 `depth`/`max_nodes` or `names_only=true` — there is no pagination.
+
+Non-`names_only` nodes also report `is_variable` and (when present) `slot`, so they are larger than before and fewer fit one response. For big screens read the hierarchy with `names_only=true` and `depth`/`max_nodes`, then use `get_widget` for detail.
+
+**Widget migration (BindWidget / rename / values / text / CommonUI):**
+
+- `umg.check_native_bindings` (read-only): compare a Widget Blueprint with the `BindWidget`/`BindWidgetAnim` members of its native base, or of a prospective `native_class` before reparenting. Per-binding `status` is `matched`, `type_mismatch`, `missing`, `optional_missing` or `not_transient`; `has_errors` is true for `missing`, `type_mismatch`, `not_transient` and for a member that graphs reference while it is not Blueprint visible (per-binding `referenced_by_graphs` / `blueprint_visible`, `counts.not_blueprint_visible` — the reparent compile error "X is not blueprint visible"). A child Widget Blueprint's binding satisfied by its parent's widget is `matched`. `name_suggestion` is a hint only — the command never fixes anything.
+- `umg.rename_widget` with `scope="dependents"` is dry-run-first: the default `dry_run=true` returns the plan (assets with `role`, per-asset `fingerprint`, `references`, and `conflicts`). Apply with `dry_run=false`, the owner `expected_fingerprint` and `expected_dependent_fingerprints` (keys exactly equal to the plan's modified dependents, values the plan fingerprints). Stale/missing/extra entries refuse before mutation, as do a blocked dependent and a child that already declares `new_name` (widget, variable, component, timeline or function graph). A post-rename failure is really undone and verified (`rollback_status` `restored`|`unverified`, `blocked[]`). No compile or save happens — do both explicitly and re-run `check_native_bindings` afterwards.
+- `umg.get_embedded_widget_values`: capture per-instance values (with `is_override`) of embedded user widgets before and after a move or save/reload and diff them.
+- `blueprint.export_text_inventory`: capture the FText inventory before and after; the inline limit is 40000 characters, so pass `out_path` for large Blueprints.
+- `umg.get_commonui_info`: CommonUI activatable settings, overrides, button/text/border styles and `style_assets`. `commonui_available: false` means the CommonUI plugin is not loaded — it is not an error.
 
 **Properties:** `set_color`, `set_text`, `set_font`, `set_brush`, `set_padding`, `set_anchor`, `set_alignment`, `set_size`, `set_visibility`, `set_property`, `get_property`, `get_schema`
 

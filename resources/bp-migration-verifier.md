@@ -80,6 +80,10 @@ Call `analyze_blueprint_for_migration` on the migrated copy for post-migration s
 **UNSAFE TOOLS — Do NOT call during mid-migration verification:**
 - `compare_blueprints` — known crash vector on recently-reparented Blueprints with stale object references (Issue 99). Use individual tool calls instead (`analyze_blueprint_for_migration`, `get_class_defaults`) until Issue 99 fix is confirmed deployed.
 
+### Task: Text Inventory Comparison
+
+Call `blueprint_cmd(command="export_text_inventory", params={"asset_path": ..., "out_path": ...})` on the original and the migrated copy and diff the two inventories. Entries are sorted by (`location`, `owner`, `path`) so a line-by-line diff is meaningful; report every entry whose `value`, `source_kind` or `table_id`/`key` changed, was added or disappeared. The inline response is capped at 40000 characters; for anything larger pass `out_path` (under the project `Saved`, `Content` or `Config`) and read the file — without it the command returns `RESPONSE_TOO_LARGE` with the `counts` and no entries.
+
 ### Visual Comparison (If Applicable)
 
 For Blueprints with visual components, capture viewport screenshots of both original and migrated copy using `capture_screenshot`. Skip for non-visual BPs.
@@ -141,4 +145,5 @@ Return concise summary to orchestrator. Do NOT write `04-verification.json`.
 - `analyze_blueprint_for_migration`
 - `capture_screenshot`
 - `get_class_defaults`
+- `export_text_inventory`
 
