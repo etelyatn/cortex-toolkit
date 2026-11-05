@@ -1,6 +1,6 @@
 {
   "provenance": {
-    "plugin_commit": "6ff5688de473cabf9d1330aac18f922241e51ac7",
+    "plugin_commit": "a7df63c2f2acd3f6758b63737e411208044cb18d",
     "plugin_branch": "fix/issue119-migration-analysis",
     "plugin_dirty": false
   },

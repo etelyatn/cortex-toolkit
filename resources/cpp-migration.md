@@ -196,7 +196,7 @@ void UMyWidget::HandleConfirmClicked()
 ```
 
 **Key rules for Widget migration:**
-- Use `meta = (BindWidget)` for required widgets, `meta = (BindWidgetOptional)` for optional
+- Use `meta = (BindWidget)` for required widgets, `meta = (BindWidgetOptional)` for optional. Only widgets the analysis reports with `is_variable: true` (the `entity_summary` widget entries) get native fields; `widgets` lists the whole tree, and layout-only widgets stay in the Designer.
 - Use `meta = (BindWidgetAnim)` with `Transient` for animation bindings
 - Choose clear role-based names before generation; rename native BindWidget fields and Designer widgets together using reference-aware Unreal operations. Names must match exactly; Designer widget classes must be assignment-compatible with the native property types. Keep styling/layout/animation authored in BP; expose semantic state through existing presentation hooks. See cortex-bp-migrate: Widget migration ownership and naming.
 - Override `NativeConstruct()` for runtime init (replaces BP Construct event)
@@ -404,7 +404,7 @@ These commands support the FINALIZE and COMPLETE phases of the migration pipelin
 
 ### duplicate (backup snapshot)
 
-Creates `BP_Name_Backup` before the first mutation. A duplicate has no referencers; it is a read-only snapshot for comparison, not a restore source.
+Creates `BP_Name_Backup` before the first mutation. A duplicate has no referencers; it is a read-only snapshot for comparison, not a restore source. `duplicate` only marks the package dirty, so save it right away (`blueprint_cmd(command="save", params={"asset_path": "/Game/Blueprints/BP_Enemy_Backup"})`) and verify with `core_cmd(command="asset_fingerprint", params={"paths": ["/Game/Blueprints/BP_Enemy_Backup"]})` (non-empty `package_saved_hash`, `is_dirty: false`); the PREPARE editor restart discards unsaved assets.
 
 ```python
 blueprint_cmd(command="duplicate", params={
@@ -418,7 +418,7 @@ blueprint_cmd(command="duplicate", params={
 
 ### save
 
-Writes the Blueprint package. The pipeline saves once, after the final clean compile.
+Writes the Blueprint package. Used twice in the pipeline: on the backup right after `duplicate`, and on the migrated Blueprint once, after the final clean compile (earlier `remove_scs_component` / `rename_scs_component` calls may already have written that package).
 
 ```python
 blueprint_cmd(command="save", params={"asset_path": "/Game/Blueprints/BP_Enemy"})

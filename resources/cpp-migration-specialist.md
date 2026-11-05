@@ -84,7 +84,7 @@ Operations where NO other logic reads or reacts to the value:
 Widget Blueprint analysis requirements:
 - Read V4 typed arrays including `scs_components`, `dynamic_components`, `widgets`, `widget_animations`, `widget_bindings`, and `entity_summary`
 - Use `blueprint_cmd` `graph_metrics` (`totals.functional_nodes`, per-entry `functional_nodes`/`conditionals`, `unreachable`, `ghost_entries`) as a migration complexity signal in addition to total node count; unreachable nodes and unconnected entries are not logic to translate
-- Identify BindWidget candidates, animation usage, property bindings, named slots, and ListView entry widget metadata
+- Identify BindWidget candidates (only widgets with `is_variable: true` in the full `widgets` tree, i.e. the `entity_summary` widget entries), animation usage, property bindings, named slots, and ListView entry widget metadata
 - Keep widget labels and localized templates in editable Blueprint FText defaults, preserving String Table identities/placeholders and verifying save/reload against the final native parent; native code retains state-based text selection.
 
 Gather complete information about the target Blueprint:
