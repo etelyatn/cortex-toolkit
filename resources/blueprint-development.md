@@ -694,13 +694,13 @@ fails, the rename is rolled back before returning `COMPILE_FAILED`.
 
 ## Reparenting Blueprints
 
-Use `reparent_blueprint` to change a Blueprint's parent class. Accepts both Blueprint asset paths and C++ class names.
+Use `blueprint_cmd(command="reparent")` to change a Blueprint's parent class. Accepts both Blueprint asset paths and C++ class names. It compiles and marks the package dirty but does not save.
 
 ```python
-reparent_blueprint(
-    asset_path="/Game/Blueprints/BP_Enemy",
-    new_parent="AMyGameCharacter"  # C++ class name or Blueprint asset path
-)
+blueprint_cmd(command="reparent", params={
+    "asset_path": "/Game/Blueprints/BP_Enemy",
+    "new_parent": "AMyGameCharacter"  # C++ class name or Blueprint asset path
+})
 # Returns: {"asset_path": "...", "old_parent": "Actor", "new_parent": "MyGameCharacter", "reparented": true}
 ```
 

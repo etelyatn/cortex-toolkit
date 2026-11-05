@@ -25,6 +25,9 @@ ALL_COMMANDS = set().union(*DOMAINS.values())
 # neither an exposed tool nor a live command is stale even when it was never in the legacy snapshot.
 WRAPPER_DOMAINS = ("graph", "blueprint", "umg", "material", "statetree", "level", "qa", "reflect", "anim", "gen")
 # The raw TCP batch envelope {"command": "batch", ...} is native and legitimate; core_cmd has no `batch`.
+# Pre-consolidation wrappers also came as <command>_<noun> (reparent_blueprint, save_blueprint).
+COMMAND_NOUN_DOMAINS = {"blueprint": "blueprint", "graph": "graph", "material": "material", "widget": "umg",
+                        "level": "level", "datatable": "data", "statetree": "statetree", "scenario": "qa"}
 NATIVE_ONLY_COMMANDS = {"batch"}
 FILE_SUFFIXES = {"py", "json", "md", "cpp", "h", "log", "ini", "txt", "uasset", "cs", "yml", "yaml", "sh", "js", "ts"}
 
@@ -138,6 +141,17 @@ def lint_text(text: str) -> list[tuple[int, str, str]]:
             and token.split("_", 1)[1] in ALL_COMMANDS
         ):
             add(match.start(), [(token, "legacy wrapper removed from the live surface; use the routed command")])
+        else:
+            parts = token.rsplit("_", 1)
+            noun = parts[1].rstrip("s") if len(parts) == 2 else ""
+            domain = COMMAND_NOUN_DOMAINS.get(noun)
+            if (
+                domain in DOMAINS
+                and parts[0] in DOMAINS[domain]
+                and token not in EXPOSED
+                and token not in ALL_COMMANDS
+            ):
+                add(match.start(), [(token, f"the {domain} command `{parts[0]}` (wrapper-style name removed)")])
 
     return sorted(found)
 
@@ -168,6 +182,9 @@ class CortexToolNameLint(unittest.TestCase):
         self.assertTrue(lint_line("never nest it inside `core_cmd(batch)`"))
         self.assertEqual([], lint_line("`umg_cmd(list_animation_bindings)` then `core_cmd(batch_query)`"))
         self.assertTrue(lint_line("Use `analyze_blueprint_for_migration` first."))
+        self.assertTrue(lint_line("Use `reparent_blueprint` to change the parent."))
+        self.assertTrue(lint_line("reparent_blueprint(asset_path=x)"))
+        self.assertEqual([], lint_line("`blueprint_cmd(command=\"reparent\")` and remove_graph and save_level"))
         self.assertTrue(lint_line("call graph_list_nodes(asset_path)"))
         self.assertTrue(lint_line("`graph.list_nodes` lists nodes"))
         self.assertTrue(lint_line("blueprint_cmd graph_get_subgraph"))

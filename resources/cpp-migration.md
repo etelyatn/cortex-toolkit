@@ -406,6 +406,8 @@ These commands support the FINALIZE and COMPLETE phases of the migration pipelin
 
 Creates `BP_Name_Backup` before the first mutation. A duplicate has no referencers; it is a read-only snapshot for comparison, not a restore source. `duplicate` only marks the package dirty, so save it right away (`blueprint_cmd(command="save", params={"asset_path": "/Game/Blueprints/BP_Enemy_Backup"})`) and verify with `core_cmd(command="asset_fingerprint", params={"paths": ["/Game/Blueprints/BP_Enemy_Backup"]})` (non-empty `package_saved_hash`, `is_dirty: false`); the PREPARE editor restart discards unsaved assets.
 
+Placed level instances reference the original, not the backup, so when `get_referencers` shows level placements also export their per-instance overrides before the first mutation: `level_cmd(command="export_class_instances", params={"class": "/Game/Blueprints/BP_Enemy", "maps": ["/Game/Maps/Main"], "out_path": "<project>/Saved/Migration/BP_Enemy_placed_instances_baseline.json"})`. The verifier runs the same export afterwards and diffs the two reports.
+
 ```python
 blueprint_cmd(command="duplicate", params={
     "asset_path": "/Game/Blueprints/BP_Enemy",

@@ -139,7 +139,7 @@ If the count is 0, report: "No STAYING nodes reference migrated variables — cl
 |-----------|-------------------|--------|
 | Fast-7 | Step 1 | Validate collisions (auto-resolve if C++ name matches SCS name exactly; only stop if genuinely ambiguous) |
 | Fast-8 | Step 2 | Reparent to C++ class |
-| Fast-9 | Steps 3 + 3b | Disconnect events + delete orphaned nodes (full mode Tasks 11 + 11b combined into one fast task) |
+| Fast-9 | Steps 3 + 3b | Disconnect events + delete orphaned nodes (one task in both modes) |
 | Fast-10 | Step 4 | Remove migrated functions |
 | Fast-11 | Step 5 | Remove migrated variables |
 | Fast-12 | Step 6 | Remove migrated SCS components |
