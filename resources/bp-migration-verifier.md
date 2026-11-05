@@ -84,6 +84,30 @@ Call `analyze_blueprint_for_migration` on the migrated copy for post-migration s
 
 Call `blueprint_cmd(command="export_text_inventory", params={"asset_path": ..., "out_path": ...})` on the original and the migrated copy and diff the two inventories. Entries are sorted by (`location`, `owner`, `path`) so a line-by-line diff is meaningful; report every entry whose `value`, `source_kind` or `table_id`/`key` changed, was added or disappeared. The inline response is capped at 40000 characters; for anything larger pass `out_path` (under the project `Saved`, `Content` or `Config`) and read the file — without it the command returns `RESPONSE_TOO_LARGE` with the `counts` and no entries.
 
+### Task: Snapshot Comparison
+
+Take a snapshot before the change and another after it, then diff them. `blueprint_cmd(command="export_snapshot", params={"asset_path": ..., "out_path": ...})` writes a deterministic, sorted file (variables, CDO with the declaring class, components, widgets, bindings, animations, text, interfaces, graph entries) and answers only with `asset_path`, `out_path`, `format_version` and per-section `counts`. Pass `sections` to limit it; both snapshots of one comparison must use the same sections. `out_path` must resolve under the project `Saved`, `Content` or `Config`.
+
+`blueprint_cmd(command="compare_snapshots", params={"before": ..., "after": ..., "report_path": ...})` is read-only and classifies every record by section and key as `added`, `removed`, `changed` or `moved`. A CDO property whose declaring class changed (for example a Blueprint variable that became a native `UPROPERTY` after reparenting) with an equal value is `moved`, not a loss — that is the expected result of a BP→C++ migration; report `changed` and `removed` entries as mismatches and `moved` entries as informational. `moved` is decided on the value alone: when the type text differs across the move (a Blueprint `Float` is a `double`; a native `bool` may be a bitfield) the difference carries `type_change` (`before`/`after`), and float/double pairs compare at float precision. Snapshots with different `format_version`, files that are not snapshots, identical `before`/`after` paths, sections present on one side only, snapshots that record no section, and duplicate record keys are refused. The inline report is limited to 40000 characters; a larger one returns `RESPONSE_TOO_LARGE` with totals and no `differences`, so pass `report_path` (a file under `Saved`, `Content` or `Config`) for anything non-trivial and read the file.
+
+In a snapshot, `variables[].default` is the effective default read from the generated-class CDO (a full compile clears the editor-side default), `components` records an inherited component with this Blueprint's own overrides (the parent-Blueprint node read through this Blueprint's InheritableComponentHandler; a native parent's default subobject read from this Blueprint's CDO), and an own SCS node's `attached_to_inherited` says it is attached to a parent-class component.
+
+### Task: Bulk Compile Check
+
+After the migration, `blueprint_cmd(command="compile_all", params={"path_prefix": "/Game/...", "out_path": ...})` (or `paths` — exactly one of the two, optional `types` of `Actor|Component|Widget|Interface|FunctionLibrary|Unknown`) compiles every Blueprint through the single-asset compile and writes a per-asset report. The response carries only `out_path`, `totals` (`total`, `success`, `warning`, `error`, `skipped`, `not_found`, `excluded_by_type`) and `first_failures`; read the report file for diagnostics. Report any non-zero `error` or `not_found` as a mismatch. Read-only content and assets blocked after a failed recovery are skipped with a reason, and level script Blueprints are not enumerated. The call is synchronous and compiles on the game thread (garbage is collected once at the end); a 829-Blueprint folder took about 3 minutes, so scope it to the migrated folder; the MCP router waits up to 1800 s.
+
+### Task: Redirector Check
+
+`core_cmd(command="list_redirectors", params={"path": "/Game/...", "recursive": true})` is a read-only inventory (`redirector_path`, `destination`, `referencer_count`, `referencers`) of redirectors left in a folder. Use it after the rename swap to confirm nothing still references a stale redirector before calling `fixup_redirectors`; it fixes, deletes and saves nothing.
+
+### Task: Placed Instance Check
+
+`level_cmd(command="export_class_instances", params={"class": "BP_Name_or_NativeClass", "maps": ["/Game/Maps/Main"], "out_path": ...})` writes every placed instance of the class (subclasses included) from saved maps without opening them: per instance the editable properties that differ from the class default (`changed_only`, default `true`; `false` for all), with the archetype value. Read-only properties (`VisibleAnywhere`/`EditConst`, such as component references) are never reported, and instanced subobjects compare by content, so only real per-instance overrides appear. A component the actor owns (including Blueprint SCS components) is reported by its own properties as `Component.Property` (for example `CentrifugeMesh.StaticMesh`), never as a reference. Run it before and after the migration and diff the two reports to find per-instance overrides that were lost. World Partition maps are refused rather than reported as empty (their actors are not loaded with the map); other maps that keep actors in external packages are read normally. Only the persistent level is read: pass a streaming sublevel as its own map entry. Packages a map pulls in (Blueprint classes, meshes) stay loaded after the call; only the map packages are released. The call is synchronous and can take minutes on large projects (the MCP router waits up to 1800 s). The response returns `out_path` and `totals` (`maps`, `instances`, `properties`).
+
+### Task: Editor Turnaround
+
+After a C++ change, `editor_cmd(command="live_coding_compile")` triggers a Live Coding patch and answers when it completes (`result`: `success`, `no_changes`, `failure`, `cancelled`, `in_progress`). It never starts Live Coding: `NOT_AVAILABLE` means no Live Coding in this build or session. Live Coding patches function bodies only — new or changed `UCLASS`/`USTRUCT`/`UPROPERTY` declarations need a full editor build and restart. The patch build blocks the editor's game thread until it finishes (the answer is only available that way), so the MCP transport timeout must cover the compile time; the native server allows it up to 1800 s and the MCP router waits 1830 s. After a build or restart, `editor_cmd(command="wait_ready", params={"reopen_assets": [...], "timeout": 120})` answers once GEditor is valid, the Asset Registry has loaded and no asset (shader, texture, mesh) compilation is pending (`ready`, `waited_seconds`, `opened`, `failed`), or with `TIMEOUT`; `timeout` is greater than 0 and at most 3600 seconds and the transport waits that long plus a short grace. Blueprint compiles run synchronously on the game thread, so they never show as pending between ticks and are not a readiness condition. `reopen_assets` never opens a map (it would switch the editor world); a map path is reported under `failed`. It never restarts the editor.
+
 ### Visual Comparison (If Applicable)
 
 For Blueprints with visual components, capture viewport screenshots of both original and migrated copy using `capture_screenshot`. Skip for non-visual BPs.
@@ -146,4 +170,11 @@ Return concise summary to orchestrator. Do NOT write `04-verification.json`.
 - `capture_screenshot`
 - `get_class_defaults`
 - `export_text_inventory`
+- `export_snapshot`
+- `compare_snapshots`
+- `compile_all`
+- `list_redirectors`
+- `export_class_instances`
+- `live_coding_compile`
+- `wait_ready`
 

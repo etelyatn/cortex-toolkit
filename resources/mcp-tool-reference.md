@@ -204,6 +204,7 @@ Manage asset lifecycle. All commands accept a single path, a list of paths, or g
 - `open_asset` — open asset editor tab(s) (`asset_path`, `dry_run`)
 - `close_asset` — close asset editor tab(s) (`asset_path`, `save`, `dry_run`)
 - `reload_asset` — discard in-memory changes and reload from disk; closes open tabs before reloading (`asset_path`, `dry_run`)
+- `list_redirectors` — read-only inventory of the redirectors under a content folder (`path`, `recursive` default `true`): `redirector_path`, `destination`, `referencer_count`, `referencers`; fixes up, deletes and saves nothing
 
 ### Standalone
 
@@ -394,7 +395,9 @@ it. Reachable from both `data_cmd` and `core_cmd`.
 - **Class Settings:** `add_interface`, `remove_interface`, `set_tick_settings`, `set_replication_settings`
 - **Migration:** `analyze_for_migration`, `cleanup_migration`, `remove_scs_component`, `rename_scs_component`, `recompile_dependents`, `fixup_redirectors`, `compare_blueprints`
 - **Graph maintenance:** `delete_orphaned_nodes`, `remove_graph`, `search`
-- **Text inventory:** `export_text_inventory`
+- **Text inventory and migration verification:** `export_text_inventory`, `export_snapshot`, `compare_snapshots`, `compile_all`
+
+`export_snapshot(asset_path, out_path, sections?)` writes a deterministic migration snapshot to a file and returns only `asset_path`, `out_path`, `format_version` and `counts` (`variables[].default` is read from the CDO; `components` records this Blueprint's own overrides of inherited components; own SCS nodes carry `attached_to_inherited`); `compare_snapshots(before, after, report_path?)` diffs two snapshot files into `added`/`removed`/`changed`/`moved` per section (a CDO property whose declaring class changed with an equal value is `moved`, decided on the value alone with a `type_change` marker and float/double compared at float precision; an empty compared set and duplicate record keys are refused) and limits the inline report to 40000 characters (`RESPONSE_TOO_LARGE` — pass `report_path`). `compile_all(out_path, path_prefix | paths, types?)` compiles a folder or an explicit list through the single-asset compile (assets blocked after a failed recovery are skipped with a reason; one garbage collection at the end; synchronous, router window 1800 s), writes the per-asset report and returns `out_path`, `totals` and `first_failures`. All file paths must resolve under the project `Saved`, `Content` or `Config`.
 
 `remove_graph` deletes a whole function, macro, extra event graph, or custom event through `blueprint_cmd(command="remove_graph")`; it is not `graph.apply_patch` or `blueprint_compose`. It requires strict boolean `dry_run`, `compile`, and `save`; optional strict `cascade_exec_chain` defaults to `false`. Preview (`dry_run=true`, `save=false`) returns `fingerprint_before` and `validation_hash`; apply requires both as `expected_fingerprint` and `expected_validation_hash`. `compile=false` never saves, and `save=true` requires `compile=true` and a clean starting package; EventGraph and ConstructionScript are protected. Full semantics: [CortexBlueprint system reference](https://github.com/etelyatn/CortexSandbox/blob/main/docs/systems/cortex-blueprint.md#guarded-graph-removal).
 
@@ -784,6 +787,7 @@ not a new MCP tool, and does not change literal `set_property` or animation bind
 ## Level (`level_cmd`)
 
 - **Actors:** `spawn_actor`, `delete_actor`, `duplicate_actor`, `rename_actor`, `get_actor`, `set_transform`, `set_actor_property`, `get_actor_property`, `list_actors`, `find_actors`, `get_bounds`, `select_actors`, `get_selection`
+- **Instance export:** `export_class_instances(class, maps, out_path, changed_only?)` writes every placed instance of an actor class (subclasses included) from saved maps without opening them (changed properties vs the class default, or all editable ones with `changed_only=false`, plus the archetype value; read-only/`EditConst` properties such as component references are excluded and instanced subobjects compare by content) and returns `out_path` and `totals`; World Partition maps are refused, other maps with external actor packages are read; only the persistent level is read (pass a streaming sublevel explicitly); packages a map pulls in stay loaded; synchronous (router window 1800 s)
 - **Components:** `list_components`, `add_component`, `remove_component`, `get_component_property`, `set_component_property`
 - **Discovery:** `list_actor_classes`, `list_component_classes`, `describe_class`
 - **Organization:** `attach_actor`, `detach_actor`, `set_tags`, `set_folder`, `group_actors`, `ungroup_actors`
@@ -847,6 +851,7 @@ blendspaces, retargeting, runtime preview, Sequencer, and Control Rig are out of
 - **PIE lifecycle:** `start_pie`, `stop_pie`, `get_pie_state`, `pause_pie`, `resume_pie`, `restart_pie`
 - **Viewport:** `get_viewport_info`, `capture_screenshot`, `set_viewport_camera`, `focus_actor`, `set_viewport_mode`
 - **Utilities:** `get_editor_state`, `get_recent_logs`, `execute_console_command`, `set_time_dilation`, `get_world_info`
+- **Turnaround** (deferred; the router widens its receive window; the native server honours a per-command deferred timeout instead of its 30 s default): `live_coding_compile` (no params; patches only when Live Coding is already running, never starts it; blocks the editor until the patch is built, so transport timeouts must cover the compile — native bound 1800 s, router window 1830 s; new reflected types need a full build), `wait_ready` (`reopen_assets` array — a map path is refused and reported under `failed`; `timeout` seconds >0 and <=3600, default 120, the transport waits it plus a grace; conditions are Asset Registry loaded and no asset compilation pending — Blueprint compiles are synchronous and not observable; returns `ready`, `waited_seconds`, `opened`, `failed`, or `TIMEOUT`)
 - **Input injection** (requires active PIE): `inject_key`, `inject_mouse`, `inject_input_action`, `inject_input_continuous`, `inject_input_sequence`
 
 `inject_mouse` takes required `action: "click" | "move" | "scroll"`, optional numeric screen-space
