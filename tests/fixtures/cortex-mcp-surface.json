@@ -1,6 +1,6 @@
 {
   "provenance": {
-    "plugin_commit": "b2b3ea2cf6736acb970f528617bce3ab4ff35671",
+    "plugin_commit": "1e224991b372cc465f146e5b3d13cb45bd7ccff1",
     "plugin_ref": "origin/main",
     "plugin_dirty": false
   },
@@ -150,6 +150,7 @@
       "export_snapshot",
       "compare_snapshots",
       "compile_all",
+      "export_migration_analysis",
       "reparent",
       "add_interface",
       "remove_interface",
@@ -327,13 +328,17 @@
     ],
     "reflect": [
       "class_hierarchy",
+      "blueprint_catalog",
       "class_detail",
       "find_overrides",
       "find_usages",
       "search",
       "get_dependencies",
       "get_referencers",
-      "blueprint_catalog"
+      "find_broken_config_paths",
+      "export_dependency_graph",
+      "find_name_lookups",
+      "find_duplicate_graphs"
     ],
     "statetree": [
       "list_assets",
@@ -976,6 +981,13 @@
         "out_path",
         "path_prefix",
         "paths",
+        "types"
+      ],
+      "export_migration_analysis": [
+        "out_path",
+        "path_prefix",
+        "paths",
+        "sections",
         "types"
       ],
       "reparent": [
@@ -1755,6 +1767,9 @@
         "max_results",
         "root"
       ],
+      "blueprint_catalog": [
+        "root"
+      ],
       "class_detail": [
         "class_name",
         "detail",
@@ -1787,10 +1802,26 @@
       "get_referencers": [
         "asset_path",
         "category",
+        "include_config",
         "limit"
       ],
-      "blueprint_catalog": [
-        "root"
+      "find_broken_config_paths": [],
+      "export_dependency_graph": [
+        "edge_kinds",
+        "ordering_kinds",
+        "out_path",
+        "path_prefixes"
+      ],
+      "find_name_lookups": [
+        "out_path",
+        "path_prefixes",
+        "symbols"
+      ],
+      "find_duplicate_graphs": [
+        "min_nodes",
+        "out_path",
+        "path_prefixes",
+        "similarity"
       ]
     },
     "statetree": {
