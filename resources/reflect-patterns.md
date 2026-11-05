@@ -85,7 +85,8 @@ For a quick "is anything using this?" check (no graph scan, instant):
 
 ```python
 get_referencers(asset_path="/Game/Blueprints/BP_MyCharacter")
-# Returns: all assets that reference this one via the Asset Registry
+# Returns: all assets that reference this one via the Asset Registry, plus INI/config rows
+# ({type: "config", file, line, section, key}, listed first); pass include_config=False to drop them
 ```
 
 For forward dependencies ("what does this asset pull in?"):
@@ -96,6 +97,32 @@ get_dependencies(asset_path="/Game/Blueprints/BP_MyCharacter")
 ```
 
 Use `query_usages` directly only when you need graph-level detail for a specific symbol without the full risk scoring overhead.
+
+### Project-wide dependency map (migration waves, config, by-name access, duplicates)
+
+For many Blueprints at once use the file-backed `reflect_cmd` commands; each writes its full result to `out_path` (under the project `Saved`, `Content` or `Config`) and answers with a compact summary:
+
+```python
+# Typed dependency graph with a wave order (hard kinds inherits/implements/struct_use/enum_use/
+# widget_tree_child/listview_entry order the waves; soft kinds only when named in ordering_kinds)
+reflect_cmd(command="export_dependency_graph", params={
+    "path_prefixes": ["/Game/MyGame"], "out_path": "Saved/Migration/deps.json"})
+
+# Config (INI) references whose package or directory no longer exists; takes no parameters
+reflect_cmd(command="find_broken_config_paths", params={})
+
+# By-name access that references cannot see (string-literal FindFunction/SetTimerByFunctionName/...);
+# literal-only, so an empty result is not proof of absence
+reflect_cmd(command="find_name_lookups", params={
+    "path_prefixes": ["/Game/MyGame"], "out_path": "Saved/Migration/name_lookups.json"})
+
+# Duplicated graphs: exact groups are strict, similar groups are loose (native-ancestor descriptors)
+reflect_cmd(command="find_duplicate_graphs", params={
+    "path_prefixes": ["/Game/MyGame"], "min_nodes": 5, "similarity": 0.9,
+    "out_path": "Saved/Migration/duplicates.json"})
+```
+
+Read the file for detail; the response only carries counts and the first entries. See `resources/mcp-tool-reference.md` ("Dependency map commands") for every field.
 
 ### Find what Blueprint children override
 

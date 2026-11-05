@@ -47,6 +47,8 @@ If only an asset path is provided:
 - Call `get_referencers` for a quick package-level dependency list
 - For deeper analysis, map asset to class then call `impact_analysis`
   with `change_type="removed_class"`
+- `get_referencers` also lists INI/config references (rows with `type: "config"`, listed first); a config reference is a runtime dependency that no Blueprint graph scan shows
+- For project-wide questions use the file-backed commands instead of looping per asset: `reflect_cmd(command="export_dependency_graph", params={"path_prefixes": [...], "out_path": "..."})` for a typed graph with a wave order, `find_broken_config_paths` for stale config paths, `find_name_lookups` for by-name access to Blueprint members (literal-only), `find_duplicate_graphs` for duplicated graph logic (see `resources/reflect-patterns.md`)
 
 #### Step 3. Review Results
 
