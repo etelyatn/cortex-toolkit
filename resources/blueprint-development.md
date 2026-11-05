@@ -750,8 +750,8 @@ graph_cmd(command="list_graphs", params={"asset_path": level_bp_path})
 graph_cmd(command="add_node", params={"asset_path": level_bp_path, "node_class": "CustomEvent", ...})
 blueprint_cmd(command="compile", params={"asset_path": level_bp_path})
 
-# 3. Persist changes — use save_level, NOT blueprint_cmd save
-level_cmd(command="save_level", params={"map_path": "/Game/Maps/TestMap"})
+# 3. Persist changes — use save_level (saves the currently loaded level; it takes no params), NOT blueprint_cmd save
+level_cmd(command="save_level", params={})
 ```
 
 **Supported commands with `__level_bp__:` paths:**

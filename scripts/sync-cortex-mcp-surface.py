@@ -15,6 +15,10 @@ git revision (`git show` / `git archive`), never from the working tree, so the s
 reproducible and the header records a measured commit. Without --ref the working tree is read
 and the header records its HEAD and whether the surface paths are dirty.
 
+Native handler declarations are authoritative for every domain they declare: the plugin's capabilities
+fixture is registration input only and can lag, so a command or parameter only the fixture lists is
+excluded and reported as FIXTURE-ONLY instead of resurrecting a removed native name.
+
 --check fails only when the committed snapshot names a tool, domain, command or parameter the
 source no longer has. Plugin additions never invalidate a documented name; they are reported.
 """
@@ -44,15 +48,24 @@ CORE_FACADE_COMMANDS = [
     "batch_query",
 ]
 
-# Parameters the Python layer owns (pagination, projection) and parameters native handlers read
-# without declaring them. Documented examples may use them.
-PYTHON_OWNED_PARAMS = ["limit", "cursor", "detail", "dry_run"]
+# Parameters native handlers read without declaring them. Documented examples may use them. The
+# parameters the Python layer owns (pagination, projection) are derived per command in generate().
 HONOURED_UNDECLARED_PARAMS = {"graph.get_subgraph": ["compact", "node_id"], "level.spawn_actor": ["level"]}
 
 DOMAIN_REGISTRATION = re.compile(r'RegisterDomain\(\s*TEXT\("(\w+)"\)\s*,\s*TEXT\("([^"]*)"\)\s*,\s*TEXT\("([^"]*)"\)')
 # `FCortexCommandInfo{TEXT("x"), ...}` and the `Commands.Add({TEXT("x"), TEXT("desc")})` form.
 DECLARATION = re.compile(r'(?:FCortexCommandInfo\s*|Commands\.Add\(\s*)\{\s*TEXT\("(\w+)"\)\s*,')
-PARAM = re.compile(r'\.(?:Required|Optional)\(\s*TEXT\("(\w+)"\)')
+PARAM = re.compile(r'\.(?:Required|Optional)\(\s*TEXT\("(\w+)"\)|\.Param\(\s*TEXT\("(\w+)"\)')
+# Convenience builders on FCortexCommandInfo (ICortexDomainHandler.h) that declare a fixed parameter.
+PARAM_HELPERS = {"OptionalBatchItems": "items", "OptionalExpectedFingerprint": "expected_fingerprint"}
+HELPER_PARAM = re.compile(r"\.(" + "|".join(PARAM_HELPERS) + r")\(")
+
+
+def declared_params(text: str) -> set[str]:
+    """Parameter names declared in one command declaration's text (every builder form)."""
+    names = {first or second for first, second in PARAM.findall(text)}
+    names.update(PARAM_HELPERS[helper] for helper in HELPER_PARAM.findall(text))
+    return names
 
 
 class Tree:
@@ -122,7 +135,7 @@ def declared_domains(tree: Tree) -> dict[str, dict]:
             starts = list(DECLARATION.finditer(text))
             for index, match in enumerate(starts):
                 end = starts[index + 1].start() if index + 1 < len(starts) else len(text)
-                commands.setdefault(match.group(1), set()).update(PARAM.findall(text[match.end():end]))
+                commands.setdefault(match.group(1), set()).update(declared_params(text[match.end():end]))
         domain, title, version = registration.groups()
         domains[domain] = {"name": title, "version": version, "commands": commands}
     return domains
@@ -154,6 +167,40 @@ class _RecordingServer:
         return decorator
 
 
+def reconcile_surface(fixture_domains: dict, declared: dict[str, dict]) -> tuple[dict, dict, dict]:
+    """Merge the capabilities fixture with native declarations; native declarations are authoritative.
+
+    For a domain whose handlers declare commands, the supported commands and each command's
+    parameters come from the declarations alone. A name only the fixture has (a command or
+    parameter the handlers dropped while the fixture lags) is NOT carried over: it is returned
+    in `fixture_only` so drift detection can see the removal. A domain the handlers do not
+    declare keeps the fixture contract. Returns (domains, command_params, fixture_only).
+    """
+    domains: dict[str, list[str]] = {}
+    command_params: dict[str, dict[str, list[str]]] = {}
+    fixture_only: dict[str, list[str]] = {}
+    for domain, body in fixture_domains.items():
+        fixture = {c["name"]: {p["name"] for p in c.get("params", [])} for c in body["commands"]}
+        native = declared.get(domain, {}).get("commands")
+        if not native:
+            domains[domain] = list(fixture)
+            command_params[domain] = {name: sorted(params) for name, params in fixture.items()}
+            continue
+        # Fixture order first (a stable snapshot diff), then commands only the handlers declare.
+        ordered = [name for name in fixture if name in native] + sorted(set(native) - set(fixture))
+        domains[domain] = ordered
+        command_params[domain] = {name: sorted(native[name]) for name in ordered}
+        stale = [name for name in fixture if name not in native]
+        stale += [f"{name} param {p}" for name, params in fixture.items() if name in native for p in sorted(params - native[name])]
+        if stale:
+            fixture_only[domain] = stale
+    for domain, body in declared.items():
+        if domain not in fixture_domains:
+            domains[domain] = sorted(body["commands"])
+            command_params[domain] = {name: sorted(params) for name, params in body["commands"].items()}
+    return domains, command_params, fixture_only
+
+
 def generate(plugin: Path, ref: str | None) -> dict:
     tree = Tree(plugin, ref)
     with tempfile.TemporaryDirectory() as scratch:
@@ -164,25 +211,34 @@ def generate(plugin: Path, ref: str | None) -> dict:
         sys.path.insert(0, str(mcp_root / "src"))
         sys.path.insert(0, str(mcp_root))
         from cortex_mcp import server  # registers against a real FastMCP; no editor required
+        from cortex_mcp.tools import routers
 
         if ref and Path(server.__file__).resolve().is_relative_to(plugin.resolve()):
             raise SystemExit("refusing to read the plugin working tree while --ref is set")
 
         declared = declared_domains(tree)
-        # Register against the fixture plus every natively declared domain, so optional domains
-        # (anim, gen) get their router tools exactly as a live editor would publish them.
+        domains, command_params, fixture_only = reconcile_surface(capabilities["domains"], declared)
+        # Register against the declared commands plus every natively declared domain, so optional
+        # domains (anim, gen) get their router tools exactly as a live editor would publish them,
+        # and a command the handlers dropped is not registered from the stale fixture.
         for domain, body in declared.items():
-            capabilities["domains"].setdefault(
-                domain,
-                {
-                    "name": body["name"],
-                    "version": body["version"],
-                    "commands": [{"name": name, "description": "", "params": []} for name in sorted(body["commands"])],
-                },
+            entry = capabilities["domains"].setdefault(
+                domain, {"name": body["name"], "version": body["version"], "commands": []}
             )
+            kept = {c["name"]: c for c in entry["commands"]}
+            entry["commands"] = [
+                kept.get(name, {"name": name, "description": "", "params": []}) for name in sorted(body["commands"])
+            ]
         server.load_capabilities_cache = lambda: capabilities
         recorder = _RecordingServer()
         server._register_explicit_tools(recorder, server._connection)
+        # Parameters the Python router owns, per command: limit/cursor exist only on the cache-owned
+        # paginated reads; the capabilities projection owns `detail`. Any other command forwards the
+        # field to a strict native contract, which refuses it.
+        python_owned: dict[str, list[str]] = {}
+        for qualified in sorted(routers.CACHED_PAGE_ARRAYS):
+            python_owned[qualified] = ["cursor", "limit"]
+        python_owned["core.get_capabilities"] = ["detail"]
 
     exposed = sorted(set(recorder.names))
     legacy: set[str] = set()
@@ -190,20 +246,6 @@ def generate(plugin: Path, ref: str | None) -> dict:
         legacy.update(tools if isinstance(tools, list) else tools.keys())
     legacy -= set(exposed)
 
-    domains: dict[str, list[str]] = {}
-    command_params: dict[str, dict[str, list[str]]] = {}
-    for domain, body in capabilities["domains"].items():
-        domains[domain] = [command["name"] for command in body["commands"]]
-        command_params[domain] = {
-            command["name"]: sorted(p["name"] for p in command.get("params", [])) for command in body["commands"]
-        }
-    # A command a handler declares is live even when the fixture lags: add it after the fixture names.
-    for domain, body in declared.items():
-        known = domains.setdefault(domain, [])
-        known.extend(sorted(set(body["commands"]) - set(known)))
-        for command, params in body["commands"].items():
-            merged = set(command_params.setdefault(domain, {}).get(command, [])) | params
-            command_params[domain][command] = sorted(merged)
     for qualified, params in HONOURED_UNDECLARED_PARAMS.items():
         domain, command = qualified.split(".", 1)
         command_params[domain][command] = sorted(set(command_params[domain][command]) | set(params))
@@ -216,8 +258,9 @@ def generate(plugin: Path, ref: str | None) -> dict:
         "exposed_tools": exposed,
         "domains": domains,
         "command_params": command_params,
-        "python_owned_params": list(PYTHON_OWNED_PARAMS),
+        "python_owned_params": python_owned,
         "facade_commands": {"core": list(CORE_FACADE_COMMANDS)},
+        "fixture_only": fixture_only,
         "legacy_tools": sorted(legacy),
     }
 
@@ -267,6 +310,8 @@ def main() -> int:
     args = parser.parse_args()
 
     snapshot = generate(args.plugin.resolve(), args.ref)
+    for domain, names in snapshot["fixture_only"].items():
+        print(f"FIXTURE-ONLY (stale plugin capabilities fixture, not in handler declarations; excluded): {domain}: {', '.join(names)}", file=sys.stderr)
     if args.check:
         current = json.loads(SNAPSHOT.read_text(encoding="utf-8")) if SNAPSHOT.is_file() else {}
         removed = removed_names(current, snapshot)

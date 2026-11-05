@@ -81,15 +81,19 @@ Write `rollback.json` (the ONE file that remains separate — machine-readable f
   "backup_verified": true,
   "backup_path": "/Game/.../BP_Name_Backup",
   "restore": {
-    "while_unpersisted": "core_cmd reload_asset on blueprint",
-    "after_persisted": "restore the .uasset (git restore --source git_commit_before, or copy original_copy back after close_asset; if the copy fails with a sharing violation or read-only attribute, stop, ask the user to close the editor, copy the file, relaunch, and re-fingerprint), restore touched_dependents the same way, then core_cmd reload_asset; package_saved_hash must equal blueprint_hash again"
+    "while_unpersisted": "core_cmd reload_asset on blueprint (drops the staged edits), then read back parent and members",
+    "after_persisted": "per package (the blueprint and every touched_dependents entry): restore the baseline bytes by its restore_source (git: git restore --source git_commit_before, only when its file was clean in git; copy: close_asset, then copy original_copy / the dependent's copy back; if the copy fails with a sharing violation or read-only attribute, stop, ask the user to close the editor, copy the file and relaunch), then core_cmd reload_asset on every resident restored package (required after git/p4 restores too) and require reloaded: true; package_saved_hash must equal blueprint_hash / the dependent's baseline_hash and the live parent/members must read back as the original",
+    "never": "git restore a package whose restore_source is copy: HEAD is not its baseline"
   },
   "cpp_files": ["Source/.../ClassName.h", "Source/.../ClassName.cpp"],
   "blueprint_hash": "{package_saved_hash of the pristine original}",
   "vcs": "git",
   "git_commit_before": "{hash}",
   "original_copy": "Saved/Migration/BP_Name/BP_Name.uasset.orig",
-  "touched_dependents": []
+  "restore_source": "git | copy",
+  "touched_dependents": [
+    {"package": "/Game/.../BP_Child", "file": "Content/.../BP_Child.uasset", "copy": "Saved/Migration/BP_Name/dependents/BP_Child.uasset", "baseline_hash": "{package_saved_hash before the rename}", "restore_source": "git | copy"}
+  ]
 }
 ```
 
