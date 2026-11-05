@@ -76,3 +76,13 @@
      Clear before retiring source members, then compile/save explicitly and inspect a
      freshly loaded asset. Do not change literal defaults, hierarchy, styles or animations
      as a binding-removal workaround. See resources/umg-patterns.md for payloads. -->
+
+## Widget Migration Conventions
+
+<!-- WHY: Reparenting Widget Blueprints onto native bases requires exact BindWidget names, reference-aware renames, and preserved FText and per-instance values.
+     Inspect with umg.check_native_bindings (report-only; `has_errors` covers missing, type_mismatch, not_transient),
+     umg.get_embedded_widget_values (is_override vs class default) and blueprint.export_text_inventory
+     (40000-char inline limit; use out_path for larger). umg.rename_widget scope=dependents is dry-run-first and
+     applies only with the owner expected_fingerprint plus expected_dependent_fingerprints (exactly the plan's modified
+     dependents). No compile/save is implied: compile and save explicitly, then re-inspect. umg.get_commonui_info
+     returns commonui_available=false when the CommonUI plugin is not loaded. See resources/umg-patterns.md. -->
