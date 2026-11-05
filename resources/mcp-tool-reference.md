@@ -937,7 +937,7 @@ discard the override. Ejected/SIE editor views remain controllable.
 
 - `qa_test_step` — execute a single declarative QA test step (used by scenario runner)
 
-`qa_test_step` and `run_scenario` (scenario_compose) emit a per-step/summary `log_coverage` object
+`qa_test_step` and `scenario_compose` runs emit a per-step/summary `log_coverage` object
 (`{complete, lost_before_cursor, window_end_cursor, count, cause}`). It is built on a single one-shot
 finite `editor.get_recent_logs` window (a `count_only` baseline watermark, then `since_cursor` with a
 pinned `until_cursor`, `limit=200`, page cap 50) with no retry or poll. `complete=false` is forced by

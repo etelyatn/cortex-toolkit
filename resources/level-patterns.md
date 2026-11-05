@@ -69,7 +69,7 @@ level_compose(
 
 ### Find Actors by Type
 ```
-level_cmd("list_actors", params={"class_filter": "PointLight"}) → review results
+level_cmd("list_actors", params={"class": "PointLight"}) → review results
 ```
 
 ### Spatial Query
@@ -123,14 +123,14 @@ level_cmd("find_actors", params={"pattern": "*Destructible*"}) → level_compose
 
 ### Inspect Components
 ```
-level_cmd("list_components", params={"actor": "..."}) → level_cmd("get_component_property", params={"actor": "...", "component": "...", "property_path": "..."})
+level_cmd("list_components", params={"actor": "..."}) → level_cmd("get_component_property", params={"actor": "...", "component": "...", "property": "..."})
 ```
 `list_components` defaults to metadata only. Pass `include_properties=true` to read an inline snapshot of each
 component's first 20 editable values (see the response reference below for the cap metadata).
 
 ### Add and Configure Component
 ```
-level_cmd("add_component", params={"actor": "...", "class_name": "PointLightComponent"}) → level_cmd("set_component_property", params={"actor": "...", "component": "...", "property_path": "Intensity", "value": 5000}) → level_cmd("save_level")
+level_cmd("add_component", params={"actor": "...", "class": "PointLightComponent"}) → level_cmd("set_component_property", params={"actor": "...", "component": "...", "property": "Intensity", "value": 5000}) → level_cmd("save_level")
 ```
 
 ### Remove Instance Component

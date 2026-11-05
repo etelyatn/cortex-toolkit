@@ -560,25 +560,25 @@ material_instance_compose(asset_path, name, parent_material,
 
 ### Modify Instance Parameters
 ```
-material_cmd(command="list_parameters", params={instance_path}) → see current values
-→ material_cmd(command="set_parameter", params={name, value}) or
+material_cmd(command="list_parameters", params={asset_path}) → see current values
+→ material_cmd(command="set_parameter", params={asset_path, parameter_name, value}) or
   material_cmd(command="set_parameters", params={parameters: [...]}) for batch
 → material_cmd(command="get_instance", params={asset_path}) to verify overrides
 ```
 
 ### Reset Instance to Parent Defaults
 ```
-material_cmd(command="list_parameters", params={instance_path}) → identify overridden params
-→ material_cmd(command="reset_parameter", params={name}) for each override to clear
+material_cmd(command="list_parameters", params={asset_path}) → identify overridden params
+→ material_cmd(command="reset_parameter", params={asset_path, parameter_name}) for each override to clear
 → material_cmd(command="get_instance", params={asset_path}) to verify clean state
 ```
 
 ### Set Up Parameter Collection
 ```
 material_cmd(command="create_collection", params={asset_path, name})
-→ material_cmd(command="add_collection_parameter", params={name: "TimeOfDay", type: "scalar", default: 12.0})
-→ material_cmd(command="add_collection_parameter", params={name: "SunColor", type: "vector", default: [1,0.95,0.8,1]})
-→ material_cmd(command="set_collection_parameter", params={name, value}) to adjust at runtime
+→ material_cmd(command="add_collection_parameter", params={asset_path, parameter_name: "TimeOfDay", parameter_type: "scalar", default_value: 12.0})
+→ material_cmd(command="add_collection_parameter", params={asset_path, parameter_name: "SunColor", parameter_type: "vector", default_value: [1,0.95,0.8,1]})
+→ material_cmd(command="set_collection_parameter", params={asset_path, parameter_name, value}) to adjust at runtime
 ```
 
 ### Audit Material Graph

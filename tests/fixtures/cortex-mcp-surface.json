@@ -1,7 +1,7 @@
 {
   "provenance": {
     "plugin_commit": "b2b3ea2cf6736acb970f528617bce3ab4ff35671",
-    "plugin_branch": "main",
+    "plugin_ref": "origin/main",
     "plugin_dirty": false
   },
   "exposed_tools": [
@@ -392,6 +392,1769 @@
       "start_texturing"
     ]
   },
+  "command_params": {
+    "core": {
+      "get_operation_schema": [
+        "command",
+        "domain"
+      ],
+      "save_asset": [
+        "asset_path",
+        "dry_run",
+        "expected_fingerprint",
+        "force",
+        "items"
+      ],
+      "open_asset": [
+        "asset_path",
+        "dry_run"
+      ],
+      "close_asset": [
+        "asset_path",
+        "dry_run",
+        "save"
+      ],
+      "reload_asset": [
+        "asset_path",
+        "dry_run"
+      ],
+      "list_redirectors": [
+        "path",
+        "recursive"
+      ],
+      "asset_fingerprint": [
+        "paths"
+      ],
+      "delete_asset": [
+        "asset_path"
+      ],
+      "delete_folder": [
+        "folder_path",
+        "recursive"
+      ],
+      "shutdown": [
+        "force"
+      ],
+      "batch_query": [
+        "commands",
+        "rollback_on_error",
+        "steps",
+        "stop_on_error",
+        "verify_rollback"
+      ]
+    },
+    "data": {
+      "create_datatable": [
+        "row_struct",
+        "table_path"
+      ],
+      "list_datatables": [
+        "path_filter"
+      ],
+      "get_datatable_schema": [
+        "include_inherited",
+        "table_path"
+      ],
+      "query_datatable": [
+        "fields",
+        "limit",
+        "offset",
+        "row_name_pattern",
+        "row_names",
+        "table_path"
+      ],
+      "get_datatable_row": [
+        "row_name",
+        "table_path"
+      ],
+      "get_struct_schema": [
+        "include_subtypes",
+        "struct_name"
+      ],
+      "add_datatable_row": [
+        "row_data",
+        "row_name",
+        "table_path"
+      ],
+      "update_datatable_row": [
+        "dry_run",
+        "row_data",
+        "row_name",
+        "table_path"
+      ],
+      "delete_datatable_row": [
+        "row_name",
+        "table_path"
+      ],
+      "import_datatable_json": [
+        "dry_run",
+        "mode",
+        "rows",
+        "table_path"
+      ],
+      "search_datatable_content": [
+        "fields",
+        "key_pattern",
+        "keys",
+        "limit",
+        "preview_fields",
+        "search_mode",
+        "search_text",
+        "string_table_path",
+        "table_path"
+      ],
+      "get_data_catalog": [
+        "include_asset_paths",
+        "sections"
+      ],
+      "resolve_tags": [
+        "fields",
+        "table_path",
+        "tag_field",
+        "tags"
+      ],
+      "list_gameplay_tags": [
+        "include_source_file",
+        "prefix"
+      ],
+      "validate_gameplay_tag": [
+        "tag"
+      ],
+      "register_gameplay_tag": [
+        "dev_comment",
+        "source",
+        "tag"
+      ],
+      "register_gameplay_tags": [
+        "tags"
+      ],
+      "list_data_assets": [
+        "class_name",
+        "path_filter"
+      ],
+      "get_data_asset": [
+        "asset_path",
+        "fields"
+      ],
+      "update_data_asset": [
+        "asset_path",
+        "dry_run",
+        "properties"
+      ],
+      "create_data_asset": [
+        "asset_path",
+        "class_name",
+        "properties"
+      ],
+      "delete_data_asset": [
+        "asset_path"
+      ],
+      "list_string_tables": [
+        "path_filter"
+      ],
+      "get_translations": [
+        "key_pattern",
+        "string_table_path"
+      ],
+      "set_translation": [
+        "key",
+        "string_table_path",
+        "text"
+      ],
+      "update_string_table": [
+        "allow_partial",
+        "dry_run",
+        "operations",
+        "save",
+        "string_table_path",
+        "verbose"
+      ],
+      "search_assets": [
+        "class_names",
+        "count_only",
+        "fields",
+        "limit",
+        "offset",
+        "path_prefixes",
+        "query"
+      ],
+      "list_curve_tables": [
+        "path_filter"
+      ],
+      "get_curve_table": [
+        "row_name",
+        "table_path"
+      ],
+      "update_curve_table_row": [
+        "keyframes",
+        "row_name",
+        "table_path"
+      ],
+      "export_datatable_json": [
+        "allow_partial",
+        "fields",
+        "include_schema",
+        "out_path",
+        "row_name_pattern",
+        "row_names",
+        "table_path"
+      ],
+      "export_string_table_json": [
+        "allow_partial",
+        "key_pattern",
+        "out_path",
+        "string_table_path"
+      ],
+      "export_data_assets_json": [
+        "allow_partial",
+        "asset_paths",
+        "class_filter",
+        "class_name",
+        "include_properties",
+        "out_path",
+        "path_filter"
+      ],
+      "export_bulk_json": [
+        "allow_partial",
+        "items",
+        "out_dir"
+      ],
+      "export_schema_json": [
+        "data_asset_classes",
+        "datatable_paths",
+        "include_inherited",
+        "out_path",
+        "string_table_paths",
+        "struct_names"
+      ],
+      "compare_data_json": [
+        "ignore_fields",
+        "include_equal",
+        "key_field",
+        "left_path",
+        "mode",
+        "report_path",
+        "right_path"
+      ],
+      "apply_import_ops_json": [
+        "allow_partial",
+        "apply",
+        "dry_run",
+        "ops_path",
+        "query_back",
+        "report_path",
+        "stop_on_error"
+      ]
+    },
+    "graph": {
+      "get_authoring_context": [
+        "asset_path",
+        "target"
+      ],
+      "list_graphs": [
+        "asset_path",
+        "include_subgraphs"
+      ],
+      "search_nodes": [
+        "asset_path",
+        "compact",
+        "display_name",
+        "function_name",
+        "graph_name",
+        "node_class",
+        "subgraph_path"
+      ],
+      "trace_exec": [
+        "asset_path",
+        "graph_name",
+        "include_edges",
+        "max_depth",
+        "start_node_id",
+        "subgraph_path",
+        "traverse_policy"
+      ],
+      "trace_dataflow": [
+        "asset_path",
+        "graph_name",
+        "include_edges",
+        "max_depth",
+        "start_node_id",
+        "subgraph_path",
+        "traverse_policy"
+      ],
+      "get_subgraph": [
+        "asset_path",
+        "compact",
+        "graph_name",
+        "include_edges",
+        "node_id",
+        "node_ids",
+        "subgraph_path"
+      ],
+      "list_event_handlers": [
+        "asset_path"
+      ],
+      "find_event_handler": [
+        "asset_path",
+        "event_name"
+      ],
+      "find_function_calls": [
+        "asset_path",
+        "function_name"
+      ],
+      "add_node": [
+        "asset_path",
+        "graph_name",
+        "node_class",
+        "params",
+        "position",
+        "subgraph_path"
+      ],
+      "describe_node": [
+        "node_class",
+        "params"
+      ],
+      "remove_node": [
+        "asset_path",
+        "graph_name",
+        "node_id",
+        "subgraph_path"
+      ],
+      "connect": [
+        "asset_path",
+        "graph_name",
+        "source_node",
+        "source_pin",
+        "subgraph_path",
+        "target_node",
+        "target_pin"
+      ],
+      "disconnect": [
+        "asset_path",
+        "graph_name",
+        "node_id",
+        "pin_name",
+        "subgraph_path"
+      ],
+      "set_pin_value": [
+        "asset_path",
+        "expected_fingerprint",
+        "graph_kind",
+        "graph_name",
+        "node_id",
+        "owning_interface",
+        "pin_name",
+        "subgraph_path",
+        "text",
+        "value"
+      ],
+      "auto_layout": [
+        "asset_path",
+        "graph_name",
+        "horizontal_spacing",
+        "mode",
+        "subgraph_path",
+        "vertical_spacing"
+      ],
+      "apply_patch": [
+        "allow_noop",
+        "asset_path",
+        "compile",
+        "connections",
+        "dry_run",
+        "expected_fingerprint",
+        "expected_validation_hash",
+        "migration",
+        "nodes",
+        "patch_id",
+        "pin_updates",
+        "save",
+        "target"
+      ]
+    },
+    "blueprint": {
+      "create": [
+        "name",
+        "parent_class",
+        "path",
+        "type"
+      ],
+      "list": [
+        "exclude_types",
+        "path",
+        "type"
+      ],
+      "get_info": [
+        "asset_path",
+        "compact",
+        "include_inherited"
+      ],
+      "delete": [
+        "asset_path",
+        "force"
+      ],
+      "duplicate": [
+        "asset_path",
+        "new_name",
+        "new_path"
+      ],
+      "compile": [
+        "asset_path",
+        "expected_fingerprint",
+        "items"
+      ],
+      "save": [
+        "asset_path",
+        "expected_fingerprint",
+        "items"
+      ],
+      "rename": [
+        "dest_path",
+        "source_path"
+      ],
+      "add_variable": [
+        "asset_path",
+        "category",
+        "default_value",
+        "is_exposed",
+        "name",
+        "type"
+      ],
+      "remove_variable": [
+        "asset_path",
+        "name"
+      ],
+      "add_function": [
+        "access",
+        "asset_path",
+        "inputs",
+        "is_pure",
+        "name",
+        "outputs"
+      ],
+      "remove_graph": [
+        "asset_path",
+        "cascade_exec_chain",
+        "compile",
+        "dry_run",
+        "expected_fingerprint",
+        "expected_validation_hash",
+        "name",
+        "save"
+      ],
+      "get_class_defaults": [
+        "asset_path",
+        "blueprint_path",
+        "changed_only",
+        "discovery_limit",
+        "discovery_offset",
+        "include_members",
+        "include_values",
+        "properties"
+      ],
+      "list_inherited_properties": [
+        "asset_path",
+        "discovery_limit",
+        "discovery_offset",
+        "include_members",
+        "include_values",
+        "properties"
+      ],
+      "list_settable_defaults": [
+        "asset_path",
+        "discovery_limit",
+        "discovery_offset",
+        "include_members",
+        "include_values",
+        "properties"
+      ],
+      "set_class_defaults": [
+        "asset_path",
+        "blueprint_path",
+        "compile",
+        "echo",
+        "expected_fingerprint",
+        "items",
+        "properties",
+        "save"
+      ],
+      "configure_timeline": [
+        "asset_path",
+        "length",
+        "loop",
+        "timeline_name",
+        "tracks"
+      ],
+      "set_component_defaults": [
+        "asset_path",
+        "compile",
+        "component_name",
+        "expected_fingerprint",
+        "items",
+        "properties",
+        "save"
+      ],
+      "list_scs_components": [
+        "asset_path"
+      ],
+      "add_scs_component": [
+        "asset_path",
+        "compile",
+        "component_class",
+        "component_name",
+        "parent_component"
+      ],
+      "analyze_for_migration": [
+        "asset_path",
+        "sections"
+      ],
+      "graph_metrics": [
+        "asset_path",
+        "thresholds"
+      ],
+      "cleanup_migration": [
+        "asset_path",
+        "compile",
+        "migrated_overrides",
+        "new_parent_class",
+        "remove_functions",
+        "remove_variables",
+        "save"
+      ],
+      "remove_scs_component": [
+        "acknowledged_losses",
+        "asset_path",
+        "compile",
+        "component_name",
+        "force"
+      ],
+      "rename_scs_component": [
+        "asset_path",
+        "compile",
+        "new_name",
+        "old_name"
+      ],
+      "recompile_dependents": [
+        "asset_path"
+      ],
+      "fixup_redirectors": [
+        "path",
+        "recursive"
+      ],
+      "compare_blueprints": [
+        "sections",
+        "source_path",
+        "target_path"
+      ],
+      "delete_orphaned_nodes": [
+        "asset_path",
+        "compile",
+        "graph_name"
+      ],
+      "search": [
+        "asset_path",
+        "case_sensitive",
+        "max_results",
+        "query",
+        "search_in"
+      ],
+      "export_text_inventory": [
+        "asset_path",
+        "out_path"
+      ],
+      "export_snapshot": [
+        "asset_path",
+        "out_path",
+        "sections"
+      ],
+      "compare_snapshots": [
+        "after",
+        "before",
+        "report_path"
+      ],
+      "compile_all": [
+        "out_path",
+        "path_prefix",
+        "paths",
+        "types"
+      ],
+      "reparent": [
+        "asset_path",
+        "new_parent"
+      ],
+      "add_interface": [
+        "asset_path",
+        "compile",
+        "interface_path"
+      ],
+      "remove_interface": [
+        "asset_path",
+        "compile",
+        "interface_path"
+      ],
+      "set_tick_settings": [
+        "asset_path",
+        "can_ever_tick",
+        "compile",
+        "save",
+        "start_with_tick_enabled",
+        "tick_interval"
+      ],
+      "set_replication_settings": [
+        "asset_path",
+        "compile",
+        "net_dormancy",
+        "net_use_owner_relevancy",
+        "replicate_movement",
+        "replicates",
+        "save"
+      ]
+    },
+    "umg": {
+      "add_widget": [
+        "asset_path",
+        "name",
+        "parent_name",
+        "slot_index",
+        "widget_class"
+      ],
+      "remove_widget": [
+        "asset_path",
+        "widget_name"
+      ],
+      "reparent": [
+        "asset_path",
+        "new_parent",
+        "slot_index",
+        "widget_name"
+      ],
+      "get_tree": [
+        "asset_path",
+        "depth",
+        "include_property_bindings",
+        "max_nodes",
+        "names_only"
+      ],
+      "get_widget": [
+        "asset_path",
+        "include_property_bindings",
+        "widget_name"
+      ],
+      "set_widget_variable": [
+        "asset_path",
+        "expected_fingerprint",
+        "is_variable",
+        "widget_name"
+      ],
+      "list_widget_classes": [
+        "category"
+      ],
+      "duplicate_widget": [
+        "asset_path",
+        "name_prefix",
+        "new_name",
+        "widget_name"
+      ],
+      "set_color": [
+        "asset_path",
+        "color",
+        "target",
+        "widget_name"
+      ],
+      "set_text": [
+        "asset_path",
+        "text",
+        "widget_name"
+      ],
+      "set_font": [
+        "asset_path",
+        "family",
+        "letter_spacing",
+        "outline_color",
+        "outline_size",
+        "size",
+        "typeface",
+        "widget_name"
+      ],
+      "set_brush": [
+        "asset_path",
+        "color",
+        "corner_radius",
+        "draw_as",
+        "target",
+        "widget_name"
+      ],
+      "set_padding": [
+        "asset_path",
+        "padding",
+        "target",
+        "widget_name"
+      ],
+      "set_anchor": [
+        "alignment",
+        "asset_path",
+        "max",
+        "min",
+        "offset",
+        "preset",
+        "widget_name"
+      ],
+      "set_alignment": [
+        "asset_path",
+        "horizontal",
+        "vertical",
+        "widget_name"
+      ],
+      "set_size": [
+        "asset_path",
+        "fill_ratio",
+        "height",
+        "size_rule",
+        "widget_name",
+        "width"
+      ],
+      "set_visibility": [
+        "asset_path",
+        "visibility",
+        "widget_name"
+      ],
+      "set_property": [
+        "asset_path",
+        "property_path",
+        "value",
+        "widget_name"
+      ],
+      "get_property": [
+        "asset_path",
+        "property_path",
+        "widget_name"
+      ],
+      "get_schema": [
+        "asset_path",
+        "category",
+        "widget_name"
+      ],
+      "create_animation": [
+        "animation_name",
+        "asset_path",
+        "length"
+      ],
+      "list_animations": [
+        "asset_path"
+      ],
+      "remove_animation": [
+        "animation_name",
+        "asset_path"
+      ],
+      "list_animation_bindings": [
+        "animation_name",
+        "asset_path",
+        "expected_fingerprint",
+        "include_track_content",
+        "limit",
+        "offset"
+      ],
+      "remove_animation_binding": [
+        "animation_name",
+        "asset_path",
+        "dry_run",
+        "expected_fingerprint",
+        "save",
+        "selector"
+      ],
+      "set_property_binding": [
+        "asset_path",
+        "binding",
+        "expected_fingerprint",
+        "property_name",
+        "widget_name"
+      ],
+      "rename_widget": [
+        "asset_path",
+        "dry_run",
+        "expected_dependent_fingerprints",
+        "expected_fingerprint",
+        "new_name",
+        "scope",
+        "widget_name"
+      ],
+      "ensure_animation_binding": [
+        "animation_name",
+        "asset_path",
+        "dry_run",
+        "expected_fingerprint",
+        "widget_name"
+      ],
+      "set_animation_property_track": [
+        "animation_name",
+        "asset_path",
+        "dry_run",
+        "expected_fingerprint",
+        "property_path",
+        "selector",
+        "track"
+      ],
+      "check_native_bindings": [
+        "asset_path",
+        "native_class"
+      ],
+      "get_embedded_widget_values": [
+        "asset_path",
+        "widget_name"
+      ],
+      "get_commonui_info": [
+        "asset_path"
+      ]
+    },
+    "material": {
+      "list_materials": [
+        "path",
+        "recursive"
+      ],
+      "get_material": [
+        "asset_path",
+        "include_input_state",
+        "properties"
+      ],
+      "create_material": [
+        "asset_path",
+        "name"
+      ],
+      "delete_material": [
+        "asset_path"
+      ],
+      "set_material_property": [
+        "asset_path",
+        "property_name",
+        "value"
+      ],
+      "list_instances": [
+        "parent_material",
+        "path"
+      ],
+      "get_instance": [
+        "asset_path"
+      ],
+      "create_instance": [
+        "asset_path",
+        "name",
+        "parent_material"
+      ],
+      "delete_instance": [
+        "asset_path"
+      ],
+      "list_parameters": [
+        "asset_path"
+      ],
+      "get_parameter": [
+        "asset_path",
+        "parameter_name"
+      ],
+      "set_parameter": [
+        "asset_path",
+        "parameter_name",
+        "parameter_type",
+        "value"
+      ],
+      "set_parameters": [
+        "asset_path",
+        "parameters"
+      ],
+      "reset_parameter": [
+        "asset_path",
+        "parameter_name"
+      ],
+      "list_nodes": [
+        "asset_path"
+      ],
+      "get_node": [
+        "asset_path",
+        "node_id",
+        "properties"
+      ],
+      "add_node": [
+        "asset_path",
+        "expression_class",
+        "position"
+      ],
+      "remove_node": [
+        "asset_path",
+        "node_id"
+      ],
+      "list_connections": [
+        "asset_path",
+        "include_input_state"
+      ],
+      "connect": [
+        "asset_path",
+        "source_node",
+        "source_output",
+        "target_input",
+        "target_node"
+      ],
+      "disconnect": [
+        "asset_path",
+        "target_input",
+        "target_node"
+      ],
+      "set_material_input": [
+        "asset_path",
+        "constant",
+        "input",
+        "mask",
+        "mask_a",
+        "mask_b",
+        "mask_g",
+        "mask_r",
+        "output_index",
+        "use_constant"
+      ],
+      "auto_layout": [
+        "asset_path"
+      ],
+      "set_node_property": [
+        "asset_path",
+        "node_id",
+        "property_name",
+        "value"
+      ],
+      "get_node_pins": [
+        "asset_path",
+        "node_id"
+      ],
+      "list_collections": [
+        "path",
+        "recursive"
+      ],
+      "get_collection": [
+        "asset_path"
+      ],
+      "create_collection": [
+        "asset_path",
+        "name"
+      ],
+      "delete_collection": [
+        "asset_path"
+      ],
+      "add_collection_parameter": [
+        "asset_path",
+        "default_value",
+        "parameter_name",
+        "parameter_type"
+      ],
+      "remove_collection_parameter": [
+        "asset_path",
+        "parameter_name"
+      ],
+      "set_collection_parameter": [
+        "asset_path",
+        "parameter_name",
+        "value"
+      ],
+      "list_dynamic_instances": [
+        "actor_path"
+      ],
+      "get_dynamic_instance": [
+        "actor_path",
+        "component_name",
+        "slot_index"
+      ],
+      "create_dynamic_instance": [
+        "actor_path",
+        "component_name",
+        "parameters",
+        "slot_index",
+        "source_material"
+      ],
+      "destroy_dynamic_instance": [
+        "actor_path",
+        "component_name",
+        "slot_index"
+      ],
+      "set_dynamic_parameter": [
+        "actor_path",
+        "component_name",
+        "name",
+        "slot_index",
+        "type",
+        "value"
+      ],
+      "get_dynamic_parameter": [
+        "actor_path",
+        "component_name",
+        "name",
+        "slot_index"
+      ],
+      "list_dynamic_parameters": [
+        "actor_path",
+        "component_name",
+        "slot_index"
+      ],
+      "set_dynamic_parameters": [
+        "actor_path",
+        "component_name",
+        "parameters",
+        "slot_index"
+      ],
+      "reset_dynamic_parameter": [
+        "actor_path",
+        "component_name",
+        "name",
+        "slot_index"
+      ]
+    },
+    "editor": {
+      "start_pie": [
+        "map_name",
+        "mode",
+        "spawn_player"
+      ],
+      "stop_pie": [],
+      "pause_pie": [],
+      "resume_pie": [],
+      "get_pie_state": [],
+      "restart_pie": [
+        "mode"
+      ],
+      "inject_key": [
+        "action",
+        "duration_ms",
+        "key"
+      ],
+      "inject_mouse": [
+        "action",
+        "button",
+        "delta",
+        "x",
+        "y"
+      ],
+      "inject_input_action": [
+        "action_name",
+        "value"
+      ],
+      "inject_input_continuous": [
+        "action_name",
+        "duration_ms",
+        "mode",
+        "value"
+      ],
+      "inject_input_sequence": [
+        "steps",
+        "timeout"
+      ],
+      "capture_screenshot": [
+        "output_path"
+      ],
+      "get_viewport_info": [],
+      "set_viewport_camera": [
+        "allow_during_pie",
+        "location",
+        "rotation"
+      ],
+      "focus_actor": [
+        "actor_path"
+      ],
+      "focus_node": [
+        "asset_path",
+        "graph_name",
+        "node_id"
+      ],
+      "set_viewport_mode": [
+        "mode"
+      ],
+      "execute_console_command": [
+        "command"
+      ],
+      "run_python": [
+        "code",
+        "run_next_tick"
+      ],
+      "get_cvar": [
+        "name"
+      ],
+      "set_cvar": [
+        "name",
+        "value"
+      ],
+      "list_cvars": [
+        "limit",
+        "pattern"
+      ],
+      "get_recent_logs": [
+        "category",
+        "count_only",
+        "limit",
+        "severity",
+        "since_cursor",
+        "since_seconds",
+        "until_cursor"
+      ],
+      "set_time_dilation": [
+        "factor"
+      ],
+      "get_editor_state": [],
+      "get_world_info": [],
+      "live_coding_compile": [],
+      "wait_ready": [
+        "reopen_assets",
+        "timeout"
+      ]
+    },
+    "level": {
+      "spawn_actor": [
+        "class_name",
+        "folder",
+        "label",
+        "level",
+        "location",
+        "material",
+        "mesh",
+        "rotation",
+        "scale"
+      ],
+      "delete_actor": [
+        "actor",
+        "confirm_class",
+        "expected_fingerprint",
+        "items"
+      ],
+      "duplicate_actor": [
+        "actor",
+        "expected_fingerprint",
+        "items",
+        "offset"
+      ],
+      "rename_actor": [
+        "actor",
+        "expected_fingerprint",
+        "items",
+        "label"
+      ],
+      "get_actor": [
+        "actor"
+      ],
+      "set_transform": [
+        "actor",
+        "location",
+        "rotation",
+        "scale"
+      ],
+      "set_actor_property": [
+        "actor",
+        "property",
+        "value"
+      ],
+      "get_actor_property": [
+        "actor",
+        "property"
+      ],
+      "list_components": [
+        "actor",
+        "include_properties"
+      ],
+      "add_component": [
+        "actor",
+        "class",
+        "name"
+      ],
+      "remove_component": [
+        "actor",
+        "component"
+      ],
+      "get_component_property": [
+        "actor",
+        "component",
+        "property"
+      ],
+      "set_component_property": [
+        "actor",
+        "component",
+        "expected_fingerprint",
+        "items",
+        "property",
+        "value"
+      ],
+      "list_actor_classes": [
+        "category"
+      ],
+      "list_component_classes": [
+        "category"
+      ],
+      "describe_class": [
+        "class"
+      ],
+      "list_actors": [
+        "class",
+        "folder",
+        "limit",
+        "offset",
+        "region",
+        "tags"
+      ],
+      "find_actors": [
+        "include_components",
+        "pattern"
+      ],
+      "get_bounds": [
+        "class",
+        "folder",
+        "region",
+        "tags"
+      ],
+      "select_actors": [
+        "actors",
+        "add"
+      ],
+      "get_selection": [],
+      "attach_actor": [
+        "actor",
+        "expected_fingerprint",
+        "items",
+        "parent",
+        "socket"
+      ],
+      "detach_actor": [
+        "actor",
+        "expected_fingerprint",
+        "items"
+      ],
+      "set_tags": [
+        "actor",
+        "expected_fingerprint",
+        "items",
+        "tags"
+      ],
+      "set_folder": [
+        "actor",
+        "expected_fingerprint",
+        "folder",
+        "items"
+      ],
+      "group_actors": [
+        "actors"
+      ],
+      "ungroup_actors": [
+        "group"
+      ],
+      "get_info": [],
+      "list_sublevels": [],
+      "load_sublevel": [
+        "sublevel"
+      ],
+      "unload_sublevel": [
+        "sublevel"
+      ],
+      "set_sublevel_visibility": [
+        "sublevel",
+        "visible"
+      ],
+      "list_data_layers": [],
+      "set_data_layer": [
+        "actors",
+        "data_layer"
+      ],
+      "save_level": [],
+      "save_all": [],
+      "list_templates": [],
+      "create_level": [
+        "open",
+        "path",
+        "template"
+      ],
+      "open_level": [
+        "force",
+        "path",
+        "save_current"
+      ],
+      "duplicate_level": [
+        "dest_path",
+        "source_path"
+      ],
+      "rename_level": [
+        "new_path",
+        "path"
+      ],
+      "delete_level": [
+        "force",
+        "path"
+      ],
+      "export_class_instances": [
+        "changed_only",
+        "class",
+        "maps",
+        "out_path"
+      ]
+    },
+    "qa": {
+      "observe_state": [
+        "include_los",
+        "interaction_range",
+        "max_actors",
+        "radius"
+      ],
+      "get_actor_state": [
+        "actor"
+      ],
+      "get_player_state": [],
+      "look_at": [
+        "target"
+      ],
+      "interact": [
+        "duration",
+        "key",
+        "target"
+      ],
+      "move_to": [
+        "acceptance_radius",
+        "target",
+        "timeout"
+      ],
+      "wait_for": [
+        "actor",
+        "property",
+        "timeout",
+        "type",
+        "value"
+      ],
+      "teleport_player": [
+        "location",
+        "rotation"
+      ],
+      "set_actor_property": [
+        "actor",
+        "property",
+        "value"
+      ],
+      "set_random_seed": [
+        "seed"
+      ],
+      "assert_state": [
+        "actor",
+        "expected",
+        "message",
+        "property",
+        "type",
+        "value"
+      ],
+      "start_recording": [
+        "name"
+      ],
+      "stop_recording": [],
+      "replay_session": [
+        "on_failure",
+        "path"
+      ],
+      "cancel_replay": []
+    },
+    "reflect": {
+      "class_hierarchy": [
+        "depth",
+        "include_blueprint",
+        "include_engine",
+        "include_flat_classes",
+        "max_results",
+        "root"
+      ],
+      "class_detail": [
+        "class_name",
+        "detail",
+        "include_inherited"
+      ],
+      "find_overrides": [
+        "class_name",
+        "depth",
+        "limit"
+      ],
+      "find_usages": [
+        "class_name",
+        "deep_scan",
+        "limit",
+        "max_blueprints",
+        "path_filter",
+        "scope",
+        "symbol"
+      ],
+      "search": [
+        "include_engine",
+        "limit",
+        "pattern"
+      ],
+      "get_dependencies": [
+        "asset_path",
+        "category",
+        "limit"
+      ],
+      "get_referencers": [
+        "asset_path",
+        "category",
+        "limit"
+      ],
+      "blueprint_catalog": [
+        "root"
+      ]
+    },
+    "statetree": {
+      "list_assets": [
+        "limit",
+        "path_filter"
+      ],
+      "create_asset": [
+        "asset_path",
+        "root_name",
+        "save",
+        "schema_class"
+      ],
+      "duplicate_asset": [
+        "asset_path",
+        "new_asset_path",
+        "save"
+      ],
+      "delete_asset": [
+        "asset_path",
+        "dry_run",
+        "expected_fingerprint",
+        "force"
+      ],
+      "dump_tree": [
+        "asset_path",
+        "include_nodes",
+        "include_transitions",
+        "inspect_count",
+        "inspect_instances",
+        "inspect_offset",
+        "inspect_section"
+      ],
+      "get_state": [
+        "asset_path",
+        "state_id",
+        "state_path"
+      ],
+      "check_structure": [
+        "asset_path"
+      ],
+      "validate_asset": [
+        "asset_path",
+        "expected_fingerprint",
+        "save"
+      ],
+      "compile": [
+        "asset_path",
+        "expected_fingerprint",
+        "save"
+      ],
+      "add_state": [
+        "asset_path",
+        "compile",
+        "enabled",
+        "expected_fingerprint",
+        "index",
+        "name",
+        "parent_state_id",
+        "parent_state_path",
+        "save",
+        "selection_behavior",
+        "tag",
+        "type"
+      ],
+      "remove_state": [
+        "asset_path",
+        "compile",
+        "expected_fingerprint",
+        "remove_children",
+        "save",
+        "state_id",
+        "state_path"
+      ],
+      "rename_state": [
+        "asset_path",
+        "compile",
+        "expected_fingerprint",
+        "name",
+        "save",
+        "state_id",
+        "state_path"
+      ],
+      "move_state": [
+        "asset_path",
+        "compile",
+        "expected_fingerprint",
+        "index",
+        "new_parent_state_id",
+        "new_parent_state_path",
+        "save",
+        "state_id",
+        "state_path"
+      ],
+      "set_state_properties": [
+        "asset_path",
+        "compile",
+        "expected_fingerprint",
+        "properties",
+        "save",
+        "state_id",
+        "state_path"
+      ],
+      "add_transition": [
+        "asset_path",
+        "compile",
+        "event_tag",
+        "expected_fingerprint",
+        "priority",
+        "save",
+        "source_state_id",
+        "source_state_path",
+        "target_state_id",
+        "target_state_path",
+        "trigger"
+      ],
+      "remove_transition": [
+        "asset_path",
+        "compile",
+        "expected_fingerprint",
+        "save",
+        "state_id",
+        "state_path",
+        "transition_id"
+      ],
+      "set_transition_properties": [
+        "asset_path",
+        "compile",
+        "expected_fingerprint",
+        "properties",
+        "save",
+        "state_id",
+        "state_path",
+        "transition_id"
+      ]
+    },
+    "anim": {
+      "add_curve": [
+        "asset_path",
+        "curve_name",
+        "dry_run",
+        "expected_fingerprint",
+        "save"
+      ],
+      "add_montage_section": [
+        "asset_path",
+        "dry_run",
+        "expected_fingerprint",
+        "name",
+        "next_section",
+        "save",
+        "start_time"
+      ],
+      "add_named_notify": [
+        "asset_path",
+        "dry_run",
+        "expected_fingerprint",
+        "notify_name",
+        "save",
+        "time"
+      ],
+      "add_notify": [
+        "asset_path",
+        "dry_run",
+        "expected_fingerprint",
+        "notify_class_path",
+        "save",
+        "time"
+      ],
+      "add_notify_state": [
+        "asset_path",
+        "dry_run",
+        "duration",
+        "expected_fingerprint",
+        "notify_state_class_path",
+        "save",
+        "start_time"
+      ],
+      "add_socket": [
+        "asset_path",
+        "bone_name",
+        "dry_run",
+        "expected_fingerprint",
+        "location",
+        "rotation",
+        "save",
+        "scale",
+        "socket_name"
+      ],
+      "get_animbp_info": [
+        "asset_path",
+        "state_limit",
+        "state_machine_limit",
+        "transition_limit"
+      ],
+      "get_montage_info": [
+        "asset_path",
+        "notify_limit",
+        "section_limit",
+        "segment_limit",
+        "slot_limit"
+      ],
+      "get_sequence_info": [
+        "asset_path",
+        "curve_key_limit",
+        "curve_limit",
+        "curve_name",
+        "include_curve_keys",
+        "notify_limit",
+        "sync_marker_limit"
+      ],
+      "get_skeleton_info": [
+        "asset_path",
+        "bone_limit",
+        "socket_limit",
+        "virtual_bone_limit"
+      ],
+      "list_assets": [
+        "asset_type",
+        "limit",
+        "path",
+        "query"
+      ],
+      "remove_curve": [
+        "asset_path",
+        "curve_name",
+        "dry_run",
+        "expected_fingerprint",
+        "save"
+      ],
+      "remove_montage_section": [
+        "asset_path",
+        "dry_run",
+        "expected_fingerprint",
+        "save",
+        "selector"
+      ],
+      "remove_named_notify": [
+        "asset_path",
+        "dry_run",
+        "expected_fingerprint",
+        "save",
+        "selector"
+      ],
+      "remove_notify": [
+        "asset_path",
+        "dry_run",
+        "expected_fingerprint",
+        "save",
+        "selector"
+      ],
+      "remove_notify_state": [
+        "asset_path",
+        "dry_run",
+        "expected_fingerprint",
+        "save",
+        "selector"
+      ],
+      "remove_socket": [
+        "asset_path",
+        "dry_run",
+        "expected_fingerprint",
+        "save",
+        "selector"
+      ],
+      "set_curve_keys": [
+        "asset_path",
+        "curve_name",
+        "dry_run",
+        "expected_fingerprint",
+        "keys",
+        "save"
+      ],
+      "set_socket_transform": [
+        "asset_path",
+        "dry_run",
+        "expected_fingerprint",
+        "location",
+        "rotation",
+        "save",
+        "scale",
+        "selector"
+      ],
+      "update_montage_section": [
+        "asset_path",
+        "dry_run",
+        "expected_fingerprint",
+        "new_name",
+        "new_next_section",
+        "new_start_time",
+        "save",
+        "selector"
+      ],
+      "update_named_notify": [
+        "asset_path",
+        "dry_run",
+        "expected_fingerprint",
+        "new_name",
+        "new_time",
+        "save",
+        "selector"
+      ],
+      "update_notify": [
+        "asset_path",
+        "dry_run",
+        "expected_fingerprint",
+        "new_time",
+        "save",
+        "selector"
+      ],
+      "update_notify_state": [
+        "asset_path",
+        "dry_run",
+        "expected_fingerprint",
+        "new_duration",
+        "new_start_time",
+        "save",
+        "selector"
+      ]
+    },
+    "gen": {
+      "cancel_job": [
+        "job_id"
+      ],
+      "delete_job": [
+        "job_id"
+      ],
+      "get_config": [],
+      "job_status": [
+        "job_id"
+      ],
+      "list_jobs": [
+        "include_prompt",
+        "limit",
+        "status"
+      ],
+      "list_providers": [],
+      "retry_import": [
+        "job_id"
+      ],
+      "start_image": [
+        "prompt",
+        "provider"
+      ],
+      "start_mesh": [
+        "destination",
+        "prompt",
+        "provider",
+        "source_image_path"
+      ],
+      "start_texturing": [
+        "destination",
+        "prompt",
+        "provider",
+        "source_model_path"
+      ]
+    }
+  },
+  "python_owned_params": [
+    "limit",
+    "cursor",
+    "detail",
+    "dry_run"
+  ],
   "facade_commands": {
     "core": [
       "get_status",

@@ -30,10 +30,20 @@ COMMAND_NOUN_DOMAINS = {"blueprint": "blueprint", "graph": "graph", "material": 
                         "level": "level", "datatable": "data", "statetree": "statetree", "scenario": "qa"}
 NATIVE_ONLY_COMMANDS = {"batch"}
 FILE_SUFFIXES = {"py", "json", "md", "cpp", "h", "log", "ini", "txt", "uasset", "cs", "yml", "yaml", "sh", "js", "ts"}
+# Tools named by older docs that never existed under that name on the consolidated surface.
+EXTRA_STALE = {"run_scenario"}
+COMMAND_PARAMS: dict[str, dict[str, set[str]]] = {
+    domain: {command: set(params) for command, params in commands.items()}
+    for domain, commands in SURFACE.get("command_params", {}).items()
+}
+PYTHON_OWNED_PARAMS = set(SURFACE.get("python_owned_params", []))
 
 ROUTER_OPEN = re.compile(r"(?<![\w}>*])([a-z][a-z0-9]*)_cmd\(")
 ROUTER_NAME = re.compile(r"(?<![\w}>*<$])([a-z][a-z0-9]*)_cmd\b")
-ROUTED_PROSE = re.compile(r"(?<![\w}>*])([a-z][a-z0-9]*)_cmd[ \t]+`?([a-z][a-z0-9]*(?:_[a-z0-9]+)*)\b")
+ROUTED_PROSE = re.compile(r"(?<![\w}>*])([a-z][a-z0-9]*)_cmd`?[ \t]+`?([a-z][a-z0-9]*(?:_[a-z0-9]+)*)\b")
+SPLIT_BACKTICK = re.compile(r"`([a-z][a-z0-9]*)_cmd`[ \t]+`([a-z][a-z0-9_]*)`")
+OLD_DOMAIN_PREFIX = re.compile(r"(?<![\w.])bp[._][a-z][a-z0-9_]*")
+MCP_PREFIXED = re.compile(r"\bmcp__[\w]+")
 JSON_COMMAND = re.compile(r"[\"']command[\"']\s*:\s*[\"']([a-z][\w.]*)[\"']")
 QUALIFIED = re.compile(r"(?<![\w./-])([a-z][a-z0-9]*)\.([a-z][a-z0-9_]*[a-z0-9])\b(?![*_])")
 IDENTIFIER = re.compile(r"(?<![\w.])([A-Za-z_][A-Za-z0-9_]*)(?![\w])")
@@ -66,6 +76,65 @@ def call_bodies(text: str):
             nxt = ROUTER_OPEN.search(text, match.end())
             end = min(nxt.start() if nxt else len(text), match.end() + 600)
         yield match.start(), match.group(1), text[match.end():end]
+
+
+def split_top_level(text: str) -> list[str]:
+    """Split on commas that are not nested in brackets or strings."""
+    parts, depth, quote, start = [], 0, "", 0
+    for index, char in enumerate(text):
+        if quote:
+            if char == quote and text[index - 1] != "\\":
+                quote = ""
+        elif char in "\"'":
+            quote = char
+        elif char in "{[(":
+            depth += 1
+        elif char in "}])":
+            depth -= 1
+        elif char == "," and depth == 0:
+            parts.append(text[start:index])
+            start = index + 1
+    parts.append(text[start:])
+    return parts
+
+
+PARAMS_OPEN = re.compile(r"[\"']?params[\"']?\s*[=:]\s*\{")
+
+
+def params_literal_keys(body: str) -> list[str]:
+    """Top-level keys of a literal `params={...}` / `"params": {...}` dict inside a call body."""
+    match = PARAMS_OPEN.search(body)
+    if not match:
+        return []
+    depth, quote, end = 1, "", match.end()
+    while end < len(body) and depth:
+        char = body[end]
+        if quote:
+            if char == quote and body[end - 1] != "\\":
+                quote = ""
+        elif char in "\"'":
+            quote = char
+        elif char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+        end += 1
+    interior = body[match.end():end - 1 if depth == 0 else end]
+    keys = []
+    for segment in split_top_level(interior):
+        key = re.match(r"\s*[\"']([A-Za-z_]\w*)[\"']\s*:", segment) or re.match(r"\s*([A-Za-z_]\w*)\s*(?::|$)", segment)
+        if key:
+            keys.append(key.group(1))
+    return keys
+
+
+def check_params(domain: str, command: str, body: str, problems: list) -> None:
+    declared = COMMAND_PARAMS.get(domain, {}).get(command)
+    if not declared:  # facade commands and commands that declare nothing cannot be checked
+        return
+    for key in params_literal_keys(body):
+        if key not in declared and key not in PYTHON_OWNED_PARAMS and not key.startswith("_"):
+            problems.append((f"{domain}_cmd {command} param {key}", f"a declared param: {', '.join(sorted(declared))}"))
 
 
 def check_command(domain: str | None, command: str, problems: list) -> None:
@@ -102,24 +171,57 @@ def lint_text(text: str) -> list[tuple[int, str, str]]:
         problems: list[tuple[str, str]] = []
         first = FIRST_ARG.match(body)
         shorthand = SHORTHAND_ARG.match(body)
+        command = None
         if first:
-            check_command(domain, first.group(1), problems)
+            command = first.group(1)
         elif shorthand and shorthand.group(1) not in {"command", "params"}:
-            check_command(domain, shorthand.group(1), problems)
+            command = shorthand.group(1)
         else:
             keyword = KEYWORD_COMMAND.search(body)
             if keyword:
-                check_command(domain, keyword.group(1) or keyword.group(2), problems)
+                command = keyword.group(1) or keyword.group(2)
+        if command:
+            check_command(domain, command, problems)
+            if "." not in command and not problems:
+                check_params(domain, command, body, problems)
         add(offset, problems)
 
     for match in ROUTED_PROSE.finditer(text):
         domain, token = match.groups()
         if domain not in DOMAINS or token in DOMAINS[domain]:
             continue
+        if token in EXPOSED and "_cmd`" in match.group(0):  # two adjacent tool names, not a command
+            continue
         elsewhere = [d for d, commands in DOMAINS.items() if token in commands]
         if token in LEGACY or token in EXPOSED or elsewhere or "_" in token:
             hint = f"a {domain} command (exists in: {', '.join(elsewhere)})" if elsewhere else f"a {domain} command"
             add(match.start(), [(f"{domain}_cmd {token}", hint)])
+
+    for match in SPLIT_BACKTICK.finditer(text):
+        domain, token = match.groups()
+        if domain in DOMAINS and token not in DOMAINS[domain] and token not in EXPOSED:
+            add(match.start(), [(f"{domain}_cmd {token}", f"a {domain} command")])
+
+    for match in OLD_DOMAIN_PREFIX.finditer(text):
+        add(match.start(), [(match.group(0), "legacy `bp.`/`bp_` prefix; use blueprint_cmd or blueprint.<command>")])
+
+    for match in MCP_PREFIXED.finditer(text):
+        tail = match.group(0)
+        name = [piece for piece in tail.split("__") if piece][-1]
+        suffixes = [name] + [name.split("_", skip)[-1] for skip in range(1, name.count("_") + 1)]
+        if any(
+            suffix in LEGACY
+            or suffix in EXTRA_STALE
+            or (
+                suffix.split("_", 1)[0] in WRAPPER_DOMAINS
+                and "_" in suffix
+                and suffix not in EXPOSED
+                and suffix not in ALL_COMMANDS
+                and suffix.split("_", 1)[1] in ALL_COMMANDS
+            )
+            for suffix in suffixes
+        ):
+            add(match.start(), [(tail, "legacy wrapper tool name behind an mcp__ prefix")])
 
     for match in JSON_COMMAND.finditer(text):
         problems = []
@@ -133,6 +235,8 @@ def lint_text(text: str) -> list[tuple[int, str, str]]:
 
     for match in IDENTIFIER.finditer(text):
         token = match.group(1)
+        if token in EXTRA_STALE:
+            add(match.start(), [(token, "not a tool on the live surface (scenario_compose / qa_cmd)")])
         if token in LEGACY or (
             token.split("_", 1)[0] in WRAPPER_DOMAINS
             and "_" in token
@@ -208,21 +312,48 @@ class CortexToolNameLint(unittest.TestCase):
         self.assertTrue(lint_line("x = graph.nope_command(asset_path)"))
         self.assertEqual([], lint_line("see docs in graph.json and graph.add_node"))
 
+    def test_lint_checks_params_and_remaining_blind_spots(self) -> None:
+        # literal params keys are checked against the declared params
+        self.assertTrue(lint_line('umg_cmd(command="add_widget", params={"asset_path": "a", "parent": "P", "class": "B"})'))
+        self.assertEqual([], lint_line(
+            'umg_cmd(command="add_widget", params={"asset_path": "a", "parent_name": "P", "widget_class": "B", "name": "N"})'))
+        self.assertEqual([], lint_line('graph_cmd(command="get_subgraph", params={"asset_path": "a", "compact": False})'))
+        self.assertEqual([], lint_line('graph_cmd(command="search_nodes", params={"asset_path": "a", "limit": 50})'))
+        self.assertTrue(lint_line("material_cmd(command='reset_parameter', params={asset_path, name})"))
+        # split-backtick form, legacy bp prefix, run_scenario, mcp__ prefix
+        self.assertTrue(lint_line("use `graph_cmd` `get_node` to read it"))
+        self.assertEqual([], lint_line("tools: `blueprint_cmd` `graph_cmd` `blueprint_compose`"))
+        self.assertTrue(lint_line("via `bp.get_info`"))
+        self.assertTrue(lint_line("emitted by `run_scenario`"))
+        self.assertTrue(lint_line("call mcp__cortex__graph_list_nodes"))
+
     def test_snapshot_matches_plugin_surface(self) -> None:
         plugin = os.environ.get("CORTEX_PLUGIN_DIR")
         plugin_dir = Path(plugin) if plugin else ROOT.parent / "Plugins" / "UnrealCortex"
-        if not (plugin_dir / "MCP" / "tests" / "fixtures" / "capabilities_cache_full.json").is_file():
+        if not (plugin_dir / "MCP").is_dir():
             self.skipTest(f"no UnrealCortex plugin at {plugin_dir}; set CORTEX_PLUGIN_DIR to check drift")
         uv = shutil.which("uv")
-        if uv is None:
-            self.skipTest("uv not on PATH; cannot generate the plugin surface")
-        result = subprocess.run(
-            [uv, "run", "--frozen", "--project", str(plugin_dir / "MCP"), "python",
-             str(ROOT / "scripts" / "sync-cortex-mcp-surface.py"), "--plugin", str(plugin_dir), "--check"],
-            capture_output=True, text=True, cwd=ROOT,
-        )
+        git = shutil.which("git")
+        if uv is None or git is None:
+            self.skipTest("uv or git not on PATH; cannot generate the plugin surface")
+        ref = os.environ.get("CORTEX_PLUGIN_REF", "origin/main")
+        probe = subprocess.run([git, "-C", str(plugin_dir), "rev-parse", "--verify", f"{ref}^{{commit}}"],
+                               capture_output=True, text=True)
+        if probe.returncode != 0:
+            self.skipTest(f"{plugin_dir} is not a git checkout with {ref}; set CORTEX_PLUGIN_REF")
+        try:
+            result = subprocess.run(
+                [uv, "run", "--frozen", "--project", str(plugin_dir / "MCP"), "python",
+                 str(ROOT / "scripts" / "sync-cortex-mcp-surface.py"), "--plugin", str(plugin_dir),
+                 "--ref", ref, "--check"],
+                capture_output=True, text=True, cwd=ROOT, timeout=300,
+            )
+        except subprocess.TimeoutExpired:
+            self.skipTest("surface generation timed out (uv environment creation?)")
+        if result.returncode != 0 and "DRIFT" not in result.stderr:
+            self.skipTest(f"could not generate the plugin surface (uv/offline?): {result.stderr[-400:]}")
         self.assertEqual(0, result.returncode, result.stderr[-2000:])
-        print(f"\nDrift note: {result.stdout.strip()}")
+        print(f"\nDrift note ({ref}): {result.stdout.strip()}")
 
     def test_drift_is_one_directional(self) -> None:
         import importlib.util

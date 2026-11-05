@@ -28,7 +28,7 @@ data_cmd(
 # Then populate:
 data_cmd(
     command="import_datatable_json",
-    params={"table_path": "/Game/Data/DT_Enemies", "json_data": [
+    params={"table_path": "/Game/Data/DT_Enemies", "rows": [
         {"name": "Goblin", "health": 50, "damage": 10},
         {"name": "Orc", "health": 150, "damage": 25}
     ]}

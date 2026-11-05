@@ -761,7 +761,7 @@ graph_cmd(command="get_subgraph", params={
 - Tracing execution flow (connections are preserved)
 - Finding entry points with `search_nodes`
 - Counting nodes in a graph (total count is returned at top level, unaffected by compact)
-- Reading variable defaults and types via `bp.get_info` (variables are not affected — only functions)
+- Reading variable defaults and types via `blueprint_cmd` `get_info` (variables are not affected — only functions)
 
 ### Modify Existing Blueprint
 ```
