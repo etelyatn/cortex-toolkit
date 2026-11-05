@@ -26,10 +26,10 @@ ALL_COMMANDS = set().union(*DOMAINS.values())
 WRAPPER_DOMAINS = ("graph", "blueprint", "umg", "material", "statetree", "level", "qa", "reflect")
 
 ROUTED_CALL = re.compile(r"\b([a-z]+)_cmd\(\s*(?:command\s*=\s*)?[\"'](\w+)[\"']")
+ROUTED_SHORTHAND = re.compile(r"\b([a-z]+)_cmd\(\s*([a-z][a-z0-9_]*)\s*[,)]")
 ROUTED_PROSE = re.compile(r"\b([a-z]+)_cmd[ \t]+`?([a-z][a-z0-9]*(?:_[a-z0-9]+)*)\b")
 QUALIFIED = re.compile(r"`([a-z]+)\.([a-z][a-z0-9_]*)`")
-BACKTICKED = re.compile(r"`([A-Za-z_][A-Za-z0-9_]*)`")
-CALLED = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*)\(")
+IDENTIFIER = re.compile(r"(?<![\w.])([A-Za-z_][A-Za-z0-9_]*)(?![\w])")
 
 
 def documents() -> list[Path]:
@@ -42,7 +42,9 @@ def documents() -> list[Path]:
 def lint_line(text: str) -> list[tuple[str, str]]:
     """Return (token, expected) problems for one line."""
     problems: list[tuple[str, str]] = []
-    for domain, command in ROUTED_CALL.findall(text):
+    for domain, command in ROUTED_CALL.findall(text) + [
+        (d, c) for d, c in ROUTED_SHORTHAND.findall(text) if c not in {"command", "params"}
+    ]:
         if domain in DOMAINS and command not in DOMAINS[domain]:
             problems.append((f"{domain}_cmd {command}", f"a {domain} command"))
     for domain, token in ROUTED_PROSE.findall(text):
@@ -55,7 +57,7 @@ def lint_line(text: str) -> list[tuple[str, str]]:
     for domain, command in QUALIFIED.findall(text):
         if domain in DOMAINS and command not in DOMAINS[domain]:
             problems.append((f"{domain}.{command}", f"a {domain} command"))
-    for token in BACKTICKED.findall(text) + CALLED.findall(text):
+    for token in IDENTIFIER.findall(text):
         if token in LEGACY or (
             token.split("_", 1)[0] in WRAPPER_DOMAINS
             and "_" in token
@@ -82,6 +84,8 @@ class CortexToolNameLint(unittest.TestCase):
 
     def test_lint_detects_known_stale_forms(self) -> None:
         self.assertTrue(lint_line('core_cmd(command="batch", params={})'))
+        self.assertTrue(lint_line("never nest it inside `core_cmd(batch)`"))
+        self.assertEqual([], lint_line("`umg_cmd(list_animation_bindings)` then `core_cmd(batch_query)`"))
         self.assertTrue(lint_line("Use `analyze_blueprint_for_migration` first."))
         self.assertTrue(lint_line("call graph_list_nodes(asset_path)"))
         self.assertTrue(lint_line("`graph.list_nodes` lists nodes"))

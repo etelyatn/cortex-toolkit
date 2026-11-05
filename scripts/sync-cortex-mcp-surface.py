@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -32,6 +33,32 @@ CORE_FACADE_COMMANDS = [
     "switch_editor",
     "batch_query",
 ]
+
+# Native modules whose command handlers declare each domain's commands.
+MODULE_DOMAINS = {
+    "CortexCore": "core",
+    "CortexData": "data",
+    "CortexGraph": "graph",
+    "CortexBlueprint": "blueprint",
+    "CortexUMG": "umg",
+    "CortexMaterial": "material",
+    "CortexEditor": "editor",
+    "CortexLevel": "level",
+    "CortexQA": "qa",
+    "CortexReflect": "reflect",
+    "CortexStateTree": "statetree",
+}
+DECLARATION = re.compile(r'FCortexCommandInfo\s*\{\s*TEXT\("(\w+)"\)')
+
+
+def declared_commands(plugin: Path) -> dict[str, set[str]]:
+    """Commands the native handlers declare. The capabilities fixture can lag these."""
+    declared: dict[str, set[str]] = {}
+    for module, domain in MODULE_DOMAINS.items():
+        for handler in (plugin / "Source" / module / "Private").glob("*CommandHandler.cpp"):
+            text = handler.read_text(encoding="utf-8", errors="ignore")
+            declared.setdefault(domain, set()).update(DECLARATION.findall(text))
+    return declared
 
 
 class _RecordingServer:
@@ -72,6 +99,11 @@ def generate(plugin: Path) -> dict:
         domain: [command["name"] for command in body["commands"]]
         for domain, body in capabilities["domains"].items()
     }
+    # The committed capabilities fixture can lag the handlers (umg.rename_widget, reflect.blueprint_catalog
+    # were declared but missing). A command a handler declares is live, so add it after the fixture names.
+    for domain, names in declared_commands(plugin).items():
+        known = domains.setdefault(domain, [])
+        known.extend(sorted(names - set(known)))
     # A legacy wrapper whose name is also a live routed command (e.g. add_widget) is not
     # provably stale from the name alone, so the lint must not flag it.
     legacy -= {command for names in domains.values() for command in names}

@@ -113,7 +113,7 @@ Rules for this branch:
   silent ownership decision, and never a graph rewrite.
 - If the operation is unavailable in the running editor, the operation is **blocked**: record the
   editor/plugin identity, leave the asset untouched, and return the blocker to the orchestrator. Never
-  fall back to the raw disconnect/delete steps, to `core_cmd(batch)`, or to `editor_cmd(run_python)`.
+  fall back to the raw disconnect/delete steps, to `core_cmd(batch_query)`, or to `editor_cmd(run_python)`.
 - Report the phase statuses (`apply`/`compile`/`readback`/`save`/`rollback`) and the durable locators
   from the response in the execution log, exactly as the plan's verification expects.
 

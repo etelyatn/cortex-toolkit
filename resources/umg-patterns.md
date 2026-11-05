@@ -95,7 +95,7 @@ umg_cmd(command="create_animation", params={"asset_path": "/Game/UI/WBP_Screen",
 
 `create_animation` creates only an **empty** named animation. Binding a Designer widget and
 authoring its property tracks is a guarded `umg_cmd` sequence — never a hierarchy/style batch,
-never a `widget_compose` animation entry, and never nested inside `core_cmd(batch)`. Each
+never a `widget_compose` animation entry, and never nested inside `core_cmd(batch_query)`. Each
 authoring write (and each removal) consumes a full animation content-guard fingerprint
 (signature **v2**) from `list_animation_bindings`; a stale or version-1 guard refuses without
 mutation. `dry_run` defaults to **true**, so preview first and re-issue with `dry_run: false`.

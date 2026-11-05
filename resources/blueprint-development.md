@@ -49,7 +49,7 @@ If it fails:
 
 1. Read `.cortex/context.md` for project overview
 2. Read `.cortex/domains/blueprints.md` for BP conventions and class hierarchy
-3. For **create/modify tasks only**: Use `list_blueprints` or `get_blueprint_info` to check for existing assets before proceeding — skip this for review/analyze tasks
+3. For **create/modify tasks only**: Use `blueprint_cmd` `list` or `get_info` to check for existing assets before proceeding — skip this for review/analyze tasks
 4. Read `cortex-toolkit/resources/ue-api-recipes.md` — verified patterns for Blueprint creation, dynamic class resolution, and test asset lifecycle; check before generating any UE C++ code or test setup instructions
 
 ## Pre-fetched Context And Stale Writes
@@ -68,7 +68,7 @@ Independent read calls MUST be issued in parallel. Sequential reads are only all
 
 **Before creating or modifying any Blueprint:**
 
-1. **Check if asset already exists** using `list_blueprints` or `get_blueprint_info` with the target path
+1. **Check if asset already exists** using `blueprint_cmd` `list` or `get_info` with the target path
 2. **If asset EXISTS and you were asked to CREATE:**
    - Ask the user what to do, presenting these options:
      - **Replace**: Delete existing asset and create new one (destructive!)
@@ -89,8 +89,8 @@ Independent read calls MUST be issued in parallel. Sequential reads are only all
 2. **Validate asset existence** — follow the Asset Validation workflow above
 3. **Find or create the Blueprint** — based on validation results and user decision
 4. **Set up structure** — variables, functions, components via MCP tools
-5. **Implement logic** — guide graph construction using `graph_*` tools
-6. **Compile and test** — `compile_blueprint`, verify no errors
+5. **Implement logic** — guide graph construction using `graph_cmd` commands
+6. **Compile and test** — `blueprint_cmd` `compile`, verify no errors
 
 ### Graph Analysis — Parallelize Queries
 
@@ -104,19 +104,18 @@ Never query graphs one-by-one in sequential tool calls.
 
 ### Compact vs Verbose Graph Reads
 
-`graph_get_subgraph`, `graph_get_subgraph`, `graph_search_nodes`, and `blueprint_cmd(get_info)` default to `compact=true`, which strips fields AI agents rarely need (~25-35% smaller responses):
+`graph_cmd` `get_subgraph`, `graph_cmd` `search_nodes`, and `blueprint_cmd(get_info)` default to `compact=true`, which strips fields AI agents rarely need (~25-35% smaller responses):
 
-- `list_nodes` drops `position`, `node_class`, `pin_count`
-- `get_node` drops `position`, `node_class`, and hidden pins that have no connections and no non-default value/object; remaining pins omit `is_connected: false` and empty `default_value`
+- `get_subgraph` drops `position`, `node_class`, `pin_count`, and hidden pins that have no connections and no non-default value/object; remaining pins omit `is_connected: false` and empty `default_value`
 - `search_nodes` drops `node_class`
-- `bp.get_info` drops empty `inputs`/`outputs` arrays and the `source` field on functions
+- `blueprint_cmd` `get_info` drops empty `inputs`/`outputs` arrays and the `source` field on functions
 
 **Use the default (`compact: true`) for**: gameplay logic review, finding entry points, wiring new nodes, most debugging.
 
 **Pass `compact: false` explicitly when:**
 - You need node positions (visual layout debugging, auto-layout verification)
 - You need to inspect hidden pins (tunnel boundaries, world-context, self pins with defaults)
-- You need to distinguish inherited functions from Blueprint-defined functions in `bp.get_info`
+- You need to distinguish inherited functions from Blueprint-defined functions in `blueprint_cmd` `get_info`
 - You are generating C++ from a Blueprint graph (migration Ground Truth Table requires full fidelity)
 
 ### Before Destructive Operations
@@ -137,23 +136,23 @@ impact_analysis(
 
 ## Blueprint Tools
 
-**Asset management:** `create_blueprint`, `list_blueprints`, `get_blueprint_info`, `delete_blueprint`, `duplicate_blueprint`, `compile_blueprint`, `save_blueprint`, `reparent_blueprint`
+**Asset management:** `create`, `list`, `get_info`, `delete`, `duplicate`, `compile`, `save`, `rename`, `reparent`
 
-**Structure:** `add_blueprint_variable`, `remove_blueprint_variable`, `add_blueprint_function`, `configure_timeline`, `set_component_defaults`, `add_scs_component`, `remove_scs_component`, `rename_scs_component`
+**Structure:** `add_variable`, `remove_variable`, `add_function`, `configure_timeline`, `set_component_defaults`, `add_scs_component`, `remove_scs_component`, `rename_scs_component`
 
 **Class Defaults (CDO):** `get_class_defaults`, `set_class_defaults`, `list_settable_defaults`, `list_inherited_properties`
 
 **Class Settings:** `add_interface`, `remove_interface`, `set_tick_settings`, `set_replication_settings`
 
-**Graph (logic):** `graph_list_graphs`, `graph_get_subgraph`, `graph_get_subgraph`, `graph_search_nodes`, `graph_add_node`, `graph_remove_node`, `graph_connect`, `graph_disconnect`, `graph_set_pin_value`, `graph_auto_layout`
+**Graph (logic, via `graph_cmd`):** `list_graphs`, `get_subgraph`, `search_nodes`, `add_node`, `remove_node`, `connect`, `disconnect`, `set_pin_value`, `auto_layout`
 
-`graph_list_graphs` top-level entries include `kind` (`ubergraph`, `function`, `macro`, `delegate`, or `interface_impl`). `interface_impl` entries also include `owning_interface`. Delegate graphs are readable but not mutable through generic write/layout graph tools.
+`list_graphs` top-level entries include `kind` (`ubergraph`, `function`, `macro`, `delegate`, or `interface_impl`). `interface_impl` entries also include `owning_interface`. Delegate graphs are readable but not mutable through generic write/layout graph tools.
 
-Read commands (`graph_get_subgraph`, `graph_get_subgraph`, `graph_search_nodes`) accept a `compact` boolean (default `true`). See "Compact vs Verbose Graph Reads" above.
+Read commands (`get_subgraph`, `search_nodes`) accept a `compact` boolean (default `true`). See "Compact vs Verbose Graph Reads" above. `search_nodes` with no filter returns every node of the selected graph (`graph_name`), paged through `limit`/`cursor`; `blueprint_cmd` `graph_metrics` reports the live logic budget.
 
 **Whole-graph/custom-event removal:** use `blueprint_cmd(command="remove_graph")` with preview then apply; pass the preview response's `fingerprint_before` and `validation_hash` as the apply request's `expected_fingerprint` and `expected_validation_hash`, respectively. This route is distinct from `graph.apply_patch`; see the [MCP tool reference](mcp-tool-reference.md#blueprint).
 
-**graph_add_node node types** (use short name or full `UK2Node_*` name):
+**`graph_cmd` `add_node` node types** (use short name or full `UK2Node_*` name):
 
 | Short Name | Notes |
 |-----------|-------|
@@ -178,7 +177,7 @@ Read commands (`graph_get_subgraph`, `graph_get_subgraph`, `graph_search_nodes`)
 | `RemoveDelegate` / `UnbindEvent` | Unbind event — same params as AddDelegate. Pins: execute, then, self (Target), Delegate (Event) |
 | `ClearDelegate` / `UnbindAllEvents` | Unbind all events — same params, no Delegate pin. Pins: execute, then, self (Target) |
 | `CreateDelegate` / `CreateEvent` | Create delegate object (NOT CustomEvent) — optional `params: {"function_name": "MyHandler"}` (bare name, not `ClassName.Function`). Pins: self (Object), OutputDelegate (Event) |
-| `Composite` | Collapsed composite subgraph (`UK2Node_Composite`) — no params required. Creates a composite node with an empty `BoundGraph`. Use `graph_get_subgraph` to read back the `subgraph_name` field, then pass it as `subgraph_path` on subsequent calls to edit nodes inside the composite. |
+| `Composite` | Collapsed composite subgraph (`UK2Node_Composite`) — no params required. Creates a composite node with an empty `BoundGraph`. Use `get_subgraph` or `list_graphs` (`include_subgraphs`) to read back the `subgraph_name` field, then pass it as `subgraph_path` on subsequent calls to edit nodes inside the composite. |
 
 **Removed short names** — no longer accepted: `FunctionEntry`, `FunctionResult`, `ForEachLoop`. Use `CallFunction` with `function_name: "KismetArrayLibrary.Array_ForEach"` for ForEach loops.
 
@@ -188,22 +187,22 @@ Read commands (`graph_get_subgraph`, `graph_get_subgraph`, `graph_search_nodes`)
 
 ### Creating Blueprints with Custom C++ Parents
 
-`create_blueprint` accepts an optional `parent_class` parameter to inherit from custom C++ classes:
+`blueprint_cmd(command="create")` accepts an optional `parent_class` parameter to inherit from custom C++ classes:
 
 ```python
 # Inherit from custom C++ base class (short name)
-create_blueprint(
-    name="BP_SpecializedBenchmark",
-    path="/Game/Blueprints",
-    parent_class="CortexBenchmarkActor"
-)
+blueprint_cmd(command="create", params={
+    "name": "BP_SpecializedBenchmark",
+    "path": "/Game/Blueprints",
+    "parent_class": "CortexBenchmarkActor"
+})
 
 # Or use full class path
-create_blueprint(
-    name="BP_SpecializedBenchmark",
-    path="/Game/Blueprints",
-    parent_class="/Script/CortexSandbox.CortexBenchmarkActor"
-)
+blueprint_cmd(command="create", params={
+    "name": "BP_SpecializedBenchmark",
+    "path": "/Game/Blueprints",
+    "parent_class": "/Script/CortexSandbox.CortexBenchmarkActor"
+})
 ```
 
 **Parameters:**
@@ -221,7 +220,7 @@ create_blueprint(
 
 ## Creating Functional Blueprints
 
-Use `graph_set_pin_value` to set input values on nodes, enabling fully automated Blueprint creation:
+Use `graph_cmd` `set_pin_value` to set input values on nodes, enabling fully automated Blueprint creation:
 
 ```python
 graph_cmd(command="set_pin_value", params={
@@ -242,7 +241,7 @@ graph_cmd(command="set_pin_value", params={
 })
 ```
 
-**Critical for automation:** Without setting pin values, nodes use default values (0, empty strings, etc.) and Blueprints require manual editing. With `graph_set_pin_value`, you can create **fully functional, working Blueprints** programmatically.
+**Critical for automation:** Without setting pin values, nodes use default values (0, empty strings, etc.) and Blueprints require manual editing. With `set_pin_value`, you can create **fully functional, working Blueprints** programmatically.
 
 **Validation:**
 - Only input pins can have values set (output pins error with `INVALID_OPERATION`)
@@ -253,9 +252,9 @@ graph_cmd(command="set_pin_value", params={
 
 ## Composite Subgraph Access
 
-All graph tools (`graph_get_subgraph`, `graph_get_subgraph`, `graph_search_nodes`, `graph_add_node`, `graph_remove_node`, `graph_connect`, `graph_disconnect`, `graph_set_pin_value`, `graph_auto_layout`) accept an optional `subgraph_path` parameter. `graph_list_graphs` accepts `include_subgraphs`.
+All `graph_cmd` commands that address a graph (`get_subgraph`, `search_nodes`, `add_node`, `remove_node`, `connect`, `disconnect`, `set_pin_value`, `auto_layout`) accept an optional `subgraph_path` parameter. `list_graphs` accepts `include_subgraphs`.
 
-Graph targeting is name-based. If top-level names collide across graph kinds, commands resolve the first matching graph. Prefer unique graph names and use `kind`/`owning_interface` from `graph_list_graphs` to understand what you are targeting before mutating.
+Graph targeting is name-based. If top-level names collide across graph kinds, commands resolve the first matching graph. Prefer unique graph names and use `kind`/`owning_interface` from `list_graphs` to understand what you are targeting before mutating.
 
 ### Discovering Composites
 
@@ -263,54 +262,54 @@ Two methods to find available composite subgraphs:
 
 **Method A — include_subgraphs on list_graphs:**
 ```python
-graph_list_graphs(
-    asset_path="/Game/Blueprints/BP_Actor",
-    include_subgraphs=True
-)
+graph_cmd(command="list_graphs", params={
+    "asset_path": "/Game/Blueprints/BP_Actor",
+    "include_subgraphs": True
+})
 # Returns entries with parent_graph and subgraph_path fields for each composite
 ```
 
-**Method B — read subgraph_name from list_nodes:**
+**Method B — read subgraph_name from get_subgraph:**
 ```python
-graph_get_subgraph(asset_path="/Game/Blueprints/BP_Actor", graph_name="EventGraph")
+graph_cmd(command="get_subgraph", params={"asset_path": "/Game/Blueprints/BP_Actor", "graph_name": "EventGraph"})
 # Composite nodes appear with "subgraph_name": "CompositeGraphName"
 # Tunnel boundary nodes (entry/exit) appear with "is_tunnel_boundary": true
 ```
 
 ### Navigating Into a Composite
 
-Use the `subgraph_name` value from a `list_nodes` result as `subgraph_path` on subsequent calls:
+Use the `subgraph_name` value from a `get_subgraph` result as `subgraph_path` on subsequent calls:
 
 ```python
 # Inspect inside a composite called "MyComposite" in EventGraph
-graph_get_subgraph(
-    asset_path="/Game/Blueprints/BP_Actor",
-    graph_name="EventGraph",
-    subgraph_path="MyComposite"
-)
+graph_cmd(command="get_subgraph", params={
+    "asset_path": "/Game/Blueprints/BP_Actor",
+    "graph_name": "EventGraph",
+    "subgraph_path": "MyComposite"
+})
 
 # Add a node inside the composite
-graph_add_node(
-    asset_path="/Game/Blueprints/BP_Actor",
-    node_class="CallFunction",
-    params={"function_name": "KismetSystemLibrary.PrintString"},
-    graph_name="EventGraph",
-    subgraph_path="MyComposite"
-)
+graph_cmd(command="add_node", params={
+    "asset_path": "/Game/Blueprints/BP_Actor",
+    "node_class": "CallFunction",
+    "params": {"function_name": "KismetSystemLibrary.PrintString"},
+    "graph_name": "EventGraph",
+    "subgraph_path": "MyComposite"
+})
 ```
 
 **Nested composites:** Append segments with a dot separator (max depth 5):
 ```python
-graph_get_subgraph(
-    asset_path="/Game/Blueprints/BP_Actor",
-    graph_name="EventGraph",
-    subgraph_path="OuterComposite.InnerComposite"
-)
+graph_cmd(command="get_subgraph", params={
+    "asset_path": "/Game/Blueprints/BP_Actor",
+    "graph_name": "EventGraph",
+    "subgraph_path": "OuterComposite.InnerComposite"
+})
 ```
 
 ### Composite Safety Rules
 
-- **Tunnel boundary nodes** (`is_tunnel_boundary: true`) are structural entry/exit nodes — **do not delete or rewire them**. They represent the composite's execution and data pin interface to the outer graph. Use `graph_get_subgraph` to inspect their pins before connecting new nodes to the execution flow inside a composite.
+- **Tunnel boundary nodes** (`is_tunnel_boundary: true`) are structural entry/exit nodes — **do not delete or rewire them**. They represent the composite's execution and data pin interface to the outer graph. Use `get_subgraph` to inspect their pins before connecting new nodes to the execution flow inside a composite.
 - **Composite names must not contain dots** (dots are the path separator).
 - **`subgraph_path` cannot be used with `blueprint_compose(mode="create")`** — the Blueprint does not exist yet. Authoring inside a composite is existing-asset work: use the guarded patch workflow in `resources/typed-blueprint-authoring.md` with the composite's `subgraph_path` in `target.graph_ref`, whose `graph_guid` must be that composite's **own** GUID (not the outer graph's) as `graph.get_authoring_context` publishes it.
 - **Each request targets one subgraph** — to change both the top-level graph and a composite, preview and apply twice: once for the top-level target and once for the composite's `subgraph_path`. Never mix two targets in one patch.
@@ -324,13 +323,13 @@ graph_get_subgraph(
 
 ### search_nodes Composite Behavior
 
-`graph_search_nodes` recursively descends into composite subgraphs by default. Results include a `subgraph_path` field for nodes found inside composites, so you can navigate directly to them:
+`search_nodes` recursively descends into composite subgraphs by default. Results include a `subgraph_path` field for nodes found inside composites, so you can navigate directly to them:
 
 ```python
-graph_search_nodes(
-    asset_path="/Game/Blueprints/BP_Actor",
-    function_name="PrintString"
-)
+graph_cmd(command="search_nodes", params={
+    "asset_path": "/Game/Blueprints/BP_Actor",
+    "function_name": "PrintString"
+})
 # Results inside composites include: "subgraph_path": "MyComposite"
 ```
 
@@ -481,11 +480,11 @@ Use `add_interface` and `remove_interface` to manage Blueprint interface impleme
 ### Adding an Interface
 
 ```python
-add_blueprint_interface(
-    asset_path="/Game/Blueprints/BP_Door",
-    interface_path="BPI_Interactable",  # Blueprint interface path or C++ interface name
-    compile=True
-)
+blueprint_cmd(command="add_interface", params={
+    "asset_path": "/Game/Blueprints/BP_Door",
+    "interface_path": "BPI_Interactable",  # Blueprint interface path or C++ interface name
+    "compile": True
+})
 # Returns: asset_path, interface_name, interface_path, compiled, stub_functions
 ```
 
@@ -499,11 +498,11 @@ add_blueprint_interface(
 ### Removing an Interface
 
 ```python
-remove_blueprint_interface(
-    asset_path="/Game/Blueprints/BP_Door",
-    interface_path="BPI_Interactable",
-    compile=True
-)
+blueprint_cmd(command="remove_interface", params={
+    "asset_path": "/Game/Blueprints/BP_Door",
+    "interface_path": "BPI_Interactable",
+    "compile": True
+})
 # Returns: asset_path, interface_name, interface_path, compiled, removed_graphs
 ```
 
@@ -518,13 +517,13 @@ remove_blueprint_interface(
 Use `set_tick_settings` for Actor tick configuration instead of `set_class_defaults` — it auto-sets `bCanEverTick` when enabling tick and validates Actor type.
 
 ```python
-set_blueprint_tick_settings(
-    asset_path="/Game/Blueprints/BP_Enemy",
-    start_with_tick_enabled=True,  # Also forces bCanEverTick=true
-    tick_interval=0.1,             # 10 ticks per second (0 = every frame)
-    compile=True,
-    save=False
-)
+blueprint_cmd(command="set_tick_settings", params={
+    "asset_path": "/Game/Blueprints/BP_Enemy",
+    "start_with_tick_enabled": True,  # Also forces bCanEverTick=true
+    "tick_interval": 0.1,             # 10 ticks per second (0 = every frame)
+    "compile": True,
+    "save": False
+})
 # Returns: asset_path, start_with_tick_enabled, can_ever_tick, tick_interval, compiled, saved
 ```
 
@@ -540,15 +539,15 @@ set_blueprint_tick_settings(
 Use `set_replication_settings` for Actor replication configuration instead of `set_class_defaults` — it validates Actor type and provides enum validation for dormancy.
 
 ```python
-set_blueprint_replication_settings(
-    asset_path="/Game/Blueprints/BP_NetworkedActor",
-    replicates=True,
-    replicate_movement=True,
-    net_dormancy="DORM_Awake",
-    net_use_owner_relevancy=False,
-    compile=True,
-    save=False
-)
+blueprint_cmd(command="set_replication_settings", params={
+    "asset_path": "/Game/Blueprints/BP_NetworkedActor",
+    "replicates": True,
+    "replicate_movement": True,
+    "net_dormancy": "DORM_Awake",
+    "net_use_owner_relevancy": False,
+    "compile": True,
+    "save": False
+})
 # Returns: asset_path, replicates, replicate_movement, net_dormancy, net_use_owner_relevancy, compiled, saved
 ```
 
@@ -738,32 +737,31 @@ reparent_blueprint(
 
 ## Level Blueprint Editing
 
-Level Script Blueprints live inside map packages — they are not standalone `.uasset` files and cannot be loaded directly by path. Use `get_level_blueprint` to get a synthetic asset path that works with all graph and bp commands.
+Level Script Blueprints live inside map packages — they are not standalone `.uasset` files and cannot be loaded directly by path. No tool builds their path; use the synthetic asset path `__level_bp__:<map_path>`, which works with the `graph_cmd` commands and `blueprint_cmd` commands below.
 
 ### Workflow
 
 ```python
-# 1. Get synthetic path for the Level Blueprint
-result = get_level_blueprint(map_path="/Game/Maps/TestMap")
-level_bp_path = result["asset_path"]  # "__level_bp__:/Game/Maps/TestMap"
+# 1. Build the synthetic path for the Level Blueprint
+level_bp_path = "__level_bp__:/Game/Maps/TestMap"
 
-# 2. Use it with any graph_* or bp.* command
-graph_list_graphs(asset_path=level_bp_path)
-graph_add_node(asset_path=level_bp_path, node_class="CustomEvent", ...)
-compile_blueprint(asset_path=level_bp_path)
+# 2. Use it with any graph_cmd or blueprint_cmd command
+graph_cmd(command="list_graphs", params={"asset_path": level_bp_path})
+graph_cmd(command="add_node", params={"asset_path": level_bp_path, "node_class": "CustomEvent", ...})
+blueprint_cmd(command="compile", params={"asset_path": level_bp_path})
 
-# 3. Persist changes — use save_level, NOT save_blueprint or bp.save
-save_level(map_path="/Game/Maps/TestMap")
+# 3. Persist changes — use save_level, NOT blueprint_cmd save
+level_cmd(command="save_level", params={"map_path": "/Game/Maps/TestMap"})
 ```
 
 **Supported commands with `__level_bp__:` paths:**
-- `graph_list_graphs`, `graph_get_subgraph`, `graph_get_subgraph`
-- `graph_add_node`, `graph_remove_node`
-- `graph_connect`, `graph_disconnect`, `graph_set_pin_value`
-- `graph_auto_layout`
-- `compile_blueprint`, and all other `bp.*` commands
+- `graph_cmd`: `list_graphs`, `get_subgraph`, `search_nodes`
+- `graph_cmd`: `add_node`, `remove_node`
+- `graph_cmd`: `connect`, `disconnect`, `set_pin_value`
+- `graph_cmd`: `auto_layout`
+- `blueprint_cmd`: `compile`, and the other read/inspect commands
 
-**bp.save / save_blueprint on a Level Blueprint path returns `LevelBlueprintSaveError`** — always use `save_level` instead.
+**`blueprint_cmd` `save` on a Level Blueprint path returns `LevelBlueprintSaveError`** — always use `level_cmd` `save_level` instead.
 
 ## MCP Benchmark Tests
 
@@ -801,7 +799,7 @@ Use these for class analysis, asset dependency checks, and impact assessment —
 - Use categories for variables (Gameplay, Config, State, etc.)
 - Expose only variables designers need to tune
 - Compile after structural changes to catch errors early
-- Always `save_blueprint` after modifications
+- Always `blueprint_cmd` `save` after modifications
 
 ## MANDATORY Pipeline — Compose for Creation, Guarded Patch for Existing Graph Logic
 
@@ -873,20 +871,20 @@ clean starting package; it happens only after a verified readback and is never i
 ## PROHIBITED Patterns
 
 ### For NEW Blueprints — individual tool calls are PROHIBITED:
-- `create_blueprint` — use `blueprint_compose` instead
-- `add_blueprint_variable` — include in composite spec
-- `add_blueprint_function` — include in composite spec
-- `graph_add_node` — include in composite spec
-- `graph_set_pin_value` — include in composite spec
-- `graph_connect` — include in composite spec
+- `blueprint_cmd` `create` — use `blueprint_compose` instead
+- `blueprint_cmd` `add_variable` — include in composite spec
+- `blueprint_cmd` `add_function` — include in composite spec
+- `graph_cmd` `add_node` — include in composite spec
+- `graph_cmd` `set_pin_value` — include in composite spec
+- `graph_cmd` `connect` — include in composite spec
 
 ### For EXISTING Blueprints — the removed legacy update batch is PROHIBITED:
 - Never send an existing-asset graph change as `mode="update"` carrying `nodes`/`connections`
   without a `patch`: that route was removed and is refused
-- Calling `graph_add_node` or `graph_connect` N times in separate tool calls to reach the same result
+- Calling `graph_cmd` `add_node` or `connect` N times in separate tool calls to reach the same result
   — build one intent and preview/apply it
-- Calling `graph_remove_node` N times for bulk deletion — whole function/macro/extra-event/custom-event removal uses `blueprint_cmd(command="remove_graph")`; supported node-island changes still use one reviewed patch
-- Never substitute `core_cmd(batch)` composition, `editor_cmd(run_python)` or raw add/connect calls
+- Calling `graph_cmd` `remove_node` N times for bulk deletion — whole function/macro/extra-event/custom-event removal uses `blueprint_cmd(command="remove_graph")`; supported node-island changes still use one reviewed patch
+- Never substitute `core_cmd(batch_query)` composition, `editor_cmd(run_python)` or raw add/connect calls
   when `graph.apply_patch` is missing or refuses: stop and report the blocker
 
 **Individual tools ARE allowed for single-step changes** (e.g., renaming one variable, connecting one existing wire, setting one pin value) where the overhead of a reviewed patch is not justified.

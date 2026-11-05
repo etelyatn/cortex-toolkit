@@ -21,7 +21,7 @@ Most domain commands are accessed through **router tools** (`{domain}_cmd`). A f
 | **Composite tool** | `{domain}_compose(spec)` | `blueprint_compose(...)` for new asset creation |
 | **Standalone tool** (Reflect, some Editor/QA) | Direct function call | `query_class_hierarchy(root="AActor")` |
 
-Router commands use **bare names** — e.g., `get_info`, `create`, `list` (NOT `get_blueprint_info`, `unknown_blueprint_command`).
+Router commands use **bare names** — e.g., `get_info`, `create`, `list`. Never prefix them with the domain or the old wrapper style.
 
 **When in doubt:** Use the router tool `{domain}_cmd` with the bare command name from the lists below.
 
@@ -48,7 +48,7 @@ instead of being silently dropped. Known divergences:
 | `blueprint.get_class_defaults` | `asset_path`, `properties`, `blueprint_path`, `include_values`, `include_members`, `discovery_offset`, `discovery_limit` | `changed_only` |
 | `blueprint.set_class_defaults` | `asset_path`, `properties`, `compile`, `save`, `expected_fingerprint`, `items`, `blueprint_path` | `echo` |
 | `editor.get_recent_logs` | `severity`, `since_seconds`, `since_cursor`, `category` | `until_cursor`, `limit`, `count_only` |
-| `core.get_capabilities` | — | Python-only `detail` (`names` default / `full`) |
+| `get_capabilities` | — | Python-only `detail` (`names` default / `full`) |
 
 `get_capabilities` also differs the other way: the Python router adds a **Python-only** `detail`
 parameter (`names|full`, default `names`) that is validated and stripped before the native call — the
@@ -177,8 +177,7 @@ Do not conflate them:
 - `refresh_cache` — clear all cached MCP responses
 - `schema_status` — check if `.cortex/schema/` exists, per-domain freshness and version (no editor required)
 - `get_operation_schema` — live editor construction contract for one command (`domain`, `command`); returns `source`, `editor_instance_id`, `plugin_build_id`, `router`, `domain`, `command`, and `params`. A capabilities cache never proves a command is executable.
-- `batch` — execute multiple commands sequentially with `$ref` resolution; see `resources/batch-pipeline-guide.md`
-- `batch_query` — run multiple commands in one round-trip; requires exactly one non-empty `commands` or `steps` array and accepts `stop_on_error`, `rollback_on_error`, and `verify_rollback`. The latter two publish graph-rollback metadata only; actual rollback behavior depends on the editor implementation.
+- `batch_query` — the MCP-facing batch: run multiple commands in one round-trip with `$ref` resolution (see `resources/batch-pipeline-guide.md`); the router forwards it to the editor's native `batch` command, which `core_cmd` does not expose under that name. Requires exactly one non-empty `commands` or `steps` array and accepts `stop_on_error`, `rollback_on_error`, and `verify_rollback`. The latter two publish graph-rollback metadata only; actual rollback behavior depends on the editor implementation.
 - `switch_editor` — select target editor by PID or index when multiple editors are running
 - `shutdown` — graceful editor shutdown
 
@@ -222,6 +221,8 @@ Manage asset lifecycle. All commands accept a single path, a list of paths, or g
 - **CurveTables:** `list_curve_tables`, `get_curve_table`, `update_curve_table_row`
 - **StringTables:** `list_string_tables`, `get_translations`, `set_translation`, `update_string_table`
 - **Search:** `search_assets`
+
+`get_struct_schema` accepts a struct short name, the `F`-toggled name, or an object path (`/Script/Module.FMyStruct`, or a `/Game/...` user struct asset path).
 
 For large or repeatable data migrations, use raw export commands for large reads, `export_schema_json` for offline validation inputs, `compare_data_json` for exported-snapshot review, and `apply_import_ops_json` for the guarded write phase. Small targeted edits should still use direct mutation commands.
 
@@ -389,14 +390,20 @@ it. Reachable from both `data_cmd` and `core_cmd`.
 
 - **Assets:** `create`, `list`, `get_info`, `delete`, `duplicate`, `compile`, `save`, `rename`, `reparent`
 
+`list` takes `path`, `type` and `exclude_types`. `type` selects one family and `exclude_types` (array) removes families; they combine and are case-insensitive. Vocabulary, in classifier precedence: `Interface`, `FunctionLibrary`, `MacroLibrary`, `AnimBlueprint`, `EditorUtility`, `Widget`, `Component`, `Actor`, `Object` (any other resolved UObject parent), `Unknown` (parent unresolvable). An unknown value is refused with `INVALID_FIELD` listing the vocabulary. Rows carry `type`, `asset_class`, `parent_class` (the immediate parent; for a Blueprint parent, its asset name without `_C`), `parent_class_path`, and `native_parent_class`. The `blueprints` array pages through the Python `limit`/`cursor` mechanism below. `get_info` and `analyze_for_migration` report the same `type` vocabulary.
+
 `get_info` accepts an optional `compact` boolean parameter, **default `true`**. In compact mode, empty `inputs`/`outputs` arrays and the `source` field are omitted from the functions list — this mostly reduces noise from inherited functions. Pass `compact: false` when you need to distinguish `"blueprint"` vs `"inherited"` sources or verify full parameter signatures (e.g., during BP→C++ migration analysis).
 - **Structure:** `add_variable`, `remove_variable`, `add_function`, `get_class_defaults`, `set_class_defaults`, `configure_timeline`, `set_component_defaults`, `add_scs_component`, `remove_scs_component`, `rename_scs_component`
 - **Class Settings:** `add_interface`, `remove_interface`, `set_tick_settings`, `set_replication_settings`
 - **Migration:** `analyze_for_migration`, `cleanup_migration`, `remove_scs_component`, `rename_scs_component`, `recompile_dependents`, `fixup_redirectors`, `compare_blueprints`
 - **Graph maintenance:** `delete_orphaned_nodes`, `remove_graph`, `search`
 
+`graph_metrics` (read-only; `asset_path`, optional `thresholds` `{max_nodes_per_entry: 10, max_nodes_per_blueprint: 30}`) measures only logic that can run. An **entry** is a node with an exec output and no exec input (events, custom/bound/input events, Enhanced Input and debug-key nodes, function entries, in event and function graphs, including interface graphs; AnimGraphs are skipped). A function entry is always live; other entries are live only when an exec output is linked. A **functional node** is reachable from a live entry by exec flow plus the backward data closure, excluding the entry, `FunctionResult`, comments and reroutes; macro instances and collapsed nodes count as the functional nodes of their inner graph. The response has `has_tick` (true only for a live Tick), `totals` (`functional_nodes`, `unreachable_nodes`, `ghost_entries`, `entries`), `entries` (`graph`, `name`, `kind`, `node_id`, `live`, `functional_nodes`, `conditionals`, `variable_gets`, `max_getter_fanout`), `unreachable` (per graph, up to 50 node ids), `ghost_entries`, `thresholds`, and `violations` (`scope` entry or blueprint, with `limit`). Non-live entries report `functional_nodes: 0`. An oversized response is refused; use `analyze_for_migration` with `sections: ["complexity_metrics"]` for a bounded summary.
+
+`analyze_for_migration` takes an optional `sections` array; omitted or empty means all. The identity fields (`name`, `asset_path`, `type`, `parent_class`, `native_parent_class`, `parent_class_path`) are always present. Valid sections: `is_compiled`, `variables`, `functions`, `scs_components`, `scs_collisions`, `dynamic_components`, `graphs`, `per_graph_elements`, `latent_nodes`, `timelines`, `event_dispatchers`, `interfaces_implemented`, `input_bindings`, `construction_script`, `widgets`, `named_slots`, `widget_animations`, `widget_bindings`, `referenced_user_types`, `cdo_overrides`, `instanced_subobjects`, `widget_dependencies`, `entity_summary`, `complexity_metrics`. An unknown name is refused with `INVALID_FIELD` before any output, and an oversized unselected analysis is refused with a suggestion to pass `sections`. `compare_blueprints` takes `sections` from `variables`, `functions`, `components`, `cdo`. On plugin builds that predate the #119 fix a Widget Blueprint can report an empty `widgets` array; read the tree with `umg_cmd(command="get_tree")` instead.
+
 `remove_graph` deletes a whole function, macro, extra event graph, or custom event through `blueprint_cmd(command="remove_graph")`; it is not `graph.apply_patch` or `blueprint_compose`. It requires strict boolean `dry_run`, `compile`, and `save`; optional strict `cascade_exec_chain` defaults to `false`. Preview (`dry_run=true`, `save=false`) returns `fingerprint_before` and `validation_hash`; apply requires both as `expected_fingerprint` and `expected_validation_hash`. `compile=false` never saves, and `save=true` requires `compile=true` and a clean starting package; EventGraph and ConstructionScript are protected. Full semantics: [CortexBlueprint system reference](https://github.com/etelyatn/CortexSandbox/blob/main/docs/systems/cortex-blueprint.md#guarded-graph-removal).
-- **Level Blueprint:** Use `get_level_blueprint(map_path)` (standalone tool) to get a synthetic path, then use `graph_cmd` commands. Save with `level_cmd(command="save_level")`, not `blueprint_cmd(command="save")`.
+- **Level Blueprint:** No tool builds its path. Use the synthetic asset path `__level_bp__:<map_path>` (for example `__level_bp__:/Game/Maps/TestMap`) with `graph_cmd` commands. Save with `level_cmd(command="save_level")`, not `blueprint_cmd(command="save")`.
 
 ### Class default reads and writes
 
@@ -439,7 +446,7 @@ always echoed atomically, never as leaf paths.
 
 ## Graph (`graph_cmd`)
 
-- `list_graphs`, `list_nodes`, `get_node`, `search_nodes`, `describe_node`, `add_node`, `remove_node`, `connect`, `disconnect`, `set_pin_value`, `auto_layout`, `get_authoring_context`, `apply_patch`
+- `list_graphs`, `get_subgraph`, `search_nodes`, `trace_exec`, `trace_dataflow`, `list_event_handlers`, `find_event_handler`, `find_function_calls`, `describe_node`, `add_node`, `remove_node`, `connect`, `disconnect`, `set_pin_value`, `auto_layout`, `get_authoring_context`, `apply_patch`
 - `set_pin_value`: use `value` for non-text pins and literal-only simple values; use structured `text` for `FText` pins, especially StringTable-backed text. `value` and `text` are mutually exclusive.
 
 Use `describe_node` before raw `add_node` authoring to inspect the accepted class, parameters, and pins. Correct an invalid request before attempting the mutation. Invoke it as `graph.describe_node` through `graph_cmd`.
@@ -467,6 +474,12 @@ required compile/readback and explicit save remain mandatory; this is not arbitr
 entries also include `owning_interface`. Delegate graphs are readable but not mutable
 through generic graph commands.
 
+`list_graphs` accepts `include_subgraphs`; collapsed and macro subgraphs then appear with their `subgraph_path`.
+
+`search_nodes` filters are all optional: `node_class`, `function_name`, `display_name`, `graph_name`, `subgraph_path`, `compact`. With no filter it returns every node (compact rows) in the selected scope, which is the paged node inventory. `graph_name` restricts to one graph (with `subgraph_path` for a subgraph); without it every graph is searched. `node_class` is case-insensitive and matches the node's class or any superclass name (a leading `U` is optional), so `K2Node` returns every K2 node; a trailing `*` is a prefix match on the runtime class name. Rows are in `results`, paged by the Python `limit` (1–200) and `cursor` mechanism.
+
+`get_subgraph` takes `graph_name`, `subgraph_path`, `node_ids`, `include_edges`. A response over the 40,000-character ceiling is refused instead of shortened: select fewer `node_ids` or pass `include_edges: false`.
+
 Generic read commands resolve graphs by name: if names collide across categories they resolve the
 first match, so prefer unique names. Authoring does not rely on that resolution — a patch target is a
 `graph_ref` carrying a canonical `graph_guid` (plus an optional `subgraph_path`) taken from
@@ -476,19 +489,18 @@ first match, so prefer unique names. Authoring does not rely on that resolution 
 
 The response reports eligible `node_count`, `graphs_processed`, actual `changed_node_count`, and `unchanged`. A repeated unchanged layout does not dirty the asset. Layout never saves implicitly: use explicit asset persistence after inspection. Read graph/node data with `compact: false` to verify positions, and inspect the actual Blueprint Editor surface; a success response alone is not visual or save/reload proof.
 
-### Compact Serialization (default for read commands)
+### Compact Serialization (default for node reads)
 
-`list_nodes`, `get_node`, and `search_nodes` accept an optional `compact` boolean parameter, **default `true`**. Compact mode strips fields AI agents rarely need, reducing response size by ~25-35% on typical graphs.
+`search_nodes` and `get_subgraph` serialize nodes compactly by default. `search_nodes` declares an optional `compact` boolean; `get_subgraph` reads the same `compact` flag in the native handler although it is not listed among its declared params. Compact mode strips fields AI agents rarely need, reducing response size on typical graphs.
 
 | Command | `compact=true` strips |
 |---------|----------------------|
-| `list_nodes` | `position` object, `node_class` (duplicate of `class`), `pin_count` |
-| `get_node` | `position`, `node_class`, hidden pins with no connections/defaults, `is_connected: false`, empty `default_value` |
 | `search_nodes` | `node_class` (duplicate of `class`) — no positions in search results to begin with |
+| `get_subgraph` | `position`, `node_class`, `pin_count`, hidden pins with no connections/defaults, `is_connected: false`, empty `default_value` |
 
-**Pin skip predicate** (`get_node` only): a pin is excluded only when ALL of `bHidden`, no `LinkedTo`, empty `DefaultValue`, empty `DefaultTextValue`, AND `DefaultObject == nullptr`. Hidden class-reference pins with meaningful defaults are preserved.
+**Pin skip predicate** (`get_subgraph` only): a pin is excluded only when ALL of `bHidden`, no `LinkedTo`, empty `DefaultValue`, empty `DefaultTextValue`, AND `DefaultObject == nullptr`. Hidden class-reference pins with meaningful defaults are preserved.
 
-**Pass `compact: false` when:**
+**Pass `compact: false` on `get_subgraph` when:**
 - Debugging visual layout (need `position` x/y)
 - Inspecting every hidden pin (e.g., tunnel boundaries, world-context pins)
 - Generating C++ from a BP graph (migration correctness — Ground Truth Table needs full fidelity)

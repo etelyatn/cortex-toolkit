@@ -58,10 +58,10 @@ Use `material_instance_compose` for any material instances requested.
 The following tools MUST NOT be called when creating a new material from scratch:
 
 - `create_material` — use `material_compose` instead
-- `add_material_node` — nodes go in the `material_compose` spec
+- `material_cmd` `add_node` — nodes go in the `material_compose` spec
 - `set_node_property` — properties go in the `material_compose` spec
-- `connect_material_nodes` — connections go in the `material_compose` spec
-- `material_auto_layout` — `material_compose` runs auto-layout automatically
+- `material_cmd` `connect` — connections go in the `material_compose` spec
+- `material_cmd` `auto_layout` — `material_compose` runs auto-layout automatically
 
 These tools are ONLY for modifying existing materials that were already created.
 
@@ -99,7 +99,7 @@ These tools are ONLY for modifying existing materials that were already created.
 - MaterialResult: `"BaseColor"`, `"Metallic"`, `"Roughness"`, `"Normal"`, `"EmissiveColor"`, `"Specular"`, `"Opacity"`, `"OpacityMask"`, `"WorldPositionOffset"`, `"AmbientOcclusion"`
 
 ### Discovering pins at runtime
-Use `get_material_node_pins` to query actual pin names on any node. This is the definitive way to discover available pins and see what's currently connected.
+Use `material_cmd` `get_node_pins` to query actual pin names on any node. This is the definitive way to discover available pins and see what's currently connected.
 
 ## Material Tools
 
@@ -109,7 +109,7 @@ Use `get_material_node_pins` to query actual pin names on any node. This is the 
 
 **Parameters:** `list_parameters`, `get_parameter`, `set_parameter`, `set_parameters`, `reset_parameter`
 
-**Graph (modify existing only):** `list_nodes`, `get_node`, `get_node_pins`, `add_node`, `remove_node`, `list_connections`, `connect`, `disconnect`, `set_node_property`, `set_material_node_property`, `auto_layout`
+**Graph (modify existing only):** `list_nodes`, `get_node`, `get_node_pins`, `add_node`, `remove_node`, `list_connections`, `connect`, `disconnect`, `set_node_property`, `auto_layout`
 
 `get_node` accepts an optional `properties` selector (array of non-empty property names). Omitted/empty
 returns every editable property; a selected read keys `properties` by the requested selector and
@@ -174,18 +174,18 @@ set_material_property("/Game/Materials/M_Glass", "BlendMode", "BLEND_Translucent
 |------|--------|--------------------|
 | `set_material_property` | UMaterial and owned reflected subobjects | MaterialDomain, BlendMode, TwoSided, EditorOnlyData.OpacityMask.UseConstant |
 | `set_material_input` | Serialized MaterialResult input | use_constant, typed constant, output_index, mask/mask_r/mask_g/mask_b/mask_a |
-| `set_material_node_property` | Expression node in graph | ParameterName, DefaultValue, Texture, SceneTextureId, SamplerType |
+| `set_node_property` | Expression node in graph | ParameterName, DefaultValue, Texture, SceneTextureId, SamplerType |
 
 ### Node Enum/Byte Properties
 
-`set_material_node_property` supports FByteProperty and FEnumProperty on expression nodes. Pass the UE enum string or integer value:
+`set_node_property` supports FByteProperty and FEnumProperty on expression nodes. Pass the UE enum string or integer value:
 
 ```python
 # SceneTexture post-process input
-set_material_node_property("/Game/Materials/M_PP", "Expr_0", "SceneTextureId", "PPI_PostProcessInput0")
+material_cmd(command="set_node_property", params={"asset_path": "/Game/Materials/M_PP", "node_id": "Expr_0", "property_name": "SceneTextureId", "value": "PPI_PostProcessInput0"})
 
 # Sampler type
-set_material_node_property("/Game/Materials/M_Mat", "Expr_1", "SamplerType", "SAMPLERTYPE_Color")
+material_cmd(command="set_node_property", params={"asset_path": "/Game/Materials/M_Mat", "node_id": "Expr_1", "property_name": "SamplerType", "value": "SAMPLERTYPE_Color"})
 ```
 
 ## Instance Hierarchy Guidelines
@@ -276,7 +276,7 @@ Pin names are passed to C++ as strings — the C++ layer does name-to-index look
 **Editing existing materials (adding/removing nodes or connections):**
 - After completing **structural** edits (`add_node`, `remove_node`, `connect`, `disconnect`), ask the user ONCE:
   "The material graph has been updated. Would you like me to reformat the node layout?"
-- If yes: call `material_auto_layout`
+- If yes: call `material_cmd` `auto_layout`
 - If no: leave nodes where they are
 - Do NOT ask after non-structural edits (`set_node_property`)
 - After completing all structural edits for the current user request, ask once. Do not ask again for the same request
@@ -297,7 +297,7 @@ Use these for class analysis, asset dependency checks, and impact assessment —
 ## MCP Benchmark Tests
 
 Material domain has benchmark coverage in `Plugins/UnrealCortex/MCP/tests/`:
-- **TCP E2E** (`test_material_composites_e2e.py`): Material property setters (`set_material_property`), enum alias support, `set_material_node_property` for byte/enum properties
+- **TCP E2E** (`test_material_composites_e2e.py`): Material property setters (`set_material_property`), enum alias support, `set_node_property` for byte/enum properties
 - **Composites** (`test_material_composites.py`): `material_compose` workflows, node/connection validation, failure recovery, auto-cleanup
 - **Scenarios** (`test_mcp_scenarios.py`): Material Create benchmark check (create graph, create instance, set parameter)
 - **Enum aliases** (`test_material_enum_aliases.py`): Pretty name to UE reflection name mapping
@@ -314,7 +314,7 @@ Reference these tests when extending Material MCP tools or debugging integration
 
 When adding 2+ nodes, properties, or connections to an existing material, you MUST use the batch pipeline — NOT sequential individual tool calls.
 
-Use `core_cmd(batch)` with `stop_on_error: true` and `$ref` wiring. See `resources/batch-pipeline-guide.md` for full syntax.
+Use `core_cmd(batch_query)` with `stop_on_error: true` and `$ref` wiring. See `resources/batch-pipeline-guide.md` for full syntax.
 
 **Example — add two nodes and connect them to an existing material:**
 ```json
@@ -331,7 +331,7 @@ Use `core_cmd(batch)` with `stop_on_error: true` and `$ref` wiring. See `resourc
 }
 ```
 
-**Prohibited:** Calling `add_material_node`, `set_node_property`, or `connect_material_nodes` N times in separate tool calls for multi-step modifications. Always batch them.
+**Prohibited:** Calling `add_node`, `set_node_property`, or `connect` through `material_cmd` N times in separate tool calls for multi-step modifications. Always batch them.
 
 **Individual tools ARE allowed** for a single isolated change (e.g., set one property on one existing node).
 

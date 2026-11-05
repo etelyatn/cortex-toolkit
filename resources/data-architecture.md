@@ -207,16 +207,16 @@ Reference these tests when extending Data MCP tools or debugging integration iss
 
 ## CortexReflect Tools
 
-Use these for class analysis, asset dependency checks, and impact assessment — works on any asset type: Blueprints, Widget BPs, materials, DataTables, DataAssets, level assets, and C++ classes:
+Use these for class analysis, asset dependency checks, and impact assessment — works on any asset type: Blueprints, Widget BPs, materials, DataTables, DataAssets, level assets, and C++ classes. `query_class_context`, `query_class_hierarchy`, `impact_analysis` and `query_usages` are standalone MCP tools, not `reflect_cmd` commands:
 
-| Command | Use when |
+| Tool / command | Use when |
 |---------|----------|
-| `reflect_cmd(command="query_class_context")` | Inspect a struct or class — properties, parent, children — before designing around it |
-| `reflect_cmd(command="query_class_hierarchy")` | Discover all DataAsset or struct subclasses in the project |
+| `query_class_context` | Inspect a struct or class — properties, parent, children — before designing around it |
+| `query_class_hierarchy` | Discover all DataAsset or struct subclasses in the project |
 | `reflect_cmd(command="get_dependencies")` | What does a DataAsset or DataTable import? |
 | `reflect_cmd(command="get_referencers")` | What references this data asset? Before renaming or deleting a table or struct |
-| `reflect_cmd(command="impact_analysis")` | Blast radius before changing a row struct used across many tables |
-| `reflect_cmd(command="query_usages")` | Where is a data property or function referenced in Blueprint graphs |
+| `impact_analysis` | Blast radius before changing a row struct used across many tables |
+| `query_usages` | Where is a data property or function referenced in Blueprint graphs |
 
 ## Naming Conventions
 

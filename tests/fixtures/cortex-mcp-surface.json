@@ -171,7 +171,8 @@
       "remove_animation_binding",
       "set_property_binding",
       "ensure_animation_binding",
-      "set_animation_property_track"
+      "set_animation_property_track",
+      "rename_widget"
     ],
     "material": [
       "list_materials",
@@ -312,7 +313,8 @@
       "find_usages",
       "search",
       "get_dependencies",
-      "get_referencers"
+      "get_referencers",
+      "blueprint_catalog"
     ],
     "statetree": [
       "list_assets",
