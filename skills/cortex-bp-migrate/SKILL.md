@@ -82,20 +82,20 @@ If `--resume` flag OR `docs/migration/blueprint-to-cpp/{BP_Name}/migration-plan.
 
 1. Read `migration-plan.md` YAML frontmatter
 2. Parse: `status`, `current_task`, `failed_task`, `phase`, `blueprint_hash`, `mode`, `goal`, `redesign_tier`, `asset_persisted`, `backup_path`
-3. **Route by mode:** If frontmatter contains `mode: fast`, resume within the Fast Mode Pipeline. Route to Stage A (if `phase: analyze` or `phase: plan`), Stage B (if `phase: execute`), or Stage C (if `phase: finalize`) based on `phase` and `current_task`. If `mode` is absent or not `fast`, resume in the full pipeline.
+3. **Route by mode:** If frontmatter contains `mode: fast`, resume within the Fast Mode Pipeline. Route by `phase`, never by task number: Stage A (if `phase: analyze` or `phase: plan`), Stage B (if `phase: execute`), or Stage C (if `phase: finalize`). If `mode` is absent or not `fast`, resume in the full pipeline. Fast mode numbers its tasks 1-14 and full mode 1-21, so a task number is only meaningful together with `mode`; the readback below decides what is done.
 4. **Route by goal:** If frontmatter contains `goal: redesign`, use redesign-aware analysis path in ANALYZE (extended presentation, tier classification, responsibility groups).
 5. Verify workspace state. The asset itself is the source of truth, not `current_task`:
    - Do files in `files_created` actually exist on disk? Does the C++ class exist and compile?
-   - Does the backup snapshot exist? `blueprint_cmd(command="get_info", params={"asset_path": "<backup_path>"})`
-   - **Read the live Blueprint back.** Call `blueprint_cmd(command="analyze_for_migration", params={"asset_path": "/Game/.../BP_Name", "sections": ["variables", "functions", "scs_components", "graphs"]})`. `parent_class_path` equal to the target class means Task 10 (reparent) is done; each migrated variable, function and SCS component already absent means its cleanup task is done. When the frontmatter disagrees with the readback, trust the readback and correct the frontmatter.
-   - **Unsaved edits do not survive an editor crash or restart.** If `asset_persisted: false`, the asset on disk is the pristine original, so every EXECUTE task is pending regardless of `current_task`. If `asset_persisted: true`, the disk holds the partially migrated state and the readback decides which tasks remain.
-   - **Staleness:** compare `blueprint_hash` only while the original is untouched (`current_task` < 10, `asset_persisted: false`). After the first mutation the hash no longer applies; the backup snapshot is the reference.
-   - **Backup missing:** before Task 10, recreate it (Task 4). After Task 10 never recreate it, because it would snapshot the half-migrated asset; record "no backup" and verify against the Pre-Migration Snapshot only.
+   - Does the backup snapshot exist on disk? `core_cmd(command="asset_fingerprint", params={"paths": ["<backup_path>"]})` — a non-empty `package_saved_hash` means the file is saved; an empty hash means the backup was never saved (it is lost if the editor restarted).
+   - **Read the live Blueprint back.** Call `blueprint_cmd(command="analyze_for_migration", params={"asset_path": "/Game/.../BP_Name", "sections": ["variables", "functions", "scs_components", "graphs"]})`. `parent_class_path` equal to the target class means the reparent step is done; each migrated variable, function and SCS component already absent means its cleanup step is done. When the frontmatter disagrees with the readback, trust the readback and correct the frontmatter.
+   - **Unsaved edits do not survive an editor crash or restart.** If `asset_persisted: false`, the asset on disk is the pristine original, so every EXECUTE step is pending regardless of `current_task`. If `asset_persisted: true`, the disk holds the partially migrated state and the readback decides which steps remain.
+   - **Staleness:** compare `blueprint_hash` only while the original is untouched (readback still shows the original parent and every migrated member, and `asset_persisted: false`). After the first mutation the hash no longer applies; the backup snapshot is the reference.
+   - **Backup missing:** while the original is untouched, recreate and save it (the backup task). Once the reparent is done never recreate it, because it would snapshot the half-migrated asset; record "no backup" and verify against the Pre-Migration Snapshot only.
    - **Plans written by the retired rename-swap flow:** if a `BP_Name_Migration` asset exists, stop. That copy is not part of this flow and must not be renamed over the original. Ask the user to delete it (`blueprint_cmd(command="delete", ...)` after confirmation) and restart the migration from Task 1.
 6. Present resume point to user with options: [resume / rewind / restart]
    - **resume:** continue at the first task whose readback is not satisfied.
-   - **rewind:** run Rollback (see In-Place Migration Model), keep the backup and C++ files, re-run from Task 9.
-   - **restart:** run Rollback, delete the backup and the files in `files_created`, re-run from Task 1.
+   - **rewind:** run Rollback (see In-Place Migration Model), keep the backup and C++ files, and re-run from the first EXECUTE step (collision validation).
+   - **restart:** run Rollback, delete the backup and the files in `files_created`, and re-run from the first PREPARE step.
 7. On resume: create TaskCreate entries for remaining tasks, continue from saved phase
 
 ## Pre-Flight Check (Task 0)
@@ -175,24 +175,26 @@ All phases execute in the current session. There is no per-phase model selection
 
 The original Blueprint is migrated **in place**. It keeps its asset path, so every referencer (level placements, child Blueprints, variables and casts in other Blueprints) stays attached. There is no migrated copy and nothing is renamed.
 
-**Backup snapshot.** Before the first mutation, Task 4 creates `BP_Name_Backup` next to the original:
+**Backup snapshot.** Before the first mutation, the backup task (Task 4 in full mode, Fast-2 in fast mode) creates `BP_Name_Backup` next to the original, saves it, and verifies it on disk:
 
 ```
 blueprint_cmd(command="duplicate", params={"asset_path": "/Game/.../BP_Name", "new_name": "BP_Name_Backup", "new_path": "/Game/..."})
+blueprint_cmd(command="save", params={"asset_path": "<backup_path>"})
+core_cmd(command="asset_fingerprint", params={"paths": ["<backup_path>"]})
 ```
 
-A duplicate has no referencers. The backup is a **read-only snapshot**: never edit, compile-fix, reparent or open it for editing. It exists for comparison (`compare_blueprints`, `analyze_for_migration`) and as a keepsake. It is NOT a restore source.
+`duplicate` only marks the new package dirty, and the editor restart in PREPARE runs with `save=no`, so the backup must be saved immediately or it is lost. Saving it is safe because the backup has no referencers and is not the migrated asset. `backup_verified` is true only when `asset_fingerprint` returns a non-empty `package_saved_hash` (computed from the saved file) and `is_dirty: false` for the backup; record `backup_path` and `backup_verified` in the frontmatter. A duplicate has no referencers. The backup is a **read-only snapshot**: never edit, compile-fix, reparent or open it for editing. It exists for comparison (`compare_blueprints`, `analyze_for_migration`) and as a keepsake. It is NOT a restore source.
 
 **Why there is no rename swap.** Earlier versions renamed the original to `_Backup`, fixed redirectors, then renamed a migrated copy to the original name. `IAssetTools::RenameAssets` runs `FAssetRenameManager::FixReferencesAndRename` (Engine/Source/Developer/AssetTools/Private/AssetRenameManager.cpp), which loads and rewrites every referencer to the renamed path. Renaming the original to `_Backup` therefore moves every referencer onto the backup, and the later rename of the copy leaves them there. Never rename or move the original and never promote a copy over it. Renaming the *backup* (the archive option) is safe only because the backup has no referencers.
 
 **Persistence points.** Mutations stay in memory (dirty package) until something writes the package, and every write persists the whole package including earlier staged edits:
 
 - `blueprint_cmd` `rename_scs_component` and `remove_scs_component` always write the package (they have no `save` option).
-- `blueprint_cmd` `cleanup_migration` writes the package unless `save` is `false`. **Always pass `"save": false`** during EXECUTE.
-- `blueprint_cmd` `save` (Task 19) and `core_cmd` `save_asset` write the package.
+- `blueprint_cmd` `cleanup_migration` and `set_class_defaults` write the package unless `save` is `false`. **Always pass `"save": false`** to them during EXECUTE.
+- `blueprint_cmd` `save` (the finalize save task) and `core_cmd` `save_asset` write the package.
 - `blueprint_cmd` `reparent`, `compile`, `remove_variable` and `delete_orphaned_nodes`, and `graph_cmd` `disconnect`, only stage changes.
 
-The first call that writes the package sets `asset_persisted: true` in the frontmatter, in the same edit that records the task.
+Set `asset_persisted: true` in the frontmatter **before** issuing any call that can write the package (every call in the first three bullets, including `cleanup_migration` or `set_class_defaults` when `save` is not explicitly `false`), in the same edit that records the task. The flag is conservative: if the call then fails or is interrupted, it stays `true` and rollback uses source control.
 
 **Rollback** (abort, rewind, restart, or a failed verification the user does not want to fix):
 
@@ -200,9 +202,9 @@ The first call that writes the package sets `asset_persisted: true` in the front
 2. `asset_persisted: true` — the file on disk changed. Restore the `.uasset` from source control, using the checkpoint recorded in Task 4 (`git_commit_before`). Show the user the exact command (for example `git restore --source <git_commit_before> -- Content/.../BP_Name.uasset`, or `p4 revert`) and run it only after explicit confirmation, then call `core_cmd` `reload_asset`. The backup is not a restore source.
 3. Abort and restart only: delete the files in `files_created` and revert `files_modified` (rebuild afterwards if the editor is still running the C++ class). Rewind keeps the C++ files.
 4. Abort and restart only: delete the backup, `blueprint_cmd(command="delete", params={"asset_path": "<backup_path>"})`. Rewind keeps the backup.
-5. Update frontmatter `status: failed` (abort), `status: planned` with `current_task` reset to 8 (rewind), or restart from a fresh plan (restart), and `asset_persisted: false`.
+5. Update frontmatter `status: failed` (abort), `status: planned` with `phase: execute` and `current_task` set to the last PREPARE task (rewind), or restart from a fresh plan (restart), and `asset_persisted: false`.
 
-Because rollback of a persisted asset depends on source control, Task 4 refuses to start while the `.uasset` has uncommitted changes unless the user explicitly accepts running without a revert path.
+Because rollback of a persisted asset depends on source control, the backup task refuses to start while the `.uasset` has uncommitted changes unless the user explicitly accepts running without a revert path.
 
 ## Implementation Notes
 
@@ -312,7 +314,7 @@ Fast mode uses a compressed task list. Tasks that are skipped or combined:
 | Task 1: Verify MCP | Keep (already done in A1) | — |
 | Task 2: Staleness check | **Skip** | We just analyzed it |
 | Task 3: Build.cs check | **Check only** (no pause on success) | Auto-add modules if needed |
-| Task 4: Backup snapshot | Keep | Required (comparison + checkpoint) |
+| Task 4: Backup snapshot (duplicate + save + on-disk check) | Keep | Required (comparison + checkpoint) |
 | Task 5-6: Write C++ | Keep | Required |
 | Task 7: Build | Keep | Required |
 | Task 8: Restart editor | Keep (automated) | Required |
@@ -336,7 +338,7 @@ Fast mode uses a compressed task list. Tasks that are skipped or combined:
 ```
 ── PREPARE ──────────────────────────────────
 Fast-1: Check/update Build.cs (auto, no pause)
-Fast-2: Backup snapshot + source-control checkpoint
+Fast-2: Backup snapshot (duplicate, save, on-disk check) + source-control checkpoint
 Fast-3: Write C++ header
 Fast-4: Write C++ source
 Fast-5: Build project
@@ -638,8 +640,9 @@ tasks: []               # Populated in PLAN stage
 files_created: []
 files_modified: []
 editor_restarts: 0
-asset_persisted: false     # true once any call has written the package to disk (see In-Place Migration Model)
-backup_path: null          # /Game/.../{BP_Name}_Backup, set by Task 4
+asset_persisted: false     # set true BEFORE any call that can write the package (see In-Place Migration Model); never reset except by rollback
+backup_path: null          # /Game/.../{BP_Name}_Backup, set by the backup task (Task 4 / Fast-2)
+backup_verified: false     # true once asset_fingerprint shows a saved, clean backup
 complexity: {simple or complex}  # From Migration Complexity Classification
 goal: {performance|reusability|complexity|cleanup|redesign}
 redesign_tier: null       # Set to 1, 2, or 3 when goal is "redesign"
@@ -806,7 +809,7 @@ Before generating any C++ code, inspect the actual Blueprint graph nodes to unde
 **Reading graphs.** Use these reads, in this order, for every graph the approved design migrates:
 
 1. `graph_cmd(command="list_graphs", params={"asset_path": "...", "include_subgraphs": true})` — every user-visible graph with its `kind` (`ubergraph`, `function`, `macro`, `delegate` or `interface_impl`; interface implementations also carry `owning_interface`). Collapsed and macro subgraphs appear with their `subgraph_path`. Macro, delegate-signature and collapsed graphs are listed and readable; none is skipped. Delegate graphs are readable but **not mutable**, so reading them never implies an edit.
-2. Node inventory: `graph_cmd(command="search_nodes", params={"asset_path": "...", "graph_name": "..."})` with **no filter**. With no filter it returns every node (compact rows) of that graph in `results`; pass `limit` (1–200) and follow `_pagination.next_cursor` until `has_more` is false, so the inventory is complete. Add `subgraph_path` to descend into a collapsed or macro subgraph. Optional filters (`node_class`, `function_name`, `display_name`) only narrow this inventory; they are never a substitute for it.
+2. Node inventory: `graph_cmd(command="search_nodes", params={"asset_path": "...", "graph_name": "..."})` with **no filter**. With no filter it returns every node (compact rows) of that graph in `results`; add `limit` (1–200) to the first call, then pass `cursor` set to `_pagination.next_cursor` until `has_more` is false, so the inventory is complete. Add `subgraph_path` to descend into a collapsed or macro subgraph. Optional filters (`node_class`, `function_name`, `display_name`) only narrow this inventory; they are never a substitute for it.
 3. Full pin detail: `graph_cmd(command="get_subgraph", params={"asset_path": "...", "graph_name": "...", "node_ids": [...], "include_edges": true, "compact": false})` for the nodes that carry logic. **Pass `compact: false`**: the default compact output omits positions, `node_class`, `pin_count` and hidden pins with no connections or defaults. The Ground Truth Table depends on full fidelity — missing hidden pins means missing world-context arguments in generated C++, and missing `position`/`pin_count` breaks downstream completeness checks. `compact` is read by the native handler but is not listed in the declared params; if the live `core_cmd` `get_operation_schema` for `graph.get_subgraph` rejects it, report that as a blocker instead of working from compact output. A response over the 40,000-character ceiling is refused, not shortened: request fewer `node_ids` per call (batches of the logic nodes) until every node is read.
 4. Logic budget: `blueprint_cmd(command="graph_metrics", ...)` (already run in Step 2) tells which entries are live and which nodes are unreachable. Do not translate unreachable nodes or ghost entries; list them as "dead logic, not migrated".
 
@@ -973,7 +976,7 @@ Generate a numbered task list following this template. Adapt task count based on
 Task 1: Verify MCP connection
 Task 2: Verify Blueprint staleness
 Task 3: Verify/update Build.cs dependencies
-Task 4: Create backup snapshot (BP_Name_Backup) and record the source-control checkpoint
+Task 4: Create backup snapshot (BP_Name_Backup), save it, verify it on disk, and record the source-control checkpoint
 Task 5: Write C++ header
 Task 6: Write C++ source
 Task 7: Build project (outside editor)
@@ -1199,7 +1202,7 @@ Fallback: If any inline check fails unexpectedly, run the full verifier phase in
 
 **Pre-phase:** Run Pre-Phase Verification (see above).
 
-**Persistence during EXECUTE:** every mutating call runs on the original `BP_Name` and must stage, not save. Pass `"save": false` to `cleanup_migration` (and `remove_graph`, `apply_patch`). `rename_scs_component` and `remove_scs_component` always write the package; before the first such call and before any other write, set `asset_persisted: true` in the frontmatter in the same edit that records the task. See In-Place Migration Model.
+**Persistence during EXECUTE:** every mutating call runs on the original `BP_Name` and must stage, not save. Pass `"save": false` to `cleanup_migration`, `set_class_defaults`, `remove_graph` and `apply_patch`. `rename_scs_component` and `remove_scs_component` always write the package. Set `asset_persisted: true` in the frontmatter BEFORE any call that can write the package, in the same edit that records the task. See In-Place Migration Model.
 
 Follow `resources/bp-migration-executor.md`, using:
 - Relevant sections of migration-plan.md (see Guide Scoping in Implementation Notes)
@@ -1251,7 +1254,7 @@ When a phase is interrupted by an editor crash:
    c. Verify class registration via `reflect.class_detail` (if post-build)
    d. Increment `editor_restarts` in frontmatter. If >= 3, hard stop (see Pipeline-Wide Restart Limit)
 3. **Re-verify asset state before resuming** (critical for mid-EXECUTE/FINALIZE crashes). A crash drops every unsaved edit, so read the live asset back instead of trusting `current_task`:
-   - If crash during EXECUTE: `blueprint_cmd(command="analyze_for_migration", params={"asset_path": "/Game/.../BP_Name", "sections": ["variables", "functions", "scs_components", "graphs"]})` — with `asset_persisted: false` the asset is the pristine original and the whole EXECUTE phase re-runs; with `asset_persisted: true` it holds the partial migration and the readback says which cleanup tasks remain. Also confirm the backup still exists (`blueprint_cmd` `get_info` on `backup_path`).
+   - If crash during EXECUTE: `blueprint_cmd(command="analyze_for_migration", params={"asset_path": "/Game/.../BP_Name", "sections": ["variables", "functions", "scs_components", "graphs"]})` — with `asset_persisted: false` the asset is the pristine original and the whole EXECUTE phase re-runs; with `asset_persisted: true` it holds the partial migration and the readback says which cleanup tasks remain. Also confirm the backup is still saved (`core_cmd` `asset_fingerprint` on `backup_path`: non-empty `package_saved_hash`).
    - If crash during VERIFY: VERIFY is read-only — safe to retry from `failed_task` without re-verification of asset state
    - If crash during FINALIZE: read the asset back the same way. If the save (Task 19) did not complete, the package on disk is the previous persisted state; redo Task 18 (idempotent) and Task 19. Re-running Task 20 is always safe.
    - The frontmatter `failed_task` indicates where to resume, but the orchestrator must confirm preconditions of that task still hold

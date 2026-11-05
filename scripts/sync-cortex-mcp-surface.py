@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -34,31 +35,46 @@ CORE_FACADE_COMMANDS = [
     "batch_query",
 ]
 
-# Native modules whose command handlers declare each domain's commands.
-MODULE_DOMAINS = {
-    "CortexCore": "core",
-    "CortexData": "data",
-    "CortexGraph": "graph",
-    "CortexBlueprint": "blueprint",
-    "CortexUMG": "umg",
-    "CortexMaterial": "material",
-    "CortexEditor": "editor",
-    "CortexLevel": "level",
-    "CortexQA": "qa",
-    "CortexReflect": "reflect",
-    "CortexStateTree": "statetree",
-}
+DOMAIN_REGISTRATION = re.compile(r'RegisterDomain\(\s*TEXT\("(\w+)"\)\s*,\s*TEXT\("([^"]*)"\)\s*,\s*TEXT\("([^"]*)"\)')
 DECLARATION = re.compile(r'FCortexCommandInfo\s*\{\s*TEXT\("(\w+)"\)')
 
 
-def declared_commands(plugin: Path) -> dict[str, set[str]]:
-    """Commands the native handlers declare. The capabilities fixture can lag these."""
-    declared: dict[str, set[str]] = {}
-    for module, domain in MODULE_DOMAINS.items():
-        for handler in (plugin / "Source" / module / "Private").glob("*CommandHandler.cpp"):
-            text = handler.read_text(encoding="utf-8", errors="ignore")
-            declared.setdefault(domain, set()).update(DECLARATION.findall(text))
-    return declared
+def declared_domains(plugin: Path) -> dict[str, dict]:
+    """Every domain a native module registers, with the commands its handlers declare.
+
+    Derived from Source/Cortex*/Private (the module's RegisterDomain call plus its
+    *CommandHandler.cpp declarations), so a new module cannot be forgotten here. The
+    committed capabilities fixture can lag these (it lacked the anim domain,
+    umg.rename_widget and reflect.blueprint_catalog).
+    """
+    domains: dict[str, dict] = {}
+    for private in sorted((plugin / "Source").glob("Cortex*/Private")):
+        registration = None
+        for module_file in private.glob("*Module.cpp"):
+            registration = DOMAIN_REGISTRATION.search(module_file.read_text(encoding="utf-8", errors="ignore"))
+            if registration:
+                break
+        if registration is None:
+            continue
+        names: set[str] = set()
+        for handler in private.glob("*CommandHandler.cpp"):
+            names.update(DECLARATION.findall(handler.read_text(encoding="utf-8", errors="ignore")))
+        domain, title, version = registration.groups()
+        domains[domain] = {"name": title, "version": version, "commands": sorted(names)}
+    return domains
+
+
+def provenance(plugin: Path) -> dict:
+    """Plugin commit, branch and whether the surface-bearing paths have uncommitted edits."""
+
+    def git(*args: str) -> str:
+        return subprocess.run(["git", "-C", str(plugin), *args], capture_output=True, text=True, check=True).stdout.strip()
+
+    return {
+        "plugin_commit": git("rev-parse", "HEAD"),
+        "plugin_branch": git("rev-parse", "--abbrev-ref", "HEAD"),
+        "plugin_dirty": bool(git("status", "--porcelain", "--", "Source", "MCP/src", "MCP/tests")),
+    }
 
 
 class _RecordingServer:
@@ -85,6 +101,18 @@ def generate(plugin: Path) -> dict:
     sys.path.insert(0, str(mcp_root))
     from cortex_mcp import server  # registers against a real FastMCP; no editor required
 
+    declared = declared_domains(plugin)
+    # Register against the fixture plus every natively declared domain, so optional domains
+    # (anim, gen) get their router tools exactly as a live editor would publish them.
+    for domain, body in declared.items():
+        capabilities["domains"].setdefault(
+            domain,
+            {
+                "name": body["name"],
+                "version": body["version"],
+                "commands": [{"name": name, "description": "", "params": []} for name in body["commands"]],
+            },
+        )
     server.load_capabilities_cache = lambda: capabilities
     recorder = _RecordingServer()
     server._register_explicit_tools(recorder, server._connection)
@@ -99,16 +127,16 @@ def generate(plugin: Path) -> dict:
         domain: [command["name"] for command in body["commands"]]
         for domain, body in capabilities["domains"].items()
     }
-    # The committed capabilities fixture can lag the handlers (umg.rename_widget, reflect.blueprint_catalog
-    # were declared but missing). A command a handler declares is live, so add it after the fixture names.
-    for domain, names in declared_commands(plugin).items():
+    # A command a handler declares is live even when the fixture lags: add it after the fixture names.
+    for domain, body in declared.items():
         known = domains.setdefault(domain, [])
-        known.extend(sorted(names - set(known)))
+        known.extend(sorted(set(body["commands"]) - set(known)))
     # A legacy wrapper whose name is also a live routed command (e.g. add_widget) is not
     # provably stale from the name alone, so the lint must not flag it.
     legacy -= {command for names in domains.values() for command in names}
     legacy -= set(CORE_FACADE_COMMANDS)
     return {
+        "provenance": provenance(plugin),
         "exposed_tools": exposed,
         "domains": domains,
         "facade_commands": {"core": list(CORE_FACADE_COMMANDS)},
@@ -122,14 +150,18 @@ def main() -> int:
     parser.add_argument("--check", action="store_true", help="compare with the committed snapshot instead of writing")
     args = parser.parse_args()
 
-    text = json.dumps(generate(args.plugin.resolve()), indent=2) + "\n"
+    snapshot = generate(args.plugin.resolve())
     if args.check:
-        current = SNAPSHOT.read_text(encoding="utf-8") if SNAPSHOT.is_file() else ""
-        if current.replace("\r\n", "\n") != text:
+        current = json.loads(SNAPSHOT.read_text(encoding="utf-8")) if SNAPSHOT.is_file() else {}
+        # Provenance records where the snapshot came from; it never counts as drift.
+        current.pop("provenance", None)
+        fresh = {key: value for key, value in snapshot.items() if key != "provenance"}
+        if current != fresh:
             print(f"DRIFT: {SNAPSHOT} differs from the plugin surface; rerun without --check.", file=sys.stderr)
             return 1
         print("surface snapshot is current")
         return 0
+    text = json.dumps(snapshot, indent=2) + "\n"
     SNAPSHOT.parent.mkdir(parents=True, exist_ok=True)
     SNAPSHOT.write_text(text, encoding="utf-8", newline="\n")
     print(f"wrote {SNAPSHOT}")

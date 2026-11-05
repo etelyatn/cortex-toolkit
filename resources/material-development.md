@@ -317,6 +317,8 @@ When adding 2+ nodes, properties, or connections to an existing material, you MU
 Use `core_cmd(batch_query)` with `stop_on_error: true` and `$ref` wiring. See `resources/batch-pipeline-guide.md` for full syntax.
 
 **Example — add two nodes and connect them to an existing material:**
+Raw native `batch` envelope; through MCP send the same `params` with `core_cmd(command="batch_query", ...)` (see `resources/batch-pipeline-guide.md`).
+
 ```json
 {
   "command": "batch",

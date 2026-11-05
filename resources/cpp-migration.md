@@ -2,7 +2,7 @@
 
 Decision framework and patterns for migrating Blueprint logic to C++.
 
-**Coding Standards:** All generated C++ must follow `docs/unreal-coding-standards.md` (Epic standard — PascalCase, Allman braces, tabs, UPROPERTY/UFUNCTION on everything Blueprint-visible).
+**Coding Standards:** All generated C++ must follow the consuming project's coding standards, if present (for example its own `docs/unreal-coding-standards.md`), otherwise Epic's Unreal standard — PascalCase, Allman braces, tabs, UPROPERTY/UFUNCTION on everything Blueprint-visible.
 
 ## When to Migrate
 
@@ -566,18 +566,9 @@ Cross-reference these against Blueprint analysis results during migration. Flag 
 
 This table grows over time. Add entries when deprecated APIs are encountered during migrations.
 
-## Report Schema (V5/V6)
+## Migration Artifacts
 
-For full JSON schema and section contracts, use:
-- `docs/plans/2026-02-26-bp-migration-v5-design.md` (Section 2)
-
-Section files:
-- `01-pre-migration.json`
-- `02-migration-plan.json`
-- `03-node-mapping.json`
-- `04-verification.json`
-- `05-rollback.json`
-- `report.json` (merged final output)
+A migration produces at most three files under `docs/migration/blueprint-to-cpp/{BP_Name}/`: `migration-plan.md` (the primary document, updated through every stage), `design.md` (optional, complex migrations only) and `rollback.json` (machine-readable restore information). Do not write per-section JSON files (`01-pre-migration.json` through `05-rollback.json`) or a merged `report.json`; all of that data lives inline in `migration-plan.md`. The artifact rules in the cortex-bp-migrate skill are authoritative.
 
 ## V5 Verification Checklist
 

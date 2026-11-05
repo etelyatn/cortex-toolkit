@@ -343,6 +343,8 @@ The batch command order matters for updates. Place operations in **dependency-sa
 
 #### Example: Add Parameter to Existing Material
 
+Raw native `batch` envelope; through MCP send the same `params` with `core_cmd(command="batch_query", ...)` (see `resources/batch-pipeline-guide.md`).
+
 ```json
 {
   "command": "batch",
@@ -381,6 +383,8 @@ The batch command order matters for updates. Place operations in **dependency-sa
 ```
 
 #### Example: Add Circular Mask to Existing Material
+
+Raw native `batch` envelope; through MCP send the same `params` with `core_cmd(command="batch_query", ...)` (see `resources/batch-pipeline-guide.md`).
 
 ```json
 {"command": "batch", "params": {"stop_on_error": true, "commands": [

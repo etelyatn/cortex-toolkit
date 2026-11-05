@@ -39,7 +39,7 @@ Delete orphaned nodes that remain in the migrated graphs, then prove the Bluepri
 4. Compile: `blueprint_cmd(command="compile", params={"asset_path": "/Game/.../BP_Name"})` — must be 0 errors, 0 warnings.
 5. Only proceed to Task 19 after the compile succeeds.
 
-**Do NOT save before compiling.** A save of a Blueprint with errors persists corrupt state to disk.
+**Do NOT save before the clean compile in this task.** Earlier EXECUTE calls (`remove_scs_component`, `rename_scs_component`) may already have persisted a compiled state; this task must not add a save of a Blueprint that has compile errors, because that would persist corrupt state to disk.
 
 **Order of deletion does not matter.** The underlying `RemoveNode` API breaks all pin links before destroying each node — no dangling references.
 
@@ -49,8 +49,8 @@ Delete orphaned nodes that remain in the migrated graphs, then prove the Bluepri
 
 1. Call `blueprint_cmd(command="save", params={"asset_path": "/Game/.../BP_Name"})` on the migrated Blueprint (still at its original path)
 2. Verify response: `saved: true`
-3. Tell the orchestrator the asset is now persisted so it sets `asset_persisted: true` if an earlier task did not already.
-4. Rationale: unsaved changes are lost if the editor closes unexpectedly. Save immediately after a successful compile so the clean state is durable. This is the only deliberate save in the pipeline.
+3. `asset_persisted` must already be `true` before this call; the orchestrator sets it before the save task starts.
+4. Rationale: unsaved changes are lost if the editor closes unexpectedly. Save immediately after a successful compile so the clean state is durable. This is the only deliberate save of the migrated Blueprint in the pipeline (SCS removals may already have written the package).
 
 ### Task: Recompile Dependent Blueprints (Task 20)
 
@@ -60,8 +60,8 @@ Reparenting changes the class layout, so Blueprints that depend on `BP_Name` can
 2. Verify every dependent reports `status: success`. A dependent that fails is reported to the orchestrator with its `errors`; do not edit it.
 3. There is no redirector cleanup: nothing was renamed, so no redirector was created by this migration. Do not call `fixup_redirectors` here.
 
-**Backup verification (before returning):** confirm the snapshot exists with `blueprint_cmd(command="get_info", params={"asset_path": "<backup_path>"})`.
-- If it exists: record `"backup_verified": true` and `"backup_path": "/Game/.../BP_Name_Backup"` in `rollback.json`.
+**Backup verification (before returning):** confirm the snapshot is saved on disk with `core_cmd(command="asset_fingerprint", params={"paths": ["<backup_path>"]})` — a non-empty `package_saved_hash` and `is_dirty: false`. `get_info` alone is not enough: it also succeeds for an unsaved in-memory asset.
+- If saved: record `"backup_verified": true` and `"backup_path": "/Game/.../BP_Name_Backup"` in `rollback.json`.
 - If it does not exist: record `"backup_verified": false` and report WARNING to the orchestrator: "No backup snapshot exists. The original can only be recovered from source control." The orchestrator informs the user before COMPLETE.
 
 **Backup status reporting:** report `backup_verified` to the orchestrator in your return summary. The orchestrator handles the user-facing backup menu (Keep/Archive/Delete) — do NOT present backup options to the user from this phase, and never modify the backup.

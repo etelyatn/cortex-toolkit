@@ -711,7 +711,7 @@ blueprint_cmd(command="get_info") → graph_cmd(command="list_graphs") → graph
 
 `blueprint_cmd(command="graph_metrics")` reports the live logic budget per entry (functional nodes, conditionals, unreachable nodes) and is the complexity signal to prefer over raw node counts.
 
-**`get_info` limitation:** The `functions` array only includes functions *defined on the Blueprint itself* unless `include_inherited` is true. Inherited C++ functions (e.g. from a custom C++ base class) are **not listed** by default. To discover inherited C++ functions, pass `include_inherited: true` or use `query_class_detail(class_name, detail="full")` from the Reflect domain instead.
+**`get_info` limitation:** `include_inherited` defaults to `true`, so the `functions` array also lists inherited C++ functions (with `source: "inherited"` unless `compact` drops the field). Pass `include_inherited: false` to list only functions defined on the Blueprint itself. For the full signature of an inherited C++ function use `query_class_detail(class_name, detail="full")` from the Reflect domain.
 
 ### Compact Serialization — Default Behavior of Graph Reads
 

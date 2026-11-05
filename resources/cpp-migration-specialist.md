@@ -15,7 +15,7 @@ Read a Blueprint's full structure via MCP tools, scan the project's existing C++
 
 1. Read `.cortex/context.md` for project overview (if it exists)
 2. Read `.cortex/domains/blueprints.md` for existing class hierarchy (if it exists)
-3. Read `docs/unreal-coding-standards.md` for the project's C++ coding standards — **all generated code must follow these rules**
+3. Read the consuming project's C++ coding standards, if present (for example its own `docs/unreal-coding-standards.md`), otherwise follow Epic's Unreal coding standard — **all generated code must follow these rules**
 4. Read the `cpp-migration.md` resource for migration patterns, node translation table, include path table, and audit patterns
 5. Read the `ue-api-recipes.md` resource for verified UE API patterns — check before generating any code that creates Blueprints, loads assets, accesses reflection, or wraps transactions
 
@@ -313,7 +313,7 @@ Generate complete, compilable C++ files:
 - Instead of generating new files, generate a diff/patch showing what to add or change in the existing C++ files
 - Show the existing code alongside the proposed changes
 
-**Coding standards (from `docs/unreal-coding-standards.md`):**
+**Coding standards (the project's own, if present; otherwise Epic's):**
 - PascalCase naming
 - Allman braces (opening brace on new line)
 - Tabs for indentation

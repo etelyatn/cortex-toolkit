@@ -1,5 +1,11 @@
 {
+  "provenance": {
+    "plugin_commit": "6ff5688de473cabf9d1330aac18f922241e51ac7",
+    "plugin_branch": "fix/issue119-migration-analysis",
+    "plugin_dirty": false
+  },
   "exposed_tools": [
+    "anim_cmd",
     "apply_import_ops_json",
     "blueprint_cmd",
     "blueprint_compose",
@@ -7,6 +13,8 @@
     "data_cmd",
     "editor_cmd",
     "editor_restart",
+    "gen_cmd",
+    "gen_compose",
     "get_dependencies",
     "get_referencers",
     "graph_cmd",
@@ -334,6 +342,43 @@
       "add_transition",
       "remove_transition",
       "set_transition_properties"
+    ],
+    "anim": [
+      "add_curve",
+      "add_montage_section",
+      "add_named_notify",
+      "add_notify",
+      "add_notify_state",
+      "add_socket",
+      "get_animbp_info",
+      "get_montage_info",
+      "get_sequence_info",
+      "get_skeleton_info",
+      "list_assets",
+      "remove_curve",
+      "remove_montage_section",
+      "remove_named_notify",
+      "remove_notify",
+      "remove_notify_state",
+      "remove_socket",
+      "set_curve_keys",
+      "set_socket_transform",
+      "update_montage_section",
+      "update_named_notify",
+      "update_notify",
+      "update_notify_state"
+    ],
+    "gen": [
+      "cancel_job",
+      "delete_job",
+      "get_config",
+      "job_status",
+      "list_jobs",
+      "list_providers",
+      "retry_import",
+      "start_image",
+      "start_mesh",
+      "start_texturing"
     ]
   },
   "facade_commands": {
