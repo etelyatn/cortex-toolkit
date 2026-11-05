@@ -1,6 +1,6 @@
 {
   "provenance": {
-    "plugin_commit": "a7df63c2f2acd3f6758b63737e411208044cb18d",
+    "plugin_commit": "08e6ed6806b54451b14df8772e9720217e7148de",
     "plugin_branch": "fix/issue119-migration-analysis",
     "plugin_dirty": false
   },
@@ -50,6 +50,7 @@
       "open_asset",
       "close_asset",
       "reload_asset",
+      "list_redirectors",
       "asset_fingerprint",
       "delete_asset",
       "delete_folder",
@@ -145,6 +146,10 @@
       "compare_blueprints",
       "delete_orphaned_nodes",
       "search",
+      "export_text_inventory",
+      "export_snapshot",
+      "compare_snapshots",
+      "compile_all",
       "reparent",
       "add_interface",
       "remove_interface",
@@ -178,9 +183,12 @@
       "list_animation_bindings",
       "remove_animation_binding",
       "set_property_binding",
+      "rename_widget",
       "ensure_animation_binding",
       "set_animation_property_track",
-      "rename_widget"
+      "check_native_bindings",
+      "get_embedded_widget_values",
+      "get_commonui_info"
     ],
     "material": [
       "list_materials",
@@ -251,7 +259,9 @@
       "get_recent_logs",
       "set_time_dilation",
       "get_editor_state",
-      "get_world_info"
+      "get_world_info",
+      "live_coding_compile",
+      "wait_ready"
     ],
     "level": [
       "spawn_actor",
@@ -295,7 +305,8 @@
       "open_level",
       "duplicate_level",
       "rename_level",
-      "delete_level"
+      "delete_level",
+      "export_class_instances"
     ],
     "qa": [
       "observe_state",

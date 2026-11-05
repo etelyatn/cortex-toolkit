@@ -220,6 +220,31 @@ returns a refusal envelope (`_error="RESPONSE_TOO_LARGE"`, `reader_complete=fals
 `total_widgets`, `returned_widgets`, `max_response_chars`) with no `root` — narrow the request instead
 of retrying.
 
+Non-`names_only` nodes also carry `is_variable` and, when the widget has a slot, a `slot` summary (`type` plus layout values, same shape as `get_widget`). This makes nodes larger, so fewer fit one response — prefer `names_only=true` with `depth`/`max_nodes` on big screens and `get_widget` for detail.
+
+### Widget Migration Workflow (BindWidget, Rename, Values, Text, CommonUI)
+
+```python
+# 1. Report BindWidget/BindWidgetAnim mismatches against the native base (or a prospective one before reparenting)
+umg_cmd(command="check_native_bindings", params={"asset_path": "/Game/UI/WBP_Popup", "native_class": "/Script/MyGame.MyPopupBase"})
+# statuses: matched | type_mismatch | missing | optional_missing | not_transient ; has_errors gates the migration
+
+# 2. Capture before-state: embedded per-instance values and the FText inventory
+umg_cmd(command="get_embedded_widget_values", params={"asset_path": "/Game/UI/WBP_Popup"})  # is_override per property
+blueprint_cmd(command="export_text_inventory", params={"asset_path": "/Game/UI/WBP_Popup", "out_path": "Saved/Inventories/WBP_Popup.before.json"})
+
+# 3. Reference-aware rename: preview first (dry_run defaults to true for scope=dependents)
+plan = umg_cmd(command="rename_widget", params={"asset_path": "/Game/UI/WBP_Popup", "widget_name": "BtnOk", "new_name": "ConfirmButton",
+                                               "expected_fingerprint": tree_fingerprint, "scope": "dependents"})
+# review plan["assets"] (role/fingerprint/references) and plan["conflicts"], then apply with the exact per-asset fingerprints
+umg_cmd(command="rename_widget", params={"asset_path": "/Game/UI/WBP_Popup", "widget_name": "BtnOk", "new_name": "ConfirmButton",
+                                        "expected_fingerprint": tree_fingerprint, "scope": "dependents", "dry_run": False,
+                                        "expected_dependent_fingerprints": {a["asset_path"]: a["fingerprint"] for a in plan["assets"] if a["role"] != "owner" and a["references"]}})
+# no compile, no save: compile and save every touched package explicitly, then repeat steps 1-2 and diff
+```
+
+Notes: the `expected_dependent_fingerprints` key set must equal the plan's modified dependents exactly (assets with references; unreferenced assets are reported but not modified) — missing, extra or stale entries refuse with `STALE_PRECONDITION` before any mutation. Inline text inventories are limited to 40000 characters; larger Blueprints need `out_path` (under `Saved`, `Content` or `Config`). `get_commonui_info` returns `commonui_available: false` (no error) when the CommonUI plugin is not loaded.
+
 ### Inspect Widget Layout (get_widget)
 
 `get_widget` returns full widget state including render transform and slot details:
