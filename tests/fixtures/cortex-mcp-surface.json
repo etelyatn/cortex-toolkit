@@ -1959,7 +1959,128 @@
       ]
     },
     "anim": {
+      "list_assets": [
+        "asset_type",
+        "limit",
+        "path",
+        "query"
+      ],
+      "get_sequence_info": [
+        "asset_path",
+        "curve_key_limit",
+        "curve_limit",
+        "curve_name",
+        "include_curve_keys",
+        "notify_limit",
+        "sync_marker_limit"
+      ],
+      "get_montage_info": [
+        "asset_path",
+        "notify_limit",
+        "section_limit",
+        "segment_limit",
+        "slot_limit"
+      ],
+      "get_skeleton_info": [
+        "asset_path",
+        "bone_limit",
+        "socket_limit",
+        "virtual_bone_limit"
+      ],
+      "get_animbp_info": [
+        "asset_path",
+        "state_limit",
+        "state_machine_limit",
+        "transition_limit"
+      ],
+      "add_named_notify": [
+        "asset_path",
+        "dry_run",
+        "expected_fingerprint",
+        "notify_name",
+        "save",
+        "time"
+      ],
+      "update_named_notify": [
+        "asset_path",
+        "dry_run",
+        "expected_fingerprint",
+        "new_name",
+        "new_time",
+        "save",
+        "selector"
+      ],
+      "remove_named_notify": [
+        "asset_path",
+        "dry_run",
+        "expected_fingerprint",
+        "save",
+        "selector"
+      ],
+      "update_notify_state": [
+        "asset_path",
+        "dry_run",
+        "expected_fingerprint",
+        "new_duration",
+        "new_start_time",
+        "save",
+        "selector"
+      ],
+      "remove_notify_state": [
+        "asset_path",
+        "dry_run",
+        "expected_fingerprint",
+        "save",
+        "selector"
+      ],
+      "add_notify_state": [
+        "asset_path",
+        "dry_run",
+        "duration",
+        "expected_fingerprint",
+        "notify_state_class_path",
+        "save",
+        "start_time"
+      ],
+      "add_notify": [
+        "asset_path",
+        "dry_run",
+        "expected_fingerprint",
+        "notify_class_path",
+        "save",
+        "time"
+      ],
+      "update_notify": [
+        "asset_path",
+        "dry_run",
+        "expected_fingerprint",
+        "new_time",
+        "save",
+        "selector"
+      ],
+      "remove_notify": [
+        "asset_path",
+        "dry_run",
+        "expected_fingerprint",
+        "save",
+        "selector"
+      ],
       "add_curve": [
+        "asset_path",
+        "curve_name",
+        "dry_run",
+        "expected_fingerprint",
+        "save"
+      ],
+      "set_curve_keys": [
+        "asset_path",
+        "curve_name",
+        "dry_run",
+        "expected_fingerprint",
+        "keys",
+        "save"
+      ],
+      "remove_curve": [
         "asset_path",
         "curve_name",
         "dry_run",
@@ -1975,30 +2096,22 @@
         "save",
         "start_time"
       ],
-      "add_named_notify": [
+      "update_montage_section": [
         "asset_path",
         "dry_run",
         "expected_fingerprint",
-        "notify_name",
+        "new_name",
+        "new_next_section",
+        "new_start_time",
         "save",
-        "time"
+        "selector"
       ],
-      "add_notify": [
+      "remove_montage_section": [
         "asset_path",
         "dry_run",
         "expected_fingerprint",
-        "notify_class_path",
         "save",
-        "time"
-      ],
-      "add_notify_state": [
-        "asset_path",
-        "dry_run",
-        "duration",
-        "expected_fingerprint",
-        "notify_state_class_path",
-        "save",
-        "start_time"
+        "selector"
       ],
       "add_socket": [
         "asset_path",
@@ -2011,90 +2124,6 @@
         "scale",
         "socket_name"
       ],
-      "get_animbp_info": [
-        "asset_path",
-        "state_limit",
-        "state_machine_limit",
-        "transition_limit"
-      ],
-      "get_montage_info": [
-        "asset_path",
-        "notify_limit",
-        "section_limit",
-        "segment_limit",
-        "slot_limit"
-      ],
-      "get_sequence_info": [
-        "asset_path",
-        "curve_key_limit",
-        "curve_limit",
-        "curve_name",
-        "include_curve_keys",
-        "notify_limit",
-        "sync_marker_limit"
-      ],
-      "get_skeleton_info": [
-        "asset_path",
-        "bone_limit",
-        "socket_limit",
-        "virtual_bone_limit"
-      ],
-      "list_assets": [
-        "asset_type",
-        "limit",
-        "path",
-        "query"
-      ],
-      "remove_curve": [
-        "asset_path",
-        "curve_name",
-        "dry_run",
-        "expected_fingerprint",
-        "save"
-      ],
-      "remove_montage_section": [
-        "asset_path",
-        "dry_run",
-        "expected_fingerprint",
-        "save",
-        "selector"
-      ],
-      "remove_named_notify": [
-        "asset_path",
-        "dry_run",
-        "expected_fingerprint",
-        "save",
-        "selector"
-      ],
-      "remove_notify": [
-        "asset_path",
-        "dry_run",
-        "expected_fingerprint",
-        "save",
-        "selector"
-      ],
-      "remove_notify_state": [
-        "asset_path",
-        "dry_run",
-        "expected_fingerprint",
-        "save",
-        "selector"
-      ],
-      "remove_socket": [
-        "asset_path",
-        "dry_run",
-        "expected_fingerprint",
-        "save",
-        "selector"
-      ],
-      "set_curve_keys": [
-        "asset_path",
-        "curve_name",
-        "dry_run",
-        "expected_fingerprint",
-        "keys",
-        "save"
-      ],
       "set_socket_transform": [
         "asset_path",
         "dry_run",
@@ -2105,51 +2134,31 @@
         "scale",
         "selector"
       ],
-      "update_montage_section": [
+      "remove_socket": [
         "asset_path",
         "dry_run",
         "expected_fingerprint",
-        "new_name",
-        "new_next_section",
-        "new_start_time",
-        "save",
-        "selector"
-      ],
-      "update_named_notify": [
-        "asset_path",
-        "dry_run",
-        "expected_fingerprint",
-        "new_name",
-        "new_time",
-        "save",
-        "selector"
-      ],
-      "update_notify": [
-        "asset_path",
-        "dry_run",
-        "expected_fingerprint",
-        "new_time",
-        "save",
-        "selector"
-      ],
-      "update_notify_state": [
-        "asset_path",
-        "dry_run",
-        "expected_fingerprint",
-        "new_duration",
-        "new_start_time",
         "save",
         "selector"
       ]
     },
     "gen": {
-      "cancel_job": [
-        "job_id"
+      "start_mesh": [
+        "destination",
+        "prompt",
+        "provider",
+        "source_image_path"
       ],
-      "delete_job": [
-        "job_id"
+      "start_image": [
+        "prompt",
+        "provider"
       ],
-      "get_config": [],
+      "start_texturing": [
+        "destination",
+        "prompt",
+        "provider",
+        "source_model_path"
+      ],
       "job_status": [
         "job_id"
       ],
@@ -2158,34 +2167,104 @@
         "limit",
         "status"
       ],
-      "list_providers": [],
+      "cancel_job": [
+        "job_id"
+      ],
       "retry_import": [
         "job_id"
       ],
-      "start_image": [
-        "prompt",
-        "provider"
+      "list_providers": [],
+      "delete_job": [
+        "job_id"
       ],
-      "start_mesh": [
-        "destination",
-        "prompt",
-        "provider",
-        "source_image_path"
-      ],
-      "start_texturing": [
-        "destination",
-        "prompt",
-        "provider",
-        "source_model_path"
-      ]
+      "get_config": []
     }
   },
-  "python_owned_params": [
-    "limit",
-    "cursor",
-    "detail",
-    "dry_run"
-  ],
+  "python_owned_params": {
+    "blueprint.list": [
+      "cursor",
+      "limit"
+    ],
+    "blueprint.list_scs_components": [
+      "cursor",
+      "limit"
+    ],
+    "core.batch_query": [
+      "cursor",
+      "limit"
+    ],
+    "data.list_curve_tables": [
+      "cursor",
+      "limit"
+    ],
+    "data.list_data_assets": [
+      "cursor",
+      "limit"
+    ],
+    "data.list_datatables": [
+      "cursor",
+      "limit"
+    ],
+    "data.list_gameplay_tags": [
+      "cursor",
+      "limit"
+    ],
+    "data.list_string_tables": [
+      "cursor",
+      "limit"
+    ],
+    "graph.find_event_handler": [
+      "cursor",
+      "limit"
+    ],
+    "graph.find_function_calls": [
+      "cursor",
+      "limit"
+    ],
+    "graph.list_event_handlers": [
+      "cursor",
+      "limit"
+    ],
+    "graph.list_graphs": [
+      "cursor",
+      "limit"
+    ],
+    "graph.search_nodes": [
+      "cursor",
+      "limit"
+    ],
+    "level.find_actors": [
+      "cursor",
+      "limit"
+    ],
+    "level.list_actor_classes": [
+      "cursor",
+      "limit"
+    ],
+    "level.list_component_classes": [
+      "cursor",
+      "limit"
+    ],
+    "material.list_collections": [
+      "cursor",
+      "limit"
+    ],
+    "material.list_instances": [
+      "cursor",
+      "limit"
+    ],
+    "material.list_materials": [
+      "cursor",
+      "limit"
+    ],
+    "material.list_nodes": [
+      "cursor",
+      "limit"
+    ],
+    "core.get_capabilities": [
+      "detail"
+    ]
+  },
   "facade_commands": {
     "core": [
       "get_status",
@@ -2196,6 +2275,7 @@
       "batch_query"
     ]
   },
+  "fixture_only": {},
   "legacy_tools": [
     "add_blueprint_function",
     "add_blueprint_interface",

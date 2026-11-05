@@ -36,7 +36,10 @@ COMMAND_PARAMS: dict[str, dict[str, set[str]]] = {
     domain: {command: set(params) for command, params in commands.items()}
     for domain, commands in SURFACE.get("command_params", {}).items()
 }
-PYTHON_OWNED_PARAMS = set(SURFACE.get("python_owned_params", []))
+# Parameters the Python router owns, per qualified command (cache-owned pagination, capabilities `detail`).
+PYTHON_OWNED_PARAMS: dict[str, set[str]] = {
+    qualified: set(params) for qualified, params in SURFACE.get("python_owned_params", {}).items()
+}
 
 ROUTER_OPEN = re.compile(r"(?<![\w}>*])([a-z][a-z0-9]*)_cmd\(")
 ROUTER_NAME = re.compile(r"(?<![\w}>*<$])([a-z][a-z0-9]*)_cmd\b")
@@ -130,11 +133,13 @@ def params_literal_keys(body: str) -> list[str]:
 
 def check_params(domain: str, command: str, body: str, problems: list) -> None:
     declared = COMMAND_PARAMS.get(domain, {}).get(command)
-    if not declared:  # facade commands and commands that declare nothing cannot be checked
+    if declared is None:  # facade commands have no native contract to check against
         return
+    allowed = declared | PYTHON_OWNED_PARAMS.get(f"{domain}.{command}", set())
     for key in params_literal_keys(body):
-        if key not in declared and key not in PYTHON_OWNED_PARAMS and not key.startswith("_"):
-            problems.append((f"{domain}_cmd {command} param {key}", f"a declared param: {', '.join(sorted(declared))}"))
+        if key not in allowed and not key.startswith("_"):
+            expected = ", ".join(sorted(allowed)) or "no params"
+            problems.append((f"{domain}_cmd {command} param {key}", f"a declared param: {expected}"))
 
 
 def check_command(domain: str | None, command: str, problems: list) -> None:
@@ -264,6 +269,15 @@ def lint_line(text: str) -> list[tuple[str, str]]:
     return [(token, expected) for _, token, expected in lint_text(text)]
 
 
+def load_sync():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("sync_surface", ROOT / "scripts" / "sync-cortex-mcp-surface.py")
+    sync = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(sync)
+    return sync
+
+
 class CortexToolNameLint(unittest.TestCase):
     def test_documents_name_only_live_tools(self) -> None:
         failures: list[str] = []
@@ -370,6 +384,52 @@ class CortexToolNameLint(unittest.TestCase):
         shrunk = json.loads(json.dumps(SURFACE))
         shrunk["domains"]["graph"].remove("add_node")
         self.assertEqual(["graph.add_node"], sync.removed_names(SURFACE, shrunk))
+
+    def test_param_lint_is_command_specific(self) -> None:
+        # a strict mutation with no dry_run in its contract refuses it
+        self.assertTrue(lint_line(
+            'umg_cmd(command="set_size", params={"asset_path": "a", "widget_name": "w", "width": 100, "dry_run": true})'))
+        # a known zero-parameter command accepts no field, a documented empty params dict is fine
+        self.assertEqual(set(), COMMAND_PARAMS["reflect"]["find_broken_config_paths"])
+        self.assertTrue(lint_line('reflect_cmd(command="find_broken_config_paths", params={"bogus": 1})'))
+        self.assertEqual([], lint_line('reflect_cmd(command="find_broken_config_paths", params={})'))
+        # limit/cursor belong only to the paginated reads the Python router owns
+        self.assertEqual([], lint_line('graph_cmd(command="search_nodes", params={"asset_path": "a", "limit": 50})'))
+        self.assertTrue(lint_line('umg_cmd(command="set_size", params={"asset_path": "a", "limit": 5})'))
+        self.assertEqual([], lint_line('core_cmd(command="get_capabilities", params={"detail": "full"})'))
+        # a declared dry_run stays valid
+        self.assertEqual([], lint_line(
+            'umg_cmd(command="rename_widget", params={"asset_path": "a", "widget_name": "w", "new_name": "n", "dry_run": true})'))
+
+    def test_generation_prefers_native_declarations_over_stale_fixture(self) -> None:
+        sync = load_sync()
+        fixture = {"graph": {"commands": [
+            {"name": "add_node", "params": [{"name": "asset_path"}, {"name": "removed_param"}]},
+            {"name": "removed_command", "params": [{"name": "asset_path"}]},
+        ]}}
+        declared = {"graph": {"commands": {"add_node": {"asset_path"}, "new_command": set()}}}
+        domains, params, fixture_only = sync.reconcile_surface(fixture, declared)
+        self.assertEqual(["add_node", "new_command"], domains["graph"])
+        self.assertEqual({"add_node": ["asset_path"], "new_command": []}, params["graph"])
+        self.assertEqual({"graph": ["removed_command", "add_node param removed_param"]}, fixture_only)
+        # the committed snapshot still naming the dropped command/param is drift; the addition is not
+        committed = {"exposed_tools": [], "domains": {"graph": ["add_node", "removed_command"]},
+                     "facade_commands": {}, "command_params": {"graph": {"add_node": ["asset_path", "removed_param"]}}}
+        fresh = {"exposed_tools": [], "domains": domains, "facade_commands": {}, "command_params": params}
+        self.assertEqual(["graph.removed_command", "graph.add_node param removed_param"], sync.removed_names(committed, fresh))
+        # a domain the handlers do not declare keeps the fixture contract
+        domains, params, fixture_only = sync.reconcile_surface(fixture, {})
+        self.assertEqual(["add_node", "removed_command"], domains["graph"])
+        self.assertEqual({}, fixture_only)
+
+    def test_declared_params_cover_every_builder_form(self) -> None:
+        sync = load_sync()
+        text = (
+            '.Required(TEXT("a"), TEXT("string"), TEXT("d"))\n.Optional(\n TEXT("b"), TEXT("string"), TEXT("d"))'
+            '\n.Param(TEXT("c"), TEXT("string"), false, TEXT("d"))\n.OptionalBatchItems(TEXT("d"))'
+            '\n.OptionalExpectedFingerprint()\n.StrictParams()'
+        )
+        self.assertEqual({"a", "b", "c", "items", "expected_fingerprint"}, sync.declared_params(text))
 
 
 if __name__ == "__main__":
