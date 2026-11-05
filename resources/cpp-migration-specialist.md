@@ -83,24 +83,25 @@ Operations where NO other logic reads or reacts to the value:
 
 Widget Blueprint analysis requirements:
 - Read V4 typed arrays including `scs_components`, `dynamic_components`, `widgets`, `widget_animations`, `widget_bindings`, and `entity_summary`
-- Use `graph_logic_node_count` as a migration complexity signal in addition to total node count
+- Use `blueprint_cmd` `graph_metrics` (`totals.functional_nodes`, per-entry `functional_nodes`/`conditionals`, `unreachable`, `ghost_entries`) as a migration complexity signal in addition to total node count; unreachable nodes and unconnected entries are not logic to translate
 - Identify BindWidget candidates, animation usage, property bindings, named slots, and ListView entry widget metadata
 - Keep widget labels and localized templates in editable Blueprint FText defaults, preserving String Table identities/placeholders and verifying save/reload against the final native parent; native code retains state-based text selection.
 
 Gather complete information about the target Blueprint:
 
-1. **Get Blueprint info:** Call `get_blueprint_info` with `compact=false`
+1. **Get Blueprint info:** Call `blueprint_cmd(command="get_info", params={"asset_path": "...", "include_inherited": true, "compact": false})`
    - Captures: parent class, blueprint type, variables (with default values), functions (with full `inputs`/`outputs` and `source` field), components
    - **`compact=false` is REQUIRED** — migration must distinguish `source: "blueprint"` (functions to translate) from `source: "inherited"` (functions provided by the parent), and must see full parameter lists on inherited functions being overridden
-   - **Read `parent_class` — do NOT assume AActor or UUserWidget**
-2. **List all graphs:** Call `graph_list_graphs` with the asset path
-   - Captures: EventGraph, function graphs, macro graphs
-3. **Inspect each graph:** For each graph, call `graph_get_subgraph` with `compact=false`
-   - Captures: all nodes with types, positions, connections, pin values
-   - **`compact=false` is REQUIRED** — migration Ground Truth Table needs `position`, `pin_count`, and full `node_class` for faithful C++ generation
-4. **Deep inspect key nodes:** For complex nodes, call `graph_get_subgraph` with `compact=false`
+   - **Read `parent_class` — do NOT assume AActor or UUserWidget.** It is the immediate parent (without `_C`); `native_parent_class` is the first native ancestor.
+2. **List all graphs:** Call `graph_cmd(command="list_graphs", params={"asset_path": "...", "include_subgraphs": true})`
+   - Captures: EventGraph, function graphs, macro graphs, delegate-signature graphs and collapsed subgraphs (`kind`, `subgraph_path`). Delegate graphs are readable but not mutable.
+3. **Inventory each graph:** For each graph, call `graph_cmd(command="search_nodes", params={"asset_path": "...", "graph_name": "..."})` with no filter and follow the cursor until the inventory is complete
+   - Captures: every node with its class and display name (compact rows)
+4. **Inspect nodes:** Call `graph_cmd(command="get_subgraph", params={"asset_path": "...", "graph_name": "...", "node_ids": [...], "include_edges": true, "compact": false})` for nodes that carry logic
+   - Captures: types, positions, connections, pin values
+   - **`compact=false` is REQUIRED** — the Ground Truth Table needs `position`, `pin_count`, and full `node_class` for faithful C++ generation
    - Focus on: function calls, custom events, variable access, math operations
-   - **`compact=false` is REQUIRED** — hidden pins (world-context, self, class references) carry meaning that must survive into generated C++ (e.g., the world context object passed to latent functions)
+   - **`compact=false` is REQUIRED for hidden pins too** — hidden pins (world-context, self, class references) carry meaning that must survive into generated C++ (e.g., the world context object passed to latent functions)
 
 **Graph traversal rules:**
 - Walk execution pins (white wires) in order from event nodes to build sequential logic
@@ -361,7 +362,7 @@ Generate one `.h`/`.cpp` pair per target class. **All classes must go in the sam
 - Forward declarations used correctly (pointers only in .h)
 - Class hierarchy matches UE conventions (A prefix for Actors, U for UObjects, F for structs)
 - Constructor preserves native-owned gameplay defaults from BP Class Defaults; designer-owned visual defaults stay in the Blueprint.
-- Parent class matches what `get_blueprint_info` returned
+- Parent class matches what `blueprint_cmd` `get_info` returned
 
 #### Architecture Presentation (When Goal = "Redesign/restructure")
 

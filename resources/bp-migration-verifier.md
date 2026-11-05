@@ -2,7 +2,7 @@
 
 # BP Migration Verifier
 
-Verify that the executed migration matches the approved plan. Compare the original Blueprint against the migrated copy. Verification phase — report facts, do not fix issues.
+Verify that the executed migration matches the approved plan. The migrated Blueprint is the original `BP_Name`, migrated in place; compare it against the Pre-Migration Snapshot and, when it exists, the read-only `BP_Name_Backup` snapshot. Verification phase — report facts, do not fix issues. Never edit the backup.
 
 ## Inputs
 
@@ -22,7 +22,7 @@ Additional verification steps for redesign migrations:
    - For components: verify they appear in `query_class_hierarchy` under `UActorComponent` or `USceneComponent`
 
 2. **Component wiring** — for Tier 1, verify the primary class constructor creates all expected components:
-   - Call `analyze_blueprint_for_migration` on the migrated BP
+   - Call `blueprint_cmd(command="analyze_for_migration", params={"asset_path": "/Game/.../BP_Name", "sections": ["scs_components"]})` on the migrated BP
    - Check `scs_components` list: inherited C++ components should appear here
    - Verify each expected component name and class matches the Architecture Proposal
    - **Cannot verify:** `SetupAttachment` (not visible in CDO), delegate bindings (runtime only). Report these as "not statically verifiable."
@@ -47,7 +47,9 @@ Additional verification steps for redesign migrations:
 
 ### Task: Structural Verification
 
-Call `compare_blueprints` with the original and migrated Blueprint paths.
+Verify against the Pre-Migration Snapshot first; it is always available. Read the migrated `BP_Name` with `blueprint_cmd` `analyze_for_migration` (pass `sections` for what you compare) and `get_class_defaults`.
+
+When `BP_Name_Backup` exists, also call `blueprint_cmd(command="compare_blueprints", params={"source_path": "<backup_path>", "target_path": "/Game/.../BP_Name", "sections": ["variables", "functions", "components", "cdo"]})`. The backup is the pre-migration state, so the differences must be exactly the plan's MIGRATING set: every removed variable, function and SCS component is a difference, and any other difference is a mismatch. Run it only after `BP_Name` compiles clean, and never run it against a Blueprint with unresolved compile errors (see "Known crash vector" below).
 
 Build these comparison tables:
 
@@ -59,11 +61,11 @@ Build these comparison tables:
 
 **6. Orphaned Node Check**
 For each event graph that was part of the migration:
-- Count nodes that are NOT event entry nodes and NOT reachable from any event exec chain
+- Count nodes that are NOT event entry nodes and NOT reachable from any event exec chain. `blueprint_cmd(command="graph_metrics", ...)` reports exactly this per graph (`unreachable`, `ghost_entries`).
 - If count > 0: report WARNING — "N orphaned nodes remain in {graph_name}"
 - If count == 0: report PASS — "No orphaned nodes in {graph_name}"
 
-Use the node list from `analyze_blueprint_for_migration` or `graph_get_subgraph` to count remaining non-event nodes after migration. The default `compact=true` mode is sufficient here — compact preserves the `class` field used to identify event entry nodes (`UK2Node_Event` and subclasses), and only strips `node_class` (a duplicate).
+To inspect a graph, use `graph_cmd` `search_nodes` with `graph_name` (no filter, compact rows). Event entry nodes are identified by their `class` (`UK2Node_Event` and subclasses).
 
 ### Task: Dependency Impact Check
 
@@ -75,14 +77,13 @@ For each public member of the original Blueprint:
 | **WARNING** | C++ has same name but different signature (pins disconnect) |
 | **BREAKING** | No C++ equivalent found (caller node becomes error) |
 
-Call `analyze_blueprint_for_migration` on the migrated copy for post-migration sanity check.
+Call `blueprint_cmd` `analyze_for_migration` on `BP_Name` for a post-migration sanity check. Referencers keep pointing at `BP_Name` because nothing was renamed. Read `get_referencers` and report which referencers use a member that was migrated; the Finalize phase recompiles them (`recompile_dependents`).
 
-**UNSAFE TOOLS — Do NOT call during mid-migration verification:**
-- `compare_blueprints` — known crash vector on recently-reparented Blueprints with stale object references (Issue 99). Use individual tool calls instead (`analyze_blueprint_for_migration`, `get_class_defaults`) until Issue 99 fix is confirmed deployed.
+**Known crash vector — `compare_blueprints` (Issue 99):** it has crashed the editor on recently reparented Blueprints that still held stale object references. This is why it runs only after a clean compile of `BP_Name`, and why verification must not depend on it. If the connection drops during the call, follow the Crash Detection Protocol (do not retry); the orchestrator restarts the editor and the snapshot-based checks above stand in for it.
 
 ### Visual Comparison (If Applicable)
 
-For Blueprints with visual components, capture viewport screenshots of both original and migrated copy using `capture_screenshot`. Skip for non-visual BPs.
+For Blueprints with visual components, capture viewport screenshots of the migrated `BP_Name` and, when it exists, `BP_Name_Backup` with `editor_cmd` `capture_screenshot`. Skip for non-visual BPs.
 
 ## Crash Detection Protocol
 
@@ -137,8 +138,8 @@ Return concise summary to orchestrator. Do NOT write `04-verification.json`.
 
 ## Tools
 
-- `compare_blueprints`
-- `analyze_blueprint_for_migration`
-- `capture_screenshot`
-- `get_class_defaults`
+- `blueprint_cmd` `compare_blueprints`, `analyze_for_migration`, `get_class_defaults`, `graph_metrics`
+- `graph_cmd` `search_nodes`
+- `get_referencers`, `query_class_context`, `query_class_hierarchy`
+- `editor_cmd` `capture_screenshot`
 

@@ -300,18 +300,19 @@ Keep widget label references and localized format templates in editable Widget B
 
 ## Blueprint Cleanup Tools
 
-### cleanup_blueprint_migration
+### cleanup_migration
 
-Reparents a Blueprint to a new C++ class and removes migrated variables and functions in a single transaction. This is the primary cleanup command used after the C++ class is built and compiled.
+Reparents a Blueprint to a new C++ class and removes migrated variables and functions in a single operation. This is the primary cleanup command used after the C++ class is built and compiled. Run it on the original Blueprint, in place.
 
 ```python
-cleanup_blueprint_migration(
-    asset_path="/Game/Blueprints/BP_Enemy",
-    new_parent_class="/Script/MyGame.AEnemyBase",
-    remove_variables=["Health", "MoveSpeed"],
-    remove_functions=["CalculateDamage", "OnHit"],
-    compile=True  # default
-)
+blueprint_cmd(command="cleanup_migration", params={
+    "asset_path": "/Game/Blueprints/BP_Enemy",
+    "new_parent_class": "/Script/MyGame.AEnemyBase",
+    "remove_variables": ["Health", "MoveSpeed"],
+    "remove_functions": ["CalculateDamage", "OnHit"],
+    "compile": True,   # default
+    "save": False,     # default is True: stage in memory so the migration stays reversible
+})
 # Returns:
 # {
 #   "reparented": true,
@@ -329,7 +330,9 @@ cleanup_blueprint_migration(
 - `new_parent_class`: Full class path to reparent to (e.g., `/Script/MyGame.AEnemyBase`). Optional — omit to skip reparenting.
 - `remove_variables`: List of variable names to remove. Optional. Non-existent names are silently skipped and added to `warnings`.
 - `remove_functions`: List of function graph names to remove. Optional. Non-existent names are silently skipped and added to `warnings`.
+- `migrated_overrides`: Overrides already migrated. Optional.
 - `compile` (default `true`): Compile the Blueprint after all mutations
+- `save` (default `true`): Writes the whole package, including earlier staged edits. The migration pipeline passes `false` so `core_cmd` `reload_asset` can still discard the migration; compile errors prevent saving either way.
 
 **Reparent type safety:** Only same-family reparenting is allowed:
 - Actor → Actor subclass
@@ -383,7 +386,7 @@ remove_scs_component(
 - `force`: Explicit override for dirty instanced sub-object loss; avoid unless requested.
 
 **Error cases:**
-- `ComponentNotFound`: The component name was not found in the SCS — check the exact variable name via `get_blueprint_info`
+- `ComponentNotFound`: The component name was not found in the SCS — check the exact variable name via `blueprint_cmd` `get_info`
 - `InvalidField` (code): Blueprint has no SCS — only Actor-based Blueprints have SCS; component and widget Blueprints do not
 - `POTENTIAL_DATA_LOSS`: Dirty instanced sub-object state would be lost. Surface the
   `dirty_details` and `required_acknowledgment` to the user before retrying.
@@ -391,63 +394,46 @@ remove_scs_component(
 
 **Child component handling:** If the removed component has children in the hierarchy, they are automatically re-parented to the removed node's parent. No manual child re-wiring is needed.
 
-## Rename, Redirectors, and Recompile
+## Backup, Save, and Recompile
 
-These commands handle the SWAP and COMPLETE phases of the migration pipeline.
+These commands support the FINALIZE and COMPLETE phases of the migration pipeline. The Blueprint is migrated **in place**: it is never renamed, moved, or replaced by a copy.
 
-### rename_blueprint
+### Why the original is never renamed
 
-Renames or moves a Blueprint asset. UE automatically handles the `_C` suffix (GeneratedClass) and creates a redirector at the source path.
+`IAssetTools::RenameAssets` runs `FAssetRenameManager::FixReferencesAndRename` (Engine/Source/Developer/AssetTools/Private/AssetRenameManager.cpp), which loads and rewrites every referencer to the renamed asset's path. Renaming `BP_Enemy` to `BP_Enemy_Backup` therefore moves every referencer onto the backup, and renaming a migrated copy to `BP_Enemy` afterwards does not move them back. Reparent the original in place instead.
+
+### duplicate (backup snapshot)
+
+Creates `BP_Name_Backup` before the first mutation. A duplicate has no referencers; it is a read-only snapshot for comparison, not a restore source.
 
 ```python
-rename_blueprint(
-    source_path="/Game/Blueprints/BP_Enemy",
-    dest_path="/Game/Blueprints/BP_Enemy_Backup"
-)
-# Returns: {"source_path": "...", "dest_path": "...", "success": true}
+blueprint_cmd(command="duplicate", params={
+    "asset_path": "/Game/Blueprints/BP_Enemy",
+    "new_name": "BP_Enemy_Backup",
+    "new_path": "/Game/Blueprints",
+})
 ```
 
-**Parameters:**
-- `source_path`: Existing Blueprint object path
-- `dest_path`: Destination Blueprint object path
+**Parameters:** `asset_path` (source), `new_name`, `new_path` — all required.
 
-**Use in swap sequence:**
+### save
+
+Writes the Blueprint package. The pipeline saves once, after the final clean compile.
+
 ```python
-# Step 1: move original out of the way
-rename_blueprint("/Game/Blueprints/BP_Enemy", "/Game/Blueprints/BP_Enemy_Backup")
-# Step 2: move migration copy into the canonical name
-rename_blueprint("/Game/Blueprints/BP_Enemy_Migration", "/Game/Blueprints/BP_Enemy")
+blueprint_cmd(command="save", params={"asset_path": "/Game/Blueprints/BP_Enemy"})
 ```
 
-**Rollback:** If step 2 fails, reverse step 1 immediately. Record `git_commit_before` for C++ file rollback.
+Commands that always write the package without a `save` option: `rename_scs_component`, `remove_scs_component`.
 
-### fixup_redirectors
+### recompile_dependents
 
-Scans a content path for redirectors and fixes all references. Call after rename swap to eliminate stale redirectors.
-
-```python
-fixup_redirectors(
-    path="/Game/Blueprints",
-    recursive=True  # default
-)
-# Returns: {"path": "/Game/Blueprints", "recursive": true,
-#            "redirectors_found": 2, "redirectors_fixed": 2}
-```
-
-**Parameters:**
-- `path`: Content path to scan. Bare paths are prefixed with `/Game/` automatically.
-- `recursive` (default `true`): Whether to include subdirectories
-
-**Error cases:** None — if zero redirectors are found the command succeeds with `redirectors_found: 0`.
-
-### recompile_dependent_blueprints
-
-Recompiles all Blueprints that depend on the given Blueprint. Call after fixing redirectors to clear stale GUIDs.
+Recompiles all Blueprints that depend on the given Blueprint. Call after the Blueprint is saved to clear stale data caused by the class-layout change.
 
 ```python
-recompile_dependent_blueprints(
-    asset_path="/Game/Blueprints/BP_Enemy"
-)
+blueprint_cmd(command="recompile_dependents", params={
+    "asset_path": "/Game/Blueprints/BP_Enemy"
+})
 # Returns:
 # {
 #   "asset_path": "/Game/Blueprints/BP_Enemy",
@@ -471,15 +457,29 @@ recompile_dependent_blueprints(
 
 **Error cases:** `BlueprintNotFound` if `asset_path` does not exist.
 
-### compare_blueprints
+### rename and fixup_redirectors (archiving the backup only)
 
-Structurally compares two Blueprints and returns a list of differences. Used in the VERIFY phase to confirm the migration copy matches the original.
+Only the backup snapshot may be renamed or moved, because it has no referencers. Use this to archive it:
 
 ```python
-compare_blueprints(
-    source_path="/Game/Blueprints/BP_Enemy",
-    target_path="/Game/Blueprints/BP_Enemy_Migration"
-)
+blueprint_cmd(command="rename", params={
+    "source_path": "/Game/Blueprints/BP_Enemy_Backup",
+    "dest_path": "/Game/Migration/Backups/BP_Enemy_Backup",
+})
+blueprint_cmd(command="fixup_redirectors", params={"path": "/Game/Blueprints", "recursive": True})
+```
+
+`rename` leaves a redirector at the source path; `fixup_redirectors` resolves it (`redirectors_found` may be `0`). Never use `rename` on the migrated Blueprint.
+
+### compare_blueprints
+
+Structurally compares two Blueprints and returns a list of differences. Used in the VERIFY phase to compare the read-only backup snapshot against the in-place migrated Blueprint. The differences must be exactly the migrated members. Run it only after the migrated Blueprint compiles clean (known crash vector on recently reparented Blueprints with stale references, Issue 99); verification must not depend on it.
+
+```python
+blueprint_cmd(command="compare_blueprints", params={
+    "source_path": "/Game/Blueprints/BP_Enemy_Backup",
+    "target_path": "/Game/Blueprints/BP_Enemy"
+})
 # Returns:
 # {
 #   "match": true,
@@ -491,7 +491,7 @@ compare_blueprints(
 ```
 
 **Parameters:**
-- `source_path`: Baseline Blueprint (the original)
+- `source_path`: Baseline Blueprint (the pre-migration backup snapshot)
 - `target_path`: Blueprint to compare against the baseline
 - `sections` (optional): Array to restrict comparison — valid values: `"variables"`, `"functions"`, `"components"`, `"cdo"`
 
@@ -510,11 +510,11 @@ compare_blueprints(
 
 **Example with sections filter:**
 ```python
-compare_blueprints(
-    source_path="/Game/Blueprints/BP_Enemy",
-    target_path="/Game/Blueprints/BP_Enemy_Migration",
-    sections=["variables", "components"]
-)
+blueprint_cmd(command="compare_blueprints", params={
+    "source_path": "/Game/Blueprints/BP_Enemy_Backup",
+    "target_path": "/Game/Blueprints/BP_Enemy",
+    "sections": ["variables", "components"]
+})
 ```
 
 **Error cases:** `BlueprintNotFound` if either path does not exist; `InvalidField` if params are missing.
@@ -586,7 +586,7 @@ Section files:
 - Logic coverage validated for migrated groups
 - Dependency impact checked (children/referencers)
 - Level instance behavior sanity-checked
-- Redirectors fixed and dependents recompiled after swap
+- Dependents recompiled after the in-place save
 
 ## Medium-Level Component Classification
 
@@ -654,9 +654,10 @@ Visual sync items use `target: "blueprint"` with `reason: "visual_sync"`:
 
 When removing migrated Blueprint content, always clean consumers before producers:
 1. Reparent to C++ class
-2. Disconnect migrated event graph nodes — use `graph_disconnect` to break the exec
-   output pin on each event entry node (source_pin="then"). Leave orphaned nodes in
-   the graph. NEVER call graph.remove_node during Phase 3. Node removal is Phase 6 only.
+2. Disconnect migrated event graph nodes — use `graph_cmd` `disconnect` to break the exec
+   output pin on each event entry node (the pin name comes from `get_subgraph`, normally `then`),
+   then remove the dead chains with `blueprint_cmd` `delete_orphaned_nodes` (event entry nodes
+   are preserved). Never delete nodes one by one with `graph.remove_node`.
 3. Remove migrated functions — verify compile after each
 4. Remove migrated variables — verify compile after each
 5. Remove migrated SCS components — verify compile after each
@@ -670,7 +671,7 @@ The migration workflow uses a 4-stage pipeline:
 | **ANALYZE** | Conversational goals + technical analysis → migration design | User approves design |
 | **PLAN** | Generate granular task list with complete C++ code | User approves plan |
 | **EXECUTE** | Run phase workflows with checkpoint verification | Auto-verify checkpoint |
-| **COMPLETE** | Verify, present results, swap decision, final report | User approves swap |
+| **COMPLETE** | Verify, present results, save, backup decision, final report | User approves finalize |
 
 Entry point: `/cortex-bp-migrate <BlueprintPath>` (supports `--audit` and `--resume`)
 
@@ -684,5 +685,4 @@ Key principle: all C++ code is generated during PLAN stage. The EXECUTE stage wr
 
 ### Design Reference
 
-- Pipeline design: `docs/plans/2026-02-27-bp-migration-pipeline-design.md`
-- V5 technical design: `docs/plans/2026-02-26-bp-migration-v5-design.md`
+- Pipeline design and phase guides: the `cortex-bp-migrate` skill and `resources/bp-migration-*.md`
