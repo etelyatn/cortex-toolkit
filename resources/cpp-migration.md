@@ -468,7 +468,7 @@ Only the backup snapshot may be renamed or moved, because it has no referencers.
 ```python
 blueprint_cmd(command="rename", params={
     "source_path": "/Game/Blueprints/BP_Enemy_Backup",
-    "dest_path": "/Game/Migration/Backups/BP_Enemy_Backup",
+    "dest_path": "/Game/Migration/Backups/BP_Enemy_Backup",  # keep the recorded backup_path leaf (e.g. BP_Enemy_Backup2 after a collision)
 })
 ```
 

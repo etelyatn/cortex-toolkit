@@ -82,7 +82,7 @@ Write `rollback.json` (the ONE file that remains separate — machine-readable f
   "backup_path": "/Game/.../BP_Name_Backup",
   "restore": {
     "while_unpersisted": "core_cmd reload_asset on blueprint",
-    "after_persisted": "restore the .uasset (git restore --source git_commit_before, or copy original_copy back after close_asset), restore touched_dependents the same way, then core_cmd reload_asset; package_saved_hash must equal blueprint_hash again"
+    "after_persisted": "restore the .uasset (git restore --source git_commit_before, or copy original_copy back after close_asset; if the copy fails with a sharing violation or read-only attribute, stop, ask the user to close the editor, copy the file, relaunch, and re-fingerprint), restore touched_dependents the same way, then core_cmd reload_asset; package_saved_hash must equal blueprint_hash again"
   },
   "cpp_files": ["Source/.../ClassName.h", "Source/.../ClassName.cpp"],
   "blueprint_hash": "{package_saved_hash of the pristine original}",

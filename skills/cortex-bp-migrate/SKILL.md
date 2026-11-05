@@ -212,7 +212,7 @@ Set `asset_persisted: true` in the frontmatter **before** issuing any call that 
 **Rollback** (abort, rewind, restart, or a failed verification the user does not want to fix):
 
 1. **Not persisted** (hash equals `blueprint_hash`): tell the user that every unsaved edit to this asset will be dropped, then call `core_cmd(command="reload_asset", params={"asset_path": "/Game/.../BP_Name"})`. Read the asset back with `analyze_for_migration` and confirm the original parent and the migrated members are present again.
-2. **Persisted** (hash differs): restore the pristine file, by whichever restore point exists. With git, show the exact command (for example `git restore --source <git_commit_before> -- Content/.../BP_Name.uasset`; `p4 revert` for Perforce) and run it only after explicit confirmation. Without version control, close the asset (`core_cmd(command="close_asset", params={"asset_path": "...", "save": false})`), copy `original_copy` back over the `.uasset`, then call `core_cmd` `reload_asset`. Restore every file in `touched_dependents` the same way. Finally re-fingerprint: `package_saved_hash` must equal `blueprint_hash` again. The backup is not a restore source.
+2. **Persisted** (hash differs): restore the pristine file, by whichever restore point exists. With git, show the exact command (for example `git restore --source <git_commit_before> -- Content/.../BP_Name.uasset`; `p4 revert` for Perforce) and run it only after explicit confirmation. Without version control, close the asset (`core_cmd(command="close_asset", params={"asset_path": "...", "save": false})`), copy `original_copy` back over the `.uasset`, then call `core_cmd` `reload_asset`. If the copy fails (sharing violation or read-only attribute), stop: ask the user to close the editor, copy the file (clearing the read-only attribute if needed), relaunch it, then re-fingerprint and confirm `package_saved_hash` equals `blueprint_hash` before continuing. Restore every file in `touched_dependents` the same way. Finally re-fingerprint: `package_saved_hash` must equal `blueprint_hash` again. The backup is not a restore source.
 3. Abort and restart only: delete the files in `files_created` and revert `files_modified` with the version-control tool the project uses (`git restore -- <path>` for a modified file after confirmation; there is no automatic mechanism otherwise, so list the files for the user) and rebuild afterwards if the editor is still running the C++ class. Rewind keeps the C++ files.
 4. Abort and restart only: delete the backup, `blueprint_cmd(command="delete", params={"asset_path": "<backup_path>"})`. Rewind keeps the backup.
 5. Update frontmatter `status: failed` (abort), `status: planned` with `phase: execute` and `current_task` set to the last PREPARE task (rewind), or restart from a fresh plan (restart), and `asset_persisted: false`.
@@ -497,7 +497,7 @@ The finalizer phase handles in one task:
 
 **Auto-cleanup (no backup menu in fast mode):**
 After the finalizer phase completes:
-- If `backup_verified: true` -> auto-archive the backup to `/Game/Migration/Backups/BP_Name_Backup` with `blueprint_cmd` `rename` (moved out of content browser sight; safe because the backup has no referencers). The rename leaves one redirector at the old backup path; leave it (it has no referencers) and do NOT run `fixup_redirectors`.
+- If `backup_verified: true` -> auto-archive the backup to `/Game/Migration/Backups/<leaf of backup_path>` (the recorded name, e.g. `BP_Name_Backup2` after a collision) with `blueprint_cmd` `rename` (moved out of content browser sight; safe because the backup has no referencers). The rename leaves one redirector at the old backup path; leave it (it has no referencers) and do NOT run `fixup_redirectors`.
 - If `backup_verified: false` -> log explicit warning: "WARNING: No backup snapshot exists. The original Blueprint can only be recovered from source control."
 - Report: "Backup auto-archived to /Game/Migration/Backups/ (fast mode). Delete manually when confident, or use source control to recover if needed."
 
@@ -1386,13 +1386,13 @@ If `backup_verified: true`:
 
 ```text
 What would you like to do with the backup?
-[1] Keep -- BP_Name_Backup stays in place as a read-only snapshot
-[2] Archive -- move to /Game/Migration/Backups/BP_Name_Backup
+[1] Keep -- the backup (backup_path) stays in place as a read-only snapshot
+[2] Archive -- move to /Game/Migration/Backups/<leaf of backup_path>
 [3] Delete -- remove the backup (migration confirmed clean)
 ```
 
 - On [1] Keep: no action needed
-- On [2] Archive: call `blueprint_cmd(command="rename", params={"source_path": "<backup_path>", "dest_path": "/Game/Migration/Backups/BP_Name_Backup"})`. This is safe because the backup has no referencers (see "Why there is no rename swap"). It leaves one harmless redirector at the old backup path; do NOT run `fixup_redirectors`. If the user wants it removed, list candidates first with `core_cmd(command="list_redirectors", params={"path": "<old backup folder>", "recursive": false})`, show the list, and only on explicit confirmation fix up that single redirector path, never a project folder.
+- On [2] Archive: call `blueprint_cmd(command="rename", params={"source_path": "<backup_path>", "dest_path": "/Game/Migration/Backups/<leaf of backup_path>"})`. This is safe because the backup has no referencers (see "Why there is no rename swap"). It leaves one harmless redirector at the old backup path; do NOT run `fixup_redirectors`. If the user wants it removed, list candidates first with `core_cmd(command="list_redirectors", params={"path": "<old backup folder>", "recursive": false})`, show the list, and only on explicit confirmation fix up that single redirector path, never a project folder.
 - On [3] Delete: call `blueprint_cmd(command="delete", params={"asset_path": "<backup_path>"})`. If delete fails because the asset is not found, report a warning but do not treat it as an error. If it fails because something references the backup, report the referencer — nothing in this flow should.
 
 ### Step 3: Update Plan Document
