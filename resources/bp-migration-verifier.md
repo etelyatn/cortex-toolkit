@@ -81,6 +81,21 @@ Call `blueprint_cmd` `analyze_for_migration` on `BP_Name` for a post-migration s
 
 **Known crash vector — `compare_blueprints` (Issue 99):** it has crashed the editor on recently reparented Blueprints that still held stale object references. This is why it runs only after a clean compile of `BP_Name`, and why verification must not depend on it. If the connection drops during the call, follow the Crash Detection Protocol (do not retry); the orchestrator restarts the editor and the snapshot-based checks above stand in for it.
 
+### Which checks apply
+
+Structural Verification, Dependency Impact Check and the orphan check always run. The checks below are conditional; run a check only when its condition holds and say which ones you skipped and why in the results:
+
+| Check | Run when | Never |
+|-------|----------|-------|
+| Text Inventory Comparison | the Blueprint has user-facing text (widgets, text pin defaults or text class defaults) | |
+| Snapshot Comparison | the migration is complex or touches class defaults/components, and a saved backup (or a pre-reparent export) exists | |
+| Bulk Compile Check | the Blueprint has referencers or dependents; scope `path_prefix` to the folder that holds them | a whole-project compile |
+| Redirector Check | the backup was archived with `rename` | as a fix step |
+| Placed Instance Check | `placed_instances_baseline` exists | exporting a baseline now |
+| Editor Turnaround | not a verification check: it belongs to the PREPARE build/restart tasks, run by the orchestrator | patching or restarting from this phase |
+
+The verifier reports facts and never fixes: Live Coding, `wait_ready` and any other call that changes editor or asset state are out of scope here.
+
 ### Task: Text Inventory Comparison
 
 Call `blueprint_cmd(command="export_text_inventory", params={"asset_path": ..., "out_path": ...})` on `BP_Name_Backup` (the saved pre-migration snapshot) and on the migrated `BP_Name`, and diff the two inventories. Entries are sorted by (`location`, `owner`, `path`) so a line-by-line diff is meaningful; report every entry whose `value`, `source_kind` or `table_id`/`key` changed, was added or disappeared. The inline response is capped at 40000 characters; for anything larger pass `out_path` (under the project `Saved`, `Content` or `Config`) and read the file — without it the command returns `RESPONSE_TOO_LARGE` with the `counts` and no entries. If no backup exists, compare against an inventory exported before the first mutation.
@@ -99,7 +114,7 @@ After the migration, `blueprint_cmd(command="compile_all", params={"path_prefix"
 
 ### Task: Redirector Check
 
-`core_cmd(command="list_redirectors", params={"path": "/Game/...", "recursive": true})` is a read-only inventory (`redirector_path`, `destination`, `referencer_count`, `referencers`) of redirectors left in a folder. The in-place flow creates none for `BP_Name`, so expect none at its path; use it after archiving the backup (`rename`) to confirm nothing references the redirector left at the old backup path before calling `fixup_redirectors`. It fixes, deletes and saves nothing.
+`core_cmd(command="list_redirectors", params={"path": "/Game/...", "recursive": false})` is a read-only inventory (`redirector_path`, `destination`, `referencer_count`, `referencers`) of redirectors left in a folder. The in-place flow creates none for `BP_Name`, so expect none at its path. After archiving the backup (`rename`) expect exactly one, at the old backup path, with no referencers; that is harmless and the migration never fixes it up. Report anything else as a finding for the user. It fixes, deletes and saves nothing.
 
 ### Task: Placed Instance Check
 
@@ -172,5 +187,5 @@ Return concise summary to orchestrator. Do NOT write `04-verification.json`.
 - `get_referencers`, `query_class_context`, `query_class_hierarchy`
 - `core_cmd` `list_redirectors`
 - `level_cmd` `export_class_instances`
-- `editor_cmd` `capture_screenshot`, `live_coding_compile`, `wait_ready`
+- `editor_cmd` `capture_screenshot`
 

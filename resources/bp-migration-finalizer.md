@@ -15,6 +15,8 @@ You receive from the orchestrator:
 
 ## FINALIZE Phase Protocol
 
+**First step of the phase:** set frontmatter `phase: finalize` (Task 18; Fast-14 in fast mode) in the edit that starts the phase. `phase: complete` is written at the end (Task 21; end of Fast-14). Resume never trusts `phase` alone; it reads the asset back.
+
 ### Fast Mode Compatibility
 
 **Detection:** Fast mode is identified by the task range prefix. Tasks prefixed with "Fast-" (e.g., Fast-14) indicate fast mode. Tasks without prefix (e.g., Task 19) indicate full mode. No separate mode flag is needed.
@@ -58,7 +60,8 @@ Reparenting changes the class layout, so Blueprints that depend on `BP_Name` can
 
 1. Call `blueprint_cmd(command="recompile_dependents", params={"asset_path": "/Game/.../BP_Name"})`
 2. Verify every dependent reports `status: success`. A dependent that fails is reported to the orchestrator with its `errors`; do not edit it.
-3. There is no redirector cleanup: nothing was renamed, so no redirector was created by this migration. Do not call `fixup_redirectors` here.
+3. `recompile_dependents` recompiles but does not save, so every recompiled dependent is now dirty in the editor and a later Save All would write them silently. Report the list of dirty dependents to the orchestrator. The orchestrator asks the user once: save them explicitly (`blueprint_cmd(command="save", ...)` per dependent) or leave them unsaved, stating that a later Save All will include them.
+4. There is no redirector cleanup: nothing was renamed, so no redirector was created by this migration. Do not call `fixup_redirectors`.
 
 **Backup verification (before returning):** confirm the snapshot is saved on disk with `core_cmd(command="asset_fingerprint", params={"paths": ["<backup_path>"]})` — a non-empty `package_saved_hash` and `is_dirty: false`. `get_info` alone is not enough: it also succeeds for an unsaved in-memory asset.
 - If saved: record `"backup_verified": true` and `"backup_path": "/Game/.../BP_Name_Backup"` in `rollback.json`.
@@ -79,10 +82,14 @@ Write `rollback.json` (the ONE file that remains separate — machine-readable f
   "backup_path": "/Game/.../BP_Name_Backup",
   "restore": {
     "while_unpersisted": "core_cmd reload_asset on blueprint",
-    "after_persisted": "restore the .uasset from source control at git_commit_before, then core_cmd reload_asset"
+    "after_persisted": "restore the .uasset (git restore --source git_commit_before, or copy original_copy back after close_asset), restore touched_dependents the same way, then core_cmd reload_asset; package_saved_hash must equal blueprint_hash again"
   },
   "cpp_files": ["Source/.../ClassName.h", "Source/.../ClassName.cpp"],
-  "git_commit_before": "{hash}"
+  "blueprint_hash": "{package_saved_hash of the pristine original}",
+  "vcs": "git",
+  "git_commit_before": "{hash}",
+  "original_copy": "Saved/Migration/BP_Name/BP_Name.uasset.orig",
+  "touched_dependents": []
 }
 ```
 
