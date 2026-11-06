@@ -46,5 +46,5 @@ Use `editor.inject_key` or `editor.inject_input_sequence` when `qa.interact` is 
 - Use flat params for `qa.wait_for` and `qa.assert_state`.
 - Include explicit timeouts for deferred commands.
 - Prefer short, atomic steps for easier triage.
-- After any `editor.inject_*` step, always follow with `qa.wait_for` or `observe_game_state` to verify the game reacted — direct input tools only confirm Slate dispatch.
+- After any `editor.inject_*` step, always follow with `qa.wait_for` or `qa.observe_state` to verify the game reacted — direct input tools only confirm Slate dispatch.
 - Do not run two `editor.inject_input_sequence` commands concurrently (single callback slot limitation).

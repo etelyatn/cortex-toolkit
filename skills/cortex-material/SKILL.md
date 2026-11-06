@@ -57,7 +57,7 @@ MANDATORY WORKFLOW:
 
 PROHIBITED:
 - For NEW materials: never call `create_material`, `add_node`, `connect`, `set_node_property`, or `auto_layout` individually — use `material_compose` exclusively.
-- For EXISTING materials with 2+ changes: never make N sequential individual tool calls — use `core_cmd(batch)` with `stop_on_error: true` and `$ref` wiring (see `resources/batch-pipeline-guide.md`).
+- For EXISTING materials with 2+ changes: never make N sequential individual tool calls — use `core_cmd(batch_query)` with `stop_on_error: true` and `$ref` wiring (see `resources/batch-pipeline-guide.md`).
 - Individual tools are only acceptable for a single isolated change on an existing asset.
 
 **For Review/Analyze**, include the same `prefetched_state` block before reading, consume it before fresh reads, and keep independent reads parallel. Any follow-up mutation must carry `expected_fingerprint`.

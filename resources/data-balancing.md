@@ -21,7 +21,7 @@ Analyze DataTables, CurveTables, and DataAssets for balance issues — stat curv
 ## Methodology
 
 1. **Identify the data** — which tables contain the relevant game values?
-2. **Extract the data** — use `data_cmd(command="query_datatable")`, `data_cmd(command="get_curve_table")`, `core_cmd(command="batch")`; for large audits, use raw exports and inspect local files; use `compare_data_json` for baseline-vs-proposed tuning review; do not use `apply_import_ops_json` during balance review unless the user explicitly asks to apply a prepared queue
+2. **Extract the data** — use `data_cmd(command="query_datatable")`, `data_cmd(command="get_curve_table")`, `core_cmd(command="batch_query")`; for large audits, use raw exports and inspect local files; use `compare_data_json` for baseline-vs-proposed tuning review; do not use `apply_import_ops_json` during balance review unless the user explicitly asks to apply a prepared queue
 3. **Analyze relationships** — cross-reference tables (quest rewards vs item prices vs level curve)
 4. **Check progression** — do values scale smoothly? Any spikes or dead zones?
 5. **Flag outliers** — values outside the expected range defined in `.cortex/domains/data.md`

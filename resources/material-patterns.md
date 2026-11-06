@@ -343,6 +343,8 @@ The batch command order matters for updates. Place operations in **dependency-sa
 
 #### Example: Add Parameter to Existing Material
 
+Raw native `batch` envelope; through MCP send the same `params` with `core_cmd(command="batch_query", ...)` (see `resources/batch-pipeline-guide.md`).
+
 ```json
 {
   "command": "batch",
@@ -381,6 +383,8 @@ The batch command order matters for updates. Place operations in **dependency-sa
 ```
 
 #### Example: Add Circular Mask to Existing Material
+
+Raw native `batch` envelope; through MCP send the same `params` with `core_cmd(command="batch_query", ...)` (see `resources/batch-pipeline-guide.md`).
 
 ```json
 {"command": "batch", "params": {"stop_on_error": true, "commands": [
@@ -556,25 +560,25 @@ material_instance_compose(asset_path, name, parent_material,
 
 ### Modify Instance Parameters
 ```
-material_cmd(command="list_parameters", params={instance_path}) → see current values
-→ material_cmd(command="set_parameter", params={name, value}) or
+material_cmd(command="list_parameters", params={asset_path}) → see current values
+→ material_cmd(command="set_parameter", params={asset_path, parameter_name, value}) or
   material_cmd(command="set_parameters", params={parameters: [...]}) for batch
 → material_cmd(command="get_instance", params={asset_path}) to verify overrides
 ```
 
 ### Reset Instance to Parent Defaults
 ```
-material_cmd(command="list_parameters", params={instance_path}) → identify overridden params
-→ material_cmd(command="reset_parameter", params={name}) for each override to clear
+material_cmd(command="list_parameters", params={asset_path}) → identify overridden params
+→ material_cmd(command="reset_parameter", params={asset_path, parameter_name}) for each override to clear
 → material_cmd(command="get_instance", params={asset_path}) to verify clean state
 ```
 
 ### Set Up Parameter Collection
 ```
 material_cmd(command="create_collection", params={asset_path, name})
-→ material_cmd(command="add_collection_parameter", params={name: "TimeOfDay", type: "scalar", default: 12.0})
-→ material_cmd(command="add_collection_parameter", params={name: "SunColor", type: "vector", default: [1,0.95,0.8,1]})
-→ material_cmd(command="set_collection_parameter", params={name, value}) to adjust at runtime
+→ material_cmd(command="add_collection_parameter", params={asset_path, parameter_name: "TimeOfDay", parameter_type: "scalar", default_value: 12.0})
+→ material_cmd(command="add_collection_parameter", params={asset_path, parameter_name: "SunColor", parameter_type: "vector", default_value: [1,0.95,0.8,1]})
+→ material_cmd(command="set_collection_parameter", params={asset_path, parameter_name, value}) to adjust at runtime
 ```
 
 ### Audit Material Graph
@@ -583,7 +587,7 @@ material_cmd(command="list_materials", params={path, recursive}) → find all ma
 → material_cmd(command="get_material", params={asset_path}) → check node count, connections
 → material_cmd(command="list_nodes", params={asset_path}) → identify unused nodes
 → material_cmd(command="list_connections", params={asset_path}) → verify all outputs are connected (includes expression-to-expression)
-→ material_cmd(command="get_material_node_pins", params={asset_path, node_id}) → verify pin usage
+→ material_cmd(command="get_node_pins", params={asset_path, node_id}) → verify pin usage
 ```
 
 ### Delete Materials and Instances (Improved: Actual File Deletion)
@@ -655,12 +659,12 @@ Validated expression types include:
 | StaticSwitchParameter | `"True"`, `"False"`, `"Value"` |
 | MaterialResult | `"BaseColor"`, `"Metallic"`, `"Roughness"`, `"Normal"`, `"EmissiveColor"`, `"Specular"`, `"Opacity"`, `"OpacityMask"`, `"WorldPositionOffset"`, `"AmbientOcclusion"` |
 
-### Discovering Pins at Runtime (New: get_material_node_pins)
-Use `material_cmd(command="get_material_node_pins", params={asset_path, node_id})` to query actual pin names on any node.
+### Discovering Pins at Runtime (get_node_pins)
+Use `material_cmd(command="get_node_pins", params={asset_path, node_id})` to query actual pin names on any node.
 This is the definitive way to discover available pins and see what's currently connected.
 
 ```
-material_cmd(command="get_material_node_pins", params={"asset_path": "/Game/Materials/M_Test", "node_id": "Expr_0"})
+material_cmd(command="get_node_pins", params={"asset_path": "/Game/Materials/M_Test", "node_id": "Expr_0"})
 → Returns: {
     "node_id": "Expr_0",
     "expression_class": "MaterialExpressionMultiply",
@@ -676,7 +680,7 @@ material_cmd(command="get_material_node_pins", params={"asset_path": "/Game/Mate
 Use case:
 1. Add a node with material_cmd(command="add_node")
 2. Get its node_id from the response
-3. Call material_cmd(command="get_material_node_pins") to discover exact pin names
+3. Call material_cmd(command="get_node_pins") to discover exact pin names
 4. Use discovered pin names in material_cmd(command="connect")
 ```
 
@@ -687,7 +691,7 @@ Material domain workflows are validated by the benchmark testing framework in `P
 | Test File | Coverage |
 |-----------|----------|
 | `test_material_composites.py` | `material_compose` composite end-to-end, node/connection validation, failure recovery, auto-cleanup |
-| `test_material_composites_e2e.py` | `set_material_property`, `set_material_node_property`, enum/byte property support |
+| `test_material_composites_e2e.py` | `set_material_property`, `set_node_property`, enum/byte property support |
 | `test_material_enum_aliases.py` | Pretty name to UE reflection name mapping (MaterialDomain, BlendMode, ShadingModel) |
 | `test_mcp_scenarios.py` | Material Create benchmark (create graph + create instance + set parameter) |
 

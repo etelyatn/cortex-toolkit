@@ -26,7 +26,24 @@ Build game UI using UMG widgets — menus, HUDs, dialogs, popups, and complex in
 
 ## UMG Tools
 
-**Tree:** `add_widget`, `remove_widget`, `reparent`, `get_tree`, `get_widget`, `list_widget_classes`, `duplicate_widget`
+- **Tree:** `add_widget`, `remove_widget`, `reparent`, `get_tree`, `get_widget`, `list_widget_classes`, `duplicate_widget`, `rename_widget`
+
+`get_tree` is bounded rather than paged: `depth` (root = level 0) and `max_nodes` cap the traversal,
+`names_only=true` keeps hierarchy/name/child counts but drops class identity, and the response reports
+exact `total_widgets`, `returned_widgets`, `tree_complete` and `reasons`. Treat `tree_complete=false` as
+"bounded slice", not "leaf": a cut branch keeps its real `child_count` and sets `incomplete: true`, while
+a true leaf omits `child_count`/`children` (no more empty `children: []`). Re-request with a smaller
+`depth`/`max_nodes` or `names_only=true` — there is no pagination.
+
+Non-`names_only` nodes also report `is_variable` and (when present) `slot`, so they are larger than before and fewer fit one response. For big screens read the hierarchy with `names_only=true` and `depth`/`max_nodes`, then use `get_widget` for detail.
+
+**Widget migration (BindWidget / rename / values / text / CommonUI):**
+
+- `umg.check_native_bindings` (read-only): compare a Widget Blueprint with the `BindWidget`/`BindWidgetAnim` members of its native base, or of a prospective `native_class` before reparenting. Per-binding `status` is `matched`, `type_mismatch`, `missing`, `optional_missing` or `not_transient`; `has_errors` is true for `missing`, `type_mismatch`, `not_transient` and for a member that graphs reference while it is not Blueprint visible (per-binding `referenced_by_graphs` / `blueprint_visible`, `counts.not_blueprint_visible` — the reparent compile error "X is not blueprint visible"). A child Widget Blueprint's binding satisfied by its parent's widget is `matched`. `name_suggestion` is a hint only — the command never fixes anything.
+- `umg.rename_widget` with `scope="dependents"` is dry-run-first: the default `dry_run=true` returns the plan (assets with `role`, per-asset `fingerprint`, `references`, and `conflicts`). Apply with `dry_run=false`, the owner `expected_fingerprint` and `expected_dependent_fingerprints` (keys exactly equal to the plan's modified dependents, values the plan fingerprints). Stale/missing/extra entries refuse before mutation, as do a blocked dependent and a child that already declares `new_name` (widget, variable, component, timeline or function graph). A post-rename failure is really undone and verified (`rollback_status` `restored`|`unverified`, `blocked[]`). No compile or save happens — do both explicitly and re-run `check_native_bindings` afterwards.
+- `umg.get_embedded_widget_values`: capture per-instance values (with `is_override`) of embedded user widgets before and after a move or save/reload and diff them.
+- `blueprint.export_text_inventory`: capture the FText inventory before and after; the inline limit is 40000 characters, so pass `out_path` for large Blueprints.
+- `umg.get_commonui_info`: CommonUI activatable settings, overrides, button/text/border styles and `style_assets`. `commonui_available: false` means the CommonUI plugin is not loaded — it is not an error.
 
 **Properties:** `set_color`, `set_text`, `set_font`, `set_brush`, `set_padding`, `set_anchor`, `set_alignment`, `set_size`, `set_visibility`, `set_property`, `get_property`, `get_schema`
 
@@ -35,10 +52,38 @@ Use `slot.` prefix with `set_property`/`get_property` for slot-level layout cont
 `slot_properties` and `slot_type` for the selected widget. Note: root widgets have no
 slot — using `slot.` prefix on a root widget returns an error.
 
-**Animations:** `create_animation`, `list_animations`, `remove_animation`, `list_animation_bindings`, `remove_animation_binding`
+**Designer property bindings:** existing `get_widget` / `get_tree` accept
+`include_property_bindings=true`. Require `property_binding_state.reader_complete=true`
+and retain its whole-asset fingerprint. Widget reads filter targets; tree reads include
+orphan records and unresolved raw source identities.
 
-- `list_animation_bindings`: inspects canonical `FWidgetAnimationBinding` records, possessables, tracks, channels, and returns a scoped `domain_signature` fingerprint.
+- `set_property_binding`: required asset/widget/`property_name`/`expected_fingerprint`.
+  Explicit `binding=null` clears; an object creates/replaces a compatible property path
+  or pure/const function. Omitted/empty values refuse, as do duplicate targets and stale
+  guards. No pagination fields, including null.
+- Binding repair is isolated from hierarchy/style batches and graph patches. Re-inspect
+  after every mutation. Literal `set_property` does not clear a Designer binding.
+- Clear before retiring source members. Compile and save explicitly, then inspect a
+  freshly loaded asset. Preserve widget defaults, hierarchy, style, animations and all
+  retained serialized records. Oversized orphan inspection is an explicit incomplete
+  size refusal, not an empty list or an impossible missing-widget retry.
+
+See `resources/umg-patterns.md` for binding payload examples.
+
+**Animations:** `create_animation`, `list_animations`, `remove_animation`, `list_animation_bindings`, `ensure_animation_binding`, `set_animation_property_track`, `remove_animation_binding`
+
+- `list_animation_bindings`: inspects canonical `FWidgetAnimationBinding` records, possessables, tracks, channels, and returns a version-2 content-guard `fingerprint`. Opt into per-track `property_path`, evaluation state and sections/channels with `include_track_content: true`; a detailed read over the response ceiling returns `RESPONSE_TOO_LARGE` with `reader_complete: false`, never a partial page.
+- `ensure_animation_binding`: creates or resolves the ordinary Designer-widget binding (`widget_name`; `is_root_widget` stays `false`). Requires the content-guard `expected_fingerprint`; `dry_run` defaults to `true`.
+- `set_animation_property_track`: creates, replaces or clears exactly one `float`, `FLinearColor` or `FSlateColor` property track on an existing binding via `selector` + `property_path` + `track`. Both color properties use `type: "color"` with linear RGBA keys. Sections optionally accept `completion_mode: "RestoreState"` (default) or `"KeepState"`. `track: null` clears one property track and keeps the binding. Same fingerprint guard and `dry_run` default.
 - `remove_animation_binding`: surgically removes a single animation binding by selector (`{widget_name, slot_widget_name, binding_guid, is_root_widget}`) using optimistic locking (`expected_fingerprint`). Preserves shared MovieScene possessables and tracks. Defaults to `dry_run: true` and `save: false`.
+
+**Animation authoring is a guarded sequence, not a batch:** `create_animation` makes an empty
+animation; bind and author it with `ensure_animation_binding` → `set_animation_property_track`,
+each consuming a fresh `list_animation_bindings` fingerprint. Ordinary named Designer widgets only,
+`float`/`FLinearColor`/`FSlateColor` tracks with `linear`/`constant` keys, at most 8 sections and 64 logical keys
+per track. Completion is per section: RestoreState restores the pre-animation property; KeepState retains
+the final evaluated value. No implicit compile/save — compile and save explicitly afterwards, and never
+nest an authoring write inside `core_cmd(batch_query)`. See `resources/umg-patterns.md` for the concrete workflow.
 
 ### get_widget — Full Response Fields
 
@@ -58,6 +103,8 @@ slot — using `slot.` prefix on a root widget returns an error.
   - **HorizontalBoxSlot / VerticalBoxSlot / OverlaySlot**: `padding` (`left`/`top`/`right`/`bottom`)
   - All other slot types / root widgets: `null`
 
+- **`property_binding_state`** — opt-in only via `include_property_bindings=true`;
+  serialized records, scope/counts, completeness, diagnostics and asset-level fingerprint.
 Use `slot_type` to determine how to interpret `slot` before reading layout values.
 
 ## Layout Patterns
@@ -83,7 +130,7 @@ Widget `class` can also be a user Widget Blueprint asset path (for example
 
 ## Styling Notes
 
-- `set_font` supports `family` for engine fonts or font asset paths (for example `Roboto` or `/Game/Fonts/MyFont`)
+- `set_font` supports `family` for engine fonts or font asset paths (for example `Roboto` or `/Game/Fonts/MyFont`), plus `outline_size` and `outline_color`
 
 ## MANDATORY Pipeline — New Widget Screen Creation
 
@@ -91,7 +138,7 @@ When creating a new Widget Blueprint from scratch, you MUST use `widget_compose`
 This creates the Widget Blueprint, adds all widgets in hierarchy order, applies styling,
 and runs compile + save — all in a single atomic batch operation.
 
-Do NOT call individual tools (`create_blueprint`, `add_widget`, `set_text`, `set_color`, etc.)
+Do NOT call individual commands (`blueprint_cmd` `create`, `umg_cmd` `add_widget`, `set_text`, `set_color`, etc.)
 separately when creating from scratch.
 
 **Workflow:**
@@ -130,11 +177,16 @@ persistence only under explicit authority. A stop-on-error batch cannot undo the
 save boundary, so never nest a patch inside one, and never substitute raw add/connect calls or
 `run_python` for it. Designer-widget repair (`umg.set_widget_variable`) stays a separate, isolated
 operation: after it, refresh the authoring context and take a fresh fingerprint before any patch
-touches that widget.
+touches that widget. **Animation authoring is also not this workflow.** Post-compose (or post-batch)
+binding and property-track authoring goes through the guarded `ensure_animation_binding` /
+`set_animation_property_track` sequence with a fresh `list_animation_bindings` fingerprint; it is
+never folded into a hierarchy/style batch.
 
-Use `core_cmd(batch)` with `stop_on_error: true` and `$ref` wiring. See `resources/batch-pipeline-guide.md` for full syntax.
+Use `core_cmd(batch_query)` with `stop_on_error: true` and `$ref` wiring. See `resources/batch-pipeline-guide.md` for full syntax.
 
 **Example — add two widgets to an existing screen:**
+Raw native `batch` envelope; through MCP send the same `params` with `core_cmd(command="batch_query", ...)` (see `resources/batch-pipeline-guide.md`).
+
 ```json
 {
   "command": "batch",
@@ -144,7 +196,7 @@ Use `core_cmd(batch)` with `stop_on_error: true` and `$ref` wiring. See `resourc
       {"command": "umg.add_widget", "params": {"asset_path": "/Game/UI/WBP_HUD", "widget_class": "TextBlock", "name": "HealthLabel", "parent": "RootCanvas"}},
       {"command": "umg.set_text", "params": {"asset_path": "/Game/UI/WBP_HUD", "widget_name": "HealthLabel", "text": "Health"}},
       {"command": "umg.add_widget", "params": {"asset_path": "/Game/UI/WBP_HUD", "widget_class": "ProgressBar", "name": "HealthBar", "parent": "RootCanvas"}},
-      {"command": "umg.set_anchor", "params": {"asset_path": "/Game/UI/WBP_HUD", "widget_name": "HealthBar", "anchor": "TopLeft"}}
+      {"command": "umg.set_anchor", "params": {"asset_path": "/Game/UI/WBP_HUD", "widget_name": "HealthBar", "preset": "TopLeft"}}
     ]
   }
 }

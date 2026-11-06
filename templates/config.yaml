@@ -20,3 +20,9 @@ references:
   # game_design: docs/design/gdd.md
   # quest_system: docs/design/quests.md
   # combat_spec: docs/design/combat.md
+
+# Agent hooks are opt-in and disabled by default. Uncomment to enable; see the
+# toolkit README "Agent Hooks (opt-in)" section.
+# hooks:
+#   editor_guard: false     # PreToolUse: check/launch the Unreal Editor before cortex_mcp calls
+#   session_context: false  # SessionStart: inject .cortex context into the session

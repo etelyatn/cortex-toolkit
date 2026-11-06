@@ -23,6 +23,8 @@ Commands are namespaced: `{domain}.{command}`
 
 Built-in commands (no namespace): `get_status`, `get_capabilities`
 
+The Python router adds a **Python-only** `detail` parameter to `get_capabilities` (`names` default / `full`). It is validated and stripped before the native call — the native command receives no `detail` — and `detail=names` (the default) drops every command's `params` signature inventory. Ask for `detail=full` (or use `get_operation_schema` / `profile_operation_schema`) when you need per-command parameter signatures.
+
 ## MCP Server
 
 - **Location:** `Plugins/UnrealCortex/MCP/src/cortex_mcp/`
@@ -36,7 +38,7 @@ Built-in commands (no namespace): `get_status`, `get_capabilities`
 
 ## Connection Guard (PreToolUse Hook)
 
-The `cortex-core` plugin includes a PreToolUse hook that gates every `cortex_mcp` tool call, ensuring the editor and CortexCore TCP server are ready before any MCP command executes.
+The `cortex-core` plugin includes a PreToolUse hook that gates every `cortex_mcp` tool call, ensuring the editor and CortexCore TCP server are ready before any MCP command executes. The guard is **disabled by default** and runs only when `hooks.editor_guard: true` is set in `.cortex/config.yaml` (or a per-machine override in `.cortex/config.local.yaml`); when disabled it exits immediately without probing or launching the editor.
 
 **Fast path (~50ms):** Port file exists + TCP socket responds → hook exits silently, no delay.
 

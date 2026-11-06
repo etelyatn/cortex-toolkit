@@ -19,20 +19,20 @@ Analyze Blueprint graphs to trace execution flow, identify logic errors, and dia
    - Cast failures (`CastTo` nodes) — confirm the target class exists and is reachable in the hierarchy
    - Missing events — check if the parent defines the event the BP is trying to override
    - Unexpected behavior — distinguish inherited logic from BP-local logic
-2. **Get the Blueprint info** — use `get_blueprint_info` to understand the asset type and compilation status
-3. **List graphs** — use `graph_list_graphs` to see EventGraph, functions, macros
-4. **Examine nodes** — use `graph_get_subgraph` on the relevant graph to see the execution flow
+2. **Get the Blueprint info** — use `blueprint_cmd(command="get_info")` to understand the asset type and compilation status
+3. **List graphs** — use `graph_cmd(command="list_graphs")` to see EventGraph, functions, macros
+4. **Examine nodes** — use `graph_cmd(command="get_subgraph")` on the relevant graph to see the execution flow
 5. **Trace execution flow**
-   - Use `graph_search_nodes` to find entry points by node type or function name:
-     - `graph_search_nodes(asset_path, node_class="UK2Node_Event")` - event entry points
-     - `graph_search_nodes(asset_path, function_name="SetVisibility")` - visibility changes
-     - `graph_search_nodes(asset_path, node_class="UK2Node_IfThenElse")` - branches
-   - Then trace from each result using `graph_get_subgraph`:
+   - Use `graph_cmd(command="search_nodes")` to find entry points by node type or function name (add `graph_name` to restrict to one graph):
+     - `graph_cmd(command="search_nodes", params={"asset_path": ..., "node_class": "UK2Node_Event"})` - event entry points
+     - `graph_cmd(command="search_nodes", params={"asset_path": ..., "function_name": "SetVisibility"})` - visibility changes
+     - `graph_cmd(command="search_nodes", params={"asset_path": ..., "node_class": "UK2Node_IfThenElse"})` - branches
+   - Then trace from each result using `graph_cmd(command="get_subgraph")`:
      1. Read the `then` pin's `connections[0].node_id`
-     2. Call `graph_get_subgraph` on that node_id
+     2. Call `get_subgraph` with that node_id in `node_ids`
      3. Repeat until the exec chain ends or hits a branch (follow both `True` and `False` paths)
      4. Use `entry.get("connections", [])` defensively; the field is absent (not empty) when disconnected
-   - Re-run `graph_get_subgraph` after any compile operation, because node IDs are invalidated
+   - Re-run `get_subgraph` after any compile operation, because node IDs are invalidated
 6. **Check variables** — use the Blueprint structure tools to verify variable types and defaults
 7. **Identify the issue** — common problems:
    - Disconnected execution pins (dead code)
@@ -43,7 +43,7 @@ Analyze Blueprint graphs to trace execution flow, identify logic errors, and dia
 
 ### Compact Mode — Default for Graph Reads
 
-`graph_get_subgraph`, `graph_get_subgraph`, and `graph_search_nodes` default to `compact=true`. For most debug scenarios (tracing execution, finding branches, identifying disconnected pins) the compact output is sufficient — connection info, pin `name`/`direction`/`type`, and `display_name` are all preserved.
+`get_subgraph` and `search_nodes` default to `compact=true`. For most debug scenarios (tracing execution, finding branches, identifying disconnected pins) the compact output is sufficient — connection info, pin `name`/`direction`/`type`, and `display_name` are all preserved.
 
 **Pass `compact: false` explicitly when your debug task needs:**
 - **Visual layout** — if you are diagnosing auto-layout bugs or need the `position` x/y of nodes

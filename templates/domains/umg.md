@@ -54,4 +54,35 @@
 - Binding removal vs track deletion: `remove_animation_binding` removes an entire target-binding record, not an individual property track.
   - Unshared binding: if a widget target has multiple property tracks (e.g., RenderOpacity and Scale) under a single binding record, removing that binding removes the possessable and all associated tracks.
   - Shared possessable: a possessable and its tracks are retained only while another UMG binding record still references its GUID. When multiple UMG binding records share the same GUID, removing one binding record preserves the shared MovieScene possessable and tracks for the remaining records.
+  - Renaming a Designer widget (`umg.rename_widget`) propagates the binding record's WidgetName and its possessable; prefer it over delete/recreate. A stale animation content-guard fingerprint refuses without mutation.
+  - Author new binding/track content through the guarded `umg.ensure_animation_binding` and
+    `umg.set_animation_property_track` sequence: inspect with `umg.list_animation_bindings` to get the
+    version-2 content-guard fingerprint, preview with `dry_run` (default true), apply, then compile
+    and save explicitly. Ordinary named Designer widgets only (`float` / `FLinearColor` /
+    `FSlateColor` tracks, linear/constant keys, at most 8 sections and 64 logical keys per track);
+    sections optionally use `completion_mode: "RestoreState"` (default) or `"KeepState"`.
+    `track: null` clears one property track and keeps the binding. Authoring is a guarded
+    transaction performed after any hierarchy/style batch or `widget_compose`, never inside one.
 -->
+
+## Designer Property Binding Conventions
+
+<!-- WHY: A literal property write does not retire a serialized Designer binding.
+     Inspect through umg.get_widget or umg.get_tree with include_property_bindings=true.
+     get_tree includes orphan targets and unresolved sources. Require reader_complete=true
+     and pass the returned asset-level fingerprint to umg.set_property_binding.
+     Explicit binding=null clears; a validated object creates/replaces. Empty/omitted
+     binding is not clear. Missing widgets, ambiguous targets and stale guards refuse.
+     Clear before retiring source members, then compile/save explicitly and inspect a
+     freshly loaded asset. Do not change literal defaults, hierarchy, styles or animations
+     as a binding-removal workaround. See resources/umg-patterns.md for payloads. -->
+
+## Widget Migration Conventions
+
+<!-- WHY: Reparenting Widget Blueprints onto native bases requires exact BindWidget names, reference-aware renames, and preserved FText and per-instance values.
+     Inspect with umg.check_native_bindings (report-only; `has_errors` covers missing, type_mismatch, not_transient and graph-referenced members that are not blueprint visible),
+     umg.get_embedded_widget_values (is_override vs class default) and blueprint.export_text_inventory
+     (40000-char inline limit; use out_path for larger). umg.rename_widget scope=dependents is dry-run-first and
+     applies only with the owner expected_fingerprint plus expected_dependent_fingerprints (exactly the plan's modified
+     dependents); a failed apply is undone and verified (rollback_status, blocked[]). No compile/save is implied: compile and save explicitly, then re-inspect. umg.get_commonui_info
+     returns commonui_available=false when the CommonUI plugin is not loaded. See resources/umg-patterns.md. -->

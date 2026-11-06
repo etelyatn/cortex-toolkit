@@ -69,9 +69,9 @@ MANDATORY WORKFLOW:
 8. Before a raw `graph.add_node` mutation, call `graph_cmd(command="describe_node", ...)` for the node class. Use the returned node-class contract to select accepted parameters and pin names; correct validation failures before retrying.
 
 PROHIBITED:
-- Never call `graph_add_node` or `graph_connect` individually N times for multi-node operations.
+- Never call `graph_cmd` `add_node` or `connect` individually N times for multi-node operations.
 - Never send an existing-asset graph change as the removed legacy update batch (`mode="update"` carrying `nodes`/`connections` without a `patch`): it is refused, and there is no fallback to it.
-- Never substitute a `core_cmd(batch)` composition, `editor_cmd(run_python)` or raw add/connect calls when `graph.apply_patch` is unavailable or refuses: stop and report the blocker.
+- Never substitute a `core_cmd(batch_query)` composition, `editor_cmd(run_python)` or raw add/connect calls when `graph.apply_patch` is unavailable or refuses: stop and report the blocker.
 - Individual graph tools are only acceptable for a single isolated change (e.g., set one pin value, connect one existing wire).
 ```
 
@@ -84,13 +84,13 @@ Review the following Blueprint(s):
 **Concerns:** [naming, complexity, compilation, variable organization, best practices]
 **Prefetched state:** [embed the main-thread `prefetched_state` block here before proceeding]
 
-READ-ONLY MODE: Do NOT call list_blueprints, `blueprint_cmd(command="compile", params={...})`, impact_analysis, or any write tools.
-Permitted tools: blueprint_cmd(get_info), graph_cmd(list_graphs), graph_cmd(get_subgraph), graph_cmd(trace_exec), graph_cmd(find_event_handler), graph_cmd(find_function_calls), reflect_cmd(query_class_context).
+READ-ONLY MODE: Do NOT call `blueprint_cmd(command="list")`, `blueprint_cmd(command="compile", params={...})`, impact_analysis, or any write tools.
+Permitted tools: blueprint_cmd(get_info), graph_cmd(list_graphs), graph_cmd(get_subgraph), graph_cmd(trace_exec), graph_cmd(find_event_handler), graph_cmd(find_function_calls), query_class_context.
 
 WORKFLOW:
 1. Read `.cortex/domains/blueprints.md` for project conventions
 2. Use `prefetched_state` first; only fetch missing data
-3. Use blueprint_cmd(get_info) to inspect relevant Blueprints — do NOT call list_blueprints
+3. Use blueprint_cmd(get_info) to inspect relevant Blueprints — do NOT call blueprint_cmd(list)
 4. Check structure (naming, type appropriateness, parent class)
 5. Analyze graphs in parallel: call graph_cmd(get_subgraph) or graph_cmd(find_event_handler) across the relevant graphs simultaneously
 6. Check variable organization (categories, exposure, naming)
@@ -115,7 +115,7 @@ WORKFLOW:
 1. Read `.cortex/domains/blueprints.md` for available tools and patterns
 2. Use `prefetched_state` first and avoid re-fetching identical baseline reads
 3. Run independent graph reads in parallel
-4. Use graph_search_nodes and connections to trace execution flow
+4. Use graph_cmd(search_nodes) and connections to trace execution flow
 5. Map the call chain and identify where behavior diverges from expectation
 6. If you make a fix, include `expected_fingerprint` on every mutation
 7. Report findings with node-level detail
@@ -130,13 +130,13 @@ Run this workflow before any mutation:
 1. **Resolve targets** and present the exact mutation set for confirmation.
    - For one named Blueprint, resolve the asset path if only a short name is provided.
    - For "all children of X" or multi-target requests, discover candidates and filter them by current parent.
-2. **Resolve the new parent** — accept either a Blueprint asset path or a C++ class name, and verify it exists before mutating.
+2. **Resolve the new parent** — accept either a Blueprint asset path, a full class path or a unique C++ class name, and verify it exists before mutating.
 3. **Capture pre-reparent state.**
    - Inspect each Blueprint for custom variables, functions, and graph complexity.
    - Capture owned SCS component defaults that would be overwritten by the new parent.
    - Capture placed-instance overrides for existing level instances so they can be restored after the parent swap.
    - Warn the user if custom variables, graph logic, or component layouts may not be compatible with the new parent.
-4. **Reparent** — use `reparent` on each target Blueprint. If the primary reparent route is unavailable, use the supported cleanup/reparent fallback with the generated class path.
+4. **Reparent** — run `reparent` with `dry_run: true` on each target first and show the collision report (`variable:<n>`, `scs:<n>`, `save_game:<n>` keys in `required_acknowledgment`); apply only after the user confirms, passing `expected_fingerprint` and `acknowledged_collisions` from the dry run. Use the full class path when `AMBIGUOUS_CLASS` is returned. To move Blueprint variables into the new native parent use `adopt_native_member` (not `remove_variable`/`cleanup_migration`, which destroy referencing nodes). If the primary reparent route is unavailable, use the supported cleanup/reparent fallback with the generated class path.
 5. **Restore defaults and instance overrides.**
    - Restore owned Blueprint component defaults with `set_component_defaults`.
    - Restore placed-instance overrides with level modify operations.

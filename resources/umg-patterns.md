@@ -81,14 +81,92 @@ Root: VerticalBox
 widget_compose(asset_path="/Game/UI/WBP_YourScreen", root_class="CanvasPanel", widgets=[...], animations=[...])
 ```
 Creates the Widget Blueprint, adds the full hierarchy, applies styling, compiles, and saves — all in one atomic call.
+A `padding` dict in a widget spec is applied as the nested `padding` object on `umg.set_padding`.
 
 ### Build a Screen Incrementally (modifying existing widgets)
 ```python
-umg_cmd(command="add_widget", params={"asset_path": "/Game/UI/WBP_Screen", "parent": "PnlContent", "class": "TextBlock", "name": "TxtTitle"})
-umg_cmd(command="set_anchor", params={"asset_path": "/Game/UI/WBP_Screen", "widget_name": "TxtTitle", "anchor": "top_center"})
+umg_cmd(command="add_widget", params={"asset_path": "/Game/UI/WBP_Screen", "parent_name": "PnlContent", "widget_class": "TextBlock", "name": "TxtTitle"})
+umg_cmd(command="set_anchor", params={"asset_path": "/Game/UI/WBP_Screen", "widget_name": "TxtTitle", "preset": "TopCenter"})
 umg_cmd(command="set_text",   params={"asset_path": "/Game/UI/WBP_Screen", "widget_name": "TxtTitle", "text": "Hello"})
-umg_cmd(command="create_animation", params={"asset_path": "/Game/UI/WBP_Screen", "name": "FadeIn"})
+umg_cmd(command="create_animation", params={"asset_path": "/Game/UI/WBP_Screen", "animation_name": "FadeIn", "length": 0.3})
 ```
+
+### Author Animation Content (guarded — opacity / color tracks)
+
+`create_animation` creates only an **empty** named animation. Binding a Designer widget and
+authoring its property tracks is a guarded `umg_cmd` sequence — never a hierarchy/style batch,
+never a `widget_compose` animation entry, and never nested inside `core_cmd(batch_query)`. Each
+authoring write (and each removal) consumes a full animation content-guard fingerprint
+(signature **v2**) from `list_animation_bindings`; a stale or version-1 guard refuses without
+mutation. `dry_run` defaults to **true**, so preview first and re-issue with `dry_run: false`.
+
+```python
+ASSET = "/Game/UI/WBP_Screen"
+
+# 0. Create the empty animation (length in seconds). Existing animations: skip.
+umg_cmd(command="create_animation", params={"asset_path": ASSET, "animation_name": "FadeIn", "length": 0.3})
+
+# 1. Inspect: retain the animation content-guard fingerprint.
+guard = umg_cmd(command="list_animation_bindings",
+                params={"asset_path": ASSET, "animation_name": "FadeIn"})["fingerprint"]
+
+# 2. Bind the ordinary Designer widget. "Decoration" is an Image here.
+selector = umg_cmd(command="ensure_animation_binding",
+                   params={"asset_path": ASSET, "animation_name": "FadeIn", "widget_name": "Decoration",
+                           "expected_fingerprint": guard, "dry_run": False})["matched_selector"]
+# selector = {binding_guid, widget_name, slot_widget_name: "", is_root_widget: false}
+
+# 3. Author a float opacity track. Sections are half-open [start_seconds, end_seconds).
+guard = umg_cmd(command="list_animation_bindings",
+                params={"asset_path": ASSET, "animation_name": "FadeIn"})["fingerprint"]
+umg_cmd(command="set_animation_property_track",
+        params={"asset_path": ASSET, "animation_name": "FadeIn", "selector": selector,
+                "property_path": "RenderOpacity",
+                "track": {"type": "float", "sections": [{
+                    "start_seconds": 0.0, "end_seconds": 0.3, "keys": [
+                        {"time_seconds": 0.0, "value": 0.0, "interpolation": "linear"},
+                        {"time_seconds": 0.3, "value": 1.0, "interpolation": "linear"}]}]},
+                "expected_fingerprint": guard, "dry_run": False})
+
+# 4. Author a linear-color track (four independent RGBA channels) on the same Image.
+guard = umg_cmd(command="list_animation_bindings",
+                params={"asset_path": ASSET, "animation_name": "FadeIn"})["fingerprint"]
+umg_cmd(command="set_animation_property_track",
+        params={"asset_path": ASSET, "animation_name": "FadeIn", "selector": selector,
+                "property_path": "ColorAndOpacity",
+                "track": {"type": "color", "sections": [{
+                    "start_seconds": 0.0, "end_seconds": 0.3, "keys": [
+                        {"time_seconds": 0.0, "value": {"r": 0.0, "g": 0.0, "b": 0.0, "a": 1.0}, "interpolation": "linear"},
+                        {"time_seconds": 0.3, "value": {"r": 1.0, "g": 0.5, "b": 0.25, "a": 1.0}, "interpolation": "linear"}]}]},
+                "expected_fingerprint": guard, "dry_run": False})
+
+# 5. Persist explicitly — authoring never compiles or saves implicitly.
+blueprint_cmd(command="compile", params={"asset_path": ASSET})
+blueprint_cmd(command="save", params={"asset_path": ASSET})
+```
+
+Authoring contract limits:
+
+- **Ordinary named Designer widgets only** — `is_root_widget` must be `false` and
+  `slot_widget_name` empty. `is_root_widget=true` user-widget bindings, slot bindings and
+  dynamic bindings are out of scope.
+- **`float`, linear-color (`FLinearColor`) and Slate-color (`FSlateColor`) tracks**; `linear` or
+  `constant` interpolation, no cubic. Both color property types use `type: "color"` and linear
+  RGBA keys with exactly `r`/`g`/`b`/`a`.
+- **At most 8 sections and 64 logical keys per track**; a color track expands to four channels.
+  Times are quantized to the MovieScene tick resolution; sections are half-open `[start, end)`
+  with `start < end`.
+- Each section optionally accepts `completion_mode: "RestoreState"` (default) or `"KeepState"`.
+  RestoreState restores the pre-animation property; KeepState retains the final evaluated value.
+  Completion modes are per section and are included in the content fingerprint.
+- **`track: null` clears exactly one property track** and keeps the binding. Removing the whole
+  binding record (and its possessable/tracks) is `remove_animation_binding`.
+- Inspect the authored result with
+  `umg_cmd(command="list_animation_bindings", params={"asset_path": ASSET, "animation_name": "FadeIn", "include_track_content": True})`.
+  A detailed read that exceeds the response ceiling returns `_error: "RESPONSE_TOO_LARGE"` with
+  `reader_complete: false` and summary counts — not a silently truncated page.
+- After any hierarchy/style batch or `widget_compose`, take a **fresh** fingerprint before the
+  first guarded animation write.
 
 ### Control Slot Layout
 ```python
@@ -107,10 +185,65 @@ umg_cmd(command="set_property", params={"asset_path": "/Game/UI/WBP_Screen", "wi
 umg_cmd(command="get_tree",       params={"asset_path": "/Game/UI/WBP_Screen"})
 # identify target widgets, then:
 umg_cmd(command="set_property",   params={"asset_path": "/Game/UI/WBP_Screen", "widget_name": "TxtTitle", "property_path": "ColorAndOpacity.R", "value": 1.0})
-umg_cmd(command="add_widget",     params={"asset_path": "/Game/UI/WBP_Screen", "parent": "PnlRoot", "class": "Button", "name": "BtnConfirm"})
+umg_cmd(command="add_widget",     params={"asset_path": "/Game/UI/WBP_Screen", "parent_name": "PnlRoot", "widget_class": "Button", "name": "BtnConfirm"})
 umg_cmd(command="remove_widget",  params={"asset_path": "/Game/UI/WBP_Screen", "widget_name": "BtnOld"})
 umg_cmd(command="get_tree",       params={"asset_path": "/Game/UI/WBP_Screen"})  # verify
 ```
+
+### Bounded Tree Reads (get_tree)
+
+`get_tree` bounds a traversal instead of paging it:
+
+- `depth` — deepest retained level, root is level 0 (strict integer `>= 0`); absent ⇒ unlimited.
+- `max_nodes` — maximum emitted widgets, root included (strict integer `>= 1`); absent ⇒ unlimited.
+- `names_only` — keep hierarchy/name/child counts, drop class identity (`class`, `is_user_widget`,
+  `widget_blueprint`).
+- `include_property_bindings` — unchanged; appends the asset-wide `property_binding_state`.
+
+The response reports exact asset-wide `total_widgets` (never reduced by the budget),
+`returned_widgets`, `tree_complete` (`!(depth cut || node cut)`) and `reasons` (one entry per cut
+reason). `tree_complete=false` means the tree you got is a bounded slice — do not treat missing
+children as absent. A branch stopped by either budget keeps its real `child_count` and is marked
+`incomplete: true`; a true leaf omits `child_count`/`children` entirely (leaf nodes no longer carry
+`children: []`).
+
+```python
+# Lean hierarchy of a deep screen
+umg_cmd(command="get_tree", params={"asset_path": "/Game/UI/WBP_Inventory", "depth": 3, "names_only": True})
+# Exact total widget count without a full tree
+umg_cmd(command="get_tree", params={"asset_path": "/Game/UI/WBP_Inventory", "depth": 0, "max_nodes": 1})
+```
+
+There is no pagination: re-request with a smaller `depth`/`max_nodes` or `names_only=true`. When
+`include_property_bindings=true` and the combined payload exceeds the response ceiling the command
+returns a refusal envelope (`_error="RESPONSE_TOO_LARGE"`, `reader_complete=false`, `asset_path`,
+`total_widgets`, `returned_widgets`, `max_response_chars`) with no `root` — narrow the request instead
+of retrying.
+
+Non-`names_only` nodes also carry `is_variable` and, when the widget has a slot, a `slot` summary (`type` plus layout values, same shape as `get_widget`). This makes nodes larger, so fewer fit one response — prefer `names_only=true` with `depth`/`max_nodes` on big screens and `get_widget` for detail.
+
+### Widget Migration Workflow (BindWidget, Rename, Values, Text, CommonUI)
+
+```python
+# 1. Report BindWidget/BindWidgetAnim mismatches against the native base (or a prospective one before reparenting)
+umg_cmd(command="check_native_bindings", params={"asset_path": "/Game/UI/WBP_Popup", "native_class": "/Script/MyGame.MyPopupBase"})
+# statuses: matched | type_mismatch | missing | optional_missing | not_transient ; has_errors gates the migration
+
+# 2. Capture before-state: embedded per-instance values and the FText inventory
+umg_cmd(command="get_embedded_widget_values", params={"asset_path": "/Game/UI/WBP_Popup"})  # is_override per property
+blueprint_cmd(command="export_text_inventory", params={"asset_path": "/Game/UI/WBP_Popup", "out_path": "Saved/Inventories/WBP_Popup.before.json"})
+
+# 3. Reference-aware rename: preview first (dry_run defaults to true for scope=dependents)
+plan = umg_cmd(command="rename_widget", params={"asset_path": "/Game/UI/WBP_Popup", "widget_name": "BtnOk", "new_name": "ConfirmButton",
+                                               "expected_fingerprint": tree_fingerprint, "scope": "dependents"})
+# review plan["assets"] (role/fingerprint/references) and plan["conflicts"], then apply with the exact per-asset fingerprints
+umg_cmd(command="rename_widget", params={"asset_path": "/Game/UI/WBP_Popup", "widget_name": "BtnOk", "new_name": "ConfirmButton",
+                                        "expected_fingerprint": tree_fingerprint, "scope": "dependents", "dry_run": False,
+                                        "expected_dependent_fingerprints": {a["asset_path"]: a["fingerprint"] for a in plan["assets"] if a["role"] != "owner" and a["references"]}})
+# no compile, no save: compile and save every touched package explicitly, then repeat steps 1-2 and diff
+```
+
+Notes: the `expected_dependent_fingerprints` key set must equal the plan's modified dependents exactly (assets with references; unreferenced assets are reported but not modified) — missing, extra or stale entries refuse with `STALE_PRECONDITION` before any mutation. Inline text inventories are limited to 40000 characters; larger Blueprints need `out_path` (under `Saved`, `Content` or `Config`). `get_commonui_info` returns `commonui_available: false` (no error) when the CommonUI plugin is not loaded.
 
 ### Inspect Widget Layout (get_widget)
 
@@ -149,11 +282,43 @@ umg_cmd(command="get_widget", params={"asset_path": "/Game/UI/WBP_HUD", "widget_
 
 **Tip:** Check `slot_type` before reading `slot` to know which fields to expect.
 
+### Inspect and Set Designer Property Bindings
+
+Reuse `umg_cmd`; property bindings are distinct from animation bindings and literal property values.
+
+```python
+state = umg_cmd(command="get_widget", params={
+    "asset_path": "/Game/UI/WBP_HUD", "widget_name": "ProgressDisplay",
+    "include_property_bindings": True,
+})
+# Require property_binding_state.reader_complete=true; retain its fingerprint.
+umg_cmd(command="set_property_binding", params={
+    "asset_path": "/Game/UI/WBP_HUD", "widget_name": "ProgressDisplay",
+    "property_name": "Percent", "binding": None,
+    "expected_fingerprint": state["property_binding_state"]["fingerprint"],
+})
+```
+
+Explicit `binding=None` clears; `{}` or omitted `binding` refuses. An object authors a
+binding: `{"kind":"property","source_path":["ElapsedValue"]}` or
+`{"kind":"function","function_name":"GetElapsedPercent"}`. Sources must exist and be
+compatible; property-bound functions must be pure/const. Compile source declarations
+explicitly first when necessary. Re-inspect before each write; duplicates and stale
+fingerprints refuse without mutation.
+
+Use `get_tree(include_property_bindings=True)` for asset-wide inspection, including
+records targeting deleted widgets. Unresolved source identities remain visible.
+Oversized inspection returns `RESPONSE_TOO_LARGE` with false reader completeness, not
+an empty list; orphan records cannot be recovered through missing-widget reads.
+Pagination fields are unsupported. No implicit compile/save/reload: compile and save
+explicitly through existing Blueprint/Core commands. Literal `set_property` does not
+clear a binding.
+
 ### Duplicate and Customize
 ```python
 umg_cmd(command="duplicate_widget", params={"asset_path": "/Game/UI/WBP_Screen", "widget_name": "BtnTemplate", "new_name": "BtnVariant"})
 umg_cmd(command="set_text",  params={"asset_path": "/Game/UI/WBP_Screen", "widget_name": "BtnVariant", "text": "Variant"})
-umg_cmd(command="set_color", params={"asset_path": "/Game/UI/WBP_Screen", "widget_name": "BtnVariant", "r": 0.2, "g": 0.8, "b": 0.2})
+umg_cmd(command="set_color", params={"asset_path": "/Game/UI/WBP_Screen", "widget_name": "BtnVariant", "color": {"r": 0.2, "g": 0.8, "b": 0.2}})
 ```
 
 ### Vertical Fill Child Pattern

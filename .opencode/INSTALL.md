@@ -35,7 +35,9 @@ Add the toolkit to the `plugin` array in your project's `opencode.json` (or the 
 ```
 
 Restart OpenCode. OpenCode fetches the toolkit from git through its plugin manager, loads
-`.opencode/plugins/cortex.js`, and registers the `cortex-*` skills.
+`.opencode/plugins/cortex.js`, and registers the `cortex-*` skills. Skills register
+unconditionally; session context is injected only when `hooks.session_context: true` is set in
+`.cortex/config.yaml`.
 
 Verify by asking: "What Cortex skills are available?" — OpenCode should list Cortex skills.
 

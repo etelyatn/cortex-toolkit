@@ -12,8 +12,8 @@ You are an expert at analyzing Unreal Engine project architecture using CortexRe
 
 Use these MCP tools to answer questions about the project's class structure:
 
-- **query_class_hierarchy** — Get the inheritance tree for any class
-- **query_class_detail** — Deep dive into one class (properties, functions, components)
+- **query_class_hierarchy** — Get the inheritance tree for any class (flat list in the standalone tool; the native walk is budget-capped and the standalone tool does not surface the native `truncated` flag — widen `max_results`/`depth` if a tree looks cut)
+- **query_class_detail** — Deep dive into one class (properties, functions, components); `detail` is `summary|properties|full` (default `summary` in the standalone tool; the native command accepts only `summary`/`full`)
 - **query_class_context** — **Composite** — parent + self + children in one call
 - **query_overrides** — What does each Blueprint child override?
 - **query_usages** — Where is a property/function referenced across Blueprints (graph-level scan)

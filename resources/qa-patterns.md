@@ -16,9 +16,28 @@ Bug detection patterns and classification for exploratory and scenario-driven ga
 - Repeated error logs during scenario execution.
 - Frame rate drops below defined threshold for sustained periods.
 
+## Log Evidence and `log_coverage`
+
+Log-based findings come from `qa_test_step` / `scenario_compose`, which attach a per-step and summary
+`log_coverage` object (`{complete, lost_before_cursor, window_end_cursor, count, cause}`). It is built
+on a single one-shot finite `editor.get_recent_logs` window — a `count_only` baseline watermark, then
+`since_cursor` with a pinned `until_cursor`, `limit=200`, page cap 50 — with **no retry or poll**.
+
+- `complete=true` — the whole window was read; a missing error is evidence of absence.
+- `complete=false` — coverage is unknown. `cause` names the limiting factor: front eviction
+  (`lost_before_cursor`), an MCP/native size refusal, a read failure, non-advancing pagination, a
+  missing watermark, or the page cap. Never report "no errors" from an incomplete window; report the
+  gap and, if a specific error is suspected, re-run with a tighter filter (severity/category) or a
+  smaller window.
+
+Severity detection reads `entries[].severity` (canonical lowercase `log|warning|error`) from
+`editor.get_recent_logs`; the removed `logs[].level` field and the `"Error:"` text heuristic are no
+longer used. The standalone `get_recent_logs` tool only exposes `severity`, `since_seconds`,
+`since_cursor`, `category` — use `editor_cmd` for `until_cursor`/`limit`/`count_only`.
+
 ## Input-Driven Testing Patterns
 
-**Single interaction:** Use `interact_with` — it handles look-at + key press + timeout in one call.
+**Single interaction:** Use `qa_cmd(command="interact")` — it handles look-at + key press + timeout in one call.
 
 **Hold mechanics (charge, sprint, aim):**
 ```
@@ -29,7 +48,7 @@ editor_cmd(command="inject_input_sequence", params={
   ]
 })
 ```
-Follow with `observe_game_state` to confirm stamina drain, sprint state, etc.
+Follow with `qa_cmd(command="observe_state")` to confirm stamina drain, sprint state, etc.
 
 **Combo / timed sequence:**
 ```
@@ -45,9 +64,9 @@ editor_cmd(command="inject_input_sequence", params={
 - `dispatched: true` but no game state change → input reached Slate but was not bound / no game mode active
 - `PIE_NOT_ACTIVE` error → PIE stopped or was never started
 - `INVALID_FIELD` error → bad key name or action string (fix the scenario)
-- `wait_for_condition` timeout after input → mechanic not responding; file as MAJOR
+- `qa_cmd(command="wait_for")` timeout after input → mechanic not responding; file as MAJOR
 
-**Known limitation:** `editor_cmd(command="inject_key", ...)` and `editor_cmd(command="inject_input_sequence", ...)` only confirm Slate dispatch, not game receipt. Always verify effects with `observe_game_state` or `wait_for_condition` after injecting input.
+**Known limitation:** `editor_cmd(command="inject_key", ...)` and `editor_cmd(command="inject_input_sequence", ...)` only confirm Slate dispatch, not game receipt. Always verify effects with `qa_cmd(command="observe_state")` or `qa_cmd(command="wait_for")` after injecting input.
 
 **Typed/sustained Enhanced Input:**
 ```python
@@ -102,7 +121,7 @@ QA and Editor tool coverage in `Plugins/UnrealCortex/MCP/tests/`:
 |-----------|----------|
 | `test_editor_e2e.py` | PIE lifecycle, viewport, screenshots, logs, console commands, time dilation |
 | `test_editor_lifecycle.py` | Editor startup/shutdown integration |
-| `test_qa_tools.py` | QA composites (move_player_to, interact_with, observe_game_state, wait_for_condition, assert_game_state) |
+| `test_qa_tools.py` | QA composites (`move_to`, `interact`, `observe_state`, `wait_for`, `assert_state`) |
 
 Run to validate after modifying Editor/QA MCP tools or C++ command handlers.
 

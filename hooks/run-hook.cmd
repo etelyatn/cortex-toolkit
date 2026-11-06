@@ -26,8 +26,9 @@ if %ERRORLEVEL% equ 0 (
     exit /b %ERRORLEVEL%
 )
 
-echo Cortex Toolkit hook requires Git Bash or another bash.exe on PATH. >&2
-exit /b 2
+REM No bash available: no-op instead of blocking. A missing shell must never
+REM fail MCP tool calls; the hook simply does not run.
+exit /b 0
 CMDBLOCK
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"

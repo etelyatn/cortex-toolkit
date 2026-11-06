@@ -2,7 +2,7 @@
 
 Decision framework and patterns for migrating Blueprint logic to C++.
 
-**Coding Standards:** All generated C++ must follow `docs/unreal-coding-standards.md` (Epic standard — PascalCase, Allman braces, tabs, UPROPERTY/UFUNCTION on everything Blueprint-visible).
+**Coding Standards:** All generated C++ must follow the consuming project's coding standards, if present (for example its own `docs/unreal-coding-standards.md`), otherwise Epic's Unreal standard — PascalCase, Allman braces, tabs, UPROPERTY/UFUNCTION on everything Blueprint-visible.
 
 ## When to Migrate
 
@@ -196,7 +196,7 @@ void UMyWidget::HandleConfirmClicked()
 ```
 
 **Key rules for Widget migration:**
-- Use `meta = (BindWidget)` for required widgets, `meta = (BindWidgetOptional)` for optional
+- Use `meta = (BindWidget)` for required widgets, `meta = (BindWidgetOptional)` for optional. Only widgets the analysis reports with `is_variable: true` (the `entity_summary` widget entries) get native fields; `widgets` lists the whole tree, and layout-only widgets stay in the Designer.
 - Use `meta = (BindWidgetAnim)` with `Transient` for animation bindings
 - Choose clear role-based names before generation; rename native BindWidget fields and Designer widgets together using reference-aware Unreal operations. Names must match exactly; Designer widget classes must be assignment-compatible with the native property types. Keep styling/layout/animation authored in BP; expose semantic state through existing presentation hooks. See cortex-bp-migrate: Widget migration ownership and naming.
 - Override `NativeConstruct()` for runtime init (replaces BP Construct event)
@@ -300,47 +300,101 @@ Keep widget label references and localized format templates in editable Widget B
 
 ## Blueprint Cleanup Tools
 
-### cleanup_blueprint_migration
+### Guarded native member adoption
 
-Reparents a Blueprint to a new C++ class and removes migrated variables and functions in a single transaction. This is the primary cleanup command used after the C++ class is built and compiled.
+Hand-over of Blueprint state to a native parent is done by guarded commands, not by deleting variables. **Never use `cleanup_migration` or `remove_variable` to move a variable into C++**: removing the variable destroys every get/set node that names it. `adopt_native_member` retargets those nodes to the native property, carries the default, placed-instance values and child CDOs, and reads the result back fail-closed.
+
+All of the commands below are routed through `blueprint_cmd`, are strict (unknown params are refused), take `dry_run`, an optional `expected_fingerprint` (copy it from a `dry_run`; a stale one refuses `STALE_PRECONDITION`) and an explicit `compile` / `save`. Run every one with `dry_run: true` first and read `required_acknowledgment`, `collisions`, `referencing_nodes` and `save_game_findings` before applying.
+
+**Workflow (variables):**
+
+```
+1. export_snapshot (before)                         -> out_path under Saved/
+2. reparent dry_run: true                           -> collisions, required_acknowledgment, cdo_delta, fingerprint
+3. Acknowledge: acknowledged_collisions = exactly the dry run's required_acknowledgment keys
+4. reparent (save: false)                           -> readback matched, compile clean
+5. adopt_native_member dry_run: true, then apply     -> state, type match, nodes, instances, redirect line
+6. compile                                          -> blueprint_cmd(command="compile")
+7. export_snapshot (after) + compare_snapshots      -> the member is `moved`, never `removed`
+8. level.export_class_instances                     -> placed-instance values read from the map on disk
+```
 
 ```python
-cleanup_blueprint_migration(
-    asset_path="/Game/Blueprints/BP_Enemy",
-    new_parent_class="/Script/MyGame.AEnemyBase",
-    remove_variables=["Health", "MoveSpeed"],
-    remove_functions=["CalculateDamage", "OnHit"],
-    compile=True  # default
-)
-# Returns:
-# {
-#   "reparented": true,
-#   "new_parent": "AEnemyBase",
-#   "removed_variables": ["Health", "MoveSpeed"],
-#   "removed_functions": ["CalculateDamage", "OnHit"],
-#   "compiled": true,
-#   "compile_status": "UpToDate",
-#   "warnings": []
-# }
+blueprint_cmd(command="reparent", params={
+    "asset_path": "/Game/Blueprints/BP_Electrobox",
+    "new_parent": "/Script/MyGame.AElectroboxBase",   # full path, Blueprint path, or a UNIQUE short name
+    "dry_run": True,
+})
+# then, with the keys the dry run returned:
+blueprint_cmd(command="reparent", params={
+    "asset_path": "/Game/Blueprints/BP_Electrobox",
+    "new_parent": "/Script/MyGame.AElectroboxBase",
+    "expected_fingerprint": fingerprint_from_dry_run,
+    "acknowledged_collisions": required_acknowledgment,
+    "save": False,
+})
+blueprint_cmd(command="adopt_native_member", params={
+    "asset_path": "/Game/Blueprints/BP_Electrobox",
+    "mappings": [{"bp_variable": "bPowerOn", "native_property": "bPowerOn"}],
+    "dry_run": True,
+})
+```
+
+**Parameters (exact):**
+
+| Command | Required | Optional |
+|---------|----------|----------|
+| `reparent` | `asset_path`, `new_parent` | `dry_run`, `expected_fingerprint`, `compile` (default true), `save` (false; requires compile), `acknowledged_collisions`, `report_path` (full CDO delta file under Saved/Content/Config; the inline list is omitted) |
+| `rename_member` | `asset_path`, `kind` (`variable`/`function`/`dispatcher`/`local`), `old`, `new` | `function` (owner graph, required for `local`), `dry_run`, `expected_fingerprint`, `compile` (true), `save` (false), `acknowledged_losses` |
+| `adopt_native_member` | `asset_path`, `mappings` (`[{bp_variable, native_property, default?}]`; `default` only for `engine_already_adopted`) | `transfer_default` (true), `retarget_nodes` (true; false is refused for renames), `dry_run`, `expected_fingerprint`, `compile` (true; required for `save`, `transfer_default=false`, renames), `save` (false), `acknowledged_losses` |
+| `adopt_scs_into_native` | `asset_path`, `mappings` (`[{scs_node, native_component}]`) | `copy` (any of `transform`, `properties`, `attach`; default all), `remove_scs` (false; required when the SCS node has the inherited component's name), `dry_run`, `expected_fingerprint`, `compile` (true), `save` (false), `acknowledged_losses` |
+| `swap_scs_component_class` | `asset_path`, `component_name`, `new_class` | `dry_run`, `expected_fingerprint`, `compile` (true), `save` (false), `acknowledged_losses` |
+| `remove_variable` | `asset_path`, `name` | `dry_run`, `expected_fingerprint`, `compile` (false), `save` (false), `remove_referencing_nodes` (false), `acknowledged_losses` |
+
+**Acknowledgement rules.** `POTENTIAL_DATA_LOSS` returns `required_acknowledgment`; apply only with the exact same set. `reparent` takes `variable:<n>`, `scs:<n>` and `save_game:<n>` in `acknowledged_collisions`; every other command takes its keys in `acknowledged_losses`. A `SaveGame` variable that is removed or moved is a finding unless the native property keeps the exact name and exact type and carries `SaveGame` itself: acknowledge `save_game:<variable>` only after confirming existing save files do not matter.
+
+**Renames need a redirect for placed instances.** `adopt_native_member` with `bp_variable != native_property` refuses `MISSING_PROPERTY_REDIRECT` and returns the exact `[CoreRedirects]` line (property redirect). Add it to `Config/DefaultEngine.ini` yourself (the command never edits ini files), restart or reload so the redirect is active, then re-run. Acknowledging `instance_values:<variable>` instead accepts that unloaded placed instances lose the value. `rename_member` refuses while another Blueprint (including derived classes and Level Blueprints) references the member; it does not rewrite other assets.
+
+**SCS route: native vs ICH.** `adopt_scs_into_native` picks the route from the target and reports it as `route`. A component declared by the native parent is a default subobject of the generated-class CDO (`native_cdo`); a component of a parent Blueprint's SCS is overridden through the `InheritableComponentHandler` (`ich`). Compile the Blueprint against the native parent first (`STALE_PRECONDITION` otherwise; a Blueprint in error is accepted only when every error is the duplicate-name collision of a mapped node). Acknowledge `child_override:<blueprint>`, `property:<name>` and instanced sub-object keys from the dry run. `swap_scs_component_class` keeps the node identity and refuses (`INVALID_OPERATION`) when child Blueprints override the node through an ICH record.
+
+**Error codes:** `AMBIGUOUS_CLASS` (short class name matches several classes; the refusal lists the candidates, pass the full path), `INVALID_PARENT_CLASS` (family change), `NAME_COLLISION` (blocking collision; for `reparent` with SCS collisions use `compile: false` then `adopt_scs_into_native`), `POTENTIAL_DATA_LOSS`, `MEMBER_REFERENCED` (get/set nodes would be destroyed; use `adopt_native_member` or `remove_referencing_nodes: true`), `MISSING_PROPERTY_REDIRECT`, `READBACK_MISMATCH` (the Blueprint was restored), `STALE_PRECONDITION`, `INVALID_FIELD`, `INVALID_OPERATION`.
+
+**Outcome fields (every guarded command):** `apply_status` (`dry_run` / `applied` / `failed`), `compile_status` (`skipped` when no compile ran), `readback_status` (`matched` / `mismatched` / `skipped`), `rollback_status` (`not_needed` / `restored` / `unverified`; `unverified` also sets `blocked` and stops further mutation), `save_status` (`skipped` / `saved` / `failed`), `error_count`, `warning_count`, `diagnostics`, `fingerprint_before`, `fingerprint_after`. Treat only `readback_status: matched` as success; `reparent` reports `reparented: true` only after readback.
+
+### cleanup_migration
+
+Guarded parent-class cleanup for the pipeline's bulk step: reparents (with the same preflight as `reparent`), removes migrated function graphs and removes variables that the migration did not hand to a native member. A variable that a native member replaces is adopted by the engine and reported in `adopted_by_engine` with `cdo_readback` (`{member: {before, after, preserved}}`); a mismatch fails closed with `READBACK_MISMATCH`. For variables that must keep their nodes, use `adopt_native_member` above. Run it on the original Blueprint, in place.
+
+```python
+blueprint_cmd(command="cleanup_migration", params={
+    "asset_path": "/Game/Blueprints/BP_Enemy",
+    "new_parent_class": "/Script/MyGame.AEnemyBase",
+    "remove_functions": ["CalculateDamage", "OnHit"],
+    "dry_run": True,
+})
 ```
 
 **Parameters:**
 - `asset_path`: Blueprint asset path (required)
-- `new_parent_class`: Full class path to reparent to (e.g., `/Script/MyGame.AEnemyBase`). Optional — omit to skip reparenting.
-- `remove_variables`: List of variable names to remove. Optional. Non-existent names are silently skipped and added to `warnings`.
-- `remove_functions`: List of function graph names to remove. Optional. Non-existent names are silently skipped and added to `warnings`.
-- `compile` (default `true`): Compile the Blueprint after all mutations
+- `new_parent_class`: Blueprint path, full class path or unique short name. Optional — omit to skip reparenting.
+- `remove_variables`: Variables to remove (removed by the pre-captured variable GUID). A variable that is still referenced by get/set nodes refuses `MEMBER_REFERENCED` unless `remove_referencing_nodes` is true.
+- `remove_functions`: Function graph names to remove. Optional.
+- `migrated_overrides`: Overrides already migrated (the MCP wrapper prunes the event nodes). Optional.
+- `dry_run`: Report the plan, referencing nodes and SaveGame findings; mutates nothing.
+- `expected_fingerprint`: Stale-write guard from a dry run.
+- `remove_referencing_nodes` (default `false`): Remove the graph nodes that name an explicitly removed variable.
+- `acknowledged_collisions`: Exactly the reparent plan's `required_acknowledgment` keys (`variable:<n>`, `scs:<n>`).
+- `acknowledged_losses`: Exactly the SaveGame keys (`save_game:<variable>`).
+- `expected_cdo_values`: The stage's `cdo_expectations`, passed back on the finalize-only call; a difference fails closed.
+- `compile` (default `true`): Compile after cleanup with the editor's reparent flags (the new native parent's defaults win).
+- `save` (default `true`): Writes the whole package, including earlier staged edits. The migration pipeline passes `false` so `core_cmd` `reload_asset` can still discard the migration; compile errors prevent saving either way.
 
-**Reparent type safety:** Only same-family reparenting is allowed:
-- Actor → Actor subclass
-- ActorComponent → ActorComponent subclass
-- UserWidget → UserWidget subclass
-
-Cross-family reparenting (e.g., Actor → Component) returns `InvalidField`.
+**Reparent type safety:** Only same-family reparenting is allowed (Actor → Actor subclass, ActorComponent → ActorComponent subclass, UserWidget → UserWidget subclass); a cross-family reparent returns `INVALID_PARENT_CLASS`. Blocking collisions return `NAME_COLLISION`; unacknowledged collisions or SaveGame losses return `POTENTIAL_DATA_LOSS` with `required_acknowledgment`.
 
 **Error cases:**
 - `BlueprintNotFound`: Asset path not found
-- `InvalidField`: Missing `asset_path`, parent class not found, or type-family mismatch
+- `INVALID_FIELD`: Missing `asset_path` or parent class not found
+- `AMBIGUOUS_CLASS`, `INVALID_PARENT_CLASS`, `NAME_COLLISION`, `POTENTIAL_DATA_LOSS`, `MEMBER_REFERENCED`, `READBACK_MISMATCH`: see the guarded commands above
 - `SaveFailed`: Package could not be saved to disk
 
 ## SCS Component Migration
@@ -357,8 +411,8 @@ After the C++ class is created and the Blueprint is reparented, remove redundant
 3. For blocking collisions, run rename_scs_component with the recommended new_name
 4. Generate C++ class with CreateDefaultSubobject in constructor
 5. Build project
-6. cleanup_migration — reparent Blueprint to new C++ class
-7. remove_scs_component — delete the now-redundant SCS node
+6. `reparent` (`dry_run` first, `compile: false` when SCS collisions remain) — reparent the Blueprint to the new C++ class; then `adopt_scs_into_native` for each SCS node the C++ class now declares (see "Guarded native member adoption")
+7. `remove_scs_component` — delete a now-redundant SCS node that was not handed over (`adopt_scs_into_native` with `remove_scs: true` already removes the adopted one)
 8. `blueprint_cmd(command="compile", params={"asset_path": "..."})` — verify clean compile
 ```
 
@@ -383,7 +437,7 @@ remove_scs_component(
 - `force`: Explicit override for dirty instanced sub-object loss; avoid unless requested.
 
 **Error cases:**
-- `ComponentNotFound`: The component name was not found in the SCS — check the exact variable name via `get_blueprint_info`
+- `ComponentNotFound`: The component name was not found in the SCS — check the exact variable name via `blueprint_cmd` `get_info`
 - `InvalidField` (code): Blueprint has no SCS — only Actor-based Blueprints have SCS; component and widget Blueprints do not
 - `POTENTIAL_DATA_LOSS`: Dirty instanced sub-object state would be lost. Surface the
   `dirty_details` and `required_acknowledgment` to the user before retrying.
@@ -391,63 +445,48 @@ remove_scs_component(
 
 **Child component handling:** If the removed component has children in the hierarchy, they are automatically re-parented to the removed node's parent. No manual child re-wiring is needed.
 
-## Rename, Redirectors, and Recompile
+## Backup, Save, and Recompile
 
-These commands handle the SWAP and COMPLETE phases of the migration pipeline.
+These commands support the FINALIZE and COMPLETE phases of the migration pipeline. The Blueprint is migrated **in place**: it is never renamed, moved, or replaced by a copy.
 
-### rename_blueprint
+### Why the original is never renamed
 
-Renames or moves a Blueprint asset. UE automatically handles the `_C` suffix (GeneratedClass) and creates a redirector at the source path.
+`IAssetTools::RenameAssets` runs `FAssetRenameManager::FixReferencesAndRename` (Engine/Source/Developer/AssetTools/Private/AssetRenameManager.cpp), which loads and rewrites every referencer to the renamed asset's path. Renaming `BP_Enemy` to `BP_Enemy_Backup` therefore moves every referencer onto the backup, and renaming a migrated copy to `BP_Enemy` afterwards does not move them back. Reparent the original in place instead.
+
+### duplicate (backup snapshot)
+
+Creates `BP_Name_Backup` before the first mutation. A duplicate has no referencers; it is a read-only snapshot for comparison, not a restore source. `duplicate` only marks the package dirty, so save it right away (`blueprint_cmd(command="save", params={"asset_path": "/Game/Blueprints/BP_Enemy_Backup"})`) and verify with `core_cmd(command="asset_fingerprint", params={"paths": ["/Game/Blueprints/BP_Enemy_Backup"]})` (non-empty `package_saved_hash`, `is_dirty: false`); the PREPARE editor restart discards unsaved assets.
+
+Placed level instances reference the original, not the backup, so when `get_referencers` shows level placements also export their per-instance overrides before the first mutation: `level_cmd(command="export_class_instances", params={"class": "/Game/Blueprints/BP_Enemy", "maps": ["/Game/Maps/Main"], "out_path": "<project>/Saved/Migration/BP_Enemy_placed_instances_baseline.json"})`. The verifier runs the same export afterwards and diffs the two reports.
 
 ```python
-rename_blueprint(
-    source_path="/Game/Blueprints/BP_Enemy",
-    dest_path="/Game/Blueprints/BP_Enemy_Backup"
-)
-# Returns: {"source_path": "...", "dest_path": "...", "success": true}
+blueprint_cmd(command="duplicate", params={
+    "asset_path": "/Game/Blueprints/BP_Enemy",
+    "new_name": "BP_Enemy_Backup",
+    "new_path": "/Game/Blueprints",
+})
 ```
 
-**Parameters:**
-- `source_path`: Existing Blueprint object path
-- `dest_path`: Destination Blueprint object path
+**Parameters:** `asset_path` (source), `new_name`, `new_path` — all required.
 
-**Use in swap sequence:**
+### save
+
+Writes the Blueprint package. Used twice in the pipeline: on the backup right after `duplicate`, and on the migrated Blueprint once, after the final clean compile (earlier `remove_scs_component` / `rename_scs_component` calls may already have written that package).
+
 ```python
-# Step 1: move original out of the way
-rename_blueprint("/Game/Blueprints/BP_Enemy", "/Game/Blueprints/BP_Enemy_Backup")
-# Step 2: move migration copy into the canonical name
-rename_blueprint("/Game/Blueprints/BP_Enemy_Migration", "/Game/Blueprints/BP_Enemy")
+blueprint_cmd(command="save", params={"asset_path": "/Game/Blueprints/BP_Enemy"})
 ```
 
-**Rollback:** If step 2 fails, reverse step 1 immediately. Record `git_commit_before` for C++ file rollback.
+Commands that always write the package without a `save` option: `rename_scs_component`, `remove_scs_component`.
 
-### fixup_redirectors
+### recompile_dependents
 
-Scans a content path for redirectors and fixes all references. Call after rename swap to eliminate stale redirectors.
-
-```python
-fixup_redirectors(
-    path="/Game/Blueprints",
-    recursive=True  # default
-)
-# Returns: {"path": "/Game/Blueprints", "recursive": true,
-#            "redirectors_found": 2, "redirectors_fixed": 2}
-```
-
-**Parameters:**
-- `path`: Content path to scan. Bare paths are prefixed with `/Game/` automatically.
-- `recursive` (default `true`): Whether to include subdirectories
-
-**Error cases:** None — if zero redirectors are found the command succeeds with `redirectors_found: 0`.
-
-### recompile_dependent_blueprints
-
-Recompiles all Blueprints that depend on the given Blueprint. Call after fixing redirectors to clear stale GUIDs.
+Recompiles all Blueprints that depend on the given Blueprint. Call after the Blueprint is saved to clear stale data caused by the class-layout change.
 
 ```python
-recompile_dependent_blueprints(
-    asset_path="/Game/Blueprints/BP_Enemy"
-)
+blueprint_cmd(command="recompile_dependents", params={
+    "asset_path": "/Game/Blueprints/BP_Enemy"
+})
 # Returns:
 # {
 #   "asset_path": "/Game/Blueprints/BP_Enemy",
@@ -471,15 +510,30 @@ recompile_dependent_blueprints(
 
 **Error cases:** `BlueprintNotFound` if `asset_path` does not exist.
 
-### compare_blueprints
+**Side effect:** the command recompiles dependents but does not save them, so each recompiled dependent is left dirty in the editor. Report them and either save each explicitly (`blueprint_cmd` `save`) with the user's agreement or state that a later Save All will include them.
 
-Structurally compares two Blueprints and returns a list of differences. Used in the VERIFY phase to confirm the migration copy matches the original.
+### rename (archiving the backup only)
+
+Only the backup snapshot may be renamed or moved, because it has no referencers. Use this to archive it:
 
 ```python
-compare_blueprints(
-    source_path="/Game/Blueprints/BP_Enemy",
-    target_path="/Game/Blueprints/BP_Enemy_Migration"
-)
+blueprint_cmd(command="rename", params={
+    "source_path": "/Game/Blueprints/BP_Enemy_Backup",
+    "dest_path": "/Game/Migration/Backups/BP_Enemy_Backup",  # keep the recorded backup_path leaf (e.g. BP_Enemy_Backup2 after a collision)
+})
+```
+
+`rename` leaves one redirector at the source path. It has no referencers and is harmless; leave it. Do not run `fixup_redirectors` as part of a migration: it is folder-wide and recursive by default and force-deletes unreferenced redirectors and rewrites referencers of the rest, which can touch unrelated assets. If cleanup is wanted, list first with `core_cmd(command="list_redirectors", params={"path": "/Game/Blueprints", "recursive": false})`, show the result to the user, and fix up only that single redirector path after explicit confirmation. Never use `rename` on the migrated Blueprint.
+
+### compare_blueprints
+
+Structurally compares two Blueprints and returns a list of differences. Used in the VERIFY phase to compare the read-only backup snapshot against the in-place migrated Blueprint. The differences must be exactly the migrated members. Run it only after the migrated Blueprint compiles clean (known crash vector on recently reparented Blueprints with stale references, Issue 99); verification must not depend on it.
+
+```python
+blueprint_cmd(command="compare_blueprints", params={
+    "source_path": "/Game/Blueprints/BP_Enemy_Backup",
+    "target_path": "/Game/Blueprints/BP_Enemy"
+})
 # Returns:
 # {
 #   "match": true,
@@ -491,7 +545,7 @@ compare_blueprints(
 ```
 
 **Parameters:**
-- `source_path`: Baseline Blueprint (the original)
+- `source_path`: Baseline Blueprint (the pre-migration backup snapshot)
 - `target_path`: Blueprint to compare against the baseline
 - `sections` (optional): Array to restrict comparison — valid values: `"variables"`, `"functions"`, `"components"`, `"cdo"`
 
@@ -510,11 +564,11 @@ compare_blueprints(
 
 **Example with sections filter:**
 ```python
-compare_blueprints(
-    source_path="/Game/Blueprints/BP_Enemy",
-    target_path="/Game/Blueprints/BP_Enemy_Migration",
-    sections=["variables", "components"]
-)
+blueprint_cmd(command="compare_blueprints", params={
+    "source_path": "/Game/Blueprints/BP_Enemy_Backup",
+    "target_path": "/Game/Blueprints/BP_Enemy",
+    "sections": ["variables", "components"]
+})
 ```
 
 **Error cases:** `BlueprintNotFound` if either path does not exist; `InvalidField` if params are missing.
@@ -566,18 +620,9 @@ Cross-reference these against Blueprint analysis results during migration. Flag 
 
 This table grows over time. Add entries when deprecated APIs are encountered during migrations.
 
-## Report Schema (V5/V6)
+## Migration Artifacts
 
-For full JSON schema and section contracts, use:
-- `docs/plans/2026-02-26-bp-migration-v5-design.md` (Section 2)
-
-Section files:
-- `01-pre-migration.json`
-- `02-migration-plan.json`
-- `03-node-mapping.json`
-- `04-verification.json`
-- `05-rollback.json`
-- `report.json` (merged final output)
+A migration produces at most three files under `docs/migration/blueprint-to-cpp/{BP_Name}/`: `migration-plan.md` (the primary document, updated through every stage), `design.md` (optional, complex migrations only) and `rollback.json` (machine-readable restore information). Do not write per-section JSON files (`01-pre-migration.json` through `05-rollback.json`) or a merged `report.json`; all of that data lives inline in `migration-plan.md`. The artifact rules in the cortex-bp-migrate skill are authoritative.
 
 ## V5 Verification Checklist
 
@@ -586,7 +631,7 @@ Section files:
 - Logic coverage validated for migrated groups
 - Dependency impact checked (children/referencers)
 - Level instance behavior sanity-checked
-- Redirectors fixed and dependents recompiled after swap
+- Dependents recompiled after the in-place save
 
 ## Medium-Level Component Classification
 
@@ -654,9 +699,10 @@ Visual sync items use `target: "blueprint"` with `reason: "visual_sync"`:
 
 When removing migrated Blueprint content, always clean consumers before producers:
 1. Reparent to C++ class
-2. Disconnect migrated event graph nodes — use `graph_disconnect` to break the exec
-   output pin on each event entry node (source_pin="then"). Leave orphaned nodes in
-   the graph. NEVER call graph.remove_node during Phase 3. Node removal is Phase 6 only.
+2. Disconnect migrated event graph nodes — use `graph_cmd` `disconnect` to break the exec
+   output pin on each event entry node (the pin name comes from `get_subgraph`, normally `then`),
+   then remove the dead chains with `blueprint_cmd` `delete_orphaned_nodes` (event entry nodes
+   are preserved). Never delete nodes one by one with `graph.remove_node`.
 3. Remove migrated functions — verify compile after each
 4. Remove migrated variables — verify compile after each
 5. Remove migrated SCS components — verify compile after each
@@ -670,7 +716,7 @@ The migration workflow uses a 4-stage pipeline:
 | **ANALYZE** | Conversational goals + technical analysis → migration design | User approves design |
 | **PLAN** | Generate granular task list with complete C++ code | User approves plan |
 | **EXECUTE** | Run phase workflows with checkpoint verification | Auto-verify checkpoint |
-| **COMPLETE** | Verify, present results, swap decision, final report | User approves swap |
+| **COMPLETE** | Verify, present results, save, backup decision, final report | User approves finalize |
 
 Entry point: `/cortex-bp-migrate <BlueprintPath>` (supports `--audit` and `--resume`)
 
@@ -684,5 +730,4 @@ Key principle: all C++ code is generated during PLAN stage. The EXECUTE stage wr
 
 ### Design Reference
 
-- Pipeline design: `docs/plans/2026-02-27-bp-migration-pipeline-design.md`
-- V5 technical design: `docs/plans/2026-02-26-bp-migration-v5-design.md`
+- Pipeline design and phase guides: the `cortex-bp-migrate` skill and `resources/bp-migration-*.md`

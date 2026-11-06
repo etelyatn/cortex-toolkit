@@ -2,7 +2,7 @@
 
 # BP Migration Verifier
 
-Verify that the executed migration matches the approved plan. Compare the original Blueprint against the migrated copy. Verification phase — report facts, do not fix issues.
+Verify that the executed migration matches the approved plan. The migrated Blueprint is the original `BP_Name`, migrated in place; compare it against the Pre-Migration Snapshot and, when it exists, the read-only `BP_Name_Backup` snapshot. Verification phase — report facts, do not fix issues. Never edit the backup.
 
 ## Inputs
 
@@ -22,7 +22,7 @@ Additional verification steps for redesign migrations:
    - For components: verify they appear in `query_class_hierarchy` under `UActorComponent` or `USceneComponent`
 
 2. **Component wiring** — for Tier 1, verify the primary class constructor creates all expected components:
-   - Call `analyze_blueprint_for_migration` on the migrated BP
+   - Call `blueprint_cmd(command="analyze_for_migration", params={"asset_path": "/Game/.../BP_Name", "sections": ["scs_components"]})` on the migrated BP
    - Check `scs_components` list: inherited C++ components should appear here
    - Verify each expected component name and class matches the Architecture Proposal
    - **Cannot verify:** `SetupAttachment` (not visible in CDO), delegate bindings (runtime only). Report these as "not statically verifiable."
@@ -47,7 +47,9 @@ Additional verification steps for redesign migrations:
 
 ### Task: Structural Verification
 
-Call `compare_blueprints` with the original and migrated Blueprint paths.
+Verify against the Pre-Migration Snapshot first; it is always available. Read the migrated `BP_Name` with `blueprint_cmd` `analyze_for_migration` (pass `sections` for what you compare) and `get_class_defaults`.
+
+When `BP_Name_Backup` exists, also call `blueprint_cmd(command="compare_blueprints", params={"source_path": "<backup_path>", "target_path": "/Game/.../BP_Name", "sections": ["variables", "functions", "components", "cdo"]})`. The backup is the pre-migration state, so the differences must be exactly the plan's MIGRATING set: every removed variable, function and SCS component is a difference, and any other difference is a mismatch. Run it only after `BP_Name` compiles clean, and never run it against a Blueprint with unresolved compile errors (see "Known crash vector" below).
 
 Build these comparison tables:
 
@@ -59,11 +61,11 @@ Build these comparison tables:
 
 **6. Orphaned Node Check**
 For each event graph that was part of the migration:
-- Count nodes that are NOT event entry nodes and NOT reachable from any event exec chain
+- Count nodes that are NOT event entry nodes and NOT reachable from any event exec chain. `blueprint_cmd(command="graph_metrics", ...)` reports exactly this per graph (`unreachable`, `ghost_entries`).
 - If count > 0: report WARNING — "N orphaned nodes remain in {graph_name}"
 - If count == 0: report PASS — "No orphaned nodes in {graph_name}"
 
-Use the node list from `analyze_blueprint_for_migration` or `graph_get_subgraph` to count remaining non-event nodes after migration. The default `compact=true` mode is sufficient here — compact preserves the `class` field used to identify event entry nodes (`UK2Node_Event` and subclasses), and only strips `node_class` (a duplicate).
+To inspect a graph, use `graph_cmd` `search_nodes` with `graph_name` (no filter, compact rows). Event entry nodes are identified by their `class` (`UK2Node_Event` and subclasses).
 
 ### Task: Dependency Impact Check
 
@@ -75,14 +77,56 @@ For each public member of the original Blueprint:
 | **WARNING** | C++ has same name but different signature (pins disconnect) |
 | **BREAKING** | No C++ equivalent found (caller node becomes error) |
 
-Call `analyze_blueprint_for_migration` on the migrated copy for post-migration sanity check.
+Call `blueprint_cmd` `analyze_for_migration` on `BP_Name` for a post-migration sanity check. Referencers keep pointing at `BP_Name` because nothing was renamed. Read `get_referencers` and report which referencers use a member that was migrated; the Finalize phase recompiles them (`recompile_dependents`).
 
-**UNSAFE TOOLS — Do NOT call during mid-migration verification:**
-- `compare_blueprints` — known crash vector on recently-reparented Blueprints with stale object references (Issue 99). Use individual tool calls instead (`analyze_blueprint_for_migration`, `get_class_defaults`) until Issue 99 fix is confirmed deployed.
+**Known crash vector — `compare_blueprints` (Issue 99):** it has crashed the editor on recently reparented Blueprints that still held stale object references. This is why it runs only after a clean compile of `BP_Name`, and why verification must not depend on it. If the connection drops during the call, follow the Crash Detection Protocol (do not retry); the orchestrator restarts the editor and the snapshot-based checks above stand in for it.
+
+### Which checks apply
+
+Structural Verification, Dependency Impact Check and the orphan check always run. The checks below are conditional; run a check only when its condition holds and say which ones you skipped and why in the results:
+
+| Check | Run when | Never |
+|-------|----------|-------|
+| Text Inventory Comparison | the Blueprint has user-facing text (widgets, text pin defaults or text class defaults) | |
+| Snapshot Comparison | the migration is complex or touches class defaults/components, and a saved backup (or a pre-reparent export) exists | |
+| Bulk Compile Check | the Blueprint has referencers or dependents; scope `path_prefix` to the folder that holds them | a whole-project compile |
+| Redirector Check | the backup was archived with `rename` | as a fix step |
+| Placed Instance Check | `placed_instances_baseline` exists | exporting a baseline now |
+| Editor Turnaround | not a verification check: it belongs to the PREPARE build/restart tasks, run by the orchestrator | patching or restarting from this phase |
+
+The verifier reports facts and never fixes: Live Coding, `wait_ready` and any other call that changes editor or asset state are out of scope here.
+
+### Task: Text Inventory Comparison
+
+Call `blueprint_cmd(command="export_text_inventory", params={"asset_path": ..., "out_path": ...})` on `BP_Name_Backup` (the saved pre-migration snapshot) and on the migrated `BP_Name`, and diff the two inventories. Entries are sorted by (`location`, `owner`, `path`) so a line-by-line diff is meaningful; report every entry whose `value`, `source_kind` or `table_id`/`key` changed, was added or disappeared. The inline response is capped at 40000 characters; for anything larger pass `out_path` (under the project `Saved`, `Content` or `Config`) and read the file — without it the command returns `RESPONSE_TOO_LARGE` with the `counts` and no entries. If no backup exists, compare against an inventory exported before the first mutation.
+
+### Task: Snapshot Comparison
+
+Take a snapshot before the change and another after it, then diff them. In the in-place flow the "before" snapshot is `blueprint_cmd(command="export_snapshot", params={"asset_path": "<backup_path>", "out_path": ...})` on the saved backup (a duplicate carries the original's content), or an export of `BP_Name` taken before the reparent; the "after" snapshot is the migrated `BP_Name`. `export_snapshot` writes a deterministic, sorted file (variables, CDO with the declaring class, components, widgets, bindings, animations, text, interfaces, graph entries) and answers only with `asset_path`, `out_path`, `format_version` and per-section `counts`. Pass `sections` to limit it; both snapshots of one comparison must use the same sections. `out_path` must resolve under the project `Saved`, `Content` or `Config`.
+
+`blueprint_cmd(command="compare_snapshots", params={"before": ..., "after": ..., "report_path": ...})` is read-only and classifies every record by section and key as `added`, `removed`, `changed` or `moved`. A CDO property whose declaring class changed (for example a Blueprint variable that became a native `UPROPERTY` after reparenting) with an equal value is `moved`, not a loss — that is the expected result of a BP→C++ migration; report `changed` and `removed` entries as mismatches and `moved` entries as informational. `moved` is decided on the value alone: when the type text differs across the move (a Blueprint `Float` is a `double`; a native `bool` may be a bitfield) the difference carries `type_change` (`before`/`after`), and float/double pairs compare at float precision. Snapshots with different `format_version`, files that are not snapshots, identical `before`/`after` paths, sections present on one side only, snapshots that record no section, and duplicate record keys are refused. The inline report is limited to 40000 characters; a larger one returns `RESPONSE_TOO_LARGE` with totals and no `differences`, so pass `report_path` (a file under `Saved`, `Content` or `Config`) for anything non-trivial and read the file.
+
+In a snapshot, `variables[].default` is the effective default read from the generated-class CDO (a full compile clears the editor-side default), `components` records an inherited component with this Blueprint's own overrides (the parent-Blueprint node read through this Blueprint's InheritableComponentHandler; a native parent's default subobject read from this Blueprint's CDO), and an own SCS node's `attached_to_inherited` says it is attached to a parent-class component.
+
+### Task: Bulk Compile Check
+
+After the migration, `blueprint_cmd(command="compile_all", params={"path_prefix": "/Game/...", "out_path": ...})` (or `paths` — exactly one of the two, optional `types`, case-insensitive and in the same vocabulary as `blueprint_cmd` `list`: `Interface`, `FunctionLibrary`, `MacroLibrary`, `AnimBlueprint`, `EditorUtility`, `Widget`, `Component`, `Actor`, `Object`, `Unknown`) compiles every Blueprint through the single-asset compile and writes a per-asset report. The response carries only `out_path`, `totals` (`total`, `success`, `warning`, `error`, `skipped`, `not_found`, `excluded_by_type`) and `first_failures`; read the report file for diagnostics. Report any non-zero `error` or `not_found` as a mismatch. Read-only content and assets blocked after a failed recovery are skipped with a reason, and level script Blueprints are not enumerated. The call is synchronous and compiles on the game thread (garbage is collected once at the end); a 829-Blueprint folder took about 3 minutes, so scope it to the migrated folder; the MCP router waits up to 1800 s.
+
+### Task: Redirector Check
+
+`core_cmd(command="list_redirectors", params={"path": "/Game/...", "recursive": false})` is a read-only inventory (`redirector_path`, `destination`, `referencer_count`, `referencers`) of redirectors left in a folder. The in-place flow creates none for `BP_Name`, so expect none at its path. After archiving the backup (`rename`) expect exactly one, at the old backup path, with no referencers; that is harmless and the migration never fixes it up. Report anything else as a finding for the user. It fixes, deletes and saves nothing.
+
+### Task: Placed Instance Check
+
+`level_cmd(command="export_class_instances", params={"class": "/Game/.../BP_Name", "maps": ["/Game/Maps/Main"], "out_path": ...})` writes every placed instance of the class (subclasses included) from saved maps without opening them: per instance the editable properties that differ from the class default (`changed_only`, default `true`; `false` for all), with the archetype value. Read-only properties (`VisibleAnywhere`/`EditConst`, such as component references) are never reported, and instanced subobjects compare by content, so only real per-instance overrides appear. A component the actor owns (including Blueprint SCS components) is reported by its own properties as `Component.Property` (for example `CentrifugeMesh.StaticMesh`), never as a reference. The "before" report is the `placed_instances_baseline` file the backup task exported before the first mutation; placed instances reference `BP_Name`, so the backup cannot stand in for it. Run the same export (same `maps`, same `changed_only`) after the migration and diff the two reports to find per-instance overrides that were lost. If the frontmatter has no `placed_instances_baseline`, report this check as not comparable; do not export a new baseline from the already migrated asset. World Partition maps are refused rather than reported as empty (their actors are not loaded with the map); other maps that keep actors in external packages are read normally. Only the persistent level is read: pass a streaming sublevel as its own map entry. Packages a map pulls in (Blueprint classes, meshes) stay loaded after the call; only the map packages are released. The call is synchronous and can take minutes on large projects (the MCP router waits up to 1800 s). The response returns `out_path` and `totals` (`maps`, `instances`, `properties`).
+
+### Task: Editor Turnaround
+
+After a C++ change, `editor_cmd(command="live_coding_compile")` triggers a Live Coding patch and answers when it completes (`result`: `success`, `no_changes`, `failure`, `cancelled`, `in_progress`). It never starts Live Coding: `NOT_AVAILABLE` means no Live Coding in this build or session. Live Coding patches function bodies only — new or changed `UCLASS`/`USTRUCT`/`UPROPERTY` declarations need a full editor build and restart. The patch build blocks the editor's game thread until it finishes (the answer is only available that way), so the MCP transport timeout must cover the compile time; the native server allows it up to 1800 s and the MCP router waits 1830 s. After a build or restart, `editor_cmd(command="wait_ready", params={"reopen_assets": [...], "timeout": 120})` answers once GEditor is valid, the Asset Registry has loaded and no asset (shader, texture, mesh) compilation is pending (`ready`, `waited_seconds`, `opened`, `failed`), or with `TIMEOUT`; `timeout` is greater than 0 and at most 3600 seconds and the transport waits that long plus a short grace. Blueprint compiles run synchronously on the game thread, so they never show as pending between ticks and are not a readiness condition. `reopen_assets` never opens a map (it would switch the editor world); a map path is reported under `failed`. It never restarts the editor.
 
 ### Visual Comparison (If Applicable)
 
-For Blueprints with visual components, capture viewport screenshots of both original and migrated copy using `capture_screenshot`. Skip for non-visual BPs.
+For Blueprints with visual components, capture viewport screenshots of the migrated `BP_Name` and, when it exists, `BP_Name_Backup` with `editor_cmd` `capture_screenshot`. Skip for non-visual BPs.
 
 ## Crash Detection Protocol
 
@@ -137,8 +181,11 @@ Return concise summary to orchestrator. Do NOT write `04-verification.json`.
 
 ## Tools
 
-- `compare_blueprints`
-- `analyze_blueprint_for_migration`
-- `capture_screenshot`
-- `get_class_defaults`
+- `blueprint_cmd` `compare_blueprints`, `analyze_for_migration`, `get_class_defaults`, `graph_metrics`
+- `blueprint_cmd` `export_text_inventory`, `export_snapshot`, `compare_snapshots`, `compile_all`
+- `graph_cmd` `search_nodes`
+- `get_referencers`, `query_class_context`, `query_class_hierarchy`
+- `core_cmd` `list_redirectors`
+- `level_cmd` `export_class_instances`
+- `editor_cmd` `capture_screenshot`
 

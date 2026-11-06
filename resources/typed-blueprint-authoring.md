@@ -27,7 +27,7 @@ direct call would be refused.
 Cached metadata, a capability fixture, or a prior-session success is not live capability evidence.
 A missing command, a missing profile permission or an editor that does not know `graph.apply_patch`
 means **blocked**: stop, record the editor and plugin identity, and request an authorized
-rebuild/reload path. Never fall back to `core_cmd(batch)` composition, to the removed legacy
+rebuild/reload path. Never fall back to `core_cmd(batch_query)` composition, to the removed legacy
 `blueprint_compose` update batch, to `run_python`, or to raw describe/add/connect calls to reach the
 same mutation.
 

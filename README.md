@@ -7,7 +7,7 @@ AI-powered Unreal Engine development toolkit. Skills and domain knowledge for Cl
 | Feature | Claude Code | Codex | Cursor | OpenCode |
 |---------|-------------|-------|--------|----------|
 | Skills (`skills/`) | ✅ | ✅ via Codex plugin | ✅ | ✅ via plugin |
-| Hooks (`hooks/`) | ✅ | ✅ requires trust | ⚠️ | ✅ via plugin |
+| Hooks (`hooks/`) | ✅ opt-in, off by default | ✅ opt-in, off by default (requires trust) | ⚠️ opt-in, off by default | ✅ opt-in, off by default (via plugin) |
 | MCP tools | ✅ | ✅ | ✅ | ✅ |
 
 ## Prerequisites
@@ -38,7 +38,7 @@ codex plugin add cortex-toolkit@cortex-toolkit
 
 Then restart Codex if it was already running.
 Your Unreal project still needs a project-local `.mcp.json` pointing to the UnrealCortex MCP server.
-Codex discovers the toolkit hooks automatically and asks you to trust them before they run.
+Codex discovers the toolkit hooks automatically and asks you to trust them before they run. Hooks are opt-in and disabled by default, so trusted hooks do nothing until you enable `hooks.editor_guard` or `hooks.session_context` in `.cortex/config.yaml`.
 Start with `cortex-setup` for onboarding, initialization, schema refresh, and next-step guidance.
 
 ### Cursor
@@ -72,6 +72,45 @@ Then create `.cortex/` manually following the structure in [Project Memory](#pro
 2. Use `/cortex-editor` for editor lifecycle, MCP diagnostics, and explicit restarts.
 3. Use `/cortex-build` only for compile/build requests.
 
+## Agent Hooks (opt-in)
+
+Cortex ships agent hooks, but they are **disabled by default**. A fresh
+installation, or a project that has not opted in, performs no automatic
+pre-tool checks, editor management, or session-context injection.
+
+Enable them per project in `.cortex/config.yaml`:
+
+```yaml
+hooks:
+  editor_guard: true      # PreToolUse: verify Cortex MCP readiness before cortex_mcp calls
+  session_context: true   # SessionStart: inject .cortex context into the session
+```
+
+Both switches are independent and default to `false`. Per-machine overrides go
+in `.cortex/config.local.yaml` (git-ignored) and win for the keys they define.
+
+| Switch | Hook | Enabled behavior | Side effects |
+|--------|------|------------------|--------------|
+| `hooks.editor_guard` | `PreToolUse` (`mcp__cortex_mcp__.*`) | Probes the Cortex MCP endpoint before `cortex_mcp` calls | If the Unreal Editor is not running, launches it and waits up to ~180s; can remove stale port files and create startup locks; can block the call with exit code 2 |
+| `hooks.session_context` | `SessionStart` (and the OpenCode plugin) | Prints `.cortex/context.md`, available domain contexts, and the config summary | Adds context to the session |
+
+Scope: opt-in is **per project** (`<project>/.cortex/`). There is no global or
+per-agent opt-in; hosts that cannot read the project config treat hooks as
+disabled. When disabled, the hook wrappers exit immediately: they do not probe
+ports, launch the Editor, create or remove lock/port files, inject context, or
+require Python. Hook wrappers need Git Bash; when no bash is available they
+no-op instead of blocking calls.
+
+`cortex-editor` remains the explicit way to start or reconnect the Editor, and
+connection failures from real MCP calls are still reported normally.
+
+### Migration from auto-enabled hooks
+
+Earlier toolkit versions ran these hooks automatically after install. After
+upgrading, hooks stay off until you add the `hooks:` block above. If you relied
+on automatic Editor startup or session-context injection, opt in explicitly;
+otherwise start the Editor on demand with the `cortex-editor` skill.
+
 ## Skills
 
 Skills are invoked with `/skill-name` in Claude Code. Each skill runs a focused workflow and keeps your conversation clean by running MCP tool sequences.
@@ -81,7 +120,7 @@ Skills are invoked with `/skill-name` in Claude Code. Each skill runs a focused 
 | Skill | Description |
 |-------|-------------|
 | `/cortex-blueprint` | Create, modify, review, debug, or reparent Blueprints — structure, graphs, variables, functions, inheritance, and best practices |
-| `/cortex-bp-migrate` | Migrate Blueprints to C++ using the V7 migration pipeline |
+| `/cortex-bp-migrate` | Migrate Blueprints to C++ in place (reparent, no rename swap); supports `--audit`, `--fast`, `--resume` |
 
 Existing-asset **graph** changes — typed adapters and the bounded `replace_entry` /
 `copy_subgraph` / `move_subgraph` / `prune_island` operations — follow one guarded workflow

@@ -82,7 +82,7 @@ blueprint_cmd(command="create", params={
 # Returns: {"asset_path": "/Game/Blueprints/Enemies/BP_CustomEnemy", "parent_class": "EnemyBase", "type": "Actor"}
 
 # Add Blueprint-specific variables
-blueprint_cmd(command="add_blueprint_variable", params={
+blueprint_cmd(command="add_variable", params={
     "asset_path": "/Game/Blueprints/Enemies/BP_CustomEnemy",
     "name": "PatrolRadius",
     "type": "float",
@@ -112,10 +112,10 @@ For manual step-by-step construction:
 ```
 blueprint_cmd(command="create")
   -> blueprint_cmd(command="add_variable") xN
-  -> blueprint_cmd(command="graph_add_node") xN        # Add function call nodes
-  -> blueprint_cmd(command="graph_connect") xN         # Wire execution and data flow
-  -> blueprint_cmd(command="graph_set_pin_value") xN   # Set input values on nodes
-  -> blueprint_cmd(command="graph_auto_layout")        # Auto-arrange node positions
+  -> graph_cmd(command="add_node") xN                  # Add function call nodes
+  -> graph_cmd(command="connect") xN                   # Wire execution and data flow
+  -> graph_cmd(command="set_pin_value") xN             # Set input values on nodes
+  -> graph_cmd(command="auto_layout")                  # Auto-arrange node positions
   -> blueprint_cmd(command="compile")
   -> blueprint_cmd(command="save")
 ```
@@ -160,9 +160,9 @@ A `kind: "text"` default accepts exactly one encoding: `literal`, `table`/`table
 the full FText descriptor under `value`. Mixing `literal` with a table reference, or a table without a
 key, fails preflight. The readback compares the canonical table id plus key, never display text.
 
-### graph_add_node — Node Class Short Names
+### graph_cmd add_node — Node Class Short Names
 
-When calling `blueprint_cmd(command="graph_add_node")` or specifying nodes in `blueprint_compose`, use these short names:
+When calling `graph_cmd(command="add_node")` or specifying nodes in `blueprint_compose`, use these short names:
 
 | Short Name | UK2Node Class | Params Required |
 |-----------|--------------|-----------------|
@@ -187,7 +187,7 @@ When calling `blueprint_cmd(command="graph_add_node")` or specifying nodes in `b
 | `RemoveDelegate` / `UnbindEvent` | `UK2Node_RemoveDelegate` | same as AddDelegate. Pins: execute, then, self (Target), Delegate (Event) |
 | `ClearDelegate` / `UnbindAllEvents` | `UK2Node_ClearDelegate` | same as AddDelegate but no Delegate pin. Pins: execute, then, self (Target) |
 | `CreateDelegate` / `CreateEvent` | `UK2Node_CreateDelegate` | `{"function_name": "MyHandler"}` — bare name, NOT `ClassName.Function` format. Pins: self (Object), OutputDelegate (Event). Not a CustomEvent — creates a delegate object referencing a function |
-| `Composite` | `UK2Node_Composite` | none — creates a collapsed composite subgraph. Read back `subgraph_name` from `list_nodes` output, then use it as `subgraph_path` to edit nodes inside the composite. |
+| `Composite` | `UK2Node_Composite` | none — creates a collapsed composite subgraph. Read back `subgraph_name` from the `get_subgraph` or `list_graphs` (`include_subgraphs`) output, then use it as `subgraph_path` to edit nodes inside the composite. |
 
 **Removed short names** — no longer accepted: `FunctionEntry`, `FunctionResult`, `ForEachLoop`. For ForEach loops use `CallFunction` with `function_name: "KismetArrayLibrary.Array_ForEach"`.
 
@@ -203,7 +203,7 @@ When calling `blueprint_cmd(command="graph_add_node")` or specifying nodes in `b
 blueprint_cmd(command="create", params={"name": "BP_HelloWorld", "path": "/Game/Blueprints", "type": "Actor"})
 
 # 2. Add Delay node
-blueprint_cmd(command="graph_add_node", params={
+graph_cmd(command="add_node", params={
     "asset_path": "/Game/Blueprints/BP_HelloWorld",
     "node_class": "CallFunction",
     "params": {"function_name": "KismetSystemLibrary.Delay"},
@@ -212,7 +212,7 @@ blueprint_cmd(command="graph_add_node", params={
 # Returns: {"node_id": "K2Node_CallFunction_0"}
 
 # 3. Add Print String node
-blueprint_cmd(command="graph_add_node", params={
+graph_cmd(command="add_node", params={
     "asset_path": "/Game/Blueprints/BP_HelloWorld",
     "node_class": "CallFunction",
     "params": {"function_name": "KismetSystemLibrary.PrintString"},
@@ -221,27 +221,27 @@ blueprint_cmd(command="graph_add_node", params={
 # Returns: {"node_id": "K2Node_CallFunction_1"}
 
 # 4. Connect nodes: BeginPlay → Delay → PrintString
-blueprint_cmd(command="graph_connect", params={
+graph_cmd(command="connect", params={
     "asset_path": "/Game/Blueprints/BP_HelloWorld",
     "source_node": "K2Node_Event_0", "source_pin": "then",
     "target_node": "K2Node_CallFunction_0", "target_pin": "execute"
 })
 
-blueprint_cmd(command="graph_connect", params={
+graph_cmd(command="connect", params={
     "asset_path": "/Game/Blueprints/BP_HelloWorld",
     "source_node": "K2Node_CallFunction_0", "source_pin": "then",
     "target_node": "K2Node_CallFunction_1", "target_pin": "execute"
 })
 
 # 5. Set input values (makes Blueprint functional!)
-blueprint_cmd(command="graph_set_pin_value", params={
+graph_cmd(command="set_pin_value", params={
     "asset_path": "/Game/Blueprints/BP_HelloWorld",
     "node_id": "K2Node_CallFunction_0",
     "pin_name": "Duration",
     "value": "5.0"
 })
 
-blueprint_cmd(command="graph_set_pin_value", params={
+graph_cmd(command="set_pin_value", params={
     "asset_path": "/Game/Blueprints/BP_HelloWorld",
     "node_id": "K2Node_CallFunction_1",
     "pin_name": "InString",
@@ -257,13 +257,14 @@ blueprint_cmd(command="save", params={"asset_path": "/Game/Blueprints/BP_HelloWo
 
 ### Configure Class Defaults (CDO)
 ```
-blueprint_cmd(get_class_defaults, blueprint_path)                 ← discover all settable properties
+blueprint_cmd(get_class_defaults, blueprint_path)                 ← discover settable property METADATA (paged, no values)
 → blueprint_cmd(set_class_defaults, blueprint_path, properties)   ← set defaults with auto-compile + auto-save
 ```
 
 **Example: Configure a Character Blueprint**
 ```python
-# 1. Discover available properties
+# 1. Discover available properties — metadata only, one page (default limit 100).
+#    For values, pass include_values=true; to page, follow discovery_pagination.next_offset.
 blueprint_cmd(command="get_class_defaults", params={"blueprint_path": "/Game/Blueprints/BP_Enemy"})
 
 # 2. Set multiple defaults in one call
@@ -276,7 +277,8 @@ blueprint_cmd(command="set_class_defaults", params={
         "DefaultInputAction": "/Game/Input/IA_EnemyAI"
     }
 })
-# Returns per-property results: type, previous_value, new_value, success
+# Every property result carries `changed`; the value echo depends on `echo`
+# (default "diff": no echo when unchanged, `changes` for a struct root, a previous/new pair for a scalar)
 # Auto-compiles and auto-saves by default
 ```
 
@@ -433,7 +435,7 @@ names, timeline references, and dependent Blueprint shadowing. Compile failure r
 ```
 compile_new_cpp_class
   → rebuild_project
-  → cleanup_migration (reparent BP to new C++ class, remove migrated variables/functions)
+  → blueprint_cmd(command="reparent", dry_run first) → blueprint_cmd(command="adopt_native_member") for variables the C++ class now declares (cleanup_migration only for migrated function graphs and variables that are not moved)
   -> blueprint_cmd(command="remove_scs_component") (for each component now declared in C++ constructor)
   -> blueprint_cmd(command="compile")
 ```
@@ -514,16 +516,24 @@ blueprint_cmd(command="set_replication_settings", params={
 
 ### Reparent Blueprint
 ```
-blueprint_cmd(reparent, asset_path, new_parent) → auto-compiles
+blueprint_cmd(reparent, asset_path, new_parent, dry_run?, expected_fingerprint?, compile?, save?, acknowledged_collisions?, report_path?)
 ```
+
+`reparent` is guarded: run it with `dry_run: true` first. The dry run returns the collision preflight (`variable`, `function`, `scs`, `interface_overlap`), `required_acknowledgment`, the CDO delta and a `fingerprint`; it mutates and dirties nothing. Apply passes the acknowledgement keys back unchanged in `acknowledged_collisions`. It compiles with the editor's reparent flags (the new native parent's defaults win, `compile` defaults to true), saves only with `save: true` (requires compile), and reports `reparented: true` only after readback. A compile error or readback mismatch restores the Blueprint.
 
 **Example: Migrate to C++ base class**
 ```python
 blueprint_cmd(command="reparent", params={
     "asset_path": "/Game/Blueprints/BP_Enemy",
-    "new_parent": "AEnemyBase"  # C++ class short name
+    "new_parent": "/Script/MyGame.AEnemyBase",   # full path; a short name must be unique
+    "dry_run": True,
 })
-# Returns: {"asset_path": "...", "old_parent": "Actor", "new_parent": "EnemyBase", "reparented": true}
+blueprint_cmd(command="reparent", params={
+    "asset_path": "/Game/Blueprints/BP_Enemy",
+    "new_parent": "/Script/MyGame.AEnemyBase",
+    "expected_fingerprint": fingerprint,           # from the dry run
+    "acknowledged_collisions": required_acknowledgment,
+})
 ```
 
 **Example: Reparent to another Blueprint**
@@ -534,7 +544,9 @@ blueprint_cmd(command="reparent", params={
 })
 ```
 
-**Resolution order:** Tries Blueprint asset path first, then C++ class name (full path or short name).
+**Resolution order:** Blueprint asset path, then full class path, then unique short name. A short name that matches several classes refuses `AMBIGUOUS_CLASS` with every candidate; a family change refuses `INVALID_PARENT_CLASS`; blocking collisions refuse `NAME_COLLISION`; unacknowledged losses (including `save_game:<n>`) refuse `POTENTIAL_DATA_LOSS`.
+
+**Moving a variable into the native parent:** do not remove it. Use `adopt_native_member` (`mappings: [{bp_variable, native_property}]`, `dry_run` first): nodes are retargeted instead of destroyed, defaults and placed-instance values are carried, and a rename needs a `[CoreRedirects]` property redirect (`MISSING_PROPERTY_REDIRECT` returns the line). Hand an SCS component to an inherited one with `adopt_scs_into_native`, swap a component class in place with `swap_scs_component_class`, and rename a member with `rename_member`. Full workflow and parameters: `resources/cpp-migration.md`, "Guarded native member adoption".
 
 **Validation:**
 - Returns error if Blueprint already has the specified parent
@@ -548,7 +560,7 @@ Composite subgraphs (`UK2Node_Composite`) are collapsed regions inside a Bluepri
 **Discover composites in a Blueprint:**
 ```python
 # Method A: include_subgraphs on list_graphs
-blueprint_cmd(command="graph_list_graphs", params={
+graph_cmd(command="list_graphs", params={
     "asset_path": "/Game/Blueprints/BP_Actor",
     "include_subgraphs": True
 })
@@ -558,8 +570,8 @@ blueprint_cmd(command="graph_list_graphs", params={
 #   "parent_graph": "EventGraph"
 #   "subgraph_path": "MyComposite"
 
-# Method B: read subgraph_name from list_nodes
-blueprint_cmd(command="graph_get_subgraph", params={
+# Method B: read subgraph_name from get_subgraph
+graph_cmd(command="get_subgraph", params={
     "asset_path": "/Game/Blueprints/BP_Actor",
     "graph_name": "EventGraph"
 })
@@ -573,7 +585,7 @@ support a stable graph reference or graph-kind discriminator.
 
 **Read nodes inside a composite:**
 ```python
-blueprint_cmd(command="graph_get_subgraph", params={
+graph_cmd(command="get_subgraph", params={
     "asset_path": "/Game/Blueprints/BP_Actor",
     "graph_name": "EventGraph",
     "subgraph_path": "MyComposite"
@@ -582,7 +594,7 @@ blueprint_cmd(command="graph_get_subgraph", params={
 
 **Add a node inside a composite:**
 ```python
-blueprint_cmd(command="graph_add_node", params={
+graph_cmd(command="add_node", params={
     "asset_path": "/Game/Blueprints/BP_Actor",
     "node_class": "CallFunction",
     "params": {"function_name": "KismetSystemLibrary.PrintString"},
@@ -593,7 +605,7 @@ blueprint_cmd(command="graph_add_node", params={
 
 **Connect nodes inside a composite:**
 ```python
-blueprint_cmd(command="graph_connect", params={
+graph_cmd(command="connect", params={
     "asset_path": "/Game/Blueprints/BP_Actor",
     "source_node": "<tunnel_entry_id>",
     "source_pin": "then",
@@ -606,7 +618,7 @@ blueprint_cmd(command="graph_connect", params={
 
 **Nested composites** — append path segments with dots (max 5 levels):
 ```python
-blueprint_cmd(command="graph_get_subgraph", params={
+graph_cmd(command="get_subgraph", params={
     "asset_path": "/Game/Blueprints/BP_Actor",
     "graph_name": "EventGraph",
     "subgraph_path": "OuterComposite.InnerComposite"
@@ -615,7 +627,7 @@ blueprint_cmd(command="graph_get_subgraph", params={
 
 **Search recursively across composites (default behavior):**
 ```python
-blueprint_cmd(command="graph_search_nodes", params={
+graph_cmd(command="search_nodes", params={
     "asset_path": "/Game/Blueprints/BP_Actor",
     "function_name": "PrintString"
 })
@@ -700,50 +712,51 @@ Then send the identical intent with `dry_run=False` and the preview's `validatio
 - Each request targets a single graph or composite level — preview and apply twice to touch two
 
 **Error codes:**
-- `SUBGRAPH_NOT_FOUND` / `SUBGRAPH_DEPTH_EXCEEDED` — from the read/inspection route (`graph_get_subgraph`, name-plus-path); the guarded patch route instead refuses an unmatched target identity with `GRAPH_NOT_FOUND` and a mismatched GUID/path pair with `INVALID_FIELD`
+- `SUBGRAPH_NOT_FOUND` / `SUBGRAPH_DEPTH_EXCEEDED` — from the read/inspection route (`get_subgraph`, name-plus-path); the guarded patch route instead refuses an unmatched target identity with `GRAPH_NOT_FOUND` and a mismatched GUID/path pair with `INVALID_FIELD`
 
 ### Review Blueprint
 ```
-blueprint_cmd(get_blueprint_info) → blueprint_cmd(graph_list_graphs) → blueprint_cmd(graph_get_subgraph) per graph → assess complexity
+blueprint_cmd(command="get_info") → graph_cmd(command="list_graphs") → graph_cmd(command="get_subgraph") per graph → assess complexity
 ```
 
-**`get_blueprint_info` limitation:** The `functions` array only includes functions *defined on the Blueprint itself*. Inherited C++ functions (e.g. from a custom C++ base class) are **not listed**. To discover inherited C++ functions, use `query_class_detail(class_name, detail="full")` from the Reflect domain instead.
+`blueprint_cmd(command="graph_metrics")` reports the live logic budget per entry (functional nodes, conditionals, unreachable nodes) and is the complexity signal to prefer over raw node counts.
+
+**`get_info` limitation:** `include_inherited` defaults to `true`, so the `functions` array also lists inherited C++ functions (with `source: "inherited"` unless `compact` drops the field). Pass `include_inherited: false` to list only functions defined on the Blueprint itself. For the full signature of an inherited C++ function use `query_class_detail(class_name, detail="full")` from the Reflect domain.
 
 ### Compact Serialization — Default Behavior of Graph Reads
 
-`graph_get_subgraph`, `graph_get_subgraph`, `graph_search_nodes`, and `bp.get_info` accept an optional `compact` boolean parameter, **default `true`**. Compact mode trims fields that AI agents rarely need, reducing response size by ~25-35% on a typical 30-node EventGraph.
+`get_subgraph`, `search_nodes`, and `blueprint_cmd` `get_info` accept an optional `compact` boolean parameter, **default `true`**. Compact mode trims fields that AI agents rarely need, reducing response size by ~25-35% on a typical 30-node EventGraph.
 
 **What gets stripped with `compact=true`:**
 
 | Command | Stripped fields |
 |---------|-----------------|
-| `graph_get_subgraph` | `position` object (x/y), `node_class` (duplicate of `class`), `pin_count` |
-| `graph_get_subgraph` | `position`, `node_class`, hidden pins with no connections/defaults; surviving pins drop `is_connected: false` and empty `default_value` |
-| `graph_search_nodes` | `node_class` (search results never included positions) |
-| `bp.get_info` | empty `inputs` / `outputs` arrays on functions, `source` field on functions |
+| `get_subgraph` | `position`, `node_class`, `pin_count`, hidden pins with no connections/defaults; surviving pins drop `is_connected: false` and empty `default_value` |
+| `search_nodes` | `node_class` (search results never included positions) |
+| `blueprint_cmd` `get_info` | empty `inputs` / `outputs` arrays on functions, `source` field on functions |
 
-**Pin skip predicate** (applies only to `graph_get_subgraph`): a pin is excluded when ALL of these hold — `bHidden`, no `LinkedTo` connections, empty `DefaultValue`, empty `DefaultTextValue`, `DefaultObject == nullptr`. This preserves meaningful hidden class-reference pins (e.g. a hidden `WorldContextObject` pin with a non-null default).
+**Pin skip predicate** (applies only to `get_subgraph`): a pin is excluded when ALL of these hold — `bHidden`, no `LinkedTo` connections, empty `DefaultValue`, empty `DefaultTextValue`, `DefaultObject == nullptr`. This preserves meaningful hidden class-reference pins (e.g. a hidden `WorldContextObject` pin with a non-null default).
 
 **Preserved in every mode:** node `id`/`name`, node `class`, `display_name`, `connections`, pin `name`/`direction`/`type`. Compact mode never strips information needed to understand graph semantics — only noise.
 
 **Examples:**
 ```python
 # Default (compact=true) — use this for most reads
-blueprint_cmd(command="graph_get_subgraph", params={
+graph_cmd(command="get_subgraph", params={
     "asset_path": "/Game/Blueprints/BP_Door",
     "graph_name": "EventGraph"
 })
 
 # Verbose (compact=false) — when you need positions or hidden pins
-blueprint_cmd(command="graph_get_subgraph", params={
+graph_cmd(command="get_subgraph", params={
     "asset_path": "/Game/Blueprints/BP_Door",
     "graph_name": "EventGraph",
     "compact": False
 })
 
-blueprint_cmd(command="graph_get_subgraph", params={
+graph_cmd(command="get_subgraph", params={
     "asset_path": "/Game/Blueprints/BP_Door",
-    "node_id": "K2Node_CallFunction_3",
+    "node_ids": ["K2Node_CallFunction_3"],
     "compact": False  # include hidden pins for full inspection
 })
 ```
@@ -751,14 +764,14 @@ blueprint_cmd(command="graph_get_subgraph", params={
 **When to prefer `compact: false`:**
 - **BP→C++ migration Ground Truth Table** — need every pin (including hidden class references) to produce faithful C++
 - **Auto-layout verification** — need `position` x/y to check node placement after layout
-- **Functions inventory audit** — need `source` field to distinguish `"blueprint"` from `"inherited"` functions in `bp.get_info`
+- **Functions inventory audit** — need `source` field to distinguish `"blueprint"` from `"inherited"` functions in `blueprint_cmd` `get_info`
 - **Test assertions** — when a test explicitly checks for stripped fields
 
 **When `compact: true` (default) is correct:**
 - Tracing execution flow (connections are preserved)
 - Finding entry points with `search_nodes`
 - Counting nodes in a graph (total count is returned at top level, unaffected by compact)
-- Reading variable defaults and types via `bp.get_info` (variables are not affected — only functions)
+- Reading variable defaults and types via `blueprint_cmd` `get_info` (variables are not affected — only functions)
 
 ### Modify Existing Blueprint
 ```
