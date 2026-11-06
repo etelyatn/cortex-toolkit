@@ -130,13 +130,13 @@ Run this workflow before any mutation:
 1. **Resolve targets** and present the exact mutation set for confirmation.
    - For one named Blueprint, resolve the asset path if only a short name is provided.
    - For "all children of X" or multi-target requests, discover candidates and filter them by current parent.
-2. **Resolve the new parent** — accept either a Blueprint asset path or a C++ class name, and verify it exists before mutating.
+2. **Resolve the new parent** — accept either a Blueprint asset path, a full class path or a unique C++ class name, and verify it exists before mutating.
 3. **Capture pre-reparent state.**
    - Inspect each Blueprint for custom variables, functions, and graph complexity.
    - Capture owned SCS component defaults that would be overwritten by the new parent.
    - Capture placed-instance overrides for existing level instances so they can be restored after the parent swap.
    - Warn the user if custom variables, graph logic, or component layouts may not be compatible with the new parent.
-4. **Reparent** — use `reparent` on each target Blueprint. If the primary reparent route is unavailable, use the supported cleanup/reparent fallback with the generated class path.
+4. **Reparent** — run `reparent` with `dry_run: true` on each target first and show the collision report (`variable:<n>`, `scs:<n>`, `save_game:<n>` keys in `required_acknowledgment`); apply only after the user confirms, passing `expected_fingerprint` and `acknowledged_collisions` from the dry run. Use the full class path when `AMBIGUOUS_CLASS` is returned. To move Blueprint variables into the new native parent use `adopt_native_member` (not `remove_variable`/`cleanup_migration`, which destroy referencing nodes). If the primary reparent route is unavailable, use the supported cleanup/reparent fallback with the generated class path.
 5. **Restore defaults and instance overrides.**
    - Restore owned Blueprint component defaults with `set_component_defaults`.
    - Restore placed-instance overrides with level modify operations.
