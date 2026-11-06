@@ -1,7 +1,7 @@
 {
   "provenance": {
-    "plugin_commit": "450d67ec61da2aeee6d3d48bdfe2c42685aed2cc",
-    "plugin_ref": "450d67ec",
+    "plugin_commit": "5ec7af3bf71c69b6d63fb76b5db09dd83b6e7207",
+    "plugin_ref": "5ec7af3b",
     "plugin_dirty": false
   },
   "exposed_tools": [
@@ -35,6 +35,7 @@
     "rebuild_graph_cache",
     "reflect_cache_status",
     "reflect_cmd",
+    "replay_cmd",
     "scan_project",
     "scenario_compose",
     "schema_generate",
@@ -324,11 +325,7 @@
       "teleport_player",
       "set_actor_property",
       "set_random_seed",
-      "assert_state",
-      "start_recording",
-      "stop_recording",
-      "replay_session",
-      "cancel_replay"
+      "assert_state"
     ],
     "reflect": [
       "class_hierarchy",
@@ -362,6 +359,13 @@
       "add_transition",
       "remove_transition",
       "set_transition_properties"
+    ],
+    "replay": [
+      "list_recordings",
+      "get_recording",
+      "start_replay",
+      "get_run",
+      "cancel_replay"
     ],
     "anim": [
       "add_curve",
@@ -1813,16 +1817,7 @@
         "property",
         "type",
         "value"
-      ],
-      "start_recording": [
-        "name"
-      ],
-      "stop_recording": [],
-      "replay_session": [
-        "on_failure",
-        "path"
-      ],
-      "cancel_replay": []
+      ]
     },
     "reflect": {
       "class_hierarchy": [
@@ -2022,6 +2017,24 @@
         "state_id",
         "state_path",
         "transition_id"
+      ]
+    },
+    "replay": {
+      "list_recordings": [
+        "after_recording_id",
+        "page_size"
+      ],
+      "get_recording": [
+        "recording_id"
+      ],
+      "start_replay": [
+        "recording_id"
+      ],
+      "get_run": [
+        "run_id"
+      ],
+      "cancel_replay": [
+        "run_id"
       ]
     },
     "anim": {

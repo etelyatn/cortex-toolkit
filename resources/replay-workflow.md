@@ -264,6 +264,6 @@ Recording files under `.cortex/replay/` are intended for Git tracking in the pro
 submodule); local runs, temp state and logs stay under `Saved/`. Replaying on another machine creates
 a local result, never a dirty tracked recording. The payload hashes cover raw bytes, so the tracking
 repository must not convert line endings: add `.cortex/replay/** -text` to the project's
-`.gitattributes`, otherwise a `core.autocrlf` checkout changes the payload bytes and the recording
-fails its hash check on that machine. Legacy `Saved/CortexQA/Recordings/` and
+`.gitattributes`, otherwise a checkout with Git's `autocrlf` setting enabled changes the payload bytes
+and the recording fails its hash check on that machine. Legacy `Saved/CortexQA/Recordings/` and
 `Saved/CortexQARecordings/` files are retained unchanged and are not valid physical-input recordings.
