@@ -14,10 +14,10 @@ its status and cancels it. There is no AI recording, editing, permission or dele
 | Command | Purpose |
 |---------|---------|
 | `replay.list_recordings` | Live eligible recording page (ascending ID) with map, prerequisites and guard-coverage summary (no start pose), the active AI run and recent terminal AI-run summaries. Paged by `after_recording_id` / `page_size`. |
-| `replay.get_recording` | One eligible recording's metadata, `initial_state` (recorded pawn transform and control rotation) and guard-coverage warning. |
+| `replay.get_recording` | One eligible recording's metadata, `initial_state` (recorded pawn transform, control rotation and viewport state), `prerequisites` (viewport size, DPI scale, player input class, input-config hash) and `guard_coverage` counts. |
 | `replay.start_replay` | Accept one AI replay run and return its `Preparing` identity (`run_id`). One-shot; never inside a Core batch and never resent. |
-| `replay.get_run` | Live AI run state or retained terminal result. |
-| `replay.cancel_replay` | Cancel that AI-originated run or return its existing terminal state. |
+| `replay.get_run` | Live AI run state or retained terminal result, including `execution_error` for `Error` and for a `Cancelled`/`Interrupted` run with a cause. |
+| `replay.cancel_replay` | Request cancellation of that AI-originated run; returns `Finalizing` or the terminal state, so poll `get_run` until terminal. |
 
 ## Boundaries
 
@@ -29,6 +29,8 @@ anything outside discovery, start, status and cancel.
 
 Physical replay requires a rendered, correctly focused PIE surface; unfocused, hidden-window
 and NullRHI replay are not promised. The recorded pose is a starting point, not a checkpoint.
+Preparation and environment errors (`EDITOR_BUSY`, `INCOMPATIBLE_PREREQUISITES`, `ASSET_NOT_FOUND`,
+`INPUT_PREPARATION_TIMEOUT`, …) are not gameplay verdicts; see `resources/replay-workflow.md`.
 
 ## Guard Coverage
 

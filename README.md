@@ -130,7 +130,7 @@ The removed legacy `nodes`/`connections` update batch is never a fallback.
 
 | Skill | Description |
 |-------|-------------|
-| `/cortex-replay` | Replay a human-enabled CortexReplay recording in editor PIE, check its run status, or recover an uncertain replay start |
+| `/cortex-replay` | List human-enabled CortexReplay recordings (length, recording date, coverage), replay one frame-exactly in editor PIE, validate that it still replays faithfully, check its run status, or recover an uncertain replay start |
 
 ### Reflect
 

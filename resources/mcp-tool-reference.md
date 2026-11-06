@@ -508,16 +508,23 @@ recording, editing, permission and deletion are human-only in the CortexReplay w
   with `after_recording_id` and `page_size` (1..100, default 20). Generic
   `limit`/`cursor`/`offset`/`page` are rejected.
 - `get_recording` — one eligibility-checked recording's metadata, `initial_state` (recorded pawn
-  transform and control rotation) and guard-coverage warning. No input rows or arbitrary file access.
+  transform, control rotation and viewport state) and `guard_coverage` counts. No input rows or
+  arbitrary file access.
 - `start_replay` — accept one AI run and return `run_id` plus `state: "Preparing"`. One-shot: never
   inside a Core batch and never automatically resent. Acceptance is not completion.
 - `get_run` — live run state or retained terminal result (`Completed`, `Cancelled`, `Interrupted`,
-  `Error`), dispatched/total event counts, readiness-wait substate and guard/error details.
-- `cancel_replay` — cancel that AI-originated run or return its existing terminal state.
+  `Error`), dispatched/total event counts, completed/total frame counts, the admitted recording
+  digests, `behind_seconds` (lag at the last paced frame), readiness-wait substate, guard/error details
+  and `execution_error` (required for `Error`, present for `Cancelled`/`Interrupted` when the run has
+  a cause).
+- `cancel_replay` — request cancellation of that AI-originated run; returns `Finalizing` or the
+  terminal state, so poll `get_run` until terminal.
 
 After an unknown start outcome (`REPLAY_START_OUTCOME_UNKNOWN`), recover the admitted run through
-`list_recordings`/`get_run`; never reissue start. Follow the `cortex-replay` skill and
-[`resources/replay-workflow.md`](replay-workflow.md).
+`list_recordings`/`get_run`; never reissue start. Preparation and environment errors
+(`EDITOR_BUSY`, `INCOMPATIBLE_PREREQUISITES`, `INPUT_PREPARATION_TIMEOUT`, …) are not gameplay
+verdicts: use the table in [`resources/replay-workflow.md`](replay-workflow.md). Follow the
+`cortex-replay` skill.
 
 ---
 
