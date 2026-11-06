@@ -33,7 +33,8 @@ Set up the project for UnrealCortex.
    - `CortexReflect` -> `reflect`
    - `CortexStateTree` -> `statetree`
    - `CortexAnimation` -> `anim`
-5. Create `.cortex/config.yaml`, `.cortex/context.md`, and `.cortex/domains/*.md` for detected domains. Ensure `.gitignore` contains `.cortex/config.local.yaml`.
+   - `CortexReplay` -> `replay`
+5. Create `.cortex/config.yaml`, `.cortex/context.md`, and `.cortex/domains/*.md` for detected domains. Domain files use the established names, not the module id: `CortexBlueprint` -> `blueprint` -> `.cortex/domains/blueprints.md` (the `cortex-blueprint` skill reads `blueprints.md`). Generate `.cortex/domains/replay.md` from `templates/domains/replay.md` only when `CortexReplay` is detected, never for another module. When a detected domain has a matching template file, copy it; otherwise create a minimal placeholder for that domain. Ensure `.gitignore` contains `.cortex/config.local.yaml`.
  6. Create or update `.mcp.json` so `mcpServers.cortex_mcp` runs `uv run --directory {plugin_root}/MCP cortex-mcp` with `CORTEX_PROJECT_DIR={project_root}`.
  7. If the user works in OpenCode, ask whether to configure OpenCode. If yes, read the project's `opencode.json` (or start from `{}`), preserve all existing top-level keys and all existing `mcp` entries, and upsert:
     - the `cortex_mcp` MCP entry — same command and `CORTEX_PROJECT_DIR` as `.mcp.json`, using the absolute project root (forward slashes);
@@ -102,7 +103,7 @@ Print a short reference card with:
 - `cortex-setup` for onboarding, initialization, schema refresh, and discovery
 - `cortex-editor` for editor lifecycle and MCP diagnostics
 - `cortex-build` for compile/build work
-- Domain skills: `cortex-blueprint`, `cortex-data`, `cortex-material`, `cortex-umg`, `cortex-level`, `cortex-statetree`, `cortex-animation`, `cortex-reflect`
+- Domain skills: `cortex-blueprint`, `cortex-data`, `cortex-material`, `cortex-umg`, `cortex-level`, `cortex-statetree`, `cortex-animation`, `cortex-replay`, `cortex-reflect`
 - Testing skills: `cortex-qa`, `cortex-test`
 
 ### Phase 3: What's Next?
@@ -116,6 +117,7 @@ Print a short reference card with:
    - `list_materials` under `/Game`
    - `statetree_cmd(command="list_assets", params={"path_filter": "/Game"})`
    - `anim_cmd(command="list_assets", params={"path": "/Game", "limit": 20})`
+   - `replay_cmd(command="list_recordings", params={})` when the `replay` domain is registered
 3. Check `.cortex/domains/*.md` for template-only or nearly empty files.
 4. Generate ordered suggestions backed by detected content. Keep the order foundational -> analytical -> creative.
 5. Stop after presenting suggestions. Do not auto-run one.
@@ -156,6 +158,7 @@ If the user asks for the full catalog, print the approved public surface:
 - `cortex-level`
 - `cortex-statetree`
 - `cortex-animation`
+- `cortex-replay`
 - `cortex-reflect`
 - `cortex-test`
 - `cortex-qa`
@@ -168,7 +171,8 @@ If the user asks for help within a specific domain, report:
 - schema or domain-context availability
 - one concrete next action
 
-Use `umg` terminology for UI guidance and route all QA guidance through `cortex-qa`.
+Use `umg` terminology for UI guidance, route all QA guidance through `cortex-qa`, and route recorded
+physical-input playback through `cortex-replay`.
 
 ### Agent Catalog Mode
 

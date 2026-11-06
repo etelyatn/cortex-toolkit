@@ -41,6 +41,7 @@ expected = sorted([
     "cortex-reflect",
     "cortex-test",
     "cortex-qa",
+    "cortex-replay",
 ])
 if actual != expected:
     raise SystemExit(f"expected skill dirs {expected}, got {actual}")

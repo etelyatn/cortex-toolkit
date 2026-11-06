@@ -5,7 +5,7 @@ Flat catalog of all UnrealCortex MCP tools organized by domain.
 ## Tool Architecture
 
 Tools fall into three categories:
-- **Routers (12):** `core_cmd`, `data_cmd`, `blueprint_cmd`, `graph_cmd`, `level_cmd`, `material_cmd`, `umg_cmd`, `qa_cmd`, `reflect_cmd`, `editor_cmd`, `statetree_cmd`, `anim_cmd` — dispatch named commands to existing assets
+- **Routers (13):** `core_cmd`, `data_cmd`, `blueprint_cmd`, `graph_cmd`, `level_cmd`, `material_cmd`, `umg_cmd`, `qa_cmd`, `reflect_cmd`, `editor_cmd`, `statetree_cmd`, `anim_cmd`, `replay_cmd` — dispatch named commands to existing assets. `anim_cmd` and `replay_cmd` are optional: they exist only when live capabilities prove the editor exposes those domains.
 - **Composites (7):** `blueprint_compose`, `material_compose`, `material_instance_compose`, `widget_compose`, `level_compose`, `scenario_compose`, `statetree_compose` — declarative creation workflows; `blueprint_compose(mode="update")` is a facade over one guarded `graph.apply_patch` envelope
 - **Standalone (3):** `editor_restart`, `schema_generate`, `qa_test_step`
 
@@ -937,7 +937,10 @@ discard the override. Ejected/SIE editor views remain controllable.
 - **World queries:** `observe_state`, `get_actor_state`, `get_player_state`
 - **Game actions:** `look_at`, `interact`, `move_to`, `wait_for`, `teleport_player`, `set_actor_property`, `set_random_seed`
 - **Assertions:** `assert_state`
-- **Recording/Replay:** `start_recording`, `stop_recording`, `replay_session`, `cancel_replay`
+
+QA no longer records or replays input. The legacy `start_recording`, `stop_recording`, `replay_session`
+and `cancel_replay` commands were removed in the CortexReplay cutover; recorded physical-input
+replay now lives in the `replay` domain (`cortex-replay` skill).
 
 ### Standalone
 
@@ -956,6 +959,38 @@ plus `"Error:"` text heuristic.
 ### Composite
 
 - `scenario_compose` — atomic creation of a new QA scenario asset
+
+---
+
+## Replay (`replay_cmd`)
+
+Optional domain — registered only when live capabilities prove the editor exposes `replay`.
+Human-captured physical-input recordings are discovered, started once, tracked and cancelled here;
+recording, editing, permission and deletion are human-only in the CortexReplay window.
+
+- `list_recordings` — live eligible recording page (ascending integer ID) with map, prerequisites and
+  guard-coverage summary (no start pose — read `get_recording`'s `initial_state`); also returns
+  `active_ai_run` and up to 100 `recent_ai_runs` terminal summaries from the last 24 hours. Paged
+  with `after_recording_id` and `page_size` (1..100, default 20). Generic
+  `limit`/`cursor`/`offset`/`page` are rejected.
+- `get_recording` — one eligibility-checked recording's metadata, `initial_state` (recorded pawn
+  transform, control rotation and viewport state) and `guard_coverage` counts. No input rows or
+  arbitrary file access.
+- `start_replay` — accept one AI run and return `run_id` plus `state: "Preparing"`. One-shot: never
+  inside a Core batch and never automatically resent. Acceptance is not completion.
+- `get_run` — live run state or retained terminal result (`Completed`, `Cancelled`, `Interrupted`,
+  `Error`), dispatched/total event counts, completed/total frame counts, the admitted recording
+  digests, `behind_seconds` (lag at the last paced frame), readiness-wait substate, guard/error details
+  and `execution_error` (required for `Error`, present for `Cancelled`/`Interrupted` when the run has
+  a cause).
+- `cancel_replay` — request cancellation of that AI-originated run; returns `Finalizing` or the
+  terminal state, so poll `get_run` until terminal.
+
+After an unknown start outcome (`REPLAY_START_OUTCOME_UNKNOWN`), recover the admitted run through
+`list_recordings`/`get_run`; never reissue start. Preparation and environment errors
+(`EDITOR_BUSY`, `INCOMPATIBLE_PREREQUISITES`, `INPUT_PREPARATION_TIMEOUT`, …) are not gameplay
+verdicts: use the table in [`resources/replay-workflow.md`](replay-workflow.md). Follow the
+`cortex-replay` skill.
 
 ---
 
