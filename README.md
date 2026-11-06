@@ -165,6 +165,12 @@ The removed legacy `nodes`/`connections` update batch is never a fallback.
 |-------|-------------|
 | `/cortex-qa` | Generate QA baselines, run scenario-driven gameplay QA, or start an interactive exploratory QA session |
 
+### Replay
+
+| Skill | Description |
+|-------|-------------|
+| `/cortex-replay` | List human-enabled CortexReplay recordings (length, recording date, coverage), replay one frame-exactly in editor PIE, validate that it still replays faithfully, check its run status, or recover an uncertain replay start |
+
 ### Reflect
 
 | Skill | Description |
@@ -208,7 +214,8 @@ Cortex Toolkit reads project-specific knowledge from `.cortex/`:
 │   ├── statetree.md
 │   ├── qa.md
 │   ├── umg.md
-│   └── anim.md
+│   ├── anim.md
+│   └── replay.md
 └── schema/              # LLM-readable project snapshots
     ├── _catalog.md      # Index of all schema files
     └── ...

@@ -1,7 +1,7 @@
 {
   "provenance": {
-    "plugin_commit": "279109dc36ff0c5388c9ef82ed731e11c45a003c",
-    "plugin_ref": "279109dc",
+    "plugin_commit": "04ed94e4d657e0edd0a95ba970fdf0584c9a3b81",
+    "plugin_ref": "04ed94e4d657e0edd0a95ba970fdf0584c9a3b81",
     "plugin_dirty": false
   },
   "exposed_tools": [
@@ -35,6 +35,7 @@
     "rebuild_graph_cache",
     "reflect_cache_status",
     "reflect_cmd",
+    "replay_cmd",
     "scan_project",
     "scenario_compose",
     "schema_generate",
@@ -95,8 +96,8 @@
       "export_schema_json",
       "compare_data_json",
       "apply_import_ops_json",
-      "plan_type_replacement",
-      "verify_type_replacement"
+      "verify_type_replacement",
+      "plan_type_replacement"
     ],
     "graph": [
       "get_authoring_context",
@@ -160,9 +161,9 @@
       "swap_scs_component_class",
       "add_interface",
       "remove_interface",
-      "replace_interface",
       "set_tick_settings",
-      "set_replication_settings"
+      "set_replication_settings",
+      "replace_interface"
     ],
     "umg": [
       "add_widget",
@@ -327,11 +328,7 @@
       "teleport_player",
       "set_actor_property",
       "set_random_seed",
-      "assert_state",
-      "start_recording",
-      "stop_recording",
-      "replay_session",
-      "cancel_replay"
+      "assert_state"
     ],
     "reflect": [
       "class_hierarchy",
@@ -346,8 +343,8 @@
       "export_dependency_graph",
       "find_name_lookups",
       "find_duplicate_graphs",
-      "find_interface_implementers",
-      "find_type_usages"
+      "find_type_usages",
+      "find_interface_implementers"
     ],
     "statetree": [
       "list_assets",
@@ -367,6 +364,13 @@
       "add_transition",
       "remove_transition",
       "set_transition_properties"
+    ],
+    "replay": [
+      "list_recordings",
+      "get_recording",
+      "start_replay",
+      "get_run",
+      "cancel_replay"
     ],
     "anim": [
       "add_curve",
@@ -659,6 +663,11 @@
         "report_path",
         "stop_on_error"
       ],
+      "verify_type_replacement": [
+        "out_path",
+        "plan_path",
+        "save"
+      ],
       "plan_type_replacement": [
         "baseline_dir",
         "member_map",
@@ -666,11 +675,6 @@
         "out_path",
         "user_type",
         "value_map"
-      ],
-      "verify_type_replacement": [
-        "out_path",
-        "plan_path",
-        "save"
       ]
     },
     "graph": {
@@ -1092,18 +1096,6 @@
         "interface_path",
         "preserve_implementations"
       ],
-      "replace_interface": [
-        "asset_path",
-        "compile",
-        "dry_run",
-        "expected_fingerprint",
-        "expected_validation_hash",
-        "function_map",
-        "new_interface",
-        "old_interface",
-        "patch_id",
-        "save"
-      ],
       "set_tick_settings": [
         "asset_path",
         "can_ever_tick",
@@ -1119,6 +1111,18 @@
         "net_use_owner_relevancy",
         "replicate_movement",
         "replicates",
+        "save"
+      ],
+      "replace_interface": [
+        "asset_path",
+        "compile",
+        "dry_run",
+        "expected_fingerprint",
+        "expected_validation_hash",
+        "function_map",
+        "new_interface",
+        "old_interface",
+        "patch_id",
         "save"
       ]
     },
@@ -1847,16 +1851,7 @@
         "property",
         "type",
         "value"
-      ],
-      "start_recording": [
-        "name"
-      ],
-      "stop_recording": [],
-      "replay_session": [
-        "on_failure",
-        "path"
-      ],
-      "cancel_replay": []
+      ]
     },
     "reflect": {
       "class_hierarchy": [
@@ -1924,17 +1919,17 @@
         "path_prefixes",
         "similarity"
       ],
+      "find_type_usages": [
+        "out_path",
+        "path_prefixes",
+        "user_type"
+      ],
       "find_interface_implementers": [
         "function",
         "include_callers",
         "interface",
         "out_path",
         "path_prefixes"
-      ],
-      "find_type_usages": [
-        "out_path",
-        "path_prefixes",
-        "user_type"
       ]
     },
     "statetree": {
@@ -2069,6 +2064,24 @@
         "state_id",
         "state_path",
         "transition_id"
+      ]
+    },
+    "replay": {
+      "list_recordings": [
+        "after_recording_id",
+        "page_size"
+      ],
+      "get_recording": [
+        "recording_id"
+      ],
+      "start_replay": [
+        "recording_id"
+      ],
+      "get_run": [
+        "run_id"
+      ],
+      "cancel_replay": [
+        "run_id"
       ]
     },
     "anim": {
