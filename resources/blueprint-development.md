@@ -694,30 +694,27 @@ fails, the rename is rolled back before returning `COMPILE_FAILED`.
 
 ## Reparenting Blueprints
 
-Use `blueprint_cmd(command="reparent")` to change a Blueprint's parent class. Accepts both Blueprint asset paths and C++ class names. It compiles and marks the package dirty but does not save.
+Use `blueprint_cmd(command="reparent")` to change a Blueprint's parent class. It is guarded: run `dry_run: true` first, read the collision preflight and `required_acknowledgment`, then apply with the dry run's `expected_fingerprint` and `acknowledged_collisions`. It compiles with the editor's reparent flags (`compile` defaults to true), saves only with `save: true`, and reports `reparented: true` only after readback.
 
 ```python
 blueprint_cmd(command="reparent", params={
     "asset_path": "/Game/Blueprints/BP_Enemy",
-    "new_parent": "AMyGameCharacter"  # C++ class name or Blueprint asset path
+    "new_parent": "/Script/MyGame.AMyGameCharacter",  # full class path, Blueprint asset path, or a unique short name
+    "dry_run": True,
 })
-# Returns: {"asset_path": "...", "old_parent": "Actor", "new_parent": "MyGameCharacter", "reparented": true}
 ```
 
-**Parameters:**
-- `asset_path`: Blueprint to reparent
-- `new_parent`: New parent class — can be a Blueprint asset path (e.g., `/Game/Blueprints/BP_BaseEnemy`) or a C++ class name (e.g., `AMyGameCharacter`, `MyGameCharacter`, or `/Script/MyGame.MyGameCharacter`)
+**Parameters:** `asset_path`, `new_parent` (required); `dry_run`, `expected_fingerprint`, `compile`, `save`, `acknowledged_collisions`, `report_path` (optional).
 
 **Behavior:**
-- Resolves parent as Blueprint path first, falls back to C++ class
-- Auto-compiles after reparenting
-- Wraps in a transaction (supports undo/redo)
-- Returns error if the Blueprint already has the specified parent
+- Resolves the parent as Blueprint path, then full class path, then unique short name; an ambiguous short name refuses `AMBIGUOUS_CLASS` with the candidates
+- A family change (for example Widget to Actor) refuses `INVALID_PARENT_CLASS`; blocking collisions refuse `NAME_COLLISION`; unacknowledged losses (`variable:<n>`, `scs:<n>`, `save_game:<n>`) refuse `POTENTIAL_DATA_LOSS`
+- A compile error or readback mismatch restores the Blueprint
 
 **Use cases:**
 - Migrating a Blueprint from `AActor` to a custom C++ base class after implementing shared logic in C++
 - Changing parent hierarchy during refactoring
-- Post-migration cleanup (reparent to new C++ class)
+- Post-migration cleanup; to hand variables to the new parent follow with `adopt_native_member` (see `cpp-migration.md`, "Guarded native member adoption") rather than removing them
 
 ## Error Handling
 

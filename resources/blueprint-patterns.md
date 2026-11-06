@@ -435,7 +435,7 @@ names, timeline references, and dependent Blueprint shadowing. Compile failure r
 ```
 compile_new_cpp_class
   → rebuild_project
-  → cleanup_migration (reparent BP to new C++ class, remove migrated variables/functions)
+  → blueprint_cmd(command="reparent", dry_run first) → blueprint_cmd(command="adopt_native_member") for variables the C++ class now declares (cleanup_migration only for migrated function graphs and variables that are not moved)
   -> blueprint_cmd(command="remove_scs_component") (for each component now declared in C++ constructor)
   -> blueprint_cmd(command="compile")
 ```
@@ -516,16 +516,24 @@ blueprint_cmd(command="set_replication_settings", params={
 
 ### Reparent Blueprint
 ```
-blueprint_cmd(reparent, asset_path, new_parent) → auto-compiles
+blueprint_cmd(reparent, asset_path, new_parent, dry_run?, expected_fingerprint?, compile?, save?, acknowledged_collisions?, report_path?)
 ```
+
+`reparent` is guarded: run it with `dry_run: true` first. The dry run returns the collision preflight (`variable`, `function`, `scs`, `interface_overlap`), `required_acknowledgment`, the CDO delta and a `fingerprint`; it mutates and dirties nothing. Apply passes the acknowledgement keys back unchanged in `acknowledged_collisions`. It compiles with the editor's reparent flags (the new native parent's defaults win, `compile` defaults to true), saves only with `save: true` (requires compile), and reports `reparented: true` only after readback. A compile error or readback mismatch restores the Blueprint.
 
 **Example: Migrate to C++ base class**
 ```python
 blueprint_cmd(command="reparent", params={
     "asset_path": "/Game/Blueprints/BP_Enemy",
-    "new_parent": "AEnemyBase"  # C++ class short name
+    "new_parent": "/Script/MyGame.AEnemyBase",   # full path; a short name must be unique
+    "dry_run": True,
 })
-# Returns: {"asset_path": "...", "old_parent": "Actor", "new_parent": "EnemyBase", "reparented": true}
+blueprint_cmd(command="reparent", params={
+    "asset_path": "/Game/Blueprints/BP_Enemy",
+    "new_parent": "/Script/MyGame.AEnemyBase",
+    "expected_fingerprint": fingerprint,           # from the dry run
+    "acknowledged_collisions": required_acknowledgment,
+})
 ```
 
 **Example: Reparent to another Blueprint**
@@ -536,7 +544,9 @@ blueprint_cmd(command="reparent", params={
 })
 ```
 
-**Resolution order:** Tries Blueprint asset path first, then C++ class name (full path or short name).
+**Resolution order:** Blueprint asset path, then full class path, then unique short name. A short name that matches several classes refuses `AMBIGUOUS_CLASS` with every candidate; a family change refuses `INVALID_PARENT_CLASS`; blocking collisions refuse `NAME_COLLISION`; unacknowledged losses (including `save_game:<n>`) refuse `POTENTIAL_DATA_LOSS`.
+
+**Moving a variable into the native parent:** do not remove it. Use `adopt_native_member` (`mappings: [{bp_variable, native_property}]`, `dry_run` first): nodes are retargeted instead of destroyed, defaults and placed-instance values are carried, and a rename needs a `[CoreRedirects]` property redirect (`MISSING_PROPERTY_REDIRECT` returns the line). Hand an SCS component to an inherited one with `adopt_scs_into_native`, swap a component class in place with `swap_scs_component_class`, and rename a member with `rename_member`. Full workflow and parameters: `resources/cpp-migration.md`, "Guarded native member adoption".
 
 **Validation:**
 - Returns error if Blueprint already has the specified parent

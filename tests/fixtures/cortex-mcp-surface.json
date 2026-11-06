@@ -1,7 +1,7 @@
 {
   "provenance": {
-    "plugin_commit": "1e224991b372cc465f146e5b3d13cb45bd7ccff1",
-    "plugin_ref": "origin/main",
+    "plugin_commit": "450d67ec61da2aeee6d3d48bdfe2c42685aed2cc",
+    "plugin_ref": "450d67ec",
     "plugin_dirty": false
   },
   "exposed_tools": [
@@ -152,6 +152,10 @@
       "compile_all",
       "export_migration_analysis",
       "reparent",
+      "rename_member",
+      "adopt_native_member",
+      "adopt_scs_into_native",
+      "swap_scs_component_class",
       "add_interface",
       "remove_interface",
       "set_tick_settings",
@@ -826,8 +830,14 @@
         "type"
       ],
       "remove_variable": [
+        "acknowledged_losses",
         "asset_path",
-        "name"
+        "compile",
+        "dry_run",
+        "expected_fingerprint",
+        "name",
+        "remove_referencing_nodes",
+        "save"
       ],
       "add_function": [
         "access",
@@ -918,11 +928,17 @@
         "thresholds"
       ],
       "cleanup_migration": [
+        "acknowledged_collisions",
+        "acknowledged_losses",
         "asset_path",
         "compile",
+        "dry_run",
+        "expected_cdo_values",
+        "expected_fingerprint",
         "migrated_overrides",
         "new_parent_class",
         "remove_functions",
+        "remove_referencing_nodes",
         "remove_variables",
         "save"
       ],
@@ -991,8 +1007,58 @@
         "types"
       ],
       "reparent": [
+        "acknowledged_collisions",
         "asset_path",
-        "new_parent"
+        "compile",
+        "dry_run",
+        "expected_fingerprint",
+        "new_parent",
+        "report_path",
+        "save"
+      ],
+      "rename_member": [
+        "acknowledged_losses",
+        "asset_path",
+        "compile",
+        "dry_run",
+        "expected_fingerprint",
+        "function",
+        "kind",
+        "new",
+        "old",
+        "save"
+      ],
+      "adopt_native_member": [
+        "acknowledged_losses",
+        "asset_path",
+        "compile",
+        "dry_run",
+        "expected_fingerprint",
+        "mappings",
+        "retarget_nodes",
+        "save",
+        "transfer_default"
+      ],
+      "adopt_scs_into_native": [
+        "acknowledged_losses",
+        "asset_path",
+        "compile",
+        "copy",
+        "dry_run",
+        "expected_fingerprint",
+        "mappings",
+        "remove_scs",
+        "save"
+      ],
+      "swap_scs_component_class": [
+        "acknowledged_losses",
+        "asset_path",
+        "compile",
+        "component_name",
+        "dry_run",
+        "expected_fingerprint",
+        "new_class",
+        "save"
       ],
       "add_interface": [
         "asset_path",
