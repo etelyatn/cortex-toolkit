@@ -49,6 +49,7 @@ If only an asset path is provided:
   with `change_type="removed_class"`
 - `get_referencers` also lists INI/config references (rows with `type: "config"`, listed first); a config reference is a runtime dependency that no Blueprint graph scan shows
 - For project-wide questions use the file-backed commands instead of looping per asset: `reflect_cmd(command="export_dependency_graph", params={"path_prefixes": [...], "out_path": "..."})` for a typed graph with a wave order, `find_broken_config_paths` for stale config paths, `find_name_lookups` for by-name access to Blueprint members (literal-only), `find_duplicate_graphs` for duplicated graph logic (see `resources/reflect-patterns.md`)
+- For interface and user-type migrations use the owner-matched inventories: `reflect_cmd(command="find_interface_implementers", params={"interface": "...", "path_prefixes": [...], "out_path": "..."})` (implementers, and `message`/`typed_call`/`interface_cast` callers) and `reflect_cmd(command="find_type_usages", params={"user_type": "...", "path_prefixes": [...], "out_path": "..."})` (UDS/UDE usage by category); `load_failures` and `skipped_assets` are never proof of absence (see `resources/reflect-patterns.md`)
 
 #### Step 3. Review Results
 

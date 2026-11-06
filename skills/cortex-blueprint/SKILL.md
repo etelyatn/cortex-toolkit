@@ -143,6 +143,10 @@ Run this workflow before any mutation:
 6. **Compile and save.**
 7. **Report** per-Blueprint results and warnings.
 
+### Interface Migration (BPI to native interface, interface removal)
+
+Use the guarded commands, never manual stub deletion. `blueprint_cmd` `remove_interface` requires `preserve_implementations` (strict boolean) and a `dry_run` first; apply with the dry run's `expected_fingerprint` and `expected_validation_hash`. `blueprint_cmd` `replace_interface` (`old_interface`, `new_interface`, `function_map`, required `dry_run`) adopts the old interface graphs so body node GUIDs survive; it refuses while this asset still calls the old interface (`graph_cmd` `apply_patch` with `migration.op: "retarget_calls"` first: preview, then apply with the exact `sites` echo) and refuses a derived override of a mapped function. **Implementers and callers of one BPI are migrated in one reviewed wave**: list them with `reflect_cmd` `find_interface_implementers`, preview all of them, review, then apply per asset, `compile_all`, and prove the old interface has no implementers or callers left. Procedure and exact parameters: `resources/cpp-migration.md` ("Interface and user-type replacement"). `retarget_calls` has no replay; after a successful apply preview again.
+
 ### FText Pin Mutation
 
 For a single isolated Blueprint graph `FText` pin, use

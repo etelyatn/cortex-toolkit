@@ -124,6 +124,29 @@ reflect_cmd(command="find_duplicate_graphs", params={
 
 Read the file for detail; the response only carries counts and the first entries. See `resources/mcp-tool-reference.md` ("Dependency map commands") for every field.
 
+### Interface implementers/callers and user-type usage (migration inventories)
+
+Read-only, file-backed, matched by **resolved owner** (never by member name); both load every candidate Blueprint, so pass `out_path` for a project-wide run:
+
+```python
+# Who implements a BPI (or a native interface) and who calls it: message / typed_call / interface_cast sites
+reflect_cmd(command="find_interface_implementers", params={
+    "interface": "/Game/Interfaces/BPI_StressApplier",     # or /Script/MyGame.StressApplierInterface
+    "path_prefixes": ["/Game/MyGame"], "out_path": "Saved/Migration/bpi_stress.json"})
+# implementers[]: asset_path, direct (false = inherited, `via` names the ancestor),
+#   functions[]: implementation = function_graph | event | none (+ graph_guid, entry_node_guid, node_count / has_body)
+# callers[]: kind, asset_path, graph_guid, subgraph_path, node_guid, node_class, function; unresolved_callers[] need manual review
+# "include_callers": False lists implementers only; "function": "ApplyStress" restricts one function (cast sites stay)
+
+# Where a user struct/enum is used, by category (variable, pin, make_struct, datatable_row_struct, data_asset, ...)
+reflect_cmd(command="find_type_usages", params={
+    "user_type": "/Game/Data/UDS_StressRow", "path_prefixes": ["/Game/MyGame"],
+    "out_path": "Saved/Migration/uds_stress.json"})
+# load_failures and skipped_assets are never "free of the type"; run again with the native type afterwards
+```
+
+Next steps: `resources/cpp-migration.md` ("Interface and user-type replacement") for the wave procedure and `resources/mcp-tool-reference.md` for every field.
+
 ### Find what Blueprint children override
 
 ```python
