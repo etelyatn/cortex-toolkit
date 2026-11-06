@@ -397,6 +397,83 @@ blueprint_cmd(command="cleanup_migration", params={
 - `AMBIGUOUS_CLASS`, `INVALID_PARENT_CLASS`, `NAME_COLLISION`, `POTENTIAL_DATA_LOSS`, `MEMBER_REFERENCED`, `READBACK_MISMATCH`: see the guarded commands above
 - `SaveFailed`: Package could not be saved to disk
 
+### Interface and user-type replacement (CortexSandbox#122)
+
+Moving a Blueprint Interface (BPI) to a native `UINTERFACE`, or a user-defined struct/enum (UDS/UDE) to a native type, is done by guarded commands, never by hand-editing graphs. Exact parameters, result fields and error codes: `resources/mcp-tool-reference.md` ("Interface and type inventories", "Interface migration", "Interface migration ops", "User-defined struct/enum replacement").
+
+**Migration-order caveat (read first).** The implementers and the callers of one BPI are migrated in **one reviewed wave**. A retargeted caller sends the native interface message, which cannot reach an implementer that still implements only the BPI; and `replace_interface` refuses an implementer that still has an in-asset caller of the old interface. So: inventory every implementer **and** every caller first, preview **all** of them, review the previews together, then apply them all in the same editor session in the order below. Never apply half a wave and ship, and never treat one asset's success as proof the wave works.
+
+**Interface wave:**
+
+```
+1. reflect_cmd find_interface_implementers   interface = the BPI, path_prefixes, out_path under Saved/
+                                             -> implementers (direct and inherited), callers
+                                                (message | typed_call | interface_cast), unresolved_callers
+2. Resolve unresolved_callers by hand; list derived Blueprints that override a mapped function (the replace_interface
+   preview refuses them) and handle them in the same wave
+3. Decide per old function: `to` (default same name) and the pin_map (stale pin -> replacement pin, entry input|output)
+4. PREVIEW EVERYTHING, apply nothing:
+     - every implementer: blueprint_cmd replace_interface dry_run=true
+     - every caller asset: graph_cmd apply_patch migration retarget_calls (no `sites`)
+   Review sites[], blocked reasons, functions/dropped_stubs/new_stubs, preservation[] and every validation_hash
+5. APPLY per asset, one call each, from the preview's own keys:
+     a. caller assets (and implementers with in-asset callers): retarget_calls with `sites` = the exact preview echo
+        and expected_fingerprint / expected_validation_hash from that preview
+     b. implementers: replace_interface dry_run=false with expected_fingerprint (= fingerprint_before) and
+        expected_validation_hash
+   A refused echo, stale hash or READBACK_MISMATCH means: re-run that asset's preview and re-review; nothing was changed
+6. blueprint_cmd compile_all path_prefix = the wave's folders                 -> no new errors
+7. Prove it:
+     reflect_cmd find_interface_implementers (old BPI)  -> implementer_count 0, caller_count 0, unresolved_callers empty
+     reflect_cmd find_interface_implementers (new interface) -> every expected implementer and caller
+8. Save explicitly (save:true on each apply, or blueprint_cmd save after inspection), then get_referencers on the old BPI;
+   delete it (core.delete_asset) only when nothing references it
+```
+
+```python
+# 4. previews
+blueprint_cmd(command="replace_interface", params={
+    "asset_path": "/Game/Blueprints/BP_Applier",
+    "old_interface": "/Game/Interfaces/BPI_StressApplier",
+    "new_interface": "/Script/MyGame.StressApplierInterface",
+    "function_map": [{"from": "ApplyStress", "to": "ApplyStress",
+                      "pin_map": [{"entry": "input", "from_pin": "Amount", "to_pin": "Amount"}]}],
+    "dry_run": True,
+})
+graph_cmd(command="apply_patch", params={
+    "asset_path": "/Game/UI/WBP_Popup",
+    "patch_id": "<uuid>", "expected_fingerprint": fingerprint, "dry_run": True,
+    "migration": {"op": "retarget_calls",
+                  "from": {"owner": "/Game/Interfaces/BPI_StressApplier", "function": "ApplyStress"},
+                  "to": {"owner": "/Script/MyGame.StressApplierInterface", "function": "ApplyStress"},
+                  "pin_map": [{"from_pin": "Amount", "to_pin": "Amount"}]},
+})
+# 5a. apply: the same request plus the exact `sites` of the preview and expected_validation_hash
+graph_cmd(command="apply_patch", params={ ...same..., "dry_run": False,
+    "expected_validation_hash": validation_hash, "migration": {..., "sites": preview_sites}})
+```
+
+Rules that follow from the contracts: the apply of `retarget_calls` is single-asset with its own exact echo (the wave is a loop of per-asset calls, there is no multi-asset transaction); it has **no replay** (after a success the sites are gone and a repeat is refused, so re-preview instead); `replace_interface` is idempotent for an identical request. Every failed apply restores the asset (journal, exactly one recovery compile); `rollback_status: unverified` blocks the asset and requires manual inspection. `mode` is `message` when `to.owner` is an interface and `call` when it is a class; a message that becomes a direct call is `blocked: target_incompatible` unless its target pin connects directly. Nothing is saved unless `save:true`.
+
+**Removing a BPI without a replacement.** `blueprint_cmd remove_interface` requires `preserve_implementations` and a `dry_run` first: `true` keeps interface graphs as ordinary functions and turns events into custom events (the dry run's `in_asset_callers` shows callers that will now dangle); `false` deletes the graphs and orphans event bodies, which is an explicit loss.
+
+**User struct / enum wave:**
+
+```
+1. reflect_cmd find_type_usages (user type)           -> inventory by category; load_failures / skipped_assets are NOT "free"
+2. data_cmd plan_type_replacement  user_type, native_type, member_map / value_map, baseline_dir
+                                                      -> exact [CoreRedirects] lines + plan file; every refusal listed in details.problems
+3. Operator: paste the lines into Config/DefaultEngine.ini under [CoreRedirects]; RESTART the editor
+   (Cortex never edits an ini or restarts; a redirect added after assets loaded is not active)
+4. data_cmd verify_type_replacement  plan_path, save:false     -> REDIRECTS_NOT_ACTIVE (+ lines, instruction) until active;
+                                                                 then converted / compiled / baseline diff / still_referenced
+5. Fix differences, then verify_type_replacement save:true     -> DIRTY_EDITOR_STATE when an affected package has unsaved changes
+6. reflect_cmd find_type_usages (native type)         -> proves no residual use of the user type
+7. core.delete_asset the user type only when still_referenced is empty, then remove the redirect lines
+```
+
+Redirect placement: `ObjectRedirects` with `OverrideClassName` is what redirects a UDS import (`StructRedirects` alone does not), and `PropertyRedirects` carry the GUID-suffixed member names; paste every emitted line, unmodified. `plan_type_replacement` refuses while a redirect for the user type is already registered (`redirect_present`), so re-plan only after removing the lines; once they are active, run `verify_type_replacement`.
+
 ## SCS Component Migration
 
 When migrating Blueprint SCS components (Components panel) to C++ `CreateDefaultSubobject` declarations, first inspect `analyze_for_migration.scs_collisions`. Adoptable collisions can be resolved by setting the inherited C++ property default to the owned SCS template with `set_class_defaults` using the recommended qualified value such as `OpenSeq@self`. Blocking collisions should be renamed with `rename_scs_component` before reparenting or cleanup.

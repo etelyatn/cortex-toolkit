@@ -60,6 +60,7 @@ WORKFLOW:
 7. For file-backed imports, run data_cmd(command="apply_import_ops_json") with dry_run=true first, inspect the report file, and only perform a real apply after explicit user intent with dry_run=false and apply=true. Treat file-backed MCP responses as compact envelopes — read aggregate counts from nested `counts`, and inspect the exported payload or durable report file for details
 8. For table-backed FText migrations, audit references with data_cmd(command="search_datatable_content", params={"search_mode": "string_table_refs", ...})
 9. Validate structure and data integrity, using compare_data_json for exported snapshot diffs and query-back plus the report file as the source of truth for file-backed imports
+10. To replace a user-defined struct or enum with a native type, run `reflect_cmd(command="find_type_usages")`, then data_cmd(command="plan_type_replacement") (with `baseline_dir`), give the operator the returned `[CoreRedirects]` lines for `Config/DefaultEngine.ini` (Cortex never edits an ini, adds redirects at runtime or restarts the editor), and after the editor restart run data_cmd(command="verify_type_replacement") with `save: false`, then `save: true`; `REDIRECTS_NOT_ACTIVE` means the restart has not picked the redirects up. Never delete the user type until `still_referenced` is empty (see `resources/cpp-migration.md`, "Interface and user-type replacement")
 ```
 
 **For Review/Balance**, pass the review scope and focus:

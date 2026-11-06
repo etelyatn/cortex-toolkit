@@ -91,6 +91,9 @@ request through `graph.apply_patch`, with preview and an approved removable set:
 | Replace a stale inherited implementation entry, preserving the downstream body | `migration.op: "replace_entry"` with `target.implementation` and a complete `pin_map` | Disconnecting the stale entry and deleting the orphan chain by hand. |
 | Move/copy one node set between two graphs of the same asset | `migration.op: "copy_subgraph"` / `"move_subgraph"` with explicit boundary mappings | Re-adding the nodes from the plan and re-wiring by hand. |
 | Remove one entry's uniquely owned execution island | `migration.op: "prune_island"` with the preview's approved removable set | Blanket orphan deletion that also removes shared nodes or links. |
+| Move this Blueprint from a BPI to a native interface | `blueprint_cmd` `replace_interface` (or `migration.op: "replace_interface"`): `dry_run` first, then apply with `expected_fingerprint` and `expected_validation_hash` | Removing the BPI and re-adding stubs by hand (loses the body nodes' identity). |
+| Re-point this asset's calls/casts of a BPI function to the new owner | `migration.op: "retarget_calls"`: preview, then apply with the exact `sites` echo | Deleting and re-creating the call nodes, or re-linking pins by hand. |
+| Remove an interface and keep or drop its implementations | `blueprint_cmd` `remove_interface` with explicit `preserve_implementations`, `dry_run` first | Calling it without a preview, or `preserve_implementations: false` without recording the loss. |
 
 Rules for this branch:
 
@@ -106,6 +109,15 @@ Rules for this branch:
 - Only lossless large-island inventory retrieval remains unsupported and is future scope; the bounded
   response guard is tracked at
   [CortexSandbox #102](https://github.com/etelyatn/CortexSandbox/issues/102).
+- **Interface waves.** The implementers and callers of one BPI belong to **one reviewed wave** that the
+  plan lists (from `reflect_cmd` `find_interface_implementers`): an executor migrates only the assets
+  its plan assigns to it and never completes part of a wave on its own. `replace_interface` refuses an
+  asset that still has an in-asset caller of the old interface (run `retarget_calls` first), refuses a
+  derived Blueprint override of a mapped function, and a retargeted caller cannot reach an implementer
+  that still implements only the BPI. `retarget_calls` has no replay: after a successful apply, preview
+  again instead of resending. A refusal before mutation (`INVALID_OPERATION`, `STALE_PRECONDITION`, a rejected
+  echo) changes nothing and a failed apply is restored from its journal (`rollback_status`); report either to the orchestrator. Procedure:
+  `resources/cpp-migration.md` ("Interface and user-type replacement").
 - If an inventory or apply outcome is missing or ambiguous, **Stop and reconcile** before any newly
   authorized mutation; never approve a partial set or retry blindly. See
   [`resources/typed-blueprint-authoring.md`](resources/typed-blueprint-authoring.md).
@@ -209,7 +221,7 @@ Do NOT write `03-node-mapping.json`. All execution data goes inline.
 
 ## Tools
 
-- `blueprint_cmd` commands: `reparent`, `adopt_native_member`, `adopt_scs_into_native`, `rename_member`, `swap_scs_component_class`, `cleanup_migration`, `compile`, `delete_orphaned_nodes`, `remove_graph`, `remove_variable`, `remove_scs_component`, `rename_scs_component`, `set_class_defaults`, `add_interface` / `remove_interface` (use `remove_interface` to clean up stale interface references during migration), `get_info`, `analyze_for_migration`
+- `blueprint_cmd` commands: `reparent`, `adopt_native_member`, `adopt_scs_into_native`, `rename_member`, `swap_scs_component_class`, `cleanup_migration`, `compile`, `delete_orphaned_nodes`, `remove_graph`, `remove_variable`, `remove_scs_component`, `rename_scs_component`, `set_class_defaults`, `add_interface` / `remove_interface` (guarded: `preserve_implementations` and `dry_run` first; use it to clean up stale interface references during migration) / `replace_interface` (guarded move to another interface), `get_info`, `analyze_for_migration`
 - `graph_cmd` `disconnect`, `get_subgraph`
 - `graph_cmd(command="apply_patch", ...)` — the guarded route for the bounded graph operations above
   (preview → apply with the preview token → readback); it is a standalone transaction and is never

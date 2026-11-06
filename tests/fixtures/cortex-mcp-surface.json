@@ -1,7 +1,7 @@
 {
   "provenance": {
-    "plugin_commit": "450d67ec61da2aeee6d3d48bdfe2c42685aed2cc",
-    "plugin_ref": "450d67ec",
+    "plugin_commit": "279109dc36ff0c5388c9ef82ed731e11c45a003c",
+    "plugin_ref": "279109dc",
     "plugin_dirty": false
   },
   "exposed_tools": [
@@ -94,7 +94,9 @@
       "export_bulk_json",
       "export_schema_json",
       "compare_data_json",
-      "apply_import_ops_json"
+      "apply_import_ops_json",
+      "plan_type_replacement",
+      "verify_type_replacement"
     ],
     "graph": [
       "get_authoring_context",
@@ -158,6 +160,7 @@
       "swap_scs_component_class",
       "add_interface",
       "remove_interface",
+      "replace_interface",
       "set_tick_settings",
       "set_replication_settings"
     ],
@@ -342,7 +345,9 @@
       "find_broken_config_paths",
       "export_dependency_graph",
       "find_name_lookups",
-      "find_duplicate_graphs"
+      "find_duplicate_graphs",
+      "find_interface_implementers",
+      "find_type_usages"
     ],
     "statetree": [
       "list_assets",
@@ -653,6 +658,19 @@
         "query_back",
         "report_path",
         "stop_on_error"
+      ],
+      "plan_type_replacement": [
+        "baseline_dir",
+        "member_map",
+        "native_type",
+        "out_path",
+        "user_type",
+        "value_map"
+      ],
+      "verify_type_replacement": [
+        "out_path",
+        "plan_path",
+        "save"
       ]
     },
     "graph": {
@@ -1068,7 +1086,23 @@
       "remove_interface": [
         "asset_path",
         "compile",
-        "interface_path"
+        "dry_run",
+        "expected_fingerprint",
+        "expected_validation_hash",
+        "interface_path",
+        "preserve_implementations"
+      ],
+      "replace_interface": [
+        "asset_path",
+        "compile",
+        "dry_run",
+        "expected_fingerprint",
+        "expected_validation_hash",
+        "function_map",
+        "new_interface",
+        "old_interface",
+        "patch_id",
+        "save"
       ],
       "set_tick_settings": [
         "asset_path",
@@ -1844,7 +1878,8 @@
       "find_overrides": [
         "class_name",
         "depth",
-        "limit"
+        "limit",
+        "path_prefixes"
       ],
       "find_usages": [
         "class_name",
@@ -1888,6 +1923,18 @@
         "out_path",
         "path_prefixes",
         "similarity"
+      ],
+      "find_interface_implementers": [
+        "function",
+        "include_callers",
+        "interface",
+        "out_path",
+        "path_prefixes"
+      ],
+      "find_type_usages": [
+        "out_path",
+        "path_prefixes",
+        "user_type"
       ]
     },
     "statetree": {

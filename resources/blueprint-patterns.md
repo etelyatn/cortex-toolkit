@@ -458,22 +458,39 @@ blueprint_cmd(command="add_interface", params={
     "compile": True
 })
 
-# Remove an interface
+# Remove an interface: preserve_implementations is REQUIRED; preview first
 blueprint_cmd(command="remove_interface", params={
     "asset_path": "/Game/Blueprints/BP_Door",
     "interface_path": "/Game/Interfaces/BPI_Interactable",
-    "compile": True
+    "preserve_implementations": True,   # keep graphs as functions / events as custom events; False deletes them
+    "dry_run": True,
 })
-# Returns: {"interface_name": "BPI_Interactable_C", "removed_graphs": ["ExecuteInteraction", "CanInteract"], ...}
+# Returns: functions[{function, implementation, node_count, disposition, in_asset_callers}], validation_hash, fingerprint_before
+# Apply: the same call with dry_run False, expected_fingerprint (= fingerprint_before) and expected_validation_hash
+
+# Replace one interface with another in one guarded transaction (graphs are adopted, body node GUIDs kept)
+blueprint_cmd(command="replace_interface", params={
+    "asset_path": "/Game/Blueprints/BP_Door",
+    "old_interface": "/Game/Interfaces/BPI_Interactable",
+    "new_interface": "/Script/MyGame.InteractableInterface",
+    "function_map": [{"from": "Interact", "to": "Interact",
+                      "pin_map": [{"entry": "input", "from_pin": "Caller", "to_pin": "Instigator"}]}],
+    "dry_run": True,
+})
+# Apply with dry_run False + expected_fingerprint + expected_validation_hash; refuses while this asset still calls the old
+# interface (run graph.apply_patch retarget_calls first). Implementers and callers of one BPI migrate in ONE reviewed wave:
+# see resources/cpp-migration.md "Interface and user-type replacement".
 ```
 
-**Interface path formats:** Blueprint asset path (`/Game/Interfaces/BPI_X`), C++ short name (`BlendableInterface`), or I-prefixed (`IBlendableInterface`).
+**Interface path formats:** Blueprint asset path (`/Game/Interfaces/BPI_X`), C++ short name (`BlendableInterface`), or I-prefixed (`IBlendableInterface`) for `add_interface`/`remove_interface`; `replace_interface` takes class or asset paths (`/Script/Module.Name` for a native interface).
 
 **Validation:**
 - Adding an already-implemented interface → `InvalidOperation`
 - Removing a non-implemented interface → `InvalidOperation`
 - Non-interface class → `InvalidOperation`
 - Unresolvable class → `ClassNotFound`
+- `remove_interface` without `preserve_implementations` or with a non-boolean → `INVALID_FIELD`; apply without the dry run's `expected_fingerprint`/`expected_validation_hash` → `STALE_PRECONDITION`
+- `replace_interface` refusals (`INVALID_OPERATION`): old interface not implemented, new already implemented, an implemented function missing from `function_map`, incomplete `pin_map`, an in-asset caller of the old interface, a derived Blueprint overriding a mapped function
 
 ### Configure Tick Settings
 ```

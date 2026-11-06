@@ -142,7 +142,7 @@ impact_analysis(
 
 **Class Defaults (CDO):** `get_class_defaults`, `set_class_defaults`, `list_settable_defaults`, `list_inherited_properties`
 
-**Class Settings:** `add_interface`, `remove_interface`, `set_tick_settings`, `set_replication_settings`
+**Class Settings:** `add_interface`, `remove_interface` (guarded: `preserve_implementations` required, `dry_run` first), `replace_interface` (guarded), `set_tick_settings`, `set_replication_settings`
 
 **Graph (logic, via `graph_cmd`):** `list_graphs`, `get_subgraph`, `search_nodes`, `add_node`, `remove_node`, `connect`, `disconnect`, `set_pin_value`, `auto_layout`
 
@@ -497,18 +497,35 @@ blueprint_cmd(command="add_interface", params={
 
 ### Removing an Interface
 
+`preserve_implementations` is required (strict boolean). Run a dry run first, then apply with the keys it returned:
+
 ```python
 blueprint_cmd(command="remove_interface", params={
     "asset_path": "/Game/Blueprints/BP_Door",
     "interface_path": "BPI_Interactable",
+    "preserve_implementations": True,   # True: graphs stay as functions, events become custom events; False: graphs deleted, event bodies orphaned
+    "dry_run": True,
+})
+# Returns: functions[{function, implementation, node_count, disposition, in_asset_callers}], validation_hash, fingerprint_before
+blueprint_cmd(command="remove_interface", params={
+    "asset_path": "/Game/Blueprints/BP_Door",
+    "interface_path": "BPI_Interactable",
+    "preserve_implementations": True,
+    "dry_run": False,
+    "expected_fingerprint": fingerprint_before,
+    "expected_validation_hash": validation_hash,
     "compile": True
 })
-# Returns: asset_path, interface_name, interface_path, compiled, removed_graphs
+# Returns: asset_path, interface_name, interface_path, preserve_implementations, compiled, removed_graphs / preserved_graphs
 ```
+
+To move to another interface instead of removing, use `replace_interface` (see `resources/cpp-migration.md`, "Interface and user-type replacement").
 
 **Validation:**
 - Adding an already-implemented interface returns `InvalidOperation`
 - Removing a non-implemented interface returns `InvalidOperation`
+- A missing or non-boolean `preserve_implementations` returns `INVALID_FIELD`; an apply without the dry run's fingerprint and validation hash returns `STALE_PRECONDITION`
+- A mismatch between the predicted and the live disposition returns `READBACK_MISMATCH` after a verified restore
 - Non-interface classes return `InvalidOperation`
 - Unresolvable class names return `ClassNotFound`
 
