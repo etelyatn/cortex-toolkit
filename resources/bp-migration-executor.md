@@ -90,10 +90,13 @@ request through `graph.apply_patch`, with preview and an approved removable set:
 |---|---|---|
 | Replace a stale inherited implementation entry, preserving the downstream body | `migration.op: "replace_entry"` with `target.implementation` and a complete `pin_map` | Disconnecting the stale entry and deleting the orphan chain by hand. |
 | Move/copy one node set between two graphs of the same asset | `migration.op: "copy_subgraph"` / `"move_subgraph"` with explicit boundary mappings | Re-adding the nodes from the plan and re-wiring by hand. |
-| Remove one entry's uniquely owned execution island | `migration.op: "prune_island"` with the preview's approved removable set | Blanket orphan deletion that also removes shared nodes or links. |
+| Remove one entry's uniquely owned execution island (the entry node itself is retained; this is also the route for the body of a Blueprint `AnimNotify_*` handler once the native handler exists) | `migration.op: "prune_island"` with the preview's approved removable set | Blanket orphan deletion that also removes shared nodes or links. |
 | Move this Blueprint from a BPI to a native interface | `blueprint_cmd` `replace_interface` (or `migration.op: "replace_interface"`): `dry_run` first, then apply with `expected_fingerprint` and `expected_validation_hash` | Removing the BPI and re-adding stubs by hand (loses the body nodes' identity). |
 | Re-point this asset's calls/casts of a BPI function to the new owner | `migration.op: "retarget_calls"`: preview, then apply with the exact `sites` echo | Deleting and re-creating the call nodes, or re-linking pins by hand. |
 | Remove an interface and keep or drop its implementations | `blueprint_cmd` `remove_interface` with explicit `preserve_implementations`, `dry_run` first | Calling it without a preview, or `preserve_implementations: false` without recording the loss. |
+| Move a variable an AnimBP anim node reads to a native `UAnimInstance` member | `blueprint_cmd` `adopt_native_member` (`dry_run` first); proof with `anim_cmd get_animbp_info` `include:["bindings","property_access"]` | `remove_variable` with `remove_referencing_nodes` (it leaves anim bindings and property-access nodes dangling, and is refused with `MEMBER_REFERENCED`), or editing bindings by hand. |
+| Re-point an AnimBP function binding or function slot (`initial_update`, `become_relevant`, `update`) to a native/other function | `anim_cmd` `rebind_function` (`dry_run` default true; rebind while the old function still exists; `expected_fingerprint` from `get_animbp_info`) | Deleting the old function first, or renaming it (the engine rename hook skips the slots). |
+| Replace a Blueprint StateTree task/condition/evaluator/consideration by a native one | `statetree_cmd` `replace_node` (`dry_run` first, then apply; `get_node_bindings` before and after; `get_runtime_state` in PIE) | Changing the node type in the editor/by hand (the node ID changes and every binding is orphaned) or `statetree_compose` removals/re-adds. |
 
 Rules for this branch:
 
@@ -222,7 +225,9 @@ Do NOT write `03-node-mapping.json`. All execution data goes inline.
 ## Tools
 
 - `blueprint_cmd` commands: `reparent`, `adopt_native_member`, `adopt_scs_into_native`, `rename_member`, `swap_scs_component_class`, `cleanup_migration`, `compile`, `delete_orphaned_nodes`, `remove_graph`, `remove_variable`, `remove_scs_component`, `rename_scs_component`, `set_class_defaults`, `add_interface` / `remove_interface` (guarded: `preserve_implementations` and `dry_run` first; use it to clean up stale interface references during migration) / `replace_interface` (guarded move to another interface), `get_info`, `analyze_for_migration`
-- `graph_cmd` `disconnect`, `get_subgraph`
+- `graph_cmd` `disconnect`, `get_subgraph` (nested AnimBP graphs by `graph_guid`/`graph_path`)
+- `anim_cmd` `get_animbp_info` (read), `rebind_function` (guarded; live-capability only)
+- `statetree_cmd` `get_node_bindings` (read), `replace_node` (guarded, UE 5.8+), `get_runtime_state` (read, PIE)
 - `graph_cmd(command="apply_patch", ...)` — the guarded route for the bounded graph operations above
   (preview → apply with the preview token → readback); it is a standalone transaction and is never
   nested in a batch

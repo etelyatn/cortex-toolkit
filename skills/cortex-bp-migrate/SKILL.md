@@ -562,6 +562,10 @@ Call these MCP tools in sequence:
 
 **Type vocabulary:** `type` is one of `Interface`, `FunctionLibrary`, `MacroLibrary`, `AnimBlueprint`, `EditorUtility`, `Widget`, `Component`, `Actor`, `Object`, `Unknown`. `parent_class` is the immediate parent without the `_C` suffix, `native_parent_class` the first native ancestor, `parent_class_path` the object path.
 
+**Animation Blueprints (`type: AnimBlueprint`):** `graph_metrics` skips animation/state-machine graphs and `AnimGraphNode_*` nodes are unsupported for migration confidence, so the generic analysis alone does not describe the anim graphs. Add: `graph_cmd(command="list_graphs", params={"asset_path": "...", "include_subgraphs": true})` (state, transition and conduit graphs with `graph_guid`/`path`; read one with `get_subgraph` by `graph_guid`, or `graph_path` when `graph_guid_unique` is false), and `anim_cmd(command="get_animbp_info", params={"asset_path": "...", "include": ["bindings", "node_functions", "property_access", "lifecycle", "notify_handlers"]})`. Plan the native `UAnimInstance` base from `bindings`/`property_access` (`root_declared_in:"blueprint"`), `node_functions`, `lifecycle` (`native_equivalent`, `non_thread_safe_calls`, `uses_multithreaded_update`) and `notify_handlers`; `unsupported_binding_nodes` or `truncated` means the analysis is incomplete. Migration order: reparent, `adopt_native_member` for variables (retargets anim bindings and property-access nodes), `anim_cmd rebind_function` for functions (dry run first, while the old function exists), then the handler removal through the guarded `graph.apply_patch` migrations. The commands move references and data, never logic; sequence and details: `resources/cpp-migration.md` ("StateTree Task and AnimBP Binding Migration").
+
+**StateTree task/condition Blueprints:** use the `cortex-statetree` skill (`replace_node`, UE 5.8+) after the native node exists; the same resource has the Ripper-derived sequence.
+
 From the results:
 - Compute functional groups and coupling matrix from the `graphs`, `per_graph_elements`, `variables` and `functions` data and the `graph_metrics` entries
 - Classify risk: timelines = HIGH, event dispatchers = MEDIUM, simple events = LOW
@@ -1438,10 +1442,12 @@ this simple migration. Verify runtime behavior matches expectations
 - **Component Blueprints** — migrated to C++ UActorComponent/USceneComponent subclass
 - **FunctionLibrary Blueprints** — migrated to C++ UBlueprintFunctionLibrary with static functions
 - **Interface Blueprints** — migrated to C++ UInterface + IInterface pair
+- **Animation Blueprints** — members, functions and notify handlers migrated to a native `UAnimInstance` base (`adopt_native_member`, `rebind_function`, guarded handler removal); logic is ported by hand using the `get_animbp_info` reports
+- **StateTree task/condition Blueprints** — replaced in the StateTree asset by native nodes with `replace_node` (bindings preserved)
 
 ## References
 
 - Phase guides: `resources/bp-migration-executor.md`, `resources/bp-migration-verifier.md`, `resources/bp-migration-finalizer.md`, `resources/cpp-migration-specialist.md`
-- Patterns: `resources/cpp-migration.md`
+- Patterns: `resources/cpp-migration.md`; StateTree and AnimBP sequence: `resources/cpp-migration.md` ("StateTree Task and AnimBP Binding Migration"), `resources/statetree-development.md`
 - Guarded graph operations (`replace_entry`, `copy_subgraph`, `move_subgraph`, `prune_island`): `resources/typed-blueprint-authoring.md`
 - C++ standards: the consuming project's own coding-standards document when it has one (for example `docs/unreal-coding-standards.md` in that project); otherwise Epic's Unreal coding standard
