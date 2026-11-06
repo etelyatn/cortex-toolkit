@@ -1,7 +1,7 @@
 {
   "provenance": {
-    "plugin_commit": "04ed94e4d657e0edd0a95ba970fdf0584c9a3b81",
-    "plugin_ref": "04ed94e4d657e0edd0a95ba970fdf0584c9a3b81",
+    "plugin_commit": "b9b7a62a17d74adec4a7bbb947f91d7516d66ccd",
+    "plugin_ref": "b9b7a62a17d74adec4a7bbb947f91d7516d66ccd",
     "plugin_dirty": false
   },
   "exposed_tools": [
@@ -363,7 +363,10 @@
       "set_state_properties",
       "add_transition",
       "remove_transition",
-      "set_transition_properties"
+      "set_transition_properties",
+      "get_node_bindings",
+      "replace_node",
+      "get_runtime_state"
     ],
     "replay": [
       "list_recordings",
@@ -384,6 +387,7 @@
       "get_sequence_info",
       "get_skeleton_info",
       "list_assets",
+      "rebind_function",
       "remove_curve",
       "remove_montage_section",
       "remove_named_notify",
@@ -684,20 +688,26 @@
       ],
       "list_graphs": [
         "asset_path",
-        "include_subgraphs"
+        "include_subgraphs",
+        "kind",
+        "parent_graph_guid"
       ],
       "search_nodes": [
         "asset_path",
         "compact",
         "display_name",
         "function_name",
+        "graph_guid",
         "graph_name",
+        "graph_path",
         "node_class",
         "subgraph_path"
       ],
       "trace_exec": [
         "asset_path",
+        "graph_guid",
         "graph_name",
+        "graph_path",
         "include_edges",
         "max_depth",
         "start_node_id",
@@ -706,7 +716,9 @@
       ],
       "trace_dataflow": [
         "asset_path",
+        "graph_guid",
         "graph_name",
+        "graph_path",
         "include_edges",
         "max_depth",
         "start_node_id",
@@ -716,22 +728,30 @@
       "get_subgraph": [
         "asset_path",
         "compact",
+        "graph_guid",
         "graph_name",
+        "graph_path",
         "include_edges",
         "node_id",
         "node_ids",
         "subgraph_path"
       ],
       "list_event_handlers": [
-        "asset_path"
+        "asset_path",
+        "graph_guid",
+        "graph_path"
       ],
       "find_event_handler": [
         "asset_path",
-        "event_name"
+        "event_name",
+        "graph_guid",
+        "graph_path"
       ],
       "find_function_calls": [
         "asset_path",
-        "function_name"
+        "function_name",
+        "graph_guid",
+        "graph_path"
       ],
       "add_node": [
         "asset_path",
@@ -1572,6 +1592,7 @@
       ],
       "focus_node": [
         "asset_path",
+        "graph_guid",
         "graph_name",
         "node_id"
       ],
@@ -2064,6 +2085,32 @@
         "state_id",
         "state_path",
         "transition_id"
+      ],
+      "get_node_bindings": [
+        "asset_path",
+        "direction",
+        "limit",
+        "node_id",
+        "offset",
+        "state_id",
+        "state_path"
+      ],
+      "replace_node": [
+        "acknowledged_losses",
+        "asset_path",
+        "blueprint_class",
+        "compile",
+        "dry_run",
+        "expected_fingerprint",
+        "new_node_class",
+        "new_node_struct",
+        "node_id",
+        "property_map",
+        "save"
+      ],
+      "get_runtime_state": [
+        "actor",
+        "asset_path"
       ]
     },
     "replay": {
@@ -2115,9 +2162,21 @@
       ],
       "get_animbp_info": [
         "asset_path",
+        "binding_limit",
+        "conduit_limit",
+        "include",
         "state_limit",
         "state_machine_limit",
         "transition_limit"
+      ],
+      "rebind_function": [
+        "asset_path",
+        "compile",
+        "dry_run",
+        "expected_fingerprint",
+        "from",
+        "save",
+        "to"
       ],
       "add_named_notify": [
         "asset_path",

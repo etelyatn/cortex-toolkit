@@ -501,19 +501,22 @@ a resolved reflected struct; exact ExecutionSequence and Select are admitted. Ex
 subclasses and graph owners still refuse. Preview, exact approval, fingerprints, validation hash,
 required compile/readback and explicit save remain mandatory; this is not arbitrary node deletion.
 
-`list_graphs` returns user-visible Blueprint graphs. Top-level entries include `kind`
+`list_graphs` returns user-visible Blueprint graphs. Every entry carries `graph_guid`, `path` (root graph name, then
+`/`-joined names; a repeated path gets `~N`) and `graph_guid_unique`. Top-level entries include `kind`
 (`ubergraph`, `function`, `macro`, `delegate`, or `interface_impl`); `interface_impl`
-entries also include `owning_interface`. Delegate graphs are readable but not mutable
+entries also include `owning_interface`, and an `AnimationGraph` root adds `graph_class_kind:"anim_graph"`. Delegate graphs are readable but not mutable
 through generic graph commands.
 
-`list_graphs` accepts `include_subgraphs`; collapsed and macro subgraphs then appear with their `subgraph_path`.
+`list_graphs` accepts `include_subgraphs`: collapsed/macro subgraphs and nested graphs (Animation Blueprint state machine, state, transition rule, custom transition, conduit and blend space graphs) then appear with `kind` (`composite`, `anim_state_machine`, `anim_state`, `anim_transition_rule`, `anim_custom_transition`, `anim_conduit`, `anim_blend_space`, `anim_blend_space_sample`, `nested`), `parent_graph_guid`, `owner_node_guid`, `path` and, for composites, `subgraph_path`. The `kind` and `parent_graph_guid` filters narrow the list and imply `include_subgraphs`. A tree deeper than 8 levels reports `truncated: true` plus `truncated_parent_graph_guids`; never treat a missing nested graph as absent when `truncated` is set.
 
 `search_nodes` filters are all optional: `node_class`, `function_name`, `display_name`, `graph_name`, `subgraph_path`, `compact`. With no filter it returns every node (compact rows) in the selected scope, which is the paged node inventory. `graph_name` restricts to one graph (with `subgraph_path` for a subgraph); without it every graph is searched. `node_class` is case-insensitive and matches the node's class or any superclass name (a leading `U` is optional), so `K2Node` returns every K2 node; a trailing `*` is a prefix match on the runtime class name. Rows are in `results`, paged by the Python `limit` (1–200) and `cursor` mechanism.
 
-`get_subgraph` takes `graph_name`, `subgraph_path`, `node_ids`, `include_edges`. A response over the 40,000-character ceiling is refused instead of shortened: select fewer `node_ids` or pass `include_edges: false`.
+`get_subgraph` takes `graph_name`, `graph_guid`, `graph_path`, `subgraph_path`, `node_ids`, `include_edges`. A response over the 40,000-character ceiling is refused instead of shortened: select fewer `node_ids` or pass `include_edges: false`.
 
-Generic read commands resolve graphs by name: if names collide across categories they resolve the
-first match, so prefer unique names. Authoring does not rely on that resolution — a patch target is a
+**Nested graph addressing.** `get_subgraph`, `search_nodes`, `trace_exec`, `trace_dataflow`, `list_event_handlers`, `find_event_handler` and `find_function_calls` accept `graph_guid` (any graph in the tree, copied from `list_graphs`) or `graph_path` (the exact `path` from `list_graphs`). Scoped searches cover that graph plus the graphs nested below it; node results carry `graph_guid`. Nested graphs are read-only (`get_authoring_context` resolves them with `is_mutable:false`; `apply_patch` still refuses them; `graph.add_node` refuses a `graph_guid`). Errors: unknown `graph_guid` -> `GRAPH_NOT_FOUND`; malformed or `graph_name`/`subgraph_path`/`graph_guid`/`graph_path` that disagree -> `INVALID_FIELD`; a GUID shared by several graphs (copy-pasted Animation Blueprint states) -> `INVALID_FIELD` with `ErrorDetails.colliding_graphs` — re-send with `graph_path`; a `graph_name` that matches only nested graphs -> `GRAPH_NOT_FOUND` with `ErrorDetails.nested_candidates[{graph_guid, graph_path, kind}]`. `search_nodes`, `list_event_handlers`, `find_event_handler`, `find_function_calls` and `blueprint_cmd graph_metrics` report a cut tree as `truncated: true` + `truncated_parent_graph_guids`; `blueprint_cmd search` reports it as `graph_tree_truncated: true` (its `truncated` is the `max_results` cap). `blueprint_cmd search` and `graph_metrics` include nested graphs; `editor.focus_node` accepts `graph_guid`.
+
+Name-addressed generic reads (`graph_name` only) resolve root graphs: if names collide across categories they resolve the
+first match, so prefer `graph_guid`/`graph_path`. Authoring does not rely on that resolution — a patch target is a
 `graph_ref` carrying a canonical `graph_guid` (plus an optional `subgraph_path`) taken from
 `graph.get_authoring_context`.
 
@@ -821,10 +824,10 @@ not a new MCP tool, and does not change literal `set_property` or animation bind
 
 ## Animation (`anim_cmd`)
 
-- **Inspection:** `list_assets`, `get_sequence_info`, `get_montage_info`, `get_skeleton_info`, `get_animbp_info`
+- **Inspection:** `list_assets`, `get_sequence_info`, `get_montage_info`, `get_skeleton_info`, `get_animbp_info` (state machines, states, conduits, transitions with `graph_guid`; opt-in `include`: `bindings`, `node_functions`, `property_access`, `lifecycle`, `notify_handlers`; limits `state_machine_limit`, `state_limit`, `conduit_limit`, `transition_limit`, `binding_limit` default 200 max 1000)
 - **Guarded authoring:** named notifies, float curves, montage sections, skeleton sockets, object notifies, and notify states.
 - Object notify selectors use `{ index, class_path, time }`; notify-state selectors also include `duration`.
-- Every mutation requires `expected_fingerprint`, supports `dry_run`, and defaults `save` to `false`. Only live capabilities advertise authoring families; later-stage animation systems remain unavailable.
+- Every mutation requires `expected_fingerprint`, supports `dry_run`, and defaults `save` to `false`. Only live capabilities advertise authoring families; later-stage animation systems remain unavailable. The one AnimBP mutation is `rebind_function` (see below); `anim_cmd` commands are live-capability only and absent from the fallback metadata.
 
 ---
 
@@ -852,18 +855,23 @@ properties, which `properties_complete` distinguishes from a truncated page.
 ## StateTree (`statetree_cmd`)
 
 - **Assets:** `list_assets`, `create_asset`, `duplicate_asset`, `delete_asset`
-- **Inspection:** `dump_tree`, `get_state`, `check_structure`
+- **Inspection:** `dump_tree`, `get_state`, `check_structure`, `get_node_bindings` (UE 5.8+)
 - **Validation/Compile:** `validate_asset`, `compile`
 - **States:** `add_state`, `remove_state`, `rename_state`, `move_state`, `set_state_properties`
 - **Transitions:** `add_transition`, `remove_transition`, `set_transition_properties`
+- **Node migration:** `replace_node` (UE 5.8+), `get_runtime_state` (PIE)
 
-Mutating commands require `expected_fingerprint` for existing assets. Use `dump_tree` or `check_structure` to get the current fingerprint before mutation. `validate_asset` and `compile` can dirty assets, so do not call them during read-only review.
+Mutating commands require `expected_fingerprint` for existing assets. Use `dump_tree`, `check_structure` or `get_node_bindings` to get the current fingerprint before mutation, and always pass back a fingerprint a StateTree command returned: it now carries `editor_content_hash`, and a token without it is refused with `STALE_PRECONDITION`. `validate_asset` and `compile` can dirty assets, so do not call them during read-only review.
+
+- `get_node_bindings {asset_path, node_id? | state_id?/state_path?, direction? (target|source|both), limit? (default 50, max 200), offset?}`: read-only per-node stored bindings. Per node `node_id`, `slot`, `node_type` (`kind: struct|blueprint_class`, `is_blueprint`), `as_target[]`/`as_source[]`; per binding `binding_index`, `direction`, `implicit_context`, `is_function_binding`, `source`/`target` = `{struct_id, owner, path, resolved, segments[{name, array_index, property_guid}]}`. `property_guid` is null for native types. Returns `whole_tree_binding_count`. `NOT_AVAILABLE` below UE 5.8. The page is native-owned and complete-or-refuse: a page over the 40,000-character MCP budget (a node with many bindings, or `limit` 200 on a large tree) returns `RESPONSE_TOO_LARGE` with `_native_page_omitted:true` and no rows or continuation; re-request with a smaller `limit` (or one `node_id`/`state_path`) and page with `offset`. A Python `cursor` is refused.
+- `replace_node {asset_path, expected_fingerprint, node_id | blueprint_class, new_node_struct | new_node_class, property_map?, acknowledged_losses?, dry_run? (default false), compile? (default true), save? (default false)}`: swaps a Blueprint task/condition/evaluator/consideration for a native one **in place, keeping the editor node ID so every binding survives**. It swaps data and bindings, never logic: the native type must already implement the behavior. Always run `dry_run: true` first and read `property_plan`, `bindings.remapped`, `bindings.unresolved`, `required_acknowledgment`, `blueprint_only_members`. Refusals (nothing changed): `POTENTIAL_DATA_LOSS` (echo `required_acknowledgment` in `acknowledged_losses`), `TYPE_MISMATCH`, `PROPERTY_NOT_FOUND`, `VERIFICATION_FAILED` (a binding would not resolve: never dropped), `INVALID_FIELD`, `NODE_NOT_FOUND`, `STALE_PRECONDITION`, `INVALID_OPERATION` (quarantined asset), `NOT_AVAILABLE` below UE 5.8. A failure after the first edit restores a captured journal, runs one recovery compile and verifies content; the error carries `rollback_status`, `recovery_compile`, `content_restored`, `asset_blocked`. An unverifiable restore quarantines the asset until the editor restarts. Router window 1800 s. An applied result (`dry_run:false`) is never replaced by `RESPONSE_TOO_LARGE`: when it exceeds the MCP budget the outcome (`replaced`, `saved`, `compile_status`, `error_count`, `fingerprint`, `bindings.before_count/after_count`) is kept and oversized plan detail is dropped with counts (`bindings.remapped_count`, `property_plan_count`, ...), `reader_complete:false` and `_outcome_detail_omitted`; read the resulting bindings with `get_node_bindings`.
+- `get_runtime_state {asset_path?, actor?}`: components of the running PIE world (`actor`, `component`, `state_tree`, `is_running`, `run_status`, `active_states`, `active_states_available`); `PIE_NOT_ACTIVE` without PIE. Router window 1800 s.
 
 ### Composite
 
 - `statetree_compose` — create or update one StateTree from declarative states and transitions, with fingerprint threading, update-mode preflight, optional validation, optional compile, optional save, and create-mode cleanup on failure.
 
-Current boundary: StateTree support is structure-level. It does not author arbitrary tasks, conditions, evaluators, parameter bags, or property bindings.
+Current boundary: StateTree support is structure-level plus Blueprint-to-native node replacement. It does not author arbitrary tasks, conditions, evaluators, parameter bags, or property bindings.
 
 ---
 
@@ -871,6 +879,7 @@ Current boundary: StateTree support is structure-level. It does not author arbit
 
 - **Assets:** `list_assets`
 - **Inspection:** `get_sequence_info`, `get_montage_info`, `get_skeleton_info`, `get_animbp_info`
+- **AnimBP function retarget:** `rebind_function`
 - **Named notifies:** `add_named_notify`, `update_named_notify`, `remove_named_notify`
 - **Float curves:** `add_curve`, `set_curve_keys`, `remove_curve`
 - **Montage sections:** `add_montage_section`, `update_montage_section`, `remove_montage_section`
@@ -884,9 +893,14 @@ Every mutating command requires the shared Cortex `expected_fingerprint`, suppor
 advertise that complete family.
 
 Current boundary: Animation authoring covers sequence skeleton named/object notifies, notify
-states, editable float curves, montage sections, and skeleton sockets. AnimBP authoring,
+states, editable float curves, montage sections, and skeleton sockets, plus `rebind_function` for
+AnimBP function references. Other AnimBP authoring,
 blendspaces, retargeting, runtime preview, Sequencer, and Control Rig are out of scope. The anim domain has
 no save command; use a mutation's `save=true` option, or `core.save_asset` where appropriate.
+
+`rebind_function {asset_path, from, to, expected_fingerprint, dry_run? (default true), compile? (default true), save? (default false)}` retargets a Blueprint function to a function the Blueprint or its parents declare, in anim-node function bindings and the three function slots (`initial_update`, `become_relevant`, `update`); K2 call nodes are never touched (`unmodified_references`). Dry run first: `would_retarget[]`, `unmodified_references[]` (`reason:"different_owner"` for a same-named function of another class). Pass `expected_fingerprint` from `get_animbp_info`. Rebind **while the old function still exists**, then retire it with the guarded `blueprint_cmd remove_graph` (`dry_run:true` preview first); `remove_variable` handles variables only. On failure after the first edit the captured journal is restored with one recovery compile (`rollback_status`, `recovery_compile`, `content_restored`); an unverifiable restore returns `VERIFICATION_FAILED` and blocks the asset path until the editor restarts. Variables are not covered: use `blueprint_cmd adopt_native_member`, which retargets anim-node bindings and property-access nodes. Router window 1800 s.
+
+`get_animbp_info` `include` reports (opt-in): `bindings` (flat `bindings[]` with `property_name`, `type`, `path`, `root_declared_in` = `blueprint|native|struct|unresolved`, `resolved`, `is_promotion`; nodes whose storage cannot be read are listed in `unsupported_binding_nodes`), `node_functions` (the three slots with `declared_in`), `property_access` (property-access nodes), `lifecycle` (update hooks with `thread_safe`, `native_equivalent`, `non_thread_safe_calls`, `uses_multithreaded_update`), `notify_handlers` (`AnimNotify_*` handlers with `native_declares`, `native_signature_compatible`, `conflict`; mapping and readiness only: guarded removal of an ordinary editor-created `AnimNotify_*` event entry is currently unavailable, since `retire_entries` refuses non-override events and `prune_island` keeps the entry — open request `docs/requests/graph/2026-11-05-graph-policy-driven-reviewed-removal-node-families.md`). Unknown entries are `INVALID_FIELD`. Read nested graphs with `graph_cmd get_subgraph` and the `graph_guid` printed here.
 
 ---
 
@@ -895,6 +909,7 @@ no save command; use a mutation's `save=true` option, or `core.save_asset` where
 - **PIE lifecycle:** `start_pie`, `stop_pie`, `get_pie_state`, `pause_pie`, `resume_pie`, `restart_pie`
 - **Viewport:** `get_viewport_info`, `capture_screenshot`, `set_viewport_camera`, `focus_actor`, `set_viewport_mode`
 - **Utilities:** `get_editor_state`, `get_recent_logs`, `execute_console_command`, `set_time_dilation`, `get_world_info`
+- **Blueprint editor:** `focus_node(asset_path, node_id, graph_name?, graph_guid?)` opens the Blueprint editor on a node; `graph_guid` (from `graph.list_graphs`, nested graphs included) selects the graph when several share a name.
 - **Turnaround** (deferred; the router widens its receive window; the native server honours a per-command deferred timeout instead of its 30 s default): `live_coding_compile` (no params; patches only when Live Coding is already running, never starts it; blocks the editor until the patch is built, so transport timeouts must cover the compile — native bound 1800 s, router window 1830 s; new reflected types need a full build), `wait_ready` (`reopen_assets` array — a map path is refused and reported under `failed`; `timeout` seconds >0 and <=3600, default 120, the transport waits it plus a grace; conditions are Asset Registry loaded and no asset compilation pending — Blueprint compiles are synchronous and not observable; returns `ready`, `waited_seconds`, `opened`, `failed`, or `TIMEOUT`)
 - **Input injection** (requires active PIE): `inject_key`, `inject_mouse`, `inject_input_action`, `inject_input_continuous`, `inject_input_sequence`
 

@@ -1,6 +1,6 @@
 ---
 name: cortex-statetree
-description: Use when creating, updating, reviewing, validating, compiling, or inspecting Unreal StateTree assets through UnrealCortex
+description: Use when creating, updating, reviewing, validating, compiling, inspecting, or migrating Blueprint nodes of Unreal StateTree assets through UnrealCortex
 ---
 
 # cortex-statetree
@@ -23,6 +23,10 @@ Determine mode from user intent:
   Examples: "validate this StateTree", "run validation fixups", "compile ST_Guard"
   → Follow the `resources/statetree-development.md` guide.
 
+- **Node migration**: User wants to replace Blueprint StateTree tasks/conditions with native ones while keeping their bindings
+  Examples: "replace STT_Wait with the native task", "migrate the Blueprint conditions in ST_Tutorial to C++", "show the bindings of this task"
+  → Follow the "Node Migration Pipeline" in `resources/statetree-development.md` (UE 5.8+; the native type must already exist in C++).
+
 - **Ambiguous** → Default to Review (read-only, safe)
 
 ## Routing
@@ -32,6 +36,7 @@ Determine mode from user intent:
 | Create/Modify | `statetree-development` |
 | Review/Analyze | `statetree-development` |
 | Validate/Compile | `statetree-development` |
+| Node migration | `statetree-development` ("Node Migration Pipeline"), `cpp-migration` ("StateTree Task and AnimBP Binding Migration") |
 
 ## Steps
 
@@ -65,7 +70,7 @@ PROHIBITED:
 - Do not edit `.uasset` files directly.
 - Do not write Unreal Python scripts as a workaround for StateTree mutation.
 - Do not create GameplayTags implicitly. Invalid tags must be reported.
-- Do not claim node/task/condition/binding authoring support. The shipped slice is structure-level only.
+- Do not claim node/task/condition/binding authoring support beyond `replace_node` (a Blueprint-to-native swap that keeps node IDs and bindings but never ports logic). Everything else is structure-level only.
 ```
 
 **For Review/Analyze**, pass the review scope and keep it read-only:
@@ -78,8 +83,8 @@ Review the following StateTree(s):
 **Prefetched state:** [embed the main-thread prefetched_state block here before proceeding]
 
 READ-ONLY MODE:
-Permitted tools: statetree_cmd(list_assets), statetree_cmd(dump_tree), statetree_cmd(get_state), statetree_cmd(check_structure), get_dependencies, get_referencers.
-Do not call validate_asset, compile, add_state, remove_state, rename_state, move_state, set_state_properties, add_transition, remove_transition, set_transition_properties, create_asset, duplicate_asset, or delete_asset.
+Permitted tools: statetree_cmd(list_assets), statetree_cmd(dump_tree), statetree_cmd(get_state), statetree_cmd(check_structure), statetree_cmd(get_node_bindings), statetree_cmd(get_runtime_state), get_dependencies, get_referencers.
+Do not call validate_asset, compile, add_state, remove_state, rename_state, move_state, set_state_properties, add_transition, remove_transition, set_transition_properties, replace_node, create_asset, duplicate_asset, or delete_asset.
 
 WORKFLOW:
 1. Read `.cortex/domains/statetree.md` if present, then read `cortex-toolkit/resources/statetree-patterns.md`
@@ -106,6 +111,29 @@ MUTATING MODE:
 3. Pass `expected_fingerprint` on every mutating call.
 4. Run only the requested `validate_asset` and/or `compile` operations.
 5. Report structured diagnostics and the latest returned fingerprint.
+```
+
+**For Node migration**, pass the unit explicitly:
+
+```text
+Replace Blueprint StateTree node(s) by native ones:
+
+**StateTree:** [asset path]
+**Blueprint class or node_id:** [class path (every node of the class) or one editor node ID]
+**Native type:** [new_node_struct path, or new_node_class path (wrapper kept); must already be built]
+**property_map:** [OldName -> NewName, or none]
+**Expected fingerprint:** [fingerprint a StateTree command just returned (it carries editor_content_hash)]
+**Save:** [false until PIE verification]
+
+MUTATING MODE:
+1. Read `resources/statetree-development.md` ("Node Migration Pipeline") and `.cortex/domains/statetree.md` if present.
+2. `get_node_bindings` for the nodes; record node_ids, bindings, `whole_tree_binding_count`.
+3. `replace_node` with `dry_run:true`; read `property_plan`, `bindings.remapped`, `bindings.unresolved`, `required_acknowledgment`. Stop on any unresolved binding.
+4. Acknowledge data loss (`acknowledged_losses`) only with the user's approval; then apply with `compile:true`.
+5. Run `compile`, re-read `get_node_bindings` (counts equal), verify in PIE with `get_runtime_state` and the `LogStateTree` log, then save.
+6. On `rollback_status` other than `restored` (asset quarantined) stop and report; do not retry.
+
+PROHIBITED: changing node types by hand, claiming the Blueprint logic was ported, using `replace_node` on UE < 5.8 (`NOT_AVAILABLE`).
 ```
 
 ### 2. Reporting Results

@@ -134,9 +134,9 @@ statetree_compose(
 
 ## Fingerprints
 
-Use the fingerprint returned by `dump_tree`, `check_structure`, `validate_asset`, `compile`, or any mutation. Pass it back as `expected_fingerprint` before every later mutation.
+Use the fingerprint returned by `dump_tree`, `check_structure`, `get_node_bindings`, `validate_asset`, `compile`, or any mutation. Pass it back as `expected_fingerprint` before every later mutation. StateTree fingerprints include `editor_content_hash`; a token without it (hand-built or from another domain) is refused with `STALE_PRECONDITION`, and a nested edit moves the hash.
 
-For runtime mutations, `expected_fingerprint` is required on `validate_asset`, `compile`, all state mutation commands, and all transition mutation commands. For `delete_asset`, it is required whenever `dry_run` is false.
+For runtime mutations, `expected_fingerprint` is required on `validate_asset`, `compile`, all state mutation commands, all transition mutation commands, and `replace_node`. For `delete_asset`, it is required whenever `dry_run` is false.
 
 If a fingerprint mismatch occurs, re-read with `dump_tree`, compare the changed structure, and retry only after reconciling the user-visible difference.
 
@@ -151,13 +151,35 @@ Read-only review permits:
 - `get_dependencies`
 - `get_referencers`
 
-Do not call `validate_asset` or `compile` during read-only review. Both can dirty assets.
+Do not call `validate_asset` or `compile` during read-only review. Both can dirty assets. `get_node_bindings` and `get_runtime_state` are read-only and safe to use in review.
+
+## Node Binding Inspection And Replacement
+
+`get_node_bindings {asset_path, node_id | state_id | state_path, direction, limit, offset}` is the read-only per-node view of stored bindings (UE 5.8+). With no selector it pages every node that has a binding (default 50 nodes, max 200; `has_more`, `whole_tree_binding_count`). A binding side is `{struct_id, owner:{kind, name, state_path}, path, resolved, segments[{name, display_name, array_index, property_guid}]}`; `owner.kind` is `node`, `state_parameters`, `root_parameters`, `context`, `property_function` or `unknown`. An unbound `Context` property the compiler binds implicitly is listed with `implicit_context:true` and no stored binding. A null `property_guid` marks a native segment: after a Blueprint-to-native swap every first segment turns null.
+
+Replacement pattern (one Blueprint class used by several nodes):
+
+```python
+statetree_cmd(command="replace_node", params={
+    "asset_path": "/Game/AI/ST_Tutorial",
+    "blueprint_class": "/Game/AI/Tasks/STT_Wait.STT_Wait_C",
+    "new_node_struct": "/Script/MyGame.MyWaitStateTreeTask",
+    "property_map": {"Duration": "WaitSeconds"},
+    "expected_fingerprint": fingerprint,
+    "dry_run": True,
+})
+# review property_plan / bindings.remapped / bindings.unresolved / required_acknowledgment, then repeat with dry_run False
+```
+
+Rules: the native type must implement the logic first (data and bindings move, never logic); `blueprint_class` replaces every node of that class in one transaction with one compile; a native Blueprint-base class (`new_node_class`) keeps the wrapper instead of switching to a struct; a node that is already native is refused (`INVALID_FIELD`). Condition nodes can only bind from tree parameters or evaluators, never from a task's instance data, so a native condition fixture needs one of those as its source. After applying, `compile`, re-read `get_node_bindings` and check PIE with `get_runtime_state`. Below UE 5.8 both inspection and replacement return `NOT_AVAILABLE`; do not emulate them with `dump_tree` and manual edits.
 
 ## Current Boundary
 
 Supported:
 
 - StateTree asset CRUD and opt-in stored editor instance/parameter/binding inspection
+- Per-node binding report (`get_node_bindings`) and Blueprint-to-native node replacement (`replace_node`), UE 5.8+
+- Running-component report in PIE (`get_runtime_state`)
 - State hierarchy and paths
 - State tags and whitelisted state properties
 - Simple transitions
@@ -166,7 +188,8 @@ Supported:
 
 Not supported:
 
-- Task, condition, evaluator, or global task authoring
+- Authoring new task, condition, evaluator, or global task nodes
 - Parameter bag editing
-- Property binding editing
+- General property binding editing (only the identity-preserving remap inside `replace_node`)
+- Porting Blueprint node logic into native code
 - Arbitrary node instance property mutation
