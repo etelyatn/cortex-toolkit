@@ -32,7 +32,7 @@ or idempotent cancellation.
 ## Run states
 
 `Preparing -> Replaying -> Finalizing`, with terminal results `Completed`, `Cancelled`, `Interrupted`
-or `Error`. A 3-second hands-off countdown runs inside `Preparing` (after target readiness, before pose restore and playback); it counts against the 30 s preparation deadline but not against the frame clock or `authorized_wait_seconds`. While a run is active, `get_run` reports `phase` (`countdown` or `playback`) and, during the countdown only, `countdown_remaining_seconds`; terminal records carry neither. Readiness waiting is a `Replaying` substate (reported in `waiting`), not a second
+or `Error`. A 3-second hands-off countdown runs inside `Preparing` (after target readiness, before pose restore and playback); a target that became ready within the 30 s preparation deadline always gets its full countdown, and it does not count against the frame clock or `authorized_wait_seconds`. While a run is active, `get_run` reports `phase` (`countdown` or `playback`; absent before the target is ready and while Finalizing) and, during the countdown only, `countdown_remaining_seconds`; terminal records carry neither. Readiness waiting is a `Replaying` substate (reported in `waiting`), not a second
 operation. One operation owns the selected target at a time; a competing start returns `EDITOR_BUSY`.
 
 `Completed` means the validated input sequence finished dispatching without an execution
@@ -41,7 +41,7 @@ assertion count. `Error` is returned inside a successful status query (`get_run`
 `execution_error`; a missing/unauthorized/invalid run is a normal command error instead.
 `execution_error` (`code`, `message`, optional `details`) is required for `Error`, is present for
 `Cancelled` and `Interrupted` whenever the run has a cause (`PERMISSION_DENIED` after revocation,
-`TARGET_UNAVAILABLE`, `REPLAY_INTERRUPTED_BY_INPUT`, `INVALID_OPERATION` (focus loss or target loss), focus loss or the PIE ending), and is `null` for `Completed`.
+`TARGET_UNAVAILABLE`, `REPLAY_INTERRUPTED_BY_INPUT`, or `INVALID_OPERATION` for focus or target loss), and is `null` for `Completed`.
 
 `cancel_replay` does not wait for teardown. Its response is `Finalizing` while the owned PIE is still
 ending (that end is a deferred engine request) or the terminal state if it already finished; a
