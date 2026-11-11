@@ -16,7 +16,7 @@ identical in native parsing, the MCP boundary and live capabilities.
 |---|---|---|
 | `list_recordings` | `after_recording_id` (optional, positive int32), `page_size` (optional, 1..100, default 20) | Live eligible recording page, ascending ID; each row carries map, prerequisites and guard-coverage summary (**no start pose** — read `get_recording.initial_state`); `has_more`, `next_after_recording_id`, `editor_instance_id`, `active_ai_run` and `recent_ai_runs` |
 | `get_recording` | `recording_id` (required, positive int32) | Eligible recording metadata, `initial_state` (recorded pawn transform, control rotation and viewport state), `prerequisites` (`local_player_index`, `viewport_size`, `dpi_scale`, `player_input_class`, `input_config_sha256`) and `guard_coverage` counts; no input rows or arbitrary file access. Correlate a run with its recording through `recording_snapshot_sha256` |
-| `start_replay` | `recording_id` (required, positive int32) | Synchronous acceptance: `run_id`, `recording_id`, `editor_instance_id`, `state: "Preparing"` |
+| `start_replay` | `recording_id` (required, positive int32) | Synchronous acceptance: `run_id`, `recording_id`, `editor_instance_id`, `state: "Preparing"`, `countdown_seconds` (3). Playback begins only after that hands-off countdown |
 | `get_run` | `run_id` (required, canonical lower-case UUID) | Live AI run state or retained terminal result with progress, `behind_seconds`, wait substate and error details |
 | `cancel_replay` | `run_id` (required, canonical lower-case UUID) | Requests cancellation of that AI-originated run; returns its state right after the request — `Finalizing` or the terminal state. Poll `get_run` until terminal |
 
@@ -32,7 +32,7 @@ or idempotent cancellation.
 ## Run states
 
 `Preparing -> Replaying -> Finalizing`, with terminal results `Completed`, `Cancelled`, `Interrupted`
-or `Error`. Readiness waiting is a `Replaying` substate (reported in `waiting`), not a second
+or `Error`. A 3-second hands-off countdown runs inside `Preparing` (after target readiness, before pose restore and playback); it counts against the 30 s preparation deadline but not against the frame clock or `authorized_wait_seconds`. While a run is active, `get_run` reports `phase` (`countdown` or `playback`) and, during the countdown only, `countdown_remaining_seconds`; terminal records carry neither. Readiness waiting is a `Replaying` substate (reported in `waiting`), not a second
 operation. One operation owns the selected target at a time; a competing start returns `EDITOR_BUSY`.
 
 `Completed` means the validated input sequence finished dispatching without an execution
@@ -41,7 +41,7 @@ assertion count. `Error` is returned inside a successful status query (`get_run`
 `execution_error`; a missing/unauthorized/invalid run is a normal command error instead.
 `execution_error` (`code`, `message`, optional `details`) is required for `Error`, is present for
 `Cancelled` and `Interrupted` whenever the run has a cause (`PERMISSION_DENIED` after revocation,
-`TARGET_UNAVAILABLE`, interference, focus loss or the PIE ending), and is `null` for `Completed`.
+`TARGET_UNAVAILABLE`, `REPLAY_INTERRUPTED_BY_INPUT`, focus loss or the PIE ending), and is `null` for `Completed`.
 
 `cancel_replay` does not wait for teardown. Its response is `Finalizing` while the owned PIE is still
 ending (that end is a deferred engine request) or the terminal state if it already finished; a
@@ -220,6 +220,9 @@ where noted). Report the code and message, take the action below, and never retr
 | `PERMISSION_DENIED` | Terminal `Error` when revoked before the epoch; `Cancelled` when revoked mid-run | The human withdrew AI permission, or the recording's metadata can no longer be read (for example it was deleted) | Stop; do not retry until the human re-enables the recording |
 | `RECORDING_NOT_FOUND` | Start refusal only | No recording with that ID exists (an unloadable recording reports its own load error). A recording deleted after start surfaces as `PERMISSION_DENIED` | Run `list_recordings` again |
 | `TARGET_UNAVAILABLE` | Terminal `Error` during preparation; `Interrupted` during replay | The owned PIE session, viewport or player was lost | Ask the human not to close PIE during a run, then start a new run |
+| `REPLAY_INTERRUPTED_BY_INPUT` | Terminal `Interrupted` | Someone used the mouse or keyboard (foreign input), the game window lost focus, or the target was lost while the run was active. `execution_error.message` is a fixed title such as `Replay stopped: you moved the mouse`. `details` carry `cause` (`foreign_input` with `input_kind`, `input` and, for press/release inputs, `edge`; `focus_lost`; or `target_lost`), `reason`, `stopped_at_frame`, `frame_count` and `stopped_at_seconds` | Report where it stopped. Retry once nobody is using the PC; do not loop. The editor also shows the human a toast with a Replay again button |
+
+A lost target can also be reported as `INVALID_OPERATION` with `details.cause: target_lost`; treat it like `TARGET_UNAVAILABLE`.
 
 ## AI authorization and revocation
 
