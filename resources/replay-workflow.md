@@ -251,14 +251,19 @@ converted or auto-imported.
   recordings/<id>/
     metadata.json               # identity, permission, map, prerequisites, hashes
     initial_state.json          # immutable player transform, view rotation and viewport mouse-capture/high-precision state
-    inputs.jsonl                # immutable ordered events and automatic guards
-    frames.jsonl                # immutable frame stream (format 3): one row per engine frame that consumed
-                                #   input after the capture epoch: frame_index, app_delta_seconds,
-                                #   world_tick {real_delta_seconds, paused} | null, first_sequence, event_count
+    inputs.jsonl.gz             # immutable ordered events and automatic guards (gzip of compact JSON Lines)
+    frames.jsonl.gz             # immutable frame stream: one row per engine frame that consumed input after
+                                #   the capture epoch (gzip of compact JSON Lines; row index = frame index)
 <Project>/Saved/CortexReplay/
   Runs/                         # local per-run execution results and diagnostics
   Temp/                         # uncommitted capture/write scratch
 ```
+
+Recordings are format 4: default-omitting rows in single-member gzip streams, at most 256 MiB per stream
+(`LIMIT_EXCEEDED` on publish, `INVALID_RECORDING` on load). Format 1-3 recordings are refused
+`UNSUPPORTED_RECORDING_FORMAT` and must be re-recorded. Payload hashes are checked before decompression
+and parsing, so a hand-edited stream is `INVALID_RECORDING`. Full contract:
+`docs/systems/cortex-replay.md` in the UnrealCortex plugin project.
 
 Recording files under `.cortex/replay/` are intended for Git tracking in the project (not the plugin
 submodule); local runs, temp state and logs stay under `Saved/`. Replaying on another machine creates
