@@ -262,7 +262,8 @@ converted or auto-imported.
 Recordings are format 4: default-omitting rows in single-member gzip streams, at most 256 MiB per stream
 (`LIMIT_EXCEEDED` on publish, `INVALID_RECORDING` on load). Format 1-3 recordings are refused
 `UNSUPPORTED_RECORDING_FORMAT` and must be re-recorded. Payload hashes are checked before decompression
-and parsing, so a hand-edited stream is `INVALID_RECORDING`. Full contract:
+and parsing: a stream edited without updating its metadata hash is `INVALID_RECORDING`; with a matching hash it reaches row
+validation (malformed row: `UNSUPPORTED_RECORDING_FORMAT`; a valid edit loads). Full contract:
 `docs/systems/cortex-replay.md` in the UnrealCortex plugin project.
 
 Recording files under `.cortex/replay/` are intended for Git tracking in the project (not the plugin
