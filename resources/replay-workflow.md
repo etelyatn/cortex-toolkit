@@ -41,7 +41,7 @@ assertion count. `Error` is returned inside a successful status query (`get_run`
 `execution_error`; a missing/unauthorized/invalid run is a normal command error instead.
 `execution_error` (`code`, `message`, optional `details`) is required for `Error`, is present for
 `Cancelled` and `Interrupted` whenever the run has a cause (`PERMISSION_DENIED` after revocation,
-`TARGET_UNAVAILABLE`, `REPLAY_INTERRUPTED_BY_INPUT`, focus loss or the PIE ending), and is `null` for `Completed`.
+`TARGET_UNAVAILABLE`, `REPLAY_INTERRUPTED_BY_INPUT`, `INVALID_OPERATION` (focus loss or target loss), focus loss or the PIE ending), and is `null` for `Completed`.
 
 `cancel_replay` does not wait for teardown. Its response is `Finalizing` while the owned PIE is still
 ending (that end is a deferred engine request) or the terminal state if it already finished; a
@@ -220,9 +220,9 @@ where noted). Report the code and message, take the action below, and never retr
 | `PERMISSION_DENIED` | Terminal `Error` when revoked before the epoch; `Cancelled` when revoked mid-run | The human withdrew AI permission, or the recording's metadata can no longer be read (for example it was deleted) | Stop; do not retry until the human re-enables the recording |
 | `RECORDING_NOT_FOUND` | Start refusal only | No recording with that ID exists (an unloadable recording reports its own load error). A recording deleted after start surfaces as `PERMISSION_DENIED` | Run `list_recordings` again |
 | `TARGET_UNAVAILABLE` | Terminal `Error` during preparation; `Interrupted` during replay | The owned PIE session, viewport or player was lost | Ask the human not to close PIE during a run, then start a new run |
-| `REPLAY_INTERRUPTED_BY_INPUT` | Terminal `Interrupted` | Someone used the mouse or keyboard (foreign input), the game window lost focus, or the target was lost while the run was active. `execution_error.message` is a fixed title such as `Replay stopped: you moved the mouse`. `details` carry `cause` (`foreign_input` with `input_kind`, `input` and, for press/release inputs, `edge`; `focus_lost`; or `target_lost`), `reason`, `stopped_at_frame`, `frame_count` and `stopped_at_seconds` | Report where it stopped. Retry once nobody is using the PC; do not loop. The editor also shows the human a toast with a Replay again button |
+| `REPLAY_INTERRUPTED_BY_INPUT` | Terminal `Interrupted` | Someone used the mouse or keyboard (foreign input) while the run was active. `execution_error.message` is a fixed title such as `Replay stopped: you moved the mouse`. `details` carry `cause: foreign_input`, `input_kind`, `input`, `edge` (press/release inputs only), `reason`, `stopped_at_frame`, `frame_count` and `stopped_at_seconds` | Report where it stopped. Retry once nobody is using the PC; do not loop. The editor also shows the human a toast with a Replay again button |
 
-A lost target can also be reported as `INVALID_OPERATION` with `details.cause: target_lost`; treat it like `TARGET_UNAVAILABLE`.
+Focus loss and target loss do not use that code. They end the run `Interrupted` with the same fixed-title message and the same stop details (`reason`, `stopped_at_frame`, `frame_count`, `stopped_at_seconds`) under their own code: `INVALID_OPERATION` with `details.cause: focus_lost` (the game window lost focus; retry once nobody is using the PC and the game window keeps focus) or `INVALID_OPERATION` with `details.cause: target_lost` (treat it like `TARGET_UNAVAILABLE`).
 
 ## AI authorization and revocation
 
