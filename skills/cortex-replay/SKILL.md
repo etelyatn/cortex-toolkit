@@ -71,6 +71,10 @@ If a request mixes starting and checking, run the phases in order. Never start a
   through recorded input or be re-recorded from a reproducible environment.
 - Physical input requires a rendered, correctly focused PIE surface. This release does not promise
   unfocused, hidden-window or NullRHI replay, and the CortexReplay window need not be open.
+- Unless the recording's `countdown_enabled` is false, every run waits a 3-second hands-off
+  countdown after the target is ready (`start_replay` returns `countdown_seconds`; `get_run` reports
+  `phase: "countdown"` with `countdown_remaining_seconds`, then `phase: "playback"`). The human sees
+  a countdown on the game view and a "Replaying…" banner; do not treat the countdown as a stall.
 - Replay is frame-locked: each recorded frame is one engine frame with one world tick at its recorded
   delta, and the editor uses fixed application stepping during an owned replay (restored at every
   terminal path). There are no wall-clock deadlines. Admission refuses with
@@ -118,7 +122,9 @@ editor? It is Run Mode plus a verdict built only from fields the run reports.
 2. An `Error` state is still a successful status query. Read `execution_error.code`,
    `execution_error.message` and `execution_error.details`. A `Cancelled` or `Interrupted` run also
    carries `execution_error` whenever it has a cause (`PERMISSION_DENIED` after revocation,
-   `TARGET_UNAVAILABLE`, interference, focus loss or the PIE ending); `Completed` has none. Guard
+   `TARGET_UNAVAILABLE`, `REPLAY_INTERRUPTED_BY_INPUT` for someone using the mouse or keyboard,
+   `INVALID_OPERATION` for focus loss, target loss or a replaced pawn/controller); `Completed` has
+   none. Its `message` is a fixed human title such as `Replay stopped: you moved the mouse`. Guard
    details are per-code, not a uniform envelope:
    `REPLAY_POSE_GUARD_FAILED` carries `position_delta_cm`, `pawn_rotation_delta_degrees`,
    `control_rotation_delta_degrees` and `max_scale_delta`; `REPLAY_UI_GUARD_FAILED` carries `reason`,
