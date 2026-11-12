@@ -32,7 +32,7 @@ or idempotent cancellation.
 ## Run states
 
 `Preparing -> Replaying -> Finalizing`, with terminal results `Completed`, `Cancelled`, `Interrupted`
-or `Error`. A 3-second hands-off countdown runs inside `Preparing` (after target readiness, before pose restore and playback); a target that became ready within the 30 s preparation deadline always gets its full countdown, and it does not count against the frame clock or `authorized_wait_seconds`. While a run is active, `get_run` reports `phase` (`countdown` or `playback`; absent before the target is ready and while Finalizing) and, during the countdown only, `countdown_remaining_seconds`; terminal records carry neither. Readiness waiting is a `Replaying` substate (reported in `waiting`), not a second
+or `Error`. Unless the recording's `countdown_enabled` is false (then `start_replay` returns `countdown_seconds: 0` and playback follows readiness directly), a 3-second hands-off countdown runs inside `Preparing` (after target readiness, before pose restore and playback); a target that became ready within the 30 s preparation deadline always gets its full countdown, and it does not count against the frame clock or `authorized_wait_seconds`. While a run is active, `get_run` reports `phase` (`countdown` or `playback`; absent before the target is ready and while Finalizing) and, during the countdown only, `countdown_remaining_seconds`; terminal records carry neither. Readiness waiting is a `Replaying` substate (reported in `waiting`), not a second
 operation. One operation owns the selected target at a time; a competing start returns `EDITOR_BUSY`.
 
 `Completed` means the validated input sequence finished dispatching without an execution
