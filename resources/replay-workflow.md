@@ -16,7 +16,7 @@ identical in native parsing, the MCP boundary and live capabilities.
 |---|---|---|
 | `list_recordings` | `after_recording_id` (optional, positive int32), `page_size` (optional, 1..100, default 20) | Live eligible recording page, ascending ID; each row carries map, prerequisites and guard-coverage summary (**no start pose** — read `get_recording.initial_state`); `has_more`, `next_after_recording_id`, `editor_instance_id`, `active_ai_run` and `recent_ai_runs` |
 | `get_recording` | `recording_id` (required, positive int32) | Eligible recording metadata, `initial_state` (recorded pawn transform, control rotation and viewport state), `prerequisites` (`local_player_index`, `viewport_size`, `dpi_scale`, `player_input_class`, `input_config_sha256`) and `guard_coverage` counts; no input rows or arbitrary file access. Correlate a run with its recording through `recording_snapshot_sha256` |
-| `start_replay` | `recording_id` (required, positive int32) | Synchronous acceptance: `run_id`, `recording_id`, `editor_instance_id`, `state: "Preparing"`, `countdown_seconds` (3). Playback begins only after that hands-off countdown |
+| `start_replay` | `recording_id` (required, positive int32) | Synchronous acceptance: `run_id`, `recording_id`, `editor_instance_id`, `state: "Preparing"`, `countdown_seconds` (3, or 0 when the recording's human-owned `countdown_enabled` is false). Playback begins only after that hands-off countdown; with `countdown_seconds` 0 the run goes straight to playback and never reports `phase: "countdown"` |
 | `get_run` | `run_id` (required, canonical lower-case UUID) | Live AI run state or retained terminal result with progress, `behind_seconds`, wait substate and error details |
 | `cancel_replay` | `run_id` (required, canonical lower-case UUID) | Requests cancellation of that AI-originated run; returns its state right after the request — `Finalizing` or the terminal state. Poll `get_run` until terminal |
 
@@ -228,6 +228,8 @@ Focus loss and target loss do not use that code. They end the run `Interrupted` 
 
 - `ai_enabled` lives in tracked recording metadata and travels with the recording. New and incomplete
   recordings are never enabled by default; only the human Edit popup's Save changes it.
+- `countdown_enabled` (default true; recording rows in `list_recordings` / `get_recording` show it) is also
+  human-owned: only the Edit popup changes it, and there is no AI-writable switch.
 - AI discovery omits non-enabled recordings, and explicit ID lookup or playback of a non-enabled
   record is denied even when the caller guesses a valid ID.
 - Revoking permission while an AI run is active cancels only that still-active AI run and releases its
