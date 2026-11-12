@@ -123,7 +123,8 @@ editor? It is Run Mode plus a verdict built only from fields the run reports.
    `execution_error.message` and `execution_error.details`. A `Cancelled` or `Interrupted` run also
    carries `execution_error` whenever it has a cause (`PERMISSION_DENIED` after revocation,
    `TARGET_UNAVAILABLE`, `REPLAY_INTERRUPTED_BY_INPUT` for someone using the mouse or keyboard,
-   `INVALID_OPERATION` for focus loss, target loss or a replaced pawn/controller); `Completed` has
+   `INVALID_OPERATION` for focus loss, target loss, a destroyed player (`cause: player_lost`) or a
+   replaced pawn/controller); `Completed` has
    none. Its `message` is a fixed human title such as `Replay stopped: you moved the mouse`. Guard
    details are per-code, not a uniform envelope:
    `REPLAY_POSE_GUARD_FAILED` carries `position_delta_cm`, `pawn_rotation_delta_degrees`,
