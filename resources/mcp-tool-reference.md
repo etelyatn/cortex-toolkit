@@ -207,6 +207,11 @@ Manage asset lifecycle. All commands accept a single path, a list of paths, or g
 - `reload_asset` — discard in-memory changes and reload from disk; closes open tabs before reloading (`asset_path`, `dry_run`)
 - `list_redirectors` — read-only inventory of the redirectors under a content folder (`path`, `recursive` default `true`): `redirector_path`, `destination`, `referencer_count`, `referencers`; fixes up, deletes and saves nothing
 
+Deletion takes one path (not a list or glob) and is permanent; it cannot be undone:
+
+- `delete_asset` — delete one asset in memory, then its package file (`asset_path`, `force`). Refuses non-writable content mounts (`INVALID_FIELD`) and, without `force`, any asset other packages reference (`HAS_REFERENCES`; `details.referencers` lists them). With `force`, loaded references become null. When the editor refuses the delete, the asset and its file stay and the error is `SERIALIZATION_ERROR`.
+- `delete_folder` — delete every asset in a folder in one batch (`folder_path`, `recursive` default `true`, `force`). Refuses non-writable mounts and bare content roots such as `/Game`. Without `force`, a reference from outside the folder refuses the whole call; references between the folder's own assets never block. Per-asset failures are listed in `failed`.
+
 ### Standalone
 
 - `schema_generate` — generate LLM-readable `.cortex/schema/` files from live editor data (requires running editor) *(top-level MCP tool, not routed through core_cmd)*
@@ -560,6 +565,7 @@ See `blueprint-patterns.md` for node class short names and full node type table.
 - **Parameters:** `list_parameters`, `get_parameter`, `set_parameter`, `set_parameters`, `reset_parameter`
 - **Graph:** `list_nodes`, `get_node`, `add_node`, `remove_node`, `list_connections`, `connect`, `disconnect`, `auto_layout`, `set_node_property`, `get_node_pins`
 - **Collections:** `list_collections`, `get_collection`, `create_collection`, `delete_collection`, `add_collection_parameter`, `remove_collection_parameter`, `set_collection_parameter`
+  `delete_collection` deletes the collection and its package file; it refuses non-writable mounts and, without `force`, a collection other packages reference (`HAS_REFERENCES`).
 - **Dynamic Instances (PIE):** `list_dynamic_instances`, `get_dynamic_instance`, `create_dynamic_instance`, `destroy_dynamic_instance`, `set_dynamic_parameter`, `get_dynamic_parameter`, `list_dynamic_parameters`, `set_dynamic_parameters`, `reset_dynamic_parameter`
 
 `get_node` accepts an optional `properties` selector (array of non-empty property names). Omitted/empty

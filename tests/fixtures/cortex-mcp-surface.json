@@ -1,7 +1,7 @@
 {
   "provenance": {
-    "plugin_commit": "b9b7a62a17d74adec4a7bbb947f91d7516d66ccd",
-    "plugin_ref": "b9b7a62a17d74adec4a7bbb947f91d7516d66ccd",
+    "plugin_commit": "dc30b8113a62e1bfc1abb1beaf4b559c92cf16e7",
+    "plugin_ref": "dc30b8113a62e1bfc1abb1beaf4b559c92cf16e7",
     "plugin_dirty": false
   },
   "exposed_tools": [
@@ -448,10 +448,12 @@
         "paths"
       ],
       "delete_asset": [
-        "asset_path"
+        "asset_path",
+        "force"
       ],
       "delete_folder": [
         "folder_path",
+        "force",
         "recursive"
       ],
       "shutdown": [
@@ -1470,7 +1472,8 @@
         "name"
       ],
       "delete_collection": [
-        "asset_path"
+        "asset_path",
+        "force"
       ],
       "add_collection_parameter": [
         "asset_path",
@@ -1805,6 +1808,8 @@
       ],
       "duplicate_level": [
         "dest_path",
+        "force",
+        "save_current",
         "source_path"
       ],
       "rename_level": [
