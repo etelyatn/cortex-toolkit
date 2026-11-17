@@ -1,7 +1,7 @@
 {
   "provenance": {
-    "plugin_commit": "dc30b8113a62e1bfc1abb1beaf4b559c92cf16e7",
-    "plugin_ref": "dc30b8113a62e1bfc1abb1beaf4b559c92cf16e7",
+    "plugin_commit": "2aa17659ec6fa730c2b5245dca9f5517a93898cc",
+    "plugin_ref": "main",
     "plugin_dirty": false
   },
   "exposed_tools": [
@@ -1544,9 +1544,7 @@
     },
     "editor": {
       "start_pie": [
-        "map_name",
-        "mode",
-        "spawn_player"
+        "mode"
       ],
       "stop_pie": [],
       "pause_pie": [],
