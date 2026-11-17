@@ -162,6 +162,10 @@ All steps execute regardless of failures. Use for independent operations where p
 
 Steps 0 and 2 succeeded despite failures at steps 1 and 3.
 
+### Composite tools and the MCP failure object
+
+`blueprint_compose`, `level_compose`, `material_compose`, `widget_compose`, `statetree_compose`, `scenario_compose`, `gen_compose` and the editor composites run such a batch internally. On a failed step the tool returns the canonical MCP failure object, not a successful batch envelope: `success: false`, `_error` = that step's native `error_code` (`INVALID_OPERATION` when the step reported none), `_message` = the step summary, plus the failed step(s) and progress counts as details, with `isError` set. The per-step `error_code`/`error_message` shown above stay inside the batch results; they are not the top-level shape of a composite failure.
+
 ### $ref Error Cases
 
 | Case | Error |
@@ -352,7 +356,12 @@ Composite tools handle cleanup-on-failure:
 if batch_failed and step_0_succeeded:
     # Partial asset exists, delete it
     connection.send_command("material.delete_material", {"asset_path": asset_path})
-    return {"success": False, "recovery_action": {"action": "deleted_partial", "path": asset_path}}
+    return {
+        "success": False,
+        "_error": failed_step.get("error_code") or "INVALID_OPERATION",
+        "_message": summary,
+        "recovery_action": {"action": "deleted_partial", "path": asset_path},
+    }
 ```
 
 This prevents orphaned partial assets that block retries with `ASSET_ALREADY_EXISTS`.

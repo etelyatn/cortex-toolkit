@@ -76,7 +76,7 @@ When a generic MCP response exceeds 40,000 characters, the response formatter fi
 }
 ```
 
-If no truncatable list exists, the response is replaced with `{"_error": "RESPONSE_TOO_LARGE"}`.
+If no truncatable list exists, the response is replaced with `{"success": false, "_error": "RESPONSE_TOO_LARGE"}`.
 
 This budget bounds generic response delivery. `graph.apply_patch` prune uses a dedicated
 complete-or-refuse boundary at `mcp_limits.max_response_chars=40000`: an incomplete or oversized
@@ -95,6 +95,7 @@ generic `_truncated` marker is never used for them:
 
 ```json
 {
+  "success": false,
   "_error": "RESPONSE_TOO_LARGE",
   "_message": "data.get_data_asset response exceeds 40000 characters; the complete read was refused.",
   "reader_complete": false,
@@ -162,11 +163,12 @@ Do not conflate them:
 | Code | Meaning | Recovery |
 |------|---------|----------|
 | `RESPONSE_TOO_LARGE` | Nothing truncatable, or a complete-or-refuse read refused an oversized page | Narrow the request: selectors/`fields`/`detail`/`sections`/`depth`/`limit` (see the refusal's `_suggestion`) |
-| `INVALID_FIELD` | Parameter outside a command's declared set, or a declared-required parameter missing — on the enforcement-opted commands above; also a request that names no settable field | Pass only declared parameter names (the refusal lists the accepted set) and supply the declared-required ones |
+| `INVALID_FIELD` | A declared-required parameter is missing (every domain), a parameter is outside a command's declared set on the enforcement-opted commands above, or a request names no settable field | Pass only declared parameter names (the refusal lists the accepted set) and supply the declared-required ones |
 | `INVALID_PROPERTY_VALUE` | Value is not a token the command accepts (for example an unknown anchor `preset`, alignment or `size_rule`) | Use one of the values named in the refusal |
 | `INVALID_LIMIT` | Python `limit` not an integer in [1, 200] | Pass an integer in range, or use the command's native window |
 | `INVALID_CURSOR` | Cursor token malformed, **or** a Python `cursor` was sent to a native-owned window | Restart Python pagination with `limit`; for a native window use its own `offset`/`since_cursor` |
 | `CURSOR_EXPIRED` | Cached results expired (10-minute TTL, 16 snapshots) | Re-send original read with `limit`; for `batch_query` do NOT re-run the batch, its steps may mutate: the executed results were not recoverable, so verify state by readback |
+| `CONNECTION_ERROR` | The MCP server could not reach the editor or the connection dropped mid-request | Check `get_status`/editor PID; never retry a mutating call blindly — read state back first |
 
 ---
 
@@ -195,7 +197,30 @@ All `{domain}_cmd` tools enforce the canonical shape `{command: string, params: 
 
 ### Error preservation
 
-Unreal errors are returned as `{"success": false, "_error": code, "_message": message, "_command": command, ...details}` without flattening nested `details`. Do not override reserved fields `success`, `_error`, `_message`, or `_command`.
+Every public tool reports a failure as one object and the MCP result sets `isError: true` whenever the
+decoded object carries a non-empty `_error`:
+
+```json
+{"success": false, "_error": "INVALID_VALUE", "_message": "location must be a 3-number array", "...": "non-reserved details"}
+```
+
+Details are never flattened into the message, and the editor's own code is the `_error`: a raised
+`UECommandError` is published with the editor's `code`, `message` and details (for example
+`query_class_detail` returns the editor's `suggestions`), a lost connection becomes
+`_error: "CONNECTION_ERROR"`, and a request refused locally (router shape, composite spec,
+pagination) returns `INVALID_FIELD` or `INVALID_OPERATION`. A composite whose batch step failed
+reports the first failed step's native `error_code` as `_error`, or `INVALID_OPERATION` when that step
+reported none. A response-size or limit refusal (`RESPONSE_TOO_LARGE`, `LIMIT_EXCEEDED`) is a failure
+too, so it also carries `success: false`. There is no `{error}`/`{error, message}` object and no
+`Error: ...` text for a tool failure. Do not override reserved fields `success`, `_error`, `_message`,
+or `_command`.
+
+**Native codes.** A missing required parameter is `INVALID_FIELD` in every domain. A Blueprint asset
+path that does not resolve is `BLUEPRINT_NOT_FOUND` — the Blueprint and UMG commands, the `graph.*`
+commands, `editor.focus_node`, `blueprint.export_snapshot`/`export_text_inventory`, and
+`anim.get_animbp_info`/`rebind_function` — while a missing map, macro or other non-Blueprint asset stays
+`ASSET_NOT_FOUND`. A package or map save that fails is `SAVE_FAILED`; `SERIALIZATION_ERROR` remains for
+JSON/text serialization and non-save failures such as a refused deletion.
 
 ### Asset Editor Commands (`core.*`)
 
@@ -484,7 +509,7 @@ always echoed atomically, never as leaf paths.
 ## Graph (`graph_cmd`)
 
 - `list_graphs`, `get_subgraph`, `search_nodes`, `trace_exec`, `trace_dataflow`, `list_event_handlers`, `find_event_handler`, `find_function_calls`, `describe_node`, `add_node`, `remove_node`, `connect`, `disconnect`, `set_pin_value`, `auto_layout`, `get_authoring_context`, `apply_patch`
-- `set_pin_value`: use `value` for non-text pins and literal-only simple values; use structured `text` for `FText` pins, especially StringTable-backed text. `value` and `text` are mutually exclusive.
+- `set_pin_value`: use `value` for non-text pins and literal-only simple values; use structured `text` for `FText` pins, especially StringTable-backed text. `value` and `text` are mutually exclusive. The new default is validated against the pin's engine schema before it is written: an unacceptable value (including an object/class path that does not resolve) is refused with `INVALID_VALUE` and no pin changes.
 
 Use `describe_node` before raw `add_node` authoring to inspect the accepted class, parameters, and pins. Correct an invalid request before attempting the mutation. Invoke it as `graph.describe_node` through `graph_cmd`.
 
@@ -779,6 +804,16 @@ not supported.
 - **Animations:** `create_animation`, `list_animations`, `remove_animation`, `list_animation_bindings`, `ensure_animation_binding`, `set_animation_property_track`, `remove_animation_binding`
 - **Migration reads (read-only):** `check_native_bindings`, `get_embedded_widget_values`, `get_commonui_info`
 
+`set_property` requires `value` (absent is refused with `INVALID_FIELD`) and accepts only its declared
+parameters. Every JSON property write — this command, `blueprint.set_class_defaults`/
+`set_component_defaults`, `level.set_actor_property`/`set_component_property`, material parameters — is
+type-checked before it is written and returns serializer `warnings`: a JSON value of the wrong type for
+the target property (a number into a bool/string, a non-numeric string into an integer, an out-of-range
+integer, an undeclared numeric enum value) is refused instead of written, and an array or map write
+applies all-or-nothing. `get_property` bounds an instanced object graph: a cycle or a depth beyond the
+serializer policy is emitted as an object path string, so a slot read such as `property_path: "Slot"`
+terminates.
+
 `get_widget` returns `render_transform`, `slot_type` (e.g. `"CanvasPanelSlot"`, `""` for the root) and `slot`. For every non-root widget `slot` is an object that always carries `type` (the slot class name) plus the typed layout summary (details vary by slot type) — never `null`, including slot classes without a summary such as ScrollBox or SizeBox. The root has `slot: null`.
 
 `get_tree` is a bounded read. `depth` (root is level 0; present values must be strict integers `>= 0`)
@@ -846,6 +881,10 @@ not a new MCP tool, and does not change literal `set_property` or animation bind
 - **Organization:** `attach_actor`, `detach_actor`, `set_tags`, `set_folder`, `group_actors`, `ungroup_actors`
 - **Level management:** `get_info`, `list_sublevels`, `load_sublevel`, `unload_sublevel`, `set_sublevel_visibility`, `list_data_layers`, `set_data_layer`, `save_level`, `save_all`
 
+`spawn_actor`, `duplicate_actor` and `set_transform` refuse a malformed transform: a present
+`location`/`rotation`/`scale` that is not a 3-number array (a string or object counts as malformed,
+not absent) is `INVALID_VALUE`, and no part of the request is applied.
+
 `list_components` gained `include_properties` (boolean, default `false`). Only with `true` does each
 component carry `properties` (at most the first 20 admitted `CPF_Edit|CPF_BlueprintVisible` values),
 `total_property_count`, `returned_property_count` (≤ 20) and `properties_complete` (`total == returned`).
@@ -912,7 +951,7 @@ no save command; use a mutation's `save=true` option, or `core.save_asset` where
 
 ## Editor (`editor_cmd`)
 
-- **PIE lifecycle:** `start_pie`, `stop_pie`, `get_pie_state`, `pause_pie`, `resume_pie`, `restart_pie`
+- **PIE lifecycle:** `start_pie` (only `mode`; there is no map override or player-spawn parameter), `stop_pie`, `get_pie_state`, `pause_pie`, `resume_pie`, `restart_pie`
 - **Viewport:** `get_viewport_info`, `capture_screenshot`, `set_viewport_camera`, `focus_actor`, `set_viewport_mode`
 - **Utilities:** `get_editor_state`, `get_recent_logs`, `execute_console_command`, `set_time_dilation`, `get_world_info`
 - **Blueprint editor:** `focus_node(asset_path, node_id, graph_name?, graph_guid?)` opens the Blueprint editor on a node; `graph_guid` (from `graph.list_graphs`, nested graphs included) selects the graph when several share a name.
@@ -1035,7 +1074,9 @@ After an unknown start outcome (`REPLAY_START_OUTCOME_UNKNOWN`), recover the adm
 `list_recordings`/`get_run`; never reissue start. Preparation and environment errors
 (`EDITOR_BUSY`, `INCOMPATIBLE_PREREQUISITES`, `INPUT_PREPARATION_TIMEOUT`, …) are not gameplay
 verdicts: use the table in [`resources/replay-workflow.md`](replay-workflow.md). Follow the
-`cortex-replay` skill.
+`cortex-replay` skill. A start refusal and both one-shot start outcomes arrive as the canonical
+failure object (`success: false`, `_error`, `_message`, `isError: true`); `outcome` and
+`recovery_required`, not `isError`, decide recovery.
 
 ---
 

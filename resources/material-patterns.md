@@ -171,7 +171,8 @@ material_compose(
 ```json
 {
   "success": false,
-  "summary": "Step 8 of 15 failed: material.connect - Output pin 'XYZ' not found on node",
+  "_error": "PIN_NOT_FOUND",
+  "_message": "Step 8 of 15 failed: material.connect - Output pin 'XYZ' not found on node",
   "asset_path": "/Game/Materials/M_PBR",
   "completed_steps": 8,
   "failed_step": {"index": 8, "command": "material.connect", "error": "Pin not found"},
@@ -179,6 +180,9 @@ material_compose(
   "recovery_action": {"action": "deleted_partial", "path": "/Game/Materials/M_PBR"}
 }
 ```
+
+The result is marked `isError`: `_error` is the failed step's native code (`INVALID_OPERATION` when the
+step reported none) and `_message` the summary.
 
 #### What Happens Under the Hood
 
@@ -247,7 +251,9 @@ if failed_step is not None and asset_path:
     connection.send_command("material.delete_material", {"asset_path": asset_path})
     return {
         "success": False,
-        "recovery_action": {"action": "deleted_partial", "path": asset_path}
+        "_error": failed_step.get("error_code") or "INVALID_OPERATION",
+        "_message": summary,
+        "recovery_action": {"action": "deleted_partial", "path": asset_path},
     }
 ```
 
@@ -479,6 +485,11 @@ Executes all steps regardless of failures:
   }
 }
 ```
+
+**Composite failures:** `material_compose` runs these batches. A failed step makes the tool return the
+canonical failure object — `success: false`, `_error` = that step's native `error_code`
+(`INVALID_OPERATION` when it reported none), `_message` = the step summary, plus the failed step and
+progress counts as details — with `isError` set. A successful batch envelope is not the failure shape.
 
 **$ref resolution errors:**
 - Future/self reference: `BATCH_REF_RESOLUTION_FAILED: Ref to step N out of bounds`
