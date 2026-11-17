@@ -160,8 +160,8 @@ Read commands (`get_subgraph`, `search_nodes`) accept a `compact` boolean (defau
 | `CallFunction` | Function call — requires `params: {"function_name": "ClassName.FunctionName"}` |
 | `Branch` | If/then/else — outputs: `True`, `False` |
 | `Sequence` | Execution sequence — outputs: `then 0`, `then 1`, ... |
-| `VariableGet` | Read variable — params: `variable_name`, optional `variable_class` |
-| `VariableSet` | Write variable — params: `variable_name`, optional `variable_class` |
+| `VariableGet` | Read variable — params: `variable_name`, optional `variable_class`/`owner_class`, optional `context` (`self` \| `external`). Members on the Blueprint's own class hierarchy (including native parents) default to self context with a hidden Target pin, as the editor creates them; pass `"context": "external"` to read another instance through a visible Target pin |
+| `VariableSet` | Write variable — same params and `context` default as `VariableGet` |
 | `CustomEvent` | Custom event node — no params required |
 | `Self` | Self reference node — no params required |
 | `Knot` | Reroute node — no params required |

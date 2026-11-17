@@ -174,8 +174,8 @@ When calling `graph_cmd(command="add_node")` or specifying nodes in `blueprint_c
 | `CallFunction` | `UK2Node_CallFunction` | `{"function_name": "ClassName.FunctionName"}` |
 | `Branch` | `UK2Node_IfThenElse` | none — outputs: `True`, `False` |
 | `Sequence` | `UK2Node_ExecutionSequence` | none — outputs: `then 0`, `then 1`, etc. |
-| `VariableGet` | `UK2Node_VariableGet` | `{"variable_name": "X"}`, `variable_class` optional |
-| `VariableSet` | `UK2Node_VariableSet` | `{"variable_name": "X"}`, `variable_class` optional |
+| `VariableGet` | `UK2Node_VariableGet` | `{"variable_name": "X"}`, `variable_class`/`owner_class` optional, `context` optional: `self` (default for members on the Blueprint's own hierarchy, hidden Target pin) or `external` (visible Target pin for another instance) |
+| `VariableSet` | `UK2Node_VariableSet` | `{"variable_name": "X"}`, same optional params as `VariableGet` |
 | `Timeline` | `UK2Node_Timeline` | `{"timeline_name": "MyTimeline"}` — required, returns `TimelineNameRequired` if missing |
 | `SpawnActor` | `UK2Node_SpawnActorFromClass` | none |
 | `CastTo` | `UK2Node_DynamicCast` | `{"class": "Pawn"}` — required for usable automated cast nodes. `{"target_class": "Pawn"}` is accepted as a compatibility alias, but new callers should use `class`. |
