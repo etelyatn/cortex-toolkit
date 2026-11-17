@@ -87,6 +87,10 @@ The MCP boundary distinguishes two start failures:
 - `REPLAY_START_OUTCOME_UNKNOWN` — `outcome: "unknown"`, `recovery_required: true`. The start was
   dispatched but its acknowledgement was lost. The run may exist.
 
+Both are canonical failure objects (`success: false`, `_error` = the code, `_message`, `isError: true`).
+`outcome` and `recovery_required` — not `isError` — say whether a run may be outstanding, so an
+unknown outcome is never re-sent as a plain retry.
+
 On an unknown outcome, recover the admitted run through live discovery — query `list_recordings` and
 match the recording ID against `active_ai_run` and `recent_ai_runs`, then `get_run` that `run_id`.
 Never reissue `start_replay`. A run that finished or failed preparation before reconnection is still
@@ -206,7 +210,9 @@ change thresholds, teleport after time zero, or edit the recording.
 
 These codes are facts about the editor or machine, not gameplay verdicts. They appear as a synchronous
 `start_replay` refusal or as the `execution_error` of the run (`Error`, or `Interrupted`/`Cancelled`
-where noted). Report the code and message, take the action below, and never retry in a loop.
+where noted). A synchronous refusal is the canonical MCP failure object — `success: false`, `_error` =
+the code, `_message` = the message, `isError: true` — while a run's `execution_error` is data inside a
+successful `get_run`. Report the code and message, take the action below, and never retry in a loop.
 
 | Code | When | Meaning | Agent action |
 |---|---|---|---|

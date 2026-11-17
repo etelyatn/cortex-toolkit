@@ -653,6 +653,9 @@ add_scs_component(
 - `parent_component` (optional): Parent SCS node to attach under. Only valid for SceneComponent subclasses. Adds to root if omitted
 - `compile` (optional, default `true`): Compile the Blueprint after adding
 
+`compiled` and `compile_status` report the actual compile result, not the request: a Blueprint whose
+compile failed returns `compiled: false` with `compile_status: "Error"`.
+
 **Important:** The returned `variable_name` may differ from `component_name` if the engine deduplicates. Always use the returned name for subsequent `set_component_defaults` calls.
 
 **Typical workflow:** `add_scs_component` → `set_component_defaults` (for object-reference properties like StaticMesh).

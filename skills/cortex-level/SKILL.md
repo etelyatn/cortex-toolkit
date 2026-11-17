@@ -72,6 +72,10 @@ Follow this workflow:
 - `completed_steps` / `total_steps`: batch progress
 - `failed_steps[]`: per-failure with `op_id`, `command`, `error_code`, `error`
 
+A failed compose is the canonical MCP failure object: `_error` is the first failed step's `error_code`
+(`INVALID_OPERATION` when the step reported none), `_message` is the step summary, the per-step codes
+stay in `failed_steps[]`, and the result is marked `isError`.
+
 ---
 
 ## Review / Analyze Mode
