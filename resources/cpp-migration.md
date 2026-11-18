@@ -426,7 +426,7 @@ Moving a Blueprint Interface (BPI) to a native `UINTERFACE`, or a user-defined s
 7. Prove it:
      reflect_cmd find_interface_implementers (old BPI)  -> implementer_count 0, caller_count 0, unresolved_callers empty
      reflect_cmd find_interface_implementers (new interface) -> every expected implementer and caller
-8. Save explicitly (save:true on each apply, or blueprint_cmd save after inspection), then get_referencers on the old BPI;
+8. Save explicitly (save:true on each apply, or blueprint_cmd save after inspection), then `reflect_cmd(command="get_referencers", params={"asset_path": <old BPI>})`;
    delete it (core.delete_asset) only when nothing references it
 ```
 

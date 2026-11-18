@@ -108,14 +108,14 @@ Never query graphs one-by-one in sequential tool calls.
 
 - `get_subgraph` drops `position`, `node_class`, `pin_count`, and hidden pins that have no connections and no non-default value/object; remaining pins omit `is_connected: false` and empty `default_value`
 - `search_nodes` drops `node_class`
-- `blueprint_cmd` `get_info` drops empty `inputs`/`outputs` arrays and the `source` field on functions
+- `blueprint_cmd` `get_info` drops empty `inputs`/`outputs` arrays; `source` is present whenever `include_inherited=true` (compact without inherited omits it)
 
 **Use the default (`compact: true`) for**: gameplay logic review, finding entry points, wiring new nodes, most debugging.
 
 **Pass `compact: false` explicitly when:**
 - You need node positions (visual layout debugging, auto-layout verification)
 - You need to inspect hidden pins (tunnel boundaries, world-context, self pins with defaults)
-- You need to distinguish inherited functions from Blueprint-defined functions in `blueprint_cmd` `get_info`
+- You need full parameter signatures in `blueprint_cmd` `get_info` (`include_inherited: true` already gives you `source` in compact mode)
 - You are generating C++ from a Blueprint graph (migration Ground Truth Table requires full fidelity)
 
 ### Before Destructive Operations

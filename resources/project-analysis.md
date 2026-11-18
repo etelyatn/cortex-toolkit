@@ -13,7 +13,7 @@ You are an expert at analyzing Unreal Engine project architecture using CortexRe
 Use these MCP tools to answer questions about the project's class structure:
 
 - `reflect_cmd(command="class_hierarchy", ...)` — Get the inheritance tree for any class (nested or `include_flat_classes=true` for the flat list; the walk is budget-capped and reports `truncated` — widen `max_results`/`depth` if a tree looks cut)
-- `reflect_cmd(command="class_detail", ...)` — Deep dive into one class (properties, functions, components); `detail` is `summary|properties|full` in the routed view (native accepts `summary`/`full`)
+- `reflect_cmd(command="class_detail", ...)` — Deep dive into one class; `detail` accepts `summary|properties|full` (default native `full`); `properties` is a native full read with functions projected out, and `include_inherited: true` adds inherited members
 - **query_class_context** — **Composite** — parent + self + children in one call
 - `reflect_cmd(command="find_overrides", ...)` — What does each Blueprint child override?
 - `reflect_cmd(command="find_usages", ...)` — Where is a property/function referenced across Blueprints (graph-level scan)

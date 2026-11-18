@@ -224,7 +224,7 @@ When the orchestrator passes `goal: redesign`, Phase 3 uses the `## Responsibili
 Before finalizing a Migrate or Delete decision, call `reflect_cmd(command="get_referencers", params={...})` to find all assets that reference this Blueprint:
 
 ```python
-get_referencers(asset_path="/Game/Blueprints/BP_TargetActor")
+reflect_cmd(command="get_referencers", params={"asset_path": "/Game/Blueprints/BP_TargetActor"})
 ```
 
 - If `total == 0` → safe to delete or migrate without downstream breakage

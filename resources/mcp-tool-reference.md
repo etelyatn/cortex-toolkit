@@ -412,7 +412,7 @@ A user-defined struct (UDS) or enum (UDE) is replaced by a native `USTRUCT`/`UEN
 
 `list` takes `path`, `type` and `exclude_types`. `type` selects one family and `exclude_types` (array) removes families; they combine and are case-insensitive. Vocabulary, in classifier precedence: `Interface`, `FunctionLibrary`, `MacroLibrary`, `AnimBlueprint`, `EditorUtility`, `Widget`, `Component`, `Actor`, `Object` (any other resolved UObject parent), `Unknown` (parent unresolvable). An unknown value is refused with `INVALID_FIELD` listing the vocabulary. Rows carry `type`, `asset_class`, `parent_class` (the immediate parent; for a Blueprint parent, its asset name without `_C`), `parent_class_path`, and `native_parent_class`. The `blueprints` array pages through the Python `limit`/`cursor` mechanism below. `get_info` and `analyze_for_migration` report the same `type` vocabulary.
 
-`get_info` accepts an optional `compact` boolean parameter, **default `true`**. In compact mode, empty `inputs`/`outputs` arrays and the `source` field are omitted from the functions list — this mostly reduces noise from inherited functions. Pass `compact: false` when you need to distinguish `"blueprint"` vs `"inherited"` sources or verify full parameter signatures (e.g., during BP→C++ migration analysis).
+`get_info` accepts `include_inherited` (**default `false`**) and an optional `compact` boolean (**default `true`**). By default only the Blueprint's own functions are listed. Pass `include_inherited: true` to also list inherited C++ callables; when they are listed, every function entry carries `source` (`"blueprint"`/`"inherited"`) even in compact mode, so the two stay distinguishable. Compact still omits empty `inputs`/`outputs` arrays; pass `compact: false` when you need full parameter signatures (e.g., during BP→C++ migration analysis).
 - **Structure:** `add_variable`, `remove_variable` (guarded: see Native member adoption), `add_function`, `get_class_defaults`, `set_class_defaults`, `configure_timeline`, `set_component_defaults`, `add_scs_component`, `remove_scs_component`, `rename_scs_component`
 - **Class Settings:** `add_interface`, `remove_interface` (guarded: `preserve_implementations` required, `dry_run` first), `replace_interface` (guarded, one asset), `set_tick_settings`, `set_replication_settings`
 - **Migration:** `analyze_for_migration`, `cleanup_migration`, `remove_scs_component`, `rename_scs_component`, `recompile_dependents`, `fixup_redirectors`, `compare_blueprints`. `fixup_redirectors` is folder-wide and recursive by default and force-deletes unreferenced redirectors; the migration pipeline never calls it (see `resources/cpp-migration.md`). `remove_scs_component` and `rename_scs_component` always write the package; `rename_scs_component` also saves the dependents it touches.
@@ -543,7 +543,7 @@ Both are `graph.apply_patch` migration-shell operations: standalone (never insid
 | Command | `compact=true` strips |
 |---------|----------------------|
 | `search_nodes` | `node_class` (duplicate of `class`) — no positions in search results to begin with |
-| `get_subgraph` | `position`, `node_class`, `pin_count`, hidden pins with no connections/defaults, `is_connected: false`, empty `default_value` |
+| `get_subgraph` | `position`, `node_class`, `pin_count`, hidden pins with no connections/defaults; surviving pins drop pin `category` (duplicate of `type`), empty `subcategory`/`sub_category_object`, `container_type: none`, `is_connected`/`is_reference`/`is_const`/`is_advanced`/`is_hidden: false`, and empty `default_value` |
 
 **Pin skip predicate** (`get_subgraph` only): a pin is excluded only when ALL of `bHidden`, no `LinkedTo`, empty `DefaultValue`, empty `DefaultTextValue`, AND `DefaultObject == nullptr`. Hidden class-reference pins with meaningful defaults are preserved.
 
@@ -1042,11 +1042,13 @@ verdicts: use the table in [`resources/replay-workflow.md`](replay-workflow.md).
 ## Reflect
 
 Reflect is reachable **two ways**:
-- **Standalone MCP tools** (recommended, typed parameters): `reflect_cmd(command="class_hierarchy", params={...})`,
-  `reflect_cmd(command="class_detail", params={...})`, `query_class_context`, `reflect_cmd(command="find_overrides", params={...})`, `reflect_cmd(command="find_usages", params={...})`,
-  `reflect_cmd(command="get_dependencies", params={...})`, `reflect_cmd(command="get_referencers", params={...})`, `impact_analysis`, `rebuild_graph_cache`,
-  `reflect_cache_status`, `scan_project`
-- **The `reflect_cmd` router** for the native commands (`reflect.class_detail`,
+- **Standalone MCP tools** (typed parameters): `query_class_context`, `impact_analysis`,
+  `rebuild_graph_cache`, `reflect_cache_status`, `scan_project`
+- **The `reflect_cmd` router** for the native commands. The former thin standalone wrappers over
+  `class_hierarchy`/`class_detail`/`find_overrides`/`find_usages`/`get_dependencies`/`get_referencers`
+  were removed in UnrealCortex 0.4.17 — call
+  `reflect_cmd(command="class_hierarchy|class_detail|find_overrides|find_usages|get_dependencies|get_referencers", params={...})`.
+  Native commands: (`reflect.class_detail`,
   `reflect.class_hierarchy`, `reflect.search`, `reflect.find_overrides`, `reflect.find_usages`,
   `reflect.get_dependencies`, `reflect.get_referencers`, `reflect.find_broken_config_paths`,
   `reflect.export_dependency_graph`, `reflect.find_name_lookups`, `reflect.find_duplicate_graphs`,
@@ -1054,13 +1056,12 @@ Reflect is reachable **two ways**:
 
 Standalone tools and native commands are not interchangeable:
 
-`reflect_cmd(command="class_detail", params={...})` defaults to `detail="summary"` and accepts `summary|properties|full`, refusing an
-unknown value client-side; it maps `properties` to a native `full` read plus a Python allowlist and
-always injects `detail`. The **native** `reflect.class_detail` default is `full` and it accepts **only**
-`summary`/`full` — anything else refuses `INVALID_FIELD` (`Invalid detail '<x>'; expected 'summary' or
-'full'`) instead of degrading to the expensive full read. `summary` omits `properties`, `functions` and
-`components`. Callers that previously passed an ad-hoc value such as `"name"` and silently got `full`
-must now pass `summary`.
+`reflect_cmd(command="class_detail", params={...})` accepts `summary|properties|full`. The native
+`reflect.class_detail` default is **`full`**, and it accepts **only** `summary`/`full` — the routed
+`properties` level maps to a native full read with `functions` projected out in Python, so the former
+wrapper view is preserved (including `include_inherited` passthrough). `summary` omits `properties`,
+`functions` and `components`. An unknown value reaches the native validator and refuses
+`INVALID_FIELD` (`Invalid detail '<x>'; expected 'summary' or 'full'`).
 
 ### Dependency map commands (project-wide, file-backed)
 

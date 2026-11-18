@@ -32,6 +32,11 @@ NATIVE_ONLY_COMMANDS = {"batch"}
 FILE_SUFFIXES = {"py", "json", "md", "cpp", "h", "log", "ini", "txt", "uasset", "cs", "yml", "yaml", "sh", "js", "ts"}
 # Tools named by older docs that never existed under that name on the consolidated surface.
 EXTRA_STALE = {"run_scenario"}
+# Thin standalone wrappers removed in UnrealCortex 0.4.17 whose names remain live reflect
+# commands, so the generated `legacy_tools` list cannot carry them. Direct-call or mcp__-prefixed
+# use of these names is stale; `reflect_cmd(command="<name>", params={...})` is the valid form.
+REMOVED_STANDALONE_ALIASES = {"get_dependencies", "get_referencers"}
+ALIAS_CALL = re.compile(r"\b(get_dependencies|get_referencers)\s*\(")
 COMMAND_PARAMS: dict[str, dict[str, set[str]]] = {
     domain: {command: set(params) for command, params in commands.items()}
     for domain, commands in SURFACE.get("command_params", {}).items()
@@ -218,6 +223,7 @@ def lint_text(text: str) -> list[tuple[int, str, str]]:
         if any(
             suffix in LEGACY
             or suffix in EXTRA_STALE
+            or suffix in REMOVED_STANDALONE_ALIASES
             or (
                 suffix.split("_", 1)[0] in WRAPPER_DOMAINS
                 and "_" in suffix
@@ -228,6 +234,12 @@ def lint_text(text: str) -> list[tuple[int, str, str]]:
             for suffix in suffixes
         ):
             add(match.start(), [(tail, "legacy wrapper tool name behind an mcp__ prefix")])
+
+    for match in ALIAS_CALL.finditer(text):
+        add(match.start(), [(
+            f"{match.group(1)}()",
+            "a removed standalone wrapper; call reflect_cmd(command=..., params={...})",
+        )])
 
     for match in JSON_COMMAND.finditer(text):
         problems = []
@@ -308,6 +320,12 @@ class CortexToolNameLint(unittest.TestCase):
         self.assertTrue(lint_line("`graph.list_nodes` lists nodes"))
         self.assertTrue(lint_line("blueprint_cmd graph_get_subgraph"))
         self.assertTrue(lint_line("reflect_cmd query_usages"))
+        # Removed wrappers whose names remain live commands are linted in direct-call form only.
+        self.assertTrue(lint_line('get_referencers(asset_path="/Game/BP_X")'))
+        self.assertTrue(lint_line("then call get_dependencies(asset_path) below"))
+        self.assertEqual([], lint_line('reflect_cmd(command="get_referencers", params={"asset_path": "/Game/BP_X"})'))
+        self.assertEqual([], lint_line('reflect_cmd(command="get_dependencies", params={"asset_path": "/Game/BP_X"})'))
+        self.assertTrue(lint_line("mcp__cortex_mcp_get_referencers is gone"))
         self.assertEqual([], lint_line('graph_cmd(command="search_nodes", params={})'))
         self.assertEqual([], lint_line("`blueprint.graph_metrics` then `core_cmd get_status`"))
 

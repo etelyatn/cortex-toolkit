@@ -29,8 +29,8 @@ Independent read calls MUST run in parallel. Keep reads sequential only when lat
 Before changing a shared material or parameter collection (one used across many actors/BPs), run `reflect_cmd(command="get_referencers", params={...})` to see what would be affected:
 
 ```python
-get_referencers(asset_path="/Game/Materials/M_SharedBase")
-get_referencers(asset_path="/Game/Materials/MPC_GlobalParams")
+reflect_cmd(command="get_referencers", params={"asset_path": "/Game/Materials/M_SharedBase"})
+reflect_cmd(command="get_referencers", params={"asset_path": "/Game/Materials/MPC_GlobalParams"})
 ```
 
 If `total > 0`, inform the user which assets reference it before proceeding with breaking changes (renamed parameters, removed nodes, changed domain/blend mode).
