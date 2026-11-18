@@ -36,7 +36,8 @@ EXTRA_STALE = {"run_scenario"}
 # commands, so the generated `legacy_tools` list cannot carry them. Direct-call or mcp__-prefixed
 # use of these names is stale; `reflect_cmd(command="<name>", params={...})` is the valid form.
 REMOVED_STANDALONE_ALIASES = {"get_dependencies", "get_referencers"}
-ALIAS_CALL = re.compile(r"\b(get_dependencies|get_referencers)\s*\(")
+# A qualified call (`reflect.get_dependencies(...)`) is the native command, not the removed tool.
+ALIAS_CALL = re.compile(r"(?<![\w.])(get_dependencies|get_referencers)\s*\(")
 COMMAND_PARAMS: dict[str, dict[str, set[str]]] = {
     domain: {command: set(params) for command, params in commands.items()}
     for domain, commands in SURFACE.get("command_params", {}).items()
@@ -326,6 +327,9 @@ class CortexToolNameLint(unittest.TestCase):
         self.assertEqual([], lint_line('reflect_cmd(command="get_referencers", params={"asset_path": "/Game/BP_X"})'))
         self.assertEqual([], lint_line('reflect_cmd(command="get_dependencies", params={"asset_path": "/Game/BP_X"})'))
         self.assertTrue(lint_line("mcp__cortex_mcp_get_referencers is gone"))
+        # Qualified native command notation is not the removed wrapper.
+        self.assertEqual([], lint_line("reflect.get_dependencies(asset_path) is native"))
+        self.assertEqual([], lint_line("reflect.get_referencers(asset_path) is native"))
         self.assertEqual([], lint_line('graph_cmd(command="search_nodes", params={})'))
         self.assertEqual([], lint_line("`blueprint.graph_metrics` then `core_cmd get_status`"))
 

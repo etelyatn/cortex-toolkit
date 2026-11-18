@@ -52,8 +52,9 @@ children in one call (its self view accepts `summary|properties|full` but hardco
 reflect_cmd(command="class_hierarchy", params={"root": "ACharacter", "depth": 3, "include_blueprint": True})
 ```
 
-Returns the nested class tree — traverse `children`; each node carries `name`, `type`, `module`,
-`asset_path` and `children`. `include_flat_classes=true` adds an extra `classes` array of class
+Returns the nested class tree — traverse `children`. Every node carries `name` and `type`;
+Blueprint classes add `asset_path`, C++ classes add `module`/`source_path` when the native lower
+provides them, and `children` appears when the walk recursed. `include_flat_classes=true` adds an extra `classes` array of class
 **names** only (no parent/depth records), useful as a quick name list. Counts and a `truncated` flag
 are always present. `truncated` is the authoritative completeness signal: the `max_results` budget is
 shared by the whole recursive walk, so a short list does not prove the hierarchy is complete, and
