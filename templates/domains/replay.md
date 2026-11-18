@@ -30,7 +30,8 @@ anything outside discovery, start, status and cancel.
 Physical replay requires a rendered, correctly focused PIE surface; unfocused, hidden-window
 and NullRHI replay are not promised. The recorded pose is a starting point, not a checkpoint.
 Preparation and environment errors (`EDITOR_BUSY`, `INCOMPATIBLE_PREREQUISITES`, `ASSET_NOT_FOUND`,
-`INPUT_PREPARATION_TIMEOUT`, …) are not gameplay verdicts; see `resources/replay-workflow.md`.
+`INPUT_PREPARATION_TIMEOUT`, …) are not gameplay verdicts; a start refusal is the canonical MCP failure
+object (`success: false`, `_error` = the code, `isError: true`). See `resources/replay-workflow.md`.
 
 ## Guard Coverage
 

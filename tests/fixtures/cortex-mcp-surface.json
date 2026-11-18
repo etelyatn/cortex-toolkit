@@ -1,7 +1,7 @@
 {
   "provenance": {
-    "plugin_commit": "ff8c97a8fa0c039a0d72761eb5630ee39b6bfd6e",
-    "plugin_ref": "ff8c97a8fa0c039a0d72761eb5630ee39b6bfd6e",
+    "plugin_commit": "d65108b905ef135aec36edf53df5c4fc287ad4f0",
+    "plugin_ref": "d65108b905ef135aec36edf53df5c4fc287ad4f0",
     "plugin_dirty": false
   },
   "exposed_tools": [
@@ -467,6 +467,7 @@
         "table_path"
       ],
       "list_datatables": [
+        "include_row_count",
         "path_filter"
       ],
       "get_datatable_schema": [
@@ -523,6 +524,7 @@
       ],
       "get_data_catalog": [
         "include_asset_paths",
+        "include_row_count",
         "sections"
       ],
       "resolve_tags": [
@@ -1538,9 +1540,7 @@
     },
     "editor": {
       "start_pie": [
-        "map_name",
-        "mode",
-        "spawn_player"
+        "mode"
       ],
       "stop_pie": [],
       "pause_pie": [],

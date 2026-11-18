@@ -140,14 +140,17 @@ editor? It is Run Mode plus a verdict built only from fields the run reports.
 3. **Preparation and environment errors** (`EDITOR_BUSY`, `ASSET_NOT_FOUND`,
    `INPUT_PREPARATION_TIMEOUT`, `INPUT_POSE_MISMATCH`, `INITIAL_POSE_RESTORE_FAILED`,
    `INPUT_CLEANUP_FAILED`, `INCOMPATIBLE_PREREQUISITES`, `PERMISSION_DENIED`, `TARGET_UNAVAILABLE`)
-   are facts about the editor or machine, not gameplay verdicts. Look the code up in the table in
-   `resources/replay-workflow.md`, report it with the action it names (usually asking the human to
-   stop PIE, fix a setting or re-record) and never retry in a loop.
+   are facts about the editor or machine, not gameplay verdicts. A start refusal is the canonical MCP
+   failure object (`success: false`, `_error` = the code, `isError: true`). Look the code up in the
+   table in `resources/replay-workflow.md`, report it with the action it names (usually asking the
+   human to stop PIE, fix a setting or re-record) and never retry in a loop.
 4. **Uncertain start:** if `start_replay` returns `REPLAY_START_OUTCOME_UNKNOWN`
    (`outcome: "unknown"`, `recovery_required: true`), the start was dispatched but its acknowledgement
-   was lost. Do NOT reissue start. Recover through the live surface: query `list_recordings` and match
-   the recording ID against `active_ai_run` and `recent_ai_runs`, then `get_run` that `run_id`. A run
-   that finished before discovery is still found in `recent_ai_runs`. Only
+   was lost. It arrives as a failure object (`_error: "REPLAY_START_OUTCOME_UNKNOWN"`, `isError: true`);
+   `recovery_required`, not `isError`, decides the next step. Do NOT reissue start. Recover through the
+   live surface: query `list_recordings` and match the recording ID against `active_ai_run` and
+   `recent_ai_runs`, then `get_run` that `run_id`. A run that finished before discovery is still found
+   in `recent_ai_runs`. Only
    `REPLAY_START_NOT_DISPATCHED` (`outcome: "not_dispatched"`, `recovery_required: false`) means no run
    was admitted and nothing is outstanding.
 5. A terminal result is stable. Querying or cancelling a finalized run returns its actual terminal
