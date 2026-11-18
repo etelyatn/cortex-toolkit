@@ -16,7 +16,7 @@ Use:
 
 - `statetree_cmd` for direct commands on existing assets
 - `statetree_compose` for multi-step create/update flows
-- `get_dependencies` and `get_referencers` for dependency and deletion risk checks
+- `reflect_cmd(command="get_dependencies", params={...})` and `reflect_cmd(command="get_referencers", params={...})` for dependency and deletion risk checks
 
 Never:
 
@@ -98,7 +98,7 @@ For review or analysis:
 3. When stored node values, parameters, or bindings are needed, use that same `dump_tree` command with `inspect_instances=True`. Follow the section/paging contract in `statetree-patterns.md`: capture `root`, `states`, `nodes`, and `bindings`, preferably with `inspect_count=1`. Before advancing or trusting `has_more=False`, require no transport `_truncated` marker and `len(entries) == returned_count`. If truncated or mismatched, reduce `inspect_count` and recapture the same section/offset down to count 1; native top-level counts can describe entries omitted by the formatter. Preserve `completeness` and field `partial`/`issues` in findings; ordinary references expose identity only, while explicit stored node object slots expose one level of reflected fields. Native unpaged inspection remains explicit, but entry counts are not response-size limits: the shared MCP formatter rejects oversized results with `RESPONSE_TOO_LARGE` under its 40,000-character limit. If a single-entry page is too large, report the blocked section/offset and incomplete capture; do not bypass MCP or promise arbitrary unpaged payloads.
 4. Prefer returned GUID selectors across every non-null subtree. Resolve ambiguous paths using a GUID, including when roots share names; do not guess a first match or overlook later roots.
 5. Use `statetree_cmd(command="check_structure", params={"asset_path": "..."})`.
-6. Use `get_referencers` before recommending delete or rename.
+6. Use `reflect_cmd(command="get_referencers", params={...})` before recommending delete or rename.
 7. Return findings grouped by severity, distinguishing stored editor values from runtime state and incomplete inspection from absent data.
 
 Do not call `validate_asset` or `compile` in read-only review mode unless the user asks for mutation. Inspection itself never compiles, saves, or edits assets. Reject malformed present inspection controls rather than silently substituting defaults; paging requires enabled inspection and a named section.

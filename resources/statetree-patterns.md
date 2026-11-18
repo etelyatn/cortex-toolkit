@@ -148,8 +148,8 @@ Read-only review permits:
 - `dump_tree`
 - `get_state`
 - `check_structure`
-- `get_dependencies`
-- `get_referencers`
+- `reflect_cmd(command="get_dependencies", params={...})`
+- `reflect_cmd(command="get_referencers", params={...})`
 
 Do not call `validate_asset` or `compile` during read-only review. Both can dirty assets. `get_node_bindings` and `get_runtime_state` are read-only and safe to use in review.
 
