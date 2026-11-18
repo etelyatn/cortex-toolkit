@@ -1,7 +1,7 @@
 {
   "provenance": {
-    "plugin_commit": "dc30b8113a62e1bfc1abb1beaf4b559c92cf16e7",
-    "plugin_ref": "dc30b8113a62e1bfc1abb1beaf4b559c92cf16e7",
+    "plugin_commit": "ff8c97a8fa0c039a0d72761eb5630ee39b6bfd6e",
+    "plugin_ref": "ff8c97a8fa0c039a0d72761eb5630ee39b6bfd6e",
     "plugin_dirty": false
   },
   "exposed_tools": [
@@ -15,8 +15,6 @@
     "editor_restart",
     "gen_cmd",
     "gen_compose",
-    "get_dependencies",
-    "get_referencers",
     "graph_cmd",
     "impact_analysis",
     "level_cmd",
@@ -28,10 +26,6 @@
     "qa_cmd",
     "qa_test_step",
     "query_class_context",
-    "query_class_detail",
-    "query_class_hierarchy",
-    "query_overrides",
-    "query_usages",
     "rebuild_graph_cache",
     "reflect_cache_status",
     "reflect_cmd",
@@ -2519,6 +2513,10 @@
     "move_player_to",
     "observe_game_state",
     "press_key",
+    "query_class_detail",
+    "query_class_hierarchy",
+    "query_overrides",
+    "query_usages",
     "recompile_dependent_blueprints",
     "remove_blueprint_interface",
     "remove_blueprint_variable",

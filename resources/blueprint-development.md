@@ -132,7 +132,7 @@ impact_analysis(
 
 - If `total_affected > 0`, show the user the high-risk Blueprints before proceeding
 - If coverage is partial (`scan_coverage: "partial"`), offer to re-run with `deep_scan=true`
-- For whole-asset deletion with no symbol, use `get_referencers` instead
+- For whole-asset deletion with no symbol, use `reflect_cmd(command="get_referencers", params={...})` instead
 
 ## Blueprint Tools
 
@@ -801,10 +801,10 @@ Use these for class analysis, asset dependency checks, and impact assessment —
 | Tool | Use when |
 |------|----------|
 | `query_class_context` | Understand a Blueprint class — parent, properties, functions, children in one call |
-| `query_class_hierarchy` | Browse the class tree from any root (e.g., all AActor subclasses) |
-| `query_usages` | Where is a property or function referenced across Blueprint graphs |
-| `get_dependencies` | What does this Blueprint import? |
-| `get_referencers` | What references this Blueprint? Run before deleting or making breaking changes |
+| `reflect_cmd(command="class_hierarchy", params={...})` | Browse the class tree from any root (e.g., all AActor subclasses) |
+| `reflect_cmd(command="find_usages", params={...})` | Where is a property or function referenced across Blueprint graphs |
+| `reflect_cmd(command="get_dependencies", params={...})` | What does this Blueprint import? |
+| `reflect_cmd(command="get_referencers", params={...})` | What references this Blueprint? Run before deleting or making breaking changes |
 | `impact_analysis` | Full blast radius before removing or renaming a public function/variable |
 
 ## Best Practices

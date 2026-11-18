@@ -487,7 +487,7 @@ Ripper scale that shaped this sequence: 31 StateTree task/condition Blueprints (
 3. **Native type.** Mirror the Blueprint's instance properties by name and type (`reflect_cmd class_detail` on the Blueprint class) in a native `FStateTree*Base` struct with an instance-data struct, or a native `UStateTree*BlueprintBase` subclass when the wrapper must stay; implement the logic from the Blueprint graph (`graph_cmd get_subgraph` / `trace_exec`). Properties renamed in C++ go in `property_map`.
 4. **Dry run, then apply.** `replace_node` `dry_run:true` for the class; resolve `POTENTIAL_DATA_LOSS` only with the user's acknowledgment; apply with `compile:true`; require `bindings.after_count == before_count`, `compile_status:"success"`.
 5. **Verify.** `compile` again, `get_node_bindings` for the nodes (counts equal, `property_guid` null), PIE + `get_runtime_state` + `LogStateTree` check. Save only after that.
-6. **Retire.** When `get_node_bindings` shows no node of the Blueprint class and `get_referencers` is clean, the Blueprint class can be removed through the normal asset workflow. Repeat per unit, one tree and one unit at a time; engines below UE 5.8 cannot run this sequence (`NOT_AVAILABLE`).
+6. **Retire.** When `get_node_bindings` shows no node of the Blueprint class and `reflect_cmd(command="get_referencers", params={...})` is clean, the Blueprint class can be removed through the normal asset workflow. Repeat per unit, one tree and one unit at a time; engines below UE 5.8 cannot run this sequence (`NOT_AVAILABLE`).
 
 ### AnimBP: 21 Animation Blueprints
 
@@ -559,7 +559,7 @@ These commands support the FINALIZE and COMPLETE phases of the migration pipelin
 
 Creates `BP_Name_Backup` before the first mutation. A duplicate has no referencers; it is a read-only snapshot for comparison, not a restore source. `duplicate` only marks the package dirty, so save it right away (`blueprint_cmd(command="save", params={"asset_path": "/Game/Blueprints/BP_Enemy_Backup"})`) and verify with `core_cmd(command="asset_fingerprint", params={"paths": ["/Game/Blueprints/BP_Enemy_Backup"]})` (non-empty `package_saved_hash`, `is_dirty: false`); the PREPARE editor restart discards unsaved assets.
 
-Placed level instances reference the original, not the backup, so when `get_referencers` shows level placements also export their per-instance overrides before the first mutation: `level_cmd(command="export_class_instances", params={"class": "/Game/Blueprints/BP_Enemy", "maps": ["/Game/Maps/Main"], "out_path": "<project>/Saved/Migration/BP_Enemy_placed_instances_baseline.json"})`. The verifier runs the same export afterwards and diffs the two reports.
+Placed level instances reference the original, not the backup, so when `reflect_cmd(command="get_referencers", params={...})` shows level placements also export their per-instance overrides before the first mutation: `level_cmd(command="export_class_instances", params={"class": "/Game/Blueprints/BP_Enemy", "maps": ["/Game/Maps/Main"], "out_path": "<project>/Saved/Migration/BP_Enemy_placed_instances_baseline.json"})`. The verifier runs the same export afterwards and diffs the two reports.
 
 ```python
 blueprint_cmd(command="duplicate", params={

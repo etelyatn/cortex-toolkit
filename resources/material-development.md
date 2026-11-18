@@ -26,7 +26,7 @@ Independent read calls MUST run in parallel. Keep reads sequential only when lat
 
 ## Before Modifying Shared Assets
 
-Before changing a shared material or parameter collection (one used across many actors/BPs), run `get_referencers` to see what would be affected:
+Before changing a shared material or parameter collection (one used across many actors/BPs), run `reflect_cmd(command="get_referencers", params={...})` to see what would be affected:
 
 ```python
 get_referencers(asset_path="/Game/Materials/M_SharedBase")
@@ -288,10 +288,10 @@ Use these for class analysis, asset dependency checks, and impact assessment —
 | Tool | Use when |
 |------|----------|
 | `query_class_context` | Understand a material-related class — parent, properties, children in one call |
-| `query_class_hierarchy` | Discover material function or expression subclasses |
-| `query_usages` | Where is a material property referenced in Blueprint graphs |
-| `get_dependencies` | What does this material or parameter collection import? |
-| `get_referencers` | What references this material/collection? Before renaming parameters or changing domain |
+| `reflect_cmd(command="class_hierarchy", params={...})` | Discover material function or expression subclasses |
+| `reflect_cmd(command="find_usages", params={...})` | Where is a material property referenced in Blueprint graphs |
+| `reflect_cmd(command="get_dependencies", params={...})` | What does this material or parameter collection import? |
+| `reflect_cmd(command="get_referencers", params={...})` | What references this material/collection? Before renaming parameters or changing domain |
 | `impact_analysis` | Full blast radius before breaking changes to a widely-used shared material |
 
 ## MCP Benchmark Tests
