@@ -19,7 +19,7 @@ Most domain commands are accessed through **router tools** (`{domain}_cmd`). A f
 |-------------|---------|---------|
 | **Router tool** | `{domain}_cmd(command="name", params={...})` | `blueprint_cmd(command="get_info", params={"asset_path": "/Game/BP"})` |
 | **Composite tool** | `{domain}_compose(spec)` | `blueprint_compose(...)` for new asset creation |
-| **Standalone tool** (Reflect, some Editor/QA) | Direct function call | `query_class_hierarchy(root="AActor")` |
+| **Standalone tool** (Reflect cache/impact, some Editor/QA) | Direct function call | `query_class_context(class_name="AActor")` |
 
 Router commands use **bare names** — e.g., `get_info`, `create`, `list`. Never prefix them with the domain or the old wrapper style.
 
@@ -31,17 +31,11 @@ Router commands use **bare names** — e.g., `get_info`, `create`, `list`. Never
 ### Standalone tools vs the router passthrough
 
 A standalone tool and the router route to the same native command but do **not** expose the same
-parameters. The router passes parameters through verbatim, so any native parameter is reachable there
+parameters. The router passes parameters through verbatim, so any declared native parameter is reachable there
 even when the standalone tool omits it. Two exceptions are the Python-owned pagination controls:
 `limit`/`cursor` are consumed by the commands that page in Python, and a `limit` outside 1–200 is
 refused before dispatch with `INVALID_LIMIT` for any command — so an out-of-range `limit` returns that
-rather than the native `INVALID_FIELD` a strict command gives an in-range undeclared `limit`. Eight
-routed commands now enforce their
-declared parameter set
-— `umg.set_text`, `umg.set_font`, `umg.set_padding`, `umg.set_anchor`, `umg.set_alignment`,
-`umg.set_size`, `data.list_data_assets`, `data.search_assets` — so for those an undeclared parameter is
-refused with `INVALID_FIELD` naming the accepted set (as is a missing declared-required parameter)
-instead of being silently dropped. Known divergences:
+rather than the native `INVALID_FIELD` a command gives an in-range undeclared `limit`. Known divergences:
 
 | Command | Standalone tool exposes | Native-only (router only) |
 |---------|------------------------|---------------------------|
@@ -193,6 +187,8 @@ Do not conflate them:
 
 ### Strict router envelope
 
+**Unknown params are refused.** Every routed domain command enforces its declared parameter set: an undeclared top-level param (a typo, a removed name, a stale alias) is refused with `INVALID_FIELD` (`Unknown param 'x'. Accepted params: ...`), and the error lists the accepted params, so read it instead of guessing. Keys starting with `_` are exempt. A missing required param is refused only by commands that declare `.StrictParams()`; others report it from the handler. Before sending an unfamiliar command, fetch its declared params with `core.get_operation_schema`.
+
 All `{domain}_cmd` tools enforce the canonical shape `{command: string, params: object}`. Extra top-level operation fields or non-object `params` are rejected with `INVALID_INVOCATION_SHAPE`. `core.batch_query` rejects empty/missing/non-array `commands` locally before contacting the editor.
 
 ### Error preservation
@@ -206,7 +202,7 @@ decoded object carries a non-empty `_error`:
 
 Details are never flattened into the message, and the editor's own code is the `_error`: a raised
 `UECommandError` is published with the editor's `code`, `message` and details (for example
-`query_class_detail` returns the editor's `suggestions`), a lost connection becomes
+`reflect_cmd` `class_detail` returns the editor's `suggestions`), a lost connection becomes
 `_error: "CONNECTION_ERROR"`, and a request refused locally (router shape, composite spec,
 pagination) returns `INVALID_FIELD` or `INVALID_OPERATION`. A composite whose batch step failed
 reports the first failed step's native `error_code` as `_error`, or `INVALID_OPERATION` when that step
@@ -289,15 +285,15 @@ Generic router dry-run prefix migration:
 
 Dry-run `operation_results` are preview-only: successful operations report `applied=false`, `would_apply=true`, and `status="would_apply"`. Apply with `dry_run=false` only after the preview is clean or after intentionally setting `allow_partial=true`.
 
-Optional direct compatibility wrapper, only if still registered:
+Routed form:
 
 ```text
-update_string_table(
-  string_table_path="/Game/Data/ST_CodexEntries.ST_CodexEntries",
-  operations_json="[{\"type\":\"replace_all\",\"old_prefix\":\"entry.\",\"new_prefix\":\"\"}]",
-  dry_run=true,
-  verbose=false
-)
+data_cmd(command="update_string_table", params={
+  "string_table_path": "/Game/Data/ST_CodexEntries.ST_CodexEntries",
+  "operations": [{"type": "replace_all", "old_prefix": "entry.", "new_prefix": ""}],
+  "dry_run": true,
+  "verbose": false
+})
 ```
 
 Scan DataTable `FText` references:
@@ -441,7 +437,7 @@ A user-defined struct (UDS) or enum (UDE) is replaced by a native `USTRUCT`/`UEN
 - **Structure:** `add_variable`, `remove_variable` (guarded: see Native member adoption), `add_function`, `get_class_defaults`, `set_class_defaults`, `configure_timeline`, `set_component_defaults`, `add_scs_component`, `remove_scs_component`, `rename_scs_component`
 - **Class Settings:** `add_interface`, `remove_interface` (guarded: `preserve_implementations` required, `dry_run` first), `replace_interface` (guarded, one asset), `set_tick_settings`, `set_replication_settings`
 - **Migration:** `analyze_for_migration`, `cleanup_migration`, `remove_scs_component`, `rename_scs_component`, `recompile_dependents`, `fixup_redirectors`, `compare_blueprints`. `fixup_redirectors` is folder-wide and recursive by default and force-deletes unreferenced redirectors; the migration pipeline never calls it (see `resources/cpp-migration.md`). `remove_scs_component` and `rename_scs_component` always write the package; `rename_scs_component` also saves the dependents it touches.
-- **Native member adoption (guarded, strict params, `dry_run` first):** `reparent`, `rename_member`, `adopt_native_member`, `adopt_scs_into_native`, `swap_scs_component_class`, plus guarded `remove_variable` and `cleanup_migration`. All take `dry_run`, an optional `expected_fingerprint` object (returned by a dry run), `compile` and `save` (`save` requires `compile`), and report `apply_status`, `compile_status`, `readback_status`, `rollback_status`, `save_status`. Params: `reparent` {`asset_path`, `new_parent`; `dry_run`, `expected_fingerprint`, `compile`, `save`, `acknowledged_collisions`, `report_path`}; `rename_member` {`asset_path`, `kind` (`variable`/`function`/`dispatcher`/`local`), `old`, `new`; `function`, `dry_run`, `expected_fingerprint`, `compile`, `save`, `acknowledged_losses`}; `adopt_native_member` {`asset_path`, `mappings` [`{bp_variable, native_property, default?}`]; `transfer_default`, `retarget_nodes`, `dry_run`, `expected_fingerprint`, `compile`, `save`, `acknowledged_losses`}; `adopt_scs_into_native` {`asset_path`, `mappings` [`{scs_node, native_component}`]; `copy`, `remove_scs`, `dry_run`, `expected_fingerprint`, `compile`, `save`, `acknowledged_losses`}; `swap_scs_component_class` {`asset_path`, `component_name`, `new_class`; `dry_run`, `expected_fingerprint`, `compile`, `save`, `acknowledged_losses`}; `remove_variable` {`asset_path`, `name`; `dry_run`, `expected_fingerprint`, `compile` (default false), `save` (default false), `remove_referencing_nodes`, `acknowledged_losses`}; `cleanup_migration` {`asset_path`; `new_parent_class`, `remove_variables`, `remove_functions`, `migrated_overrides`, `dry_run`, `expected_fingerprint`, `remove_referencing_nodes`, `acknowledged_collisions`, `acknowledged_losses`, `expected_cdo_values`, `compile`, `save`}. Error codes: `AMBIGUOUS_CLASS`, `INVALID_PARENT_CLASS`, `NAME_COLLISION`, `POTENTIAL_DATA_LOSS` (with `required_acknowledgment`), `MEMBER_REFERENCED`, `MISSING_PROPERTY_REDIRECT` (returns the `[CoreRedirects]` line), `READBACK_MISMATCH`, `STALE_PRECONDITION`. To move a variable into a native parent use `adopt_native_member`, not `remove_variable`/`cleanup_migration` (removal destroys the referencing nodes). Workflow and rules: `resources/cpp-migration.md`, "Guarded native member adoption".
+- **Native member adoption (guarded, strict params, `dry_run` first):** `reparent`, `rename_member`, `adopt_native_member`, `adopt_scs_into_native`, `swap_scs_component_class`, plus guarded `remove_variable` and `cleanup_migration`. All take `dry_run`, an optional `expected_fingerprint` object (returned by a dry run), `compile` and `save` (`save` requires `compile`), and report `apply_status`, `compile_status`, `readback_status`, `rollback_status`, `save_status`. Params: `reparent` {`asset_path`, `new_parent`; `dry_run`, `expected_fingerprint`, `compile`, `save`, `acknowledged_collisions`, `report_path`}; `rename_member` {`asset_path`, `kind` (`variable`/`function`/`dispatcher`/`local`), `old`, `new`; `function`, `dry_run`, `expected_fingerprint`, `compile`, `save`, `acknowledged_losses`}; `adopt_native_member` {`asset_path`, `mappings` [`{bp_variable, native_property, default?}`]; `transfer_default`, `retarget_nodes`, `dry_run`, `expected_fingerprint`, `compile`, `save`, `acknowledged_losses`}; `adopt_scs_into_native` {`asset_path`, `mappings` [`{scs_node, native_component}`]; `copy`, `remove_scs`, `dry_run`, `expected_fingerprint`, `compile`, `save`, `acknowledged_losses`}; `swap_scs_component_class` {`asset_path`, `component_name`, `new_class`; `dry_run`, `expected_fingerprint`, `compile`, `save`, `acknowledged_losses`}; `remove_variable` {`asset_path`, `name`; `dry_run`, `expected_fingerprint`, `compile` (default false), `save` (default false), `remove_referencing_nodes`, `acknowledged_losses`}; `cleanup_migration` {`asset_path`; `new_parent_class`, `remove_variables`, `remove_functions`, `dry_run`, `expected_fingerprint`, `remove_referencing_nodes`, `acknowledged_collisions`, `acknowledged_losses`, `expected_cdo_values`, `compile`, `save`}. Error codes: `AMBIGUOUS_CLASS`, `INVALID_PARENT_CLASS`, `NAME_COLLISION`, `POTENTIAL_DATA_LOSS` (with `required_acknowledgment`), `MEMBER_REFERENCED`, `MISSING_PROPERTY_REDIRECT` (returns the `[CoreRedirects]` line), `READBACK_MISMATCH`, `STALE_PRECONDITION`. To move a variable into a native parent use `adopt_native_member`, not `remove_variable`/`cleanup_migration` (removal destroys the referencing nodes). Workflow and rules: `resources/cpp-migration.md`, "Guarded native member adoption".
 - **Graph maintenance:** `delete_orphaned_nodes`, `remove_graph`, `search`
 - **Text inventory and migration verification:** `export_text_inventory`, `export_snapshot`, `compare_snapshots`, `compile_all`
 - **Project-wide analysis export:** `export_migration_analysis`
@@ -1083,21 +1079,17 @@ failure object (`success: false`, `_error`, `_message`, `isError: true`); `outco
 ## Reflect
 
 Reflect is reachable **two ways**:
-- **Standalone MCP tools** (recommended, typed parameters): `query_class_hierarchy`,
-  `query_class_detail`, `query_class_context`, `query_overrides`, `query_usages`,
-  `get_dependencies`, `get_referencers`, `impact_analysis`, `rebuild_graph_cache`,
-  `reflect_cache_status`, `scan_project`
+- **Standalone MCP tools** (typed parameters): `query_class_context`, `impact_analysis`, `rebuild_graph_cache`,
+  `reflect_cache_status`, `scan_project`. Class hierarchy/detail, overrides, usages, dependencies and referencers
+  are `reflect_cmd` commands only (no standalone wrappers).
 - **The `reflect_cmd` router** for the native commands (`reflect.class_detail`,
   `reflect.class_hierarchy`, `reflect.search`, `reflect.find_overrides`, `reflect.find_usages`,
   `reflect.get_dependencies`, `reflect.get_referencers`, `reflect.find_broken_config_paths`,
   `reflect.export_dependency_graph`, `reflect.find_name_lookups`, `reflect.find_duplicate_graphs`,
   `reflect.find_interface_implementers`, `reflect.find_type_usages`)
 
-Standalone tools and native commands are not interchangeable:
-
-`query_class_detail` defaults to `detail="summary"` and accepts `summary|properties|full`, refusing an
-unknown value client-side; it maps `properties` to a native `full` read plus a Python allowlist and
-always injects `detail`. The **native** `reflect.class_detail` default is `full` and it accepts **only**
+`reflect_cmd(command="class_detail")` accepts `detail="summary|properties|full"` through the router, refusing an
+unknown value client-side; it maps `properties` to a native `full` read plus a Python allowlist. The **native** `reflect.class_detail` default is `full` and it accepts **only**
 `summary`/`full` — anything else refuses `INVALID_FIELD` (`Invalid detail '<x>'; expected 'summary' or
 'full'`) instead of degrading to the expensive full read. `summary` omits `properties`, `functions` and
 `components`. Callers that previously passed an ad-hoc value such as `"name"` and silently got `full`
@@ -1105,7 +1097,7 @@ must now pass `summary`.
 
 ### Dependency map commands (project-wide, file-backed)
 
-- **`get_referencers` and config.** `reflect.get_referencers` (and the standalone `get_referencers` tool) takes `asset_path`, `category`, `limit` and `include_config` (default `true`). INI references appear as rows `{package: <ini file>, type: "config", file, line, section, key}`; config rows are listed before asset rows and count toward `limit`, so a small `limit` keeps them, and `total`/`total_unfiltered` include them. The config scan reads `Config/*.ini` of the project (non-recursive) and of project plugins; it never reads `Saved/` or engine plugins.
+- **`get_referencers` and config.** `reflect.get_referencers` takes `asset_path`, `category`, `limit` and `include_config` (default `true`). INI references appear as rows `{package: <ini file>, type: "config", file, line, section, key}`; config rows are listed before asset rows and count toward `limit`, so a small `limit` keeps them, and `total`/`total_unfiltered` include them. The config scan reads `Config/*.ini` of the project (non-recursive) and of project plugins; it never reads `Saved/` or engine plugins.
 - **`reflect_cmd` `find_broken_config_paths`** accepts no parameters. It checks every long package path and directory path in those INI files and returns `scanned_files`, `unreadable_files` (listed, never silently dropped), `checked` and `broken: [{file, line, section, key, value, path, kind}]`. A package token is broken when it neither is loaded nor exists on disk; a directory token when neither the Asset Registry nor the mapped disk directory has it.
 - **`reflect_cmd` `export_dependency_graph`**: params `path_prefixes` (required array of mounted folders), `edge_kinds` (default all), `ordering_kinds` (default hard kinds) and `out_path` (required, under `Saved`/`Content`/`Config`). Edge kinds (from depends on to): `inherits`, `implements`, `calls_message`, `casts`, `spawns`, `creates_widget`, `widget_tree_child`, `listview_entry`, `level_placement` (the World asset hard-depends on the Blueprint package, or a hard referencer of its external-actor packages), `struct_use`, `enum_use`, `config`. Scheduled nodes are Blueprints, Worlds, user structs and user enums under the prefixes (`kind` `blueprint`/`world`/`struct`/`enum`); targets outside the prefixes (native `/Script/` classes, other content) are nodes flagged `external: true`, and ini files are `config_file` nodes; external, `asset` and config-file nodes are never scheduled. **Waves:** the graph over scheduled nodes is condensed into strongly connected components and each component is placed at its longest-path level, so everything a node depends on is in an earlier wave and every member of a cycle shares one wave. Only the hard kinds (`inherits`, `implements`, `struct_use`, `enum_use`, `widget_tree_child`, `listview_entry`) order the waves by default; soft kinds are still emitted as edges but order waves only when named in `ordering_kinds`. The file holds `{path_prefixes, edge_kinds, ordering_kinds, unresolved, nodes, edges: [{from, to, kind, graph?, widget?}], waves, cycles}` (plus `load_failures` when non-empty); `cycles` lists the components of size above 1. The response is `{out_path, nodes, edges_by_kind, waves: [sizes], cycles: <count>, ordering_kinds, unresolved, matched_assets, warnings}`. `unresolved` counts Blueprints with an unresolvable parent class and interface entries without a class instead of dropping them.
 - **`reflect_cmd` `find_name_lookups`**: params `path_prefixes` (Blueprints to match against), optional `symbols`, optional `out_path`. It finds by-name access to Blueprint members that references cannot see: string-literal arguments of `FindFunction*`, `FindPropertyByName`, `FindFProperty`, `SetTimerByFunctionName`, `K2_SetTimer`, `CreateUFunction`, `BindUFunction` in the project's C++ (`Source/` of the game and project plugins) and Blueprint timer nodes with a literal function name. **It is literal-only:** a computed or concatenated name is not found, so an empty result is not proof of absence. Each hit is `{source: "cpp"|"blueprint", file|asset_path, line|node_id, api, name, matches}`; the result also reports `scanned_files`, `unreadable_files`, `matched_assets` and `warnings`. With `out_path` the full result goes to the file and the response is a compact summary (scalars plus the first 10 entries of each list and a `<name>_total` count).
@@ -1118,7 +1110,7 @@ All new reflect commands accept only their declared parameters (an unknown one i
 - **`reflect_cmd` `find_interface_implementers`**: params `interface` (required: Blueprint Interface asset path, `/Script/Module.Name`, or a class name `URipX`/`RipX`; the C++ spelling `IRipX` is accepted), `path_prefixes` (required array of mounted folders), optional `include_callers` (default `true`), `function` (restrict the reported functions and the message/typed-call sites to one interface function; cast sites are not function-specific and stay) and `out_path`. Implementers come from the Asset Registry `ImplementedInterfaces` tag, so only candidates are loaded; an inherited implementer is listed with `direct:false` and `via` naming the declaring ancestor. Per interface function the implementation is `function_graph` (`graph_name`, `graph_guid`, `entry_node_guid`, `node_count`), `event` (`graph_guid`, `entry_node_guid`, `has_body`, `subgraph_path` for a collapsed event) or `none`. With callers it lists every call site **matched by the resolved owner of the member, never by name**: `kind` `message` (`UK2Node_Message`), `typed_call` (a `UK2Node_CallFunction` whose member parent is the interface) or `interface_cast` (`UK2Node_DynamicCast`), each with `asset_path`, `graph_name`, `graph_guid`, `subgraph_path`, `node_guid`, `node_class`, `function`; a same-named function on an unrelated class is never reported. Sites whose owner cannot be resolved but whose member name is an interface function are listed under `unresolved_callers`. Result: `implementers`, `implementer_count`, `callers`, `caller_count`, `caller_assets_scanned`. A content interface narrows callers to the hard referencers of its package; **a native interface has no content package, so every Blueprint under `path_prefixes` is loaded.** `ASSET_NOT_FOUND`/`CLASS_NOT_FOUND` for an unknown interface, `INVALID_OPERATION` for a class that is not an interface, `INVALID_FIELD` for bad params.
 - **`reflect_cmd` `find_type_usages`**: params `user_type` (required: UDS/UDE asset path, `/Script/Module.Name`, or a struct/enum name; `F`/`E` prefix optional), `path_prefixes` (required) and optional `out_path`. It loads the hard referencers of the type's package under the prefixes (Blueprints, user structs) or classifies them from the registry and reports `usages` by `category`: `variable` (member variable incl. array/set/map, `role` type/map_key/map_value), `local_variable`, `function_parameter` (function entry/result and custom event user pins), `pin` (any other node pin of the type, incl. enum equality, for-each-enum and enumerator-name nodes; `node_class`, `graph_guid`, `node_guid`, `pin`), `make_struct`, `break_struct`, `set_fields`, `struct_member`, `switch_enum`, `enum_literal`, `datatable_row_struct` (from the `RowStructure` tag, the table is not loaded), `data_asset` (with `via_class` for a Blueprint DataAsset class whose variables use it), `save_game` (a Blueprint deriving from `USaveGame`; `.sav` slot files are not scanned and `notes` says so) and `nested_struct`. Also `by_category`, `usage_count`, `assets_scanned`, `nodes_scanned`, `other_referencers`. Assets that cannot be loaded are listed under `load_failures` and assets beyond the node budget under `skipped_assets`, **never counted as free of the type**. Run it again against the native type after the replacement to prove no residual use of the user type.
   Errors of `find_type_usages`: `CLASS_NOT_FOUND` (no such struct or enum), `ASSET_NOT_FOUND` (asset path missing or not loadable), `INVALID_OPERATION` (neither a struct nor an enum), `INVALID_FIELD` (bad params). Both commands are synchronous with the 1800 s router wait and load every candidate Blueprint, so pass `out_path` for a project-wide result (the file holds the full result, the response a compact summary).
-- **`find_usages` / `find_overrides` (interface owners):** `reflect.find_usages` matches function sites by the resolved owner of the member (a message node is labelled `UK2Node_Message`) and scans every `UBlueprint` subclass, including widget Blueprints; `scope:"derived"` for an interface owner means its implementers (registry tag). `reflect.find_overrides` on an interface returns `implementers` and a `note`; the standalone `query_overrides` accepts optional `path_prefixes` for that case (a live read, not the cached one).
+- **`find_usages` / `find_overrides` (interface owners):** `reflect.find_usages` matches function sites by the resolved owner of the member (a message node is labelled `UK2Node_Message`) and scans every `UBlueprint` subclass, including widget Blueprints; `scope:"derived"` for an interface owner means its implementers (registry tag). `reflect.find_overrides` on an interface returns `implementers` and a `note`; `reflect_cmd find_overrides` accepts optional `path_prefixes` for that case (a live read, not the cached one).
 
 ### Other reflect read contracts
 

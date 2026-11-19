@@ -193,7 +193,7 @@ When the orchestrator passes `goal: redesign`, Phase 3 uses the `## Responsibili
    - Tier 2: confirm the group is truly stateless or subsystem-scoped, verify correct subsystem type (`UWorldSubsystem` vs `UGameInstanceSubsystem` vs `UBlueprintFunctionLibrary`)
    - Tier 3: confirm groups genuinely represent distinct entities
 3. **Check for existing C++ matches** before generating new classes:
-   - `query_class_hierarchy` under `UActorComponent` for component matches
+   - `reflect_cmd class_hierarchy` under `UActorComponent` for component matches
    - `query_class_context` for subsystem/utility matches
    - If match found -> propose merge into existing class, not new generation
 4. **Validate target class names** follow Unreal conventions:
@@ -224,7 +224,7 @@ When the orchestrator passes `goal: redesign`, Phase 3 uses the `## Responsibili
 Before finalizing a Migrate or Delete decision, call `get_referencers` to find all assets that reference this Blueprint:
 
 ```python
-get_referencers(asset_path="/Game/Blueprints/BP_TargetActor")
+reflect_cmd(command="get_referencers", params={"asset_path": "/Game/Blueprints/BP_TargetActor"})
 ```
 
 - If `total == 0` → safe to delete or migrate without downstream breakage
@@ -250,9 +250,9 @@ Use these for class analysis, asset dependency checks, and impact assessment —
 | Tool | Use when |
 |------|----------|
 | `query_class_context` | Understand a class — parent, properties, functions, children in one call |
-| `query_class_hierarchy` | Browse the class tree to find existing C++ classes before generating new ones |
-| `query_overrides` | What do Blueprint children override from a C++ base class |
-| `query_usages` | Where is a property or function referenced across Blueprint graphs |
+| `reflect_cmd class_hierarchy` | Browse the class tree to find existing C++ classes before generating new ones |
+| `reflect_cmd find_overrides` | What do Blueprint children override from a C++ base class |
+| `reflect_cmd find_usages` | Where is a property or function referenced across Blueprint graphs |
 | `get_dependencies` | What does this Blueprint import? |
 | `get_referencers` | What references this asset? Before migration/deletion |
 | `impact_analysis` | Full blast radius before removing or renaming a C++ class or public API |

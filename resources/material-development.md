@@ -29,8 +29,8 @@ Independent read calls MUST run in parallel. Keep reads sequential only when lat
 Before changing a shared material or parameter collection (one used across many actors/BPs), run `get_referencers` to see what would be affected:
 
 ```python
-get_referencers(asset_path="/Game/Materials/M_SharedBase")
-get_referencers(asset_path="/Game/Materials/MPC_GlobalParams")
+reflect_cmd(command="get_referencers", params={"asset_path": "/Game/Materials/M_SharedBase"})
+reflect_cmd(command="get_referencers", params={"asset_path": "/Game/Materials/MPC_GlobalParams"})
 ```
 
 If `total > 0`, inform the user which assets reference it before proceeding with breaking changes (renamed parameters, removed nodes, changed domain/blend mode).
@@ -288,8 +288,8 @@ Use these for class analysis, asset dependency checks, and impact assessment —
 | Tool | Use when |
 |------|----------|
 | `query_class_context` | Understand a material-related class — parent, properties, children in one call |
-| `query_class_hierarchy` | Discover material function or expression subclasses |
-| `query_usages` | Where is a material property referenced in Blueprint graphs |
+| `reflect_cmd class_hierarchy` | Discover material function or expression subclasses |
+| `reflect_cmd find_usages` | Where is a material property referenced in Blueprint graphs |
 | `get_dependencies` | What does this material or parameter collection import? |
 | `get_referencers` | What references this material/collection? Before renaming parameters or changing domain |
 | `impact_analysis` | Full blast radius before breaking changes to a widely-used shared material |
@@ -327,7 +327,7 @@ Raw native `batch` envelope; through MCP send the same `params` with `core_cmd(c
     "commands": [
       {"command": "material.add_node", "params": {"asset_path": "/Game/Materials/M_Rock", "expression_class": "MaterialExpressionTextureSample"}},
       {"command": "material.add_node", "params": {"asset_path": "/Game/Materials/M_Rock", "expression_class": "MaterialExpressionMultiply"}},
-      {"command": "material.connect", "params": {"asset_path": "/Game/Materials/M_Rock", "source_node": "$steps[0].data.node_id", "source_pin": "RGB", "target_node": "$steps[1].data.node_id", "target_pin": "A"}}
+      {"command": "material.connect", "params": {"asset_path": "/Game/Materials/M_Rock", "source_node": "$steps[0].data.node_id", "source_output": "RGB", "target_node": "$steps[1].data.node_id", "target_input": "A"}}
     ]
   }
 }

@@ -19,7 +19,7 @@ Additional verification steps for redesign migrations:
 1. **Target class existence** — verify all target classes from `target_classes` frontmatter exist in the reflection system:
    - Call `query_class_context` on each target class name
    - Confirm class exists, compiles, and has expected parent class
-   - For components: verify they appear in `query_class_hierarchy` under `UActorComponent` or `USceneComponent`
+   - For components: verify they appear in `reflect_cmd class_hierarchy` under `UActorComponent` or `USceneComponent`
 
 2. **Component wiring** — for Tier 1, verify the primary class constructor creates all expected components:
    - Call `blueprint_cmd(command="analyze_for_migration", params={"asset_path": "/Game/.../BP_Name", "sections": ["scs_components"]})` on the migrated BP
@@ -184,7 +184,7 @@ Return concise summary to orchestrator. Do NOT write `04-verification.json`.
 - `blueprint_cmd` `compare_blueprints`, `analyze_for_migration`, `get_class_defaults`, `graph_metrics`
 - `blueprint_cmd` `export_text_inventory`, `export_snapshot`, `compare_snapshots`, `compile_all`
 - `graph_cmd` `search_nodes`
-- `get_referencers`, `query_class_context`, `query_class_hierarchy`
+- `get_referencers`, `query_class_context`, `reflect_cmd class_hierarchy`
 - `core_cmd` `list_redirectors`
 - `level_cmd` `export_class_instances`
 - `editor_cmd` `capture_screenshot`

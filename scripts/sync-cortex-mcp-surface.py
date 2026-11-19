@@ -48,10 +48,6 @@ CORE_FACADE_COMMANDS = [
     "batch_query",
 ]
 
-# Parameters native handlers read without declaring them. Documented examples may use them. The
-# parameters the Python layer owns (pagination, projection) are derived per command in generate().
-HONOURED_UNDECLARED_PARAMS = {"graph.get_subgraph": ["compact", "node_id"], "level.spawn_actor": ["level"]}
-
 DOMAIN_REGISTRATION = re.compile(r'RegisterDomain\(\s*TEXT\("(\w+)"\)\s*,\s*TEXT\("([^"]*)"\)\s*,\s*TEXT\("([^"]*)"\)')
 # `FCortexCommandInfo{TEXT("x"), ...}` and the `Commands.Add({TEXT("x"), TEXT("desc")})` form.
 DECLARATION = re.compile(r'(?:FCortexCommandInfo\s*|Commands\.Add\(\s*)\{\s*TEXT\("(\w+)"\)\s*,')
@@ -246,9 +242,6 @@ def generate(plugin: Path, ref: str | None) -> dict:
         legacy.update(tools if isinstance(tools, list) else tools.keys())
     legacy -= set(exposed)
 
-    for qualified, params in HONOURED_UNDECLARED_PARAMS.items():
-        domain, command = qualified.split(".", 1)
-        command_params[domain][command] = sorted(set(command_params[domain][command]) | set(params))
     # A legacy wrapper whose name is also a live routed command (e.g. add_widget) is not
     # provably stale from the name alone, so the lint must not flag it.
     legacy -= {command for names in domains.values() for command in names}

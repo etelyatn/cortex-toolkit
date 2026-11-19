@@ -168,20 +168,20 @@ Single tool for all level modifications. Pass an `operations` array:
 ### Transforms and Properties
 - `get_actor(actor)` - full actor details
 - `set_transform(actor, location?, rotation?, scale?)`
-- `set_actor_property(actor, property_path, value)`
-- `get_actor_property(actor, property_path)`
+- `set_actor_property(actor, property, value)`
+- `get_actor_property(actor, property)`
 
 ### Components
 - `list_components(actor, include_properties?)` — metadata by default; `include_properties=true` adds a capped (20) editable-value snapshot with `total_property_count`/`returned_property_count`/`properties_complete`
-- `add_component(actor, class_name, name?)`
+- `add_component(actor, class, name?)`
 - `remove_component(actor, component)`
-- `get_component_property(actor, component, property_path)`
-- `set_component_property(actor, component, property_path, value)`
+- `get_component_property(actor, component, property)`
+- `set_component_property(actor, component, property, value)`
 
 ### Queries and Selection
-- `list_actors(class_filter?, tags?, folder?, region?, limit?, offset?)`
+- `list_actors(class?, tags?, folder?, region?, limit?, offset?)`
 - `find_actors(pattern)` - wildcard search by label or name
-- `get_bounds(class_filter?, tags?, folder?, region?)`
+- `get_bounds(class?, tags?, folder?, region?)`
 - `select_actors(actors, add?)`
 - `get_selection()`
 
@@ -192,7 +192,7 @@ Single tool for all level modifications. Pass an `operations` array:
 ### Discovery
 - `list_actor_classes(category?)`
 - `list_component_classes(category?)`
-- `describe_class(class_name)`
+- `describe_class(class)`
 
 ### Streaming and Persistence
 - `get_info()`
@@ -287,11 +287,11 @@ Use these for class analysis, asset dependency checks, and impact assessment —
 | Tool | Use when |
 |------|----------|
 | `query_class_context` | Understand an actor class — parent, properties, children in one call |
-| `query_class_hierarchy` | Discover all subclasses of a base class (e.g., all AActor subclasses in the project) |
+| `reflect_cmd class_hierarchy` | Discover all subclasses of a base class (e.g., all AActor subclasses in the project) |
 | `get_dependencies` | What does this level asset or actor Blueprint import? |
 | `get_referencers` | What references this asset? Before deleting or replacing a class |
 | `impact_analysis` | Full blast radius before removing or renaming an actor class or property |
-| `query_usages` | Where is a property or function referenced across Blueprint graphs |
+| `reflect_cmd find_usages` | Where is a property or function referenced across Blueprint graphs |
 
 ## Best Practices
 

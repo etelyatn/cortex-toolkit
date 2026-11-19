@@ -18,7 +18,7 @@ AI Agent → MCP Server (Python) → TCP → CortexCore (C++ UE Plugin) → Unre
 Commands are namespaced: `{domain}.{command}`
 
 ```json
-{"command": "data.list_datatables", "params": {"path": "/Game/Data"}}
+{"command": "data.list_datatables", "params": {"path_filter": "/Game/Data"}}
 ```
 
 Built-in commands (no namespace): `get_status`, `get_capabilities`

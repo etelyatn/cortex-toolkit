@@ -1,7 +1,7 @@
 {
   "provenance": {
-    "plugin_commit": "2aa17659ec6fa730c2b5245dca9f5517a93898cc",
-    "plugin_ref": "main",
+    "plugin_commit": "1432b46975f7bb2581cd2117e30121b1e832b9ee",
+    "plugin_ref": "feat/255-enforce-declared-params",
     "plugin_dirty": false
   },
   "exposed_tools": [
@@ -15,8 +15,6 @@
     "editor_restart",
     "gen_cmd",
     "gen_compose",
-    "get_dependencies",
-    "get_referencers",
     "graph_cmd",
     "impact_analysis",
     "level_cmd",
@@ -28,10 +26,6 @@
     "qa_cmd",
     "qa_test_step",
     "query_class_context",
-    "query_class_detail",
-    "query_class_hierarchy",
-    "query_overrides",
-    "query_usages",
     "rebuild_graph_cache",
     "reflect_cache_status",
     "reflect_cmd",
@@ -96,8 +90,8 @@
       "export_schema_json",
       "compare_data_json",
       "apply_import_ops_json",
-      "verify_type_replacement",
-      "plan_type_replacement"
+      "plan_type_replacement",
+      "verify_type_replacement"
     ],
     "graph": [
       "get_authoring_context",
@@ -161,9 +155,9 @@
       "swap_scs_component_class",
       "add_interface",
       "remove_interface",
+      "replace_interface",
       "set_tick_settings",
-      "set_replication_settings",
-      "replace_interface"
+      "set_replication_settings"
     ],
     "umg": [
       "add_widget",
@@ -171,6 +165,8 @@
       "reparent",
       "get_tree",
       "get_widget",
+      "set_property_binding",
+      "rename_widget",
       "set_widget_variable",
       "list_widget_classes",
       "duplicate_widget",
@@ -191,8 +187,6 @@
       "remove_animation",
       "list_animation_bindings",
       "remove_animation_binding",
-      "set_property_binding",
-      "rename_widget",
       "ensure_animation_binding",
       "set_animation_property_track",
       "check_native_bindings",
@@ -261,7 +255,6 @@
       "focus_node",
       "set_viewport_mode",
       "execute_console_command",
-      "run_python",
       "get_cvar",
       "set_cvar",
       "list_cvars",
@@ -269,6 +262,7 @@
       "set_time_dilation",
       "get_editor_state",
       "get_world_info",
+      "run_python",
       "live_coding_compile",
       "wait_ready"
     ],
@@ -343,8 +337,8 @@
       "export_dependency_graph",
       "find_name_lookups",
       "find_duplicate_graphs",
-      "find_type_usages",
-      "find_interface_implementers"
+      "find_interface_implementers",
+      "find_type_usages"
     ],
     "statetree": [
       "list_assets",
@@ -473,6 +467,7 @@
         "table_path"
       ],
       "list_datatables": [
+        "include_row_count",
         "path_filter"
       ],
       "get_datatable_schema": [
@@ -522,6 +517,7 @@
         "keys",
         "limit",
         "preview_fields",
+        "query",
         "search_mode",
         "search_text",
         "string_table_path",
@@ -529,6 +525,7 @@
       ],
       "get_data_catalog": [
         "include_asset_paths",
+        "include_row_count",
         "sections"
       ],
       "resolve_tags": [
@@ -546,7 +543,7 @@
       ],
       "register_gameplay_tag": [
         "dev_comment",
-        "source",
+        "ini_file",
         "tag"
       ],
       "register_gameplay_tags": [
@@ -582,6 +579,7 @@
       ],
       "set_translation": [
         "key",
+        "save",
         "string_table_path",
         "text"
       ],
@@ -610,12 +608,11 @@
         "table_path"
       ],
       "update_curve_table_row": [
-        "keyframes",
+        "keys",
         "row_name",
         "table_path"
       ],
       "export_datatable_json": [
-        "allow_partial",
         "fields",
         "include_schema",
         "out_path",
@@ -624,7 +621,6 @@
         "table_path"
       ],
       "export_string_table_json": [
-        "allow_partial",
         "key_pattern",
         "out_path",
         "string_table_path"
@@ -669,11 +665,6 @@
         "report_path",
         "stop_on_error"
       ],
-      "verify_type_replacement": [
-        "out_path",
-        "plan_path",
-        "save"
-      ],
       "plan_type_replacement": [
         "baseline_dir",
         "member_map",
@@ -681,6 +672,11 @@
         "out_path",
         "user_type",
         "value_map"
+      ],
+      "verify_type_replacement": [
+        "out_path",
+        "plan_path",
+        "save"
       ]
     },
     "graph": {
@@ -713,8 +709,7 @@
         "include_edges",
         "max_depth",
         "start_node_id",
-        "subgraph_path",
-        "traverse_policy"
+        "subgraph_path"
       ],
       "trace_dataflow": [
         "asset_path",
@@ -724,8 +719,7 @@
         "include_edges",
         "max_depth",
         "start_node_id",
-        "subgraph_path",
-        "traverse_policy"
+        "subgraph_path"
       ],
       "get_subgraph": [
         "asset_path",
@@ -741,22 +735,29 @@
       "list_event_handlers": [
         "asset_path",
         "graph_guid",
-        "graph_path"
+        "graph_name",
+        "graph_path",
+        "subgraph_path"
       ],
       "find_event_handler": [
         "asset_path",
         "event_name",
         "graph_guid",
-        "graph_path"
+        "graph_name",
+        "graph_path",
+        "subgraph_path"
       ],
       "find_function_calls": [
         "asset_path",
         "function_name",
         "graph_guid",
-        "graph_path"
+        "graph_name",
+        "graph_path",
+        "subgraph_path"
       ],
       "add_node": [
         "asset_path",
+        "graph_guid",
         "graph_name",
         "node_class",
         "params",
@@ -764,8 +765,10 @@
         "subgraph_path"
       ],
       "describe_node": [
+        "asset_path",
         "node_class",
-        "params"
+        "params",
+        "target"
       ],
       "remove_node": [
         "asset_path",
@@ -775,12 +778,18 @@
       ],
       "connect": [
         "asset_path",
+        "from_node",
+        "from_pin",
         "graph_name",
         "source_node",
+        "source_node_id",
         "source_pin",
         "subgraph_path",
         "target_node",
-        "target_pin"
+        "target_node_id",
+        "target_pin",
+        "to_node",
+        "to_pin"
       ],
       "disconnect": [
         "asset_path",
@@ -884,10 +893,8 @@
         "save"
       ],
       "add_function": [
-        "access",
         "asset_path",
         "inputs",
-        "is_pure",
         "name",
         "outputs"
       ],
@@ -913,6 +920,7 @@
       ],
       "list_inherited_properties": [
         "asset_path",
+        "blueprint_path",
         "discovery_limit",
         "discovery_offset",
         "include_members",
@@ -921,6 +929,7 @@
       ],
       "list_settable_defaults": [
         "asset_path",
+        "blueprint_path",
         "discovery_limit",
         "discovery_offset",
         "include_members",
@@ -979,7 +988,6 @@
         "dry_run",
         "expected_cdo_values",
         "expected_fingerprint",
-        "migrated_overrides",
         "new_parent_class",
         "remove_functions",
         "remove_referencing_nodes",
@@ -1118,6 +1126,18 @@
         "interface_path",
         "preserve_implementations"
       ],
+      "replace_interface": [
+        "asset_path",
+        "compile",
+        "dry_run",
+        "expected_fingerprint",
+        "expected_validation_hash",
+        "function_map",
+        "new_interface",
+        "old_interface",
+        "patch_id",
+        "save"
+      ],
       "set_tick_settings": [
         "asset_path",
         "can_ever_tick",
@@ -1134,24 +1154,13 @@
         "replicate_movement",
         "replicates",
         "save"
-      ],
-      "replace_interface": [
-        "asset_path",
-        "compile",
-        "dry_run",
-        "expected_fingerprint",
-        "expected_validation_hash",
-        "function_map",
-        "new_interface",
-        "old_interface",
-        "patch_id",
-        "save"
       ]
     },
     "umg": {
       "add_widget": [
         "asset_path",
         "name",
+        "parent",
         "parent_name",
         "slot_index",
         "widget_class"
@@ -1176,6 +1185,22 @@
       "get_widget": [
         "asset_path",
         "include_property_bindings",
+        "widget_name"
+      ],
+      "set_property_binding": [
+        "asset_path",
+        "binding",
+        "expected_fingerprint",
+        "property_name",
+        "widget_name"
+      ],
+      "rename_widget": [
+        "asset_path",
+        "dry_run",
+        "expected_dependent_fingerprints",
+        "expected_fingerprint",
+        "new_name",
+        "scope",
         "widget_name"
       ],
       "set_widget_variable": [
@@ -1300,22 +1325,6 @@
         "save",
         "selector"
       ],
-      "set_property_binding": [
-        "asset_path",
-        "binding",
-        "expected_fingerprint",
-        "property_name",
-        "widget_name"
-      ],
-      "rename_widget": [
-        "asset_path",
-        "dry_run",
-        "expected_dependent_fingerprints",
-        "expected_fingerprint",
-        "new_name",
-        "scope",
-        "widget_name"
-      ],
       "ensure_animation_binding": [
         "animation_name",
         "asset_path",
@@ -1376,6 +1385,7 @@
       "create_instance": [
         "asset_path",
         "name",
+        "parent",
         "parent_material"
       ],
       "delete_instance": [
@@ -1390,6 +1400,7 @@
       ],
       "set_parameter": [
         "asset_path",
+        "name",
         "parameter_name",
         "parameter_type",
         "value"
@@ -1413,6 +1424,7 @@
       "add_node": [
         "asset_path",
         "expression_class",
+        "node_class",
         "position"
       ],
       "remove_node": [
@@ -1425,10 +1437,13 @@
       ],
       "connect": [
         "asset_path",
+        "from_node",
         "source_node",
         "source_output",
         "target_input",
-        "target_node"
+        "target_node",
+        "to_input",
+        "to_node"
       ],
       "disconnect": [
         "asset_path",
@@ -1448,11 +1463,14 @@
         "use_constant"
       ],
       "auto_layout": [
-        "asset_path"
+        "asset_path",
+        "horizontal_spacing",
+        "vertical_spacing"
       ],
       "set_node_property": [
         "asset_path",
         "node_id",
+        "property",
         "property_name",
         "value"
       ],
@@ -1576,8 +1594,7 @@
         "value"
       ],
       "inject_input_sequence": [
-        "steps",
-        "timeout"
+        "steps"
       ],
       "capture_screenshot": [
         "output_path"
@@ -1589,6 +1606,8 @@
         "rotation"
       ],
       "focus_actor": [
+        "actor",
+        "actor_name",
         "actor_path"
       ],
       "focus_node": [
@@ -1602,10 +1621,6 @@
       ],
       "execute_console_command": [
         "command"
-      ],
-      "run_python": [
-        "code",
-        "run_next_tick"
       ],
       "get_cvar": [
         "name"
@@ -1632,6 +1647,10 @@
       ],
       "get_editor_state": [],
       "get_world_info": [],
+      "run_python": [
+        "code",
+        "run_next_tick"
+      ],
       "live_coding_compile": [],
       "wait_ready": [
         "reopen_assets",
@@ -1851,6 +1870,7 @@
       ],
       "wait_for": [
         "actor",
+        "distance",
         "property",
         "timeout",
         "type",
@@ -1870,6 +1890,7 @@
       ],
       "assert_state": [
         "actor",
+        "distance",
         "expected",
         "message",
         "property",
@@ -1879,6 +1900,7 @@
     },
     "reflect": {
       "class_hierarchy": [
+        "class_name",
         "depth",
         "include_blueprint",
         "include_engine",
@@ -1892,13 +1914,15 @@
       "class_detail": [
         "class_name",
         "detail",
-        "include_inherited"
+        "include_inherited",
+        "root"
       ],
       "find_overrides": [
         "class_name",
         "depth",
         "limit",
-        "path_prefixes"
+        "path_prefixes",
+        "root"
       ],
       "find_usages": [
         "class_name",
@@ -1912,7 +1936,10 @@
       "search": [
         "include_engine",
         "limit",
-        "pattern"
+        "module_filter",
+        "pattern",
+        "query",
+        "type_filter"
       ],
       "get_dependencies": [
         "asset_path",
@@ -1943,17 +1970,17 @@
         "path_prefixes",
         "similarity"
       ],
-      "find_type_usages": [
-        "out_path",
-        "path_prefixes",
-        "user_type"
-      ],
       "find_interface_implementers": [
         "function",
         "include_callers",
         "interface",
         "out_path",
         "path_prefixes"
+      ],
+      "find_type_usages": [
+        "out_path",
+        "path_prefixes",
+        "user_type"
       ]
     },
     "statetree": {
@@ -2335,9 +2362,11 @@
         "destination",
         "prompt",
         "provider",
+        "quality",
         "source_image_path"
       ],
       "start_image": [
+        "destination",
         "prompt",
         "provider"
       ],
@@ -2345,6 +2374,7 @@
         "destination",
         "prompt",
         "provider",
+        "quality",
         "source_model_path"
       ],
       "job_status": [
@@ -2517,6 +2547,10 @@
     "move_player_to",
     "observe_game_state",
     "press_key",
+    "query_class_detail",
+    "query_class_hierarchy",
+    "query_overrides",
+    "query_usages",
     "recompile_dependent_blueprints",
     "remove_blueprint_interface",
     "remove_blueprint_variable",

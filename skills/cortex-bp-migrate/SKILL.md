@@ -55,7 +55,7 @@ When `--fast` is specified, the pipeline checks eligibility AFTER the technical 
 |-----------|-------|--------|
 | High confidence | `migration_confidence` = "high" | `blueprint_cmd analyze_for_migration` |
 | No external dependents | `referencers` = 0 | `get_referencers` |
-| No child Blueprints | `blueprint_children_count` = 0 | `query_class_detail` (reflect `class_detail`; `analyze_for_migration` does not emit it) |
+| No child Blueprints | `blueprint_children_count` = 0 | `reflect_cmd class_detail` (reflect `class_detail`; `analyze_for_migration` does not emit it) |
 | No timelines | `timelines` array is empty | `blueprint_cmd analyze_for_migration` |
 | No event dispatchers | `event_dispatchers` array is empty | `blueprint_cmd analyze_for_migration` |
 | No interfaces | `interfaces_implemented` array is empty | `blueprint_cmd analyze_for_migration` |
@@ -325,7 +325,7 @@ Skip the 3 conversational goal questions. Auto-select defaults:
 Call MCP tools (same as full pipeline ANALYZE Step 2):
 1. `blueprint_cmd(command="analyze_for_migration", ...)`
 2. `get_referencers`
-3. `query_class_hierarchy`
+3. `reflect_cmd class_hierarchy`
 4. `query_class_context`
 
 **Step A3: Eligibility Gate**
@@ -554,7 +554,7 @@ See `cpp-migration.md` "Logic vs Cosmetic" section for the full classification.
 Call these MCP tools in sequence:
 1. `blueprint_cmd(command="analyze_for_migration", params={"asset_path": "..."})` — full Blueprint snapshot. Pass `sections` (for example `["variables", "functions", "graphs", "timelines"]`) to bound the response; an unknown section is refused before any output.
 2. `get_referencers` — dependency scan (children, level placements, external callers)
-3. `query_class_hierarchy` — parent class chain
+3. `reflect_cmd class_hierarchy` — parent class chain
 4. `query_class_context` — existing C++ in project
 5. `blueprint_cmd(command="graph_metrics", params={"asset_path": "..."})` — reachability-aware logic budget per entry (`functional_nodes`, `conditionals`, `max_getter_fanout`, `ghost_entries`, `unreachable`, `violations`). Use `totals.functional_nodes` as the complexity signal instead of raw node counts; unconnected entries and unreachable nodes are not logic to migrate.
 
@@ -577,7 +577,7 @@ From the results:
 When the user selects "Redesign/restructure" as the migration goal, perform additional analysis after the standard MCP tools:
 
 1. **Responsibility detection** — group BP functions, variables, and components by logical responsibility. Use functional group analysis from coupling matrix. Name each group by its domain (for example, "Health Management", "Movement", "Combat", "UI Binding"). A responsibility = a cohesive set of variables + the functions that read/write them + the components they reference.
-2. **Existing C++ integration scan** — use `query_class_context` results to identify existing C++ classes that overlap with detected responsibilities. Also call `query_usages` on key BP functions/variables to find cross-references. Flag merge opportunities where BP logic duplicates existing C++ functionality. **Early exit:** if no overlap found after checking BP parent class and its siblings in the hierarchy, skip further scanning. Do not exhaustively search the entire project.
+2. **Existing C++ integration scan** — use `query_class_context` results to identify existing C++ classes that overlap with detected responsibilities. Also call `reflect_cmd find_usages` on key BP functions/variables to find cross-references. Flag merge opportunities where BP logic duplicates existing C++ functionality. **Early exit:** if no overlap found after checking BP parent class and its siblings in the hierarchy, skip further scanning. Do not exhaustively search the entire project.
 3. **Tier classification** — classify the migration using these rules:
 
    **Default hierarchy:** Tier 1 > Tier 2 > Tier 3. Always prefer the lower tier.
@@ -595,7 +595,7 @@ When the user selects "Redesign/restructure" as the migration goal, perform addi
 
    **Construction script exclusion:** If a responsibility group contains UserConstructionScript nodes with structural logic, it cannot extract to a component (only actors have UserConstructionScript). These nodes must stay on the primary class or remain in BP.
 
-   **Existing C++ merge detection:** Before generating new component/subsystem classes, check if the project already has a matching C++ class (for example, an existing `UHealthComponent`). Use `query_class_hierarchy` under `UActorComponent` and `query_class_context`. If found, propose merging into the existing class rather than generating a duplicate.
+   **Existing C++ merge detection:** Before generating new component/subsystem classes, check if the project already has a matching C++ class (for example, an existing `UHealthComponent`). Use `reflect_cmd class_hierarchy` under `UActorComponent` and `query_class_context`. If found, propose merging into the existing class rather than generating a duplicate.
 
 4. **Target class mapping** — for each responsibility group, assign a target C++ class:
    - Class name following Unreal conventions (Components: `U{Responsibility}Component`, Subsystems: `U{Name}Subsystem`, Secondary actors: `A{Name}`)
@@ -832,7 +832,7 @@ After ANALYZE completes, classify the migration as simple or complex:
 Simple migration (ALL must be true):
 - `migration_confidence` = high
 - `referencers` = 0
-- `blueprint_children_count` = 0 (from `query_class_detail`)
+- `blueprint_children_count` = 0 (from `reflect_cmd class_detail`)
 - No timelines
 - No event dispatchers
 - No interfaces implemented

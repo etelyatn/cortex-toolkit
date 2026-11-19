@@ -28,7 +28,7 @@ Keep this flow non-destructive. Prefer discovery and documentation over test mut
 
 Execute a predefined gameplay QA scenario and return findings with report artifacts.
 
-1. Read the scenario format from `resources/scenario-format.md`. Execute the scenario steps directly with `scenario_compose(scenario_name=..., steps=[...])`, where each step carries the `action`, optional `wait`, optional `assertion`, and `screenshot_name`.
+1. Read the scenario format from `resources/scenario-format.md`. Execute the scenario steps directly with `scenario_compose(scenario_name=..., steps=[...])`, where each step is a `{command, params}` object naming a routed command (for example `qa.move_to` or `qa.assert_state`).
 2. Detect structural issues after each step (assertion failures, unexpected actor state, missing actors).
 3. Capture a screenshot on assertion failures so the report has visual evidence.
 4. Read the per-step and summary `log_coverage` (`{complete, lost_before_cursor, window_end_cursor, count, cause}`) emitted on the one-shot finite `editor.get_recent_logs` window. Only a `complete=true` window supports a "no errors" claim; when `complete=false`, report the coverage gap and its `cause` instead of assuming absence, and re-run with a tighter severity/category filter if a specific error is suspected.
@@ -43,7 +43,7 @@ If the scenario is interrupted, report what completed, what remains, and what bl
 
 Drive live exploratory testing in PIE with tight observe-act-assert loops.
 
-1. Loop `qa_test_step` steps in the current conversation: each step has an `action` (`qa_cmd` command such as `move_to`, `interact`, `look_at`, `teleport_player`, `probe_forward`), optional `wait`, optional `assertion` (via `qa_cmd(command="assert_state")`), and a `screenshot_name`.
+1. Loop `qa_test_step` steps in the current conversation: each step has an `action` (`qa_cmd` command such as `move_to`, `interact`, `look_at`, `teleport_player`, `probe_forward`), optional `wait`, and optional `assertion` (via `qa_cmd(command="assert_state")`). The screenshot goes to the default `Saved/CortexScreenshots` location.
 2. Operate one user-requested step at a time; report findings after every step.
 3. After each step, suggest the next highest-value probe based on observed state.
 4. Continue until the user ends the session or a critical issue is found.
