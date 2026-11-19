@@ -245,7 +245,7 @@ Blueprint actors have three identifiers — understanding these prevents common 
 |-----------|---------|-----------|---------|
 | **Label** | `BP_Lift` | Display name in the Outliner | **Use this** for `actor` parameters |
 | **Internal name** | `BP_Lift_C_1` | Instance name (`_C` = compiled class, `_N` = instance index) | Appears in `list_actors` `name` field — do NOT use as `actor` param |
-| **Class** | `BP_Lift_C` | Compiled Blueprint class | Use for `class_filter` in `list_actors` |
+| **Class** | `BP_Lift_C` | Compiled Blueprint class | Use for `class` in `list_actors` |
 
 **Rule:** Always use the `label` field to target actors. The `name` field (with `_C_N` suffix) is the engine's internal instance name and will fail as an actor identifier.
 
