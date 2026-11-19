@@ -54,8 +54,8 @@ When `--fast` is specified, the pipeline checks eligibility AFTER the technical 
 | Criterion | Check | Source |
 |-----------|-------|--------|
 | High confidence | `migration_confidence` = "high" | `blueprint_cmd analyze_for_migration` |
-| No external dependents | `referencers` = 0 | `get_referencers` |
-| No child Blueprints | `blueprint_children_count` = 0 | `reflect_cmd class_detail` (reflect `class_detail`; `analyze_for_migration` does not emit it) |
+| No external dependents | `referencers` = 0 | `reflect_cmd(command="get_referencers", params={...})` |
+| No child Blueprints | `blueprint_children_count` = 0 | `reflect_cmd(command="class_detail", params={...})` (reflect `class_detail`; `analyze_for_migration` does not emit it) |
 | No timelines | `timelines` array is empty | `blueprint_cmd analyze_for_migration` |
 | No event dispatchers | `event_dispatchers` array is empty | `blueprint_cmd analyze_for_migration` |
 | No interfaces | `interfaces_implemented` array is empty | `blueprint_cmd analyze_for_migration` |
@@ -191,7 +191,7 @@ core_cmd(command="asset_fingerprint", params={"paths": ["<backup_path>"]})
 ```
 
 `duplicate` only marks the new package dirty, and the editor restart in PREPARE runs with `save=no`, so the backup must be saved immediately or it is lost. Saving it is safe because the backup has no referencers and is not the migrated asset. `backup_verified` is true only when `asset_fingerprint` returns a non-empty `package_saved_hash` (computed from the saved file) and `is_dirty: false` for the backup. The backup is a **read-only snapshot**: never edit, compile-fix, reparent or open it for editing. It exists for comparison (`compare_blueprints`, `analyze_for_migration`) and as a keepsake. It is NOT a restore source.
-5. **Placed-instance baseline.** Placed instances reference `BP_Name`, not the backup, so the backup cannot serve as their "before" state. When `get_referencers` shows level placements, export them before the first mutation: `level_cmd(command="export_class_instances", params={"class": "/Game/.../BP_Name", "maps": ["/Game/Maps/Main"], "out_path": "<project>/Saved/Migration/{BP_Name}_placed_instances_baseline.json"})` (`class` accepts a Blueprint asset path; `maps` are the referencing map packages; `out_path` must be under `Saved`, `Content` or `Config`; `changed_only` defaults to true). The export reads **saved** maps only and refuses World Partition maps: ask the user to save open level edits first, and for a refused map record that the placed-instance check is not comparable instead of failing the task. Record the path as `placed_instances_baseline`. The verifier runs the same export after the migration and diffs it against this file. If the file is missing on resume or after a crash and the original is already reparented, record "no baseline" and report the check as not comparable instead of exporting a new baseline.
+5. **Placed-instance baseline.** Placed instances reference `BP_Name`, not the backup, so the backup cannot serve as their "before" state. When `reflect_cmd(command="get_referencers", params={...})` shows level placements, export them before the first mutation: `level_cmd(command="export_class_instances", params={"class": "/Game/.../BP_Name", "maps": ["/Game/Maps/Main"], "out_path": "<project>/Saved/Migration/{BP_Name}_placed_instances_baseline.json"})` (`class` accepts a Blueprint asset path; `maps` are the referencing map packages; `out_path` must be under `Saved`, `Content` or `Config`; `changed_only` defaults to true). The export reads **saved** maps only and refuses World Partition maps: ask the user to save open level edits first, and for a refused map record that the placed-instance check is not comparable instead of failing the task. Record the path as `placed_instances_baseline`. The verifier runs the same export after the migration and diffs it against this file. If the file is missing on resume or after a crash and the original is already reparented, record "no baseline" and report the check as not comparable instead of exporting a new baseline.
 6. **Other unsaved assets.** The editor restart in PREPARE runs with `save=no` and discards unsaved edits in every open asset. Before it, ask the user to save or discard any other unsaved work (name the assets they mention and fingerprint them), and only then restart.
 
 Record `backup_path`, `backup_verified`, `blueprint_hash`, `vcs`, `git_commit_before`, `original_copy`, `restore_source` and `placed_instances_baseline` in the frontmatter in that task's edit.
@@ -209,7 +209,7 @@ Set `asset_persisted: true` in the frontmatter **before** issuing any call that 
 
 **Dependent write set (complete before the first `rename_scs_component`; never repaired afterwards).** `rename_scs_component` saves every dependent Blueprint it finds, and a package that was saved without a pre-write copy cannot be restored. So the copies must exist first:
 
-1. Read the complete referencer inventory: `reflect_cmd(command="get_referencers", params={"asset_path": "/Game/.../BP_Name", "limit": 500})`. `get_referencers` has only `limit` (default 100; no offset or cursor) and reports `total` (rows returned) and `total_unfiltered` (all rows, config rows included). While `total < total_unfiltered`, call it again with a larger `limit`. If the inventory cannot be completed, **stop**: the rename is blocked until the user accepts renaming the component by hand or skipping it. A truncated list is a blocker, not something to patch after the save.
+1. Read the complete referencer inventory: `reflect_cmd(command="get_referencers", params={"asset_path": "/Game/.../BP_Name", "limit": 500})`. `reflect_cmd(command="get_referencers", params={...})` has only `limit` (default 100; no offset or cursor) and reports `total` (rows returned) and `total_unfiltered` (all rows, config rows included). While `total < total_unfiltered`, call it again with a larger `limit`. If the inventory cannot be completed, **stop**: the rename is blocked until the user accepts renaming the component by hand or skipping it. A truncated list is a blocker, not something to patch after the save.
 2. Every referencer whose `asset_class` is a Blueprint class (children, hard-referencing Blueprints) is a dependent. For each: `asset_fingerprint` must show `is_dirty: false` (otherwise the user saves or discards it, because the native save would persist its unsaved edits), then copy its `.uasset` to `<project>/Saved/Migration/{BP_Name}/dependents/` and record `{package, file, copy, baseline_hash: package_saved_hash, restore_source}` in `touched_dependents`, with `restore_source` chosen like the original's (`git` only when `git status --porcelain` for that file is empty, otherwise `copy`). Every copy must exist before the call. Maps chosen for the placed-instance baseline come from the same complete inventory.
 3. Write `touched_dependents` to the frontmatter, then issue the rename. After the call, compare the dependents its response reports as saved with the manifest. A saved dependent the manifest lacks means there is no pre-write copy: stop, tell the user that package can only be recovered from version control, and do not describe the migration as having a complete rollback checkpoint.
 
@@ -324,8 +324,8 @@ Skip the 3 conversational goal questions. Auto-select defaults:
 
 Call MCP tools (same as full pipeline ANALYZE Step 2):
 1. `blueprint_cmd(command="analyze_for_migration", ...)`
-2. `get_referencers`
-3. `reflect_cmd class_hierarchy`
+2. `reflect_cmd(command="get_referencers", params={...})`
+3. `reflect_cmd(command="class_hierarchy", params={...})`
 4. `query_class_context`
 
 **Step A3: Eligibility Gate**
@@ -553,8 +553,8 @@ See `cpp-migration.md` "Logic vs Cosmetic" section for the full classification.
 
 Call these MCP tools in sequence:
 1. `blueprint_cmd(command="analyze_for_migration", params={"asset_path": "..."})` — full Blueprint snapshot. Pass `sections` (for example `["variables", "functions", "graphs", "timelines"]`) to bound the response; an unknown section is refused before any output.
-2. `get_referencers` — dependency scan (children, level placements, external callers)
-3. `reflect_cmd class_hierarchy` — parent class chain
+2. `reflect_cmd(command="get_referencers", params={...})` — dependency scan (children, level placements, external callers)
+3. `reflect_cmd(command="class_hierarchy", params={...})` — parent class chain
 4. `query_class_context` — existing C++ in project
 5. `blueprint_cmd(command="graph_metrics", params={"asset_path": "..."})` — reachability-aware logic budget per entry (`functional_nodes`, `conditionals`, `max_getter_fanout`, `ghost_entries`, `unreachable`, `violations`). Use `totals.functional_nodes` as the complexity signal instead of raw node counts; unconnected entries and unreachable nodes are not logic to migrate.
 
@@ -577,7 +577,7 @@ From the results:
 When the user selects "Redesign/restructure" as the migration goal, perform additional analysis after the standard MCP tools:
 
 1. **Responsibility detection** — group BP functions, variables, and components by logical responsibility. Use functional group analysis from coupling matrix. Name each group by its domain (for example, "Health Management", "Movement", "Combat", "UI Binding"). A responsibility = a cohesive set of variables + the functions that read/write them + the components they reference.
-2. **Existing C++ integration scan** — use `query_class_context` results to identify existing C++ classes that overlap with detected responsibilities. Also call `reflect_cmd find_usages` on key BP functions/variables to find cross-references. Flag merge opportunities where BP logic duplicates existing C++ functionality. **Early exit:** if no overlap found after checking BP parent class and its siblings in the hierarchy, skip further scanning. Do not exhaustively search the entire project.
+2. **Existing C++ integration scan** — use `query_class_context` results to identify existing C++ classes that overlap with detected responsibilities. Also call `reflect_cmd(command="find_usages", params={...})` on key BP functions/variables to find cross-references. Flag merge opportunities where BP logic duplicates existing C++ functionality. **Early exit:** if no overlap found after checking BP parent class and its siblings in the hierarchy, skip further scanning. Do not exhaustively search the entire project.
 3. **Tier classification** — classify the migration using these rules:
 
    **Default hierarchy:** Tier 1 > Tier 2 > Tier 3. Always prefer the lower tier.
@@ -595,7 +595,7 @@ When the user selects "Redesign/restructure" as the migration goal, perform addi
 
    **Construction script exclusion:** If a responsibility group contains UserConstructionScript nodes with structural logic, it cannot extract to a component (only actors have UserConstructionScript). These nodes must stay on the primary class or remain in BP.
 
-   **Existing C++ merge detection:** Before generating new component/subsystem classes, check if the project already has a matching C++ class (for example, an existing `UHealthComponent`). Use `reflect_cmd class_hierarchy` under `UActorComponent` and `query_class_context`. If found, propose merging into the existing class rather than generating a duplicate.
+   **Existing C++ merge detection:** Before generating new component/subsystem classes, check if the project already has a matching C++ class (for example, an existing `UHealthComponent`). Use `reflect_cmd(command="class_hierarchy", params={...})` under `UActorComponent` and `query_class_context`. If found, propose merging into the existing class rather than generating a duplicate.
 
 4. **Target class mapping** — for each responsibility group, assign a target C++ class:
    - Class name following Unreal conventions (Components: `U{Responsibility}Component`, Subsystems: `U{Name}Subsystem`, Secondary actors: `A{Name}`)
@@ -821,7 +821,7 @@ Audits many Blueprints without executing anything. Do not write a per-Blueprint 
    - `reflect_cmd(command="find_duplicate_graphs", params={"path_prefixes": ["/Game/..."], "out_path": "<project>/Saved/Migration/audit_duplicates.json"})` groups identical graphs (strict `exact_groups`) and near-identical ones (loose `similar_groups`, same graph name in different Blueprints). A duplicated body should be migrated once, into a shared base class or component, not once per Blueprint.
    - `reflect_cmd(command="find_interface_implementers", params={"interface": "/Game/.../BPI_X", "path_prefixes": ["/Game/..."], "out_path": "<project>/Saved/Migration/audit_bpi_x.json"})` lists the implementers and the callers (`message`, `typed_call`, `interface_cast`, matched by resolved owner) of one Blueprint Interface or native interface. All implementers **and** callers of one BPI are one reviewed migration wave (`replace_interface` per implementer, `retarget_calls` per caller asset; procedure in `resources/cpp-migration.md`, "Interface and user-type replacement"); report `unresolved_callers` for manual review.
    - `reflect_cmd(command="find_type_usages", params={"user_type": "/Game/.../UDS_X", "path_prefixes": ["/Game/..."], "out_path": "<project>/Saved/Migration/audit_uds_x.json"})` classifies where a user struct or enum is used (variables, pins, make/break struct, DataTable rows, DataAssets, SaveGame, nested structs). Replacing it with a native type is `data_cmd` `plan_type_replacement` → `[CoreRedirects]` in `Config/DefaultEngine.ini` + editor restart → `verify_type_replacement`; `load_failures`/`skipped_assets` are never proof of absence.
-   - `reflect_cmd(command="find_broken_config_paths", params={})` lists INI references to content that no longer exists; for an asset about to move, `get_referencers` also returns its config references as `type: "config"` rows.
+   - `reflect_cmd(command="find_broken_config_paths", params={})` lists INI references to content that no longer exists; for an asset about to move, `reflect_cmd(command="get_referencers", params={...})` also returns its config references as `type: "config"` rows.
 4. **Aggregate** into `docs/migration/blueprint-to-cpp/_audit/audit-report.md`: one row per Blueprint (type, immediate and native parent, wave, `metrics.functional_nodes`, violations, timelines/dispatchers/interfaces from the analysis rows, `migration_confidence`, fast-mode eligibility from the criteria above), ranked by wave and then migration value and risk, with a short recommendation per row, the cycles, the by-name and duplicate findings, and the list of assets skipped or failed (with the error).
 5. Report the path to the user and stop. Start a real migration by invoking this skill with the chosen Blueprint path.
 
@@ -832,7 +832,7 @@ After ANALYZE completes, classify the migration as simple or complex:
 Simple migration (ALL must be true):
 - `migration_confidence` = high
 - `referencers` = 0
-- `blueprint_children_count` = 0 (from `reflect_cmd class_detail`)
+- `blueprint_children_count` = 0 (from `reflect_cmd(command="class_detail", params={...})`)
 - No timelines
 - No event dispatchers
 - No interfaces implemented
@@ -1163,7 +1163,7 @@ This is mandatory, not optional. The migration-plan.md is the single source of t
 | 1 | Verify MCP connection via `cortex-editor` | `current_task: 1`, task 1 completed |
 | 2 | Staleness check: compare the original's current `package_saved_hash` (`core_cmd` `asset_fingerprint`) with `blueprint_hash` | `current_task: 2`, task 2 completed |
 | 3 | Check Build.cs for required modules | `current_task: 3`, task 3 completed, `files_modified` += Build.cs path (if changed) |
-| 4 | Backup task, following "Backup task preconditions" in the In-Place Migration Model in order: (1) `core_cmd(command="asset_fingerprint", ...)` on `BP_Name` must show `is_dirty: false` (else stop and ask the user to save or discard) and its `package_saved_hash` is recorded as `blueprint_hash`; (2) record `vcs` and `git_commit_before`, copy the pristine `.uasset` to `Saved/Migration/{BP_Name}/BP_Name.uasset.orig` (`original_copy`, the pristine baseline) and record `restore_source` (`git` only when `git status --porcelain -- <uasset>` is empty, otherwise `copy`); (3) pick a free backup name if `BP_Name_Backup` exists; (4) `blueprint_cmd(command="duplicate", ...)`, then `blueprint_cmd(command="save", params={"asset_path": "<backup_path>"})`, then `core_cmd(command="asset_fingerprint", params={"paths": ["<backup_path>"]})`, with `backup_verified: true` only for a non-empty `package_saved_hash` and `is_dirty: false`; (5) if `get_referencers` shows level placements, `level_cmd(command="export_class_instances", params={"class": "<BP asset path>", "maps": [...], "out_path": "<Saved>/Migration/{BP_Name}_placed_instances_baseline.json"})` (saved, non-World-Partition maps only; otherwise record "not comparable") | `current_task: 4`, task 4 completed, `backup_path`, `backup_verified`, `blueprint_hash`, `vcs`, `git_commit_before`, `original_copy`, `restore_source` and `placed_instances_baseline` set (or null) |
+| 4 | Backup task, following "Backup task preconditions" in the In-Place Migration Model in order: (1) `core_cmd(command="asset_fingerprint", ...)` on `BP_Name` must show `is_dirty: false` (else stop and ask the user to save or discard) and its `package_saved_hash` is recorded as `blueprint_hash`; (2) record `vcs` and `git_commit_before`, copy the pristine `.uasset` to `Saved/Migration/{BP_Name}/BP_Name.uasset.orig` (`original_copy`, the pristine baseline) and record `restore_source` (`git` only when `git status --porcelain -- <uasset>` is empty, otherwise `copy`); (3) pick a free backup name if `BP_Name_Backup` exists; (4) `blueprint_cmd(command="duplicate", ...)`, then `blueprint_cmd(command="save", params={"asset_path": "<backup_path>"})`, then `core_cmd(command="asset_fingerprint", params={"paths": ["<backup_path>"]})`, with `backup_verified: true` only for a non-empty `package_saved_hash` and `is_dirty: false`; (5) if `reflect_cmd(command="get_referencers", params={...})` shows level placements, `level_cmd(command="export_class_instances", params={"class": "<BP asset path>", "maps": [...], "out_path": "<Saved>/Migration/{BP_Name}_placed_instances_baseline.json"})` (saved, non-World-Partition maps only; otherwise record "not comparable") | `current_task: 4`, task 4 completed, `backup_path`, `backup_verified`, `blueprint_hash`, `vcs`, `git_commit_before`, `original_copy`, `restore_source` and `placed_instances_baseline` set (or null) |
 | 5 | Write C++ header to target path | `current_task: 5`, task 5 completed, `files_created` += header path |
 | 6 | Write C++ source to target path | `current_task: 6`, task 6 completed, `files_created` += source path |
 | 7 | Run UBT build, verify 0 errors/warnings | `current_task: 7`, task 7 completed |

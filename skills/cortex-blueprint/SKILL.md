@@ -96,7 +96,7 @@ WORKFLOW:
 6. Check variable organization (categories, exposure, naming)
 7. Cross-reference against project conventions
 
-Note: graph trace/subgraph reads and blueprint_cmd(get_info) default to compact=true (positions, node_class, hidden pins, empty function inputs/outputs stripped). This is fine for review — pass compact=false only if you need position data or must distinguish inherited from blueprint-defined functions via the `source` field.
+Note: graph trace/subgraph reads and blueprint_cmd(get_info) default to compact=true (positions, node_class, hidden pins, empty function inputs/outputs stripped). This is fine for review — pass compact=false only if you need position data. `get_info` now defaults include_inherited=false; pass include_inherited=true to list inherited functions, and every entry then carries `source` (`"blueprint"`/`"inherited"`) even in compact mode.
 
 Return findings grouped by severity: Errors, Warnings, Info.
 ```

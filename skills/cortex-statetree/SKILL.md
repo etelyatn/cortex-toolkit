@@ -83,7 +83,7 @@ Review the following StateTree(s):
 **Prefetched state:** [embed the main-thread prefetched_state block here before proceeding]
 
 READ-ONLY MODE:
-Permitted tools: statetree_cmd(list_assets), statetree_cmd(dump_tree), statetree_cmd(get_state), statetree_cmd(check_structure), statetree_cmd(get_node_bindings), statetree_cmd(get_runtime_state), get_dependencies, get_referencers.
+Permitted tools: statetree_cmd(list_assets), statetree_cmd(dump_tree), statetree_cmd(get_state), statetree_cmd(check_structure), statetree_cmd(get_node_bindings), statetree_cmd(get_runtime_state), reflect_cmd(get_dependencies), reflect_cmd(get_referencers).
 Do not call validate_asset, compile, add_state, remove_state, rename_state, move_state, set_state_properties, add_transition, remove_transition, set_transition_properties, replace_node, create_asset, duplicate_asset, or delete_asset.
 
 WORKFLOW:

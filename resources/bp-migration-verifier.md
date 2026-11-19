@@ -19,7 +19,7 @@ Additional verification steps for redesign migrations:
 1. **Target class existence** — verify all target classes from `target_classes` frontmatter exist in the reflection system:
    - Call `query_class_context` on each target class name
    - Confirm class exists, compiles, and has expected parent class
-   - For components: verify they appear in `reflect_cmd class_hierarchy` under `UActorComponent` or `USceneComponent`
+   - For components: verify they appear in `reflect_cmd(command="class_hierarchy", params={...})` under `UActorComponent` or `USceneComponent`
 
 2. **Component wiring** — for Tier 1, verify the primary class constructor creates all expected components:
    - Call `blueprint_cmd(command="analyze_for_migration", params={"asset_path": "/Game/.../BP_Name", "sections": ["scs_components"]})` on the migrated BP
@@ -77,7 +77,7 @@ For each public member of the original Blueprint:
 | **WARNING** | C++ has same name but different signature (pins disconnect) |
 | **BREAKING** | No C++ equivalent found (caller node becomes error) |
 
-Call `blueprint_cmd` `analyze_for_migration` on `BP_Name` for a post-migration sanity check. Referencers keep pointing at `BP_Name` because nothing was renamed. Read `get_referencers` and report which referencers use a member that was migrated; the Finalize phase recompiles them (`recompile_dependents`).
+Call `blueprint_cmd` `analyze_for_migration` on `BP_Name` for a post-migration sanity check. Referencers keep pointing at `BP_Name` because nothing was renamed. Read `reflect_cmd(command="get_referencers", params={...})` and report which referencers use a member that was migrated; the Finalize phase recompiles them (`recompile_dependents`).
 
 **Known crash vector — `compare_blueprints` (Issue 99):** it has crashed the editor on recently reparented Blueprints that still held stale object references. This is why it runs only after a clean compile of `BP_Name`, and why verification must not depend on it. If the connection drops during the call, follow the Crash Detection Protocol (do not retry); the orchestrator restarts the editor and the snapshot-based checks above stand in for it.
 
@@ -184,7 +184,7 @@ Return concise summary to orchestrator. Do NOT write `04-verification.json`.
 - `blueprint_cmd` `compare_blueprints`, `analyze_for_migration`, `get_class_defaults`, `graph_metrics`
 - `blueprint_cmd` `export_text_inventory`, `export_snapshot`, `compare_snapshots`, `compile_all`
 - `graph_cmd` `search_nodes`
-- `get_referencers`, `query_class_context`, `reflect_cmd class_hierarchy`
+- `reflect_cmd(command="get_referencers", params={...})`, `query_class_context`, `reflect_cmd(command="class_hierarchy", params={...})`
 - `core_cmd` `list_redirectors`
 - `level_cmd` `export_class_instances`
 - `editor_cmd` `capture_screenshot`

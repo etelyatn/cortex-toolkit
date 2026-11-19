@@ -26,36 +26,39 @@ Use the right detail level to minimize tokens:
 # Quick overview — minimal tokens
 reflect_cmd(command="class_detail", params={"class_name": "AMyCharacter", "detail": "summary"})
 
-# Working with properties
+# Properties / interfaces / components (native full read, functions projected out)
 reflect_cmd(command="class_detail", params={"class_name": "AMyCharacter", "detail": "properties"})
 
 # Full analysis
 reflect_cmd(command="class_detail", params={"class_name": "AMyCharacter", "detail": "full", "include_inherited": True})
 ```
 
-`reflect_cmd` `class_detail` accepts `summary|properties|full`, refuses an
-unknown value client-side, and maps `properties` to a native `full` read plus a Python allowlist. The
-**native** `reflect.class_detail` command (reached through `reflect_cmd`) accepts only `summary`/`full`
-and refuses anything else with `INVALID_FIELD` instead of degrading to the expensive full read —
-callers that previously passed an ad-hoc value such as `"name"` must now pass `summary`.
+`reflect_cmd(command="class_detail", params={...})` accepts `summary|properties|full` and forwards
+the read to the native `reflect.class_detail` command, whose **default is `full`** and which itself
+accepts only `summary`/`full`. The routed `properties` level maps to a native full read with function
+signatures projected out in Python (the router keeps the former wrapper view); it is the cheapest way
+to read properties, interfaces and components, including inherited members
+(`include_inherited: true` is forwarded). An unknown `detail` value reaches the native validator and
+refuses `INVALID_FIELD` instead of degrading to the expensive full read. Use `detail="summary"` for a
+lightweight identity/parent read, and `query_class_context(...)` when you want parent + self +
+children in one call (its self view accepts `summary|properties|full` but hardcodes
+`include_inherited=false`).
 
 ## Common Patterns
 
 ### Understand a class hierarchy
 
 ```python
-reflect_cmd(command="class_hierarchy", params={"class_name": "ACharacter", "depth": 3, "include_blueprint": True})
+reflect_cmd(command="class_hierarchy", params={"root": "ACharacter", "depth": 3, "include_blueprint": True})
 ```
 
-Returns the nested tree; add `"include_flat_classes": True` for a flat `classes` list with `parent` and `depth` fields.
-
-The native `reflect.class_hierarchy` (reached through `reflect_cmd`) returns the nested tree plus
-counts and a `truncated` flag, and now only emits a flat `classes` array when
-`include_flat_classes=true`. `truncated` is the authoritative completeness signal: the `max_results`
-budget is shared by the whole recursive walk, so a short list does not prove the hierarchy is complete,
-and there is no pagination — re-request with a larger `max_results`/`depth`. Treat
-`total_classes`/child counts as possibly incomplete when `truncated` is `true` and widen
-`max_results`/`depth`.
+Returns the nested class tree — traverse `children`. Every node carries `name` and `type`;
+Blueprint classes add `asset_path`, C++ classes add `module`/`source_path` when the native lower
+provides them, and `children` appears when the walk recursed. `include_flat_classes=true` adds an extra `classes` array of class
+**names** only (no parent/depth records), useful as a quick name list. Counts and a `truncated` flag
+are always present. `truncated` is the authoritative completeness signal: the `max_results` budget is
+shared by the whole recursive walk, so a short list does not prove the hierarchy is complete, and
+there is no pagination — re-request with a larger `max_results`/`depth`.
 
 ### Full class context in one call
 
@@ -85,7 +88,7 @@ For a quick "is anything using this?" check (no graph scan, instant):
 ```python
 reflect_cmd(command="get_referencers", params={"asset_path": "/Game/Blueprints/BP_MyCharacter"})
 # Returns: all assets that reference this one via the Asset Registry, plus INI/config rows
-# ({type: "config", file, line, section, key}, listed first); pass "include_config": False to drop them
+# ({type: "config", file, line, section, key}, listed first); pass include_config=False to drop them
 ```
 
 For forward dependencies ("what does this asset pull in?"):
@@ -95,7 +98,7 @@ reflect_cmd(command="get_dependencies", params={"asset_path": "/Game/Blueprints/
 # Returns: parent classes, referenced meshes, materials, other Blueprints
 ```
 
-Use `reflect_cmd find_usages` directly only when you need graph-level detail for a specific symbol without the full risk scoring overhead.
+Use `reflect_cmd(command="find_usages", params={...})` directly only when you need graph-level detail for a specific symbol without the full risk scoring overhead.
 
 ### Project-wide dependency map (migration waves, config, by-name access, duplicates)
 
@@ -156,17 +159,18 @@ reflect_cmd(command="find_overrides", params={"class_name": "AMyCharacter", "dep
 ### Search for classes by name pattern
 
 ```python
-# reflect_cmd class_hierarchy with a specific class_name is preferred
+# reflect_cmd(command="class_hierarchy", params={"root": ...}) with a specific root is preferred
 # For pattern search, use search_assets for Blueprint assets
 ```
 
 ## Performance Tips
 
 - Use `max_results` to cap large hierarchies (default 100)
-- Use `path_filter` in `reflect_cmd find_usages` to scope scans: `path_filter="/Game/Characters/"`
+- Use `path_filter` in `reflect_cmd(command="find_usages", params={...})` to scope scans: `path_filter="/Game/Characters/"`
 - Use `max_blueprints=20` for quick scans, `50` (default) for thorough coverage
-- Hierarchy and detail have 30-minute TTL cache — repeated calls are instant
-- Usages have 2-minute TTL — always reflects recent Blueprint changes
+- Routed Reflect reads are not TTL-cached: every `reflect_cmd` hierarchy/detail/usages call goes to
+  the editor, so request only the level you need (`detail="summary"`, a bounded `max_results`/`depth`)
+- `find_usages` defaults to `limit=20` with `max_blueprints=50`; raise them deliberately for a thorough scan
 
 ## Class Name Formats
 
@@ -205,6 +209,6 @@ Reflect domain workflows are validated by the benchmark testing framework in `Pl
 
 | Test File | Coverage |
 |-----------|----------|
-| `test_reflect_tools.py` | All reflect tools: cache_status, scan_project, reflect_cmd class_hierarchy, reflect_cmd class_detail, query_class_context, reflect_cmd find_overrides, reflect_cmd find_usages, get_dependencies, get_referencers, impact_analysis, rebuild_graph_cache |
+| `test_reflect_tools.py` | All reflect tools: cache_status, scan_project, class_hierarchy, class_detail, query_class_context, find_overrides, find_usages, get_dependencies, get_referencers, impact_analysis, rebuild_graph_cache |
 
 Run to validate after modifying Reflect MCP tools or C++ command handlers.

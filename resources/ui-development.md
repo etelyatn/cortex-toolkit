@@ -13,7 +13,7 @@ Build game UI using UMG widgets — menus, HUDs, dialogs, popups, and complex in
 1. Read `.cortex/context.md` for project overview
 2. Read `.cortex/domains/umg.md` for widget conventions and screen inventory
 3. Use `list_widget_classes` to see available engine widget types
-4. **Only if extending or discovering existing custom widgets:** use `reflect_cmd(command="class_hierarchy", params={"class_name": "UserWidget"})` to find project-specific Widget Blueprint subclasses, or `query_class_context("WBP_TargetWidget_C")` to inspect a specific widget. Skip this step when creating a new widget from scratch.
+4. **Only if extending or discovering existing custom widgets:** use `reflect_cmd(command="class_hierarchy", params={"root": "UserWidget"})` to find project-specific Widget Blueprint subclasses, or `query_class_context("WBP_TargetWidget_C")` to inspect a specific widget. Skip this step when creating a new widget from scratch.
 
 ## Methodology
 
@@ -213,10 +213,10 @@ Use these for class analysis, asset dependency checks, and impact assessment —
 | Tool | Use when |
 |------|----------|
 | `query_class_context` | Understand a widget class — parent, properties, functions, children in one call |
-| `reflect_cmd class_hierarchy` | Discover all widget subclasses in the project (more complete than `list_widget_classes`) |
-| `reflect_cmd find_usages` | Where is a widget property or function referenced across Blueprint graphs |
-| `get_dependencies` | What does this Widget Blueprint import? |
-| `get_referencers` | What references this widget? Before deleting or restructuring shared widgets |
+| `reflect_cmd(command="class_hierarchy", params={...})` | Discover all widget subclasses in the project (more complete than `list_widget_classes`) |
+| `reflect_cmd(command="find_usages", params={...})` | Where is a widget property or function referenced across Blueprint graphs |
+| `reflect_cmd(command="get_dependencies", params={...})` | What does this Widget Blueprint import? |
+| `reflect_cmd(command="get_referencers", params={...})` | What references this widget? Before deleting or restructuring shared widgets |
 | `impact_analysis` | Blast radius before renaming or removing a property/function on a shared base widget |
 
 ## MCP Benchmark Tests

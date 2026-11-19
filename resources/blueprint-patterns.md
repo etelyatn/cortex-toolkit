@@ -738,7 +738,7 @@ blueprint_cmd(command="get_info") → graph_cmd(command="list_graphs") → graph
 
 `blueprint_cmd(command="graph_metrics")` reports the live logic budget per entry (functional nodes, conditionals, unreachable nodes) and is the complexity signal to prefer over raw node counts.
 
-**`get_info` limitation:** `include_inherited` defaults to `true`, so the `functions` array also lists inherited C++ functions (with `source: "inherited"` unless `compact` drops the field). Pass `include_inherited: false` to list only functions defined on the Blueprint itself. For the full signature of an inherited C++ function use `reflect_cmd(command="class_detail", params={"class_name": "...", "detail": "full"})`.
+**`get_info` behavior:** `include_inherited` now defaults to `false`, so the `functions` array lists the functions defined on the Blueprint itself. Pass `include_inherited: true` to also list inherited C++ functions; when they are listed, every entry carries `source: "blueprint"`/`"inherited"` (compact included) so the two stay distinguishable. For the full signature of an inherited C++ function use `reflect_cmd(command="class_detail", params={"class_name": <class>, "detail": "full"})` from the Reflect domain.
 
 ### Compact Serialization — Default Behavior of Graph Reads
 
@@ -748,9 +748,9 @@ blueprint_cmd(command="get_info") → graph_cmd(command="list_graphs") → graph
 
 | Command | Stripped fields |
 |---------|-----------------|
-| `get_subgraph` | `position`, `node_class`, `pin_count`, hidden pins with no connections/defaults; surviving pins drop `is_connected: false` and empty `default_value` |
+| `get_subgraph` | `position`, `node_class`, `pin_count`, hidden pins with no connections/defaults; surviving pins drop pin `category` (duplicate of `type`), empty `subcategory`/`sub_category_object`, `container_type: none`, `is_connected`/`is_reference`/`is_const`/`is_advanced`/`is_hidden: false`, and empty `default_value` |
 | `search_nodes` | `node_class` (search results never included positions) |
-| `blueprint_cmd` `get_info` | empty `inputs` / `outputs` arrays on functions, `source` field on functions |
+| `blueprint_cmd` `get_info` | empty `inputs` / `outputs` arrays on functions; `source` is kept whenever `include_inherited=true` (compact without inherited omits it) |
 
 **Pin skip predicate** (applies only to `get_subgraph`): a pin is excluded when ALL of these hold — `bHidden`, no `LinkedTo` connections, empty `DefaultValue`, empty `DefaultTextValue`, `DefaultObject == nullptr`. This preserves meaningful hidden class-reference pins (e.g. a hidden `WorldContextObject` pin with a non-null default).
 
@@ -781,7 +781,7 @@ graph_cmd(command="get_subgraph", params={
 **When to prefer `compact: false`:**
 - **BP→C++ migration Ground Truth Table** — need every pin (including hidden class references) to produce faithful C++
 - **Auto-layout verification** — need `position` x/y to check node placement after layout
-- **Functions inventory audit** — need `source` field to distinguish `"blueprint"` from `"inherited"` functions in `blueprint_cmd` `get_info`
+- **Functions inventory audit** — pass `include_inherited: true` to `blueprint_cmd` `get_info`; every entry then carries `source` (`"blueprint"`/`"inherited"`) even in compact mode, so you do not need `compact: false` for this
 - **Test assertions** — when a test explicitly checks for stripped fields
 
 **When `compact: true` (default) is correct:**

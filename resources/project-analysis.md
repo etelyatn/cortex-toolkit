@@ -10,15 +10,15 @@ You are an expert at analyzing Unreal Engine project architecture using CortexRe
 
 ## Available Tools
 
-Use these MCP tools and `reflect_cmd` commands to answer questions about the project's class structure:
+Use these MCP tools to answer questions about the project's class structure:
 
-- **`reflect_cmd` `class_hierarchy`** — Get the inheritance tree for any class (the native walk is budget-capped; check the `truncated` flag and widen `max_results`/`depth` if a tree looks cut)
-- **`reflect_cmd` `class_detail`** — Deep dive into one class (properties, functions, components); `detail` is `summary|properties|full` through the router (the native command accepts only `summary`/`full`)
+- `reflect_cmd(command="class_hierarchy", ...)` — Get the inheritance tree for any class (nested or `include_flat_classes=true` for the flat list; the walk is budget-capped and reports `truncated` — widen `max_results`/`depth` if a tree looks cut)
+- `reflect_cmd(command="class_detail", ...)` — Deep dive into one class; `detail` accepts `summary|properties|full` (default native `full`); `properties` is a native full read with functions projected out, and `include_inherited: true` adds inherited members
 - **query_class_context** — **Composite** — parent + self + children in one call
-- **`reflect_cmd` `find_overrides`** — What does each Blueprint child override?
-- **`reflect_cmd` `find_usages`** — Where is a property/function referenced across Blueprints (graph-level scan)
-- **`reflect_cmd` `get_dependencies`** — What does this asset import? (Asset Registry, fast)
-- **`reflect_cmd` `get_referencers`** — What assets reference this one? (Asset Registry, fast)
+- `reflect_cmd(command="find_overrides", ...)` — What does each Blueprint child override?
+- `reflect_cmd(command="find_usages", ...)` — Where is a property/function referenced across Blueprints (graph-level scan)
+- `reflect_cmd(command="get_dependencies", ...)` — What does this asset import? (Asset Registry, fast)
+- `reflect_cmd(command="get_referencers", ...)` — What assets reference this one? (Asset Registry, fast)
 - **impact_analysis** — **Composite** — pre-refactoring risk assessment (referencers + usages + severity scoring)
 - **reflect_cache_status** — Check if the knowledge graph is cached
 - **scan_project** — Build the full project cache
@@ -27,16 +27,16 @@ Use these MCP tools and `reflect_cmd` commands to answer questions about the pro
 ## Workflow
 
 1. Start by checking `reflect_cache_status`. If stale, run `scan_project`.
-2. Use `reflect_cmd` `class_hierarchy` to understand the inheritance structure.
+2. Use `reflect_cmd(command="class_hierarchy", params={...})` to understand the inheritance structure.
 3. Use `query_class_context` for the full picture of a specific class.
-4. **Before any refactoring or destructive change:** use `impact_analysis` instead of `reflect_cmd find_usages` alone — it combines package-level referencers with graph-level usage scanning and adds severity scoring.
-   - Use `get_referencers` for quick "is anything using this?" checks (no graph scan, instant)
+4. **Before any refactoring or destructive change:** use `impact_analysis` instead of `reflect_cmd(command="find_usages", params={...})` alone — it combines package-level referencers with graph-level usage scanning and adds severity scoring.
+   - Use `reflect_cmd(command="get_referencers", params={...})` for quick "is anything using this?" checks (no graph scan, instant)
    - Use `impact_analysis` when you need to know severity and which specific nodes will break
 
 ## MCP Benchmark Tests
 
 Reflect domain has benchmark coverage in `Plugins/UnrealCortex/MCP/tests/`:
-- **Reflect tools** (`test_reflect_tools.py`): reflect_cache_status, scan_project, reflect_cmd class_hierarchy, reflect_cmd class_detail, query_class_context, reflect_cmd find_overrides, reflect_cmd find_usages, rebuild_graph_cache
+- **Reflect tools** (`test_reflect_tools.py`): reflect_cache_status, scan_project, query_class_context, impact_analysis, rebuild_graph_cache (routed commands: class_hierarchy, class_detail, find_overrides, find_usages, get_dependencies, get_referencers)
 - **Scenarios** (`test_mcp_scenarios.py`): Reflect benchmark check (cache status, scan, hierarchy, detail, context, overrides, usages, rebuild)
 
 Run Reflect-specific benchmarks:

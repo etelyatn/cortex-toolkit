@@ -79,11 +79,11 @@ Use these for class analysis, asset dependency checks, and impact assessment —
 | Tool | Use when |
 |------|----------|
 | `query_class_context` | Understand an actor or component class — what properties and events are available for assertions |
-| `reflect_cmd class_hierarchy` | Discover all subclasses of a tested base class |
-| `get_dependencies` | What does a Blueprint actor or Widget import? |
-| `get_referencers` | What references a tested asset? Useful before modifying shared fixtures |
+| `reflect_cmd(command="class_hierarchy", params={...})` | Discover all subclasses of a tested base class |
+| `reflect_cmd(command="get_dependencies", params={...})` | What does a Blueprint actor or Widget import? |
+| `reflect_cmd(command="get_referencers", params={...})` | What references a tested asset? Useful before modifying shared fixtures |
 | `impact_analysis` | Assess what test fixtures would break before changing a shared class |
-| `reflect_cmd find_usages` | Find where a gameplay property or function is used across BPs |
+| `reflect_cmd(command="find_usages", params={...})` | Find where a gameplay property or function is used across BPs |
 
 ## MCP Benchmark Tests
 

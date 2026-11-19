@@ -89,7 +89,7 @@ level_cmd("find_actors", params={"pattern": "*Door*"}) → level_cmd("get_actor"
 
 ### Bounding Box Analysis
 ```
-level_cmd("get_bounds", params={"folder": "Geometry"}) → review spatial extent → plan new actor placement
+level_cmd("get_bounds", params={"folder": "Geometry"}) → check scan_truncated is false, then review spatial extent → plan new actor placement
 ```
 
 ## Organization Workflows

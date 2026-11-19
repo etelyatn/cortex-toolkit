@@ -287,11 +287,11 @@ Use these for class analysis, asset dependency checks, and impact assessment —
 | Tool | Use when |
 |------|----------|
 | `query_class_context` | Understand an actor class — parent, properties, children in one call |
-| `reflect_cmd class_hierarchy` | Discover all subclasses of a base class (e.g., all AActor subclasses in the project) |
-| `get_dependencies` | What does this level asset or actor Blueprint import? |
-| `get_referencers` | What references this asset? Before deleting or replacing a class |
+| `reflect_cmd(command="class_hierarchy", params={...})` | Discover all subclasses of a base class (e.g., all AActor subclasses in the project) |
+| `reflect_cmd(command="get_dependencies", params={...})` | What does this level asset or actor Blueprint import? |
+| `reflect_cmd(command="get_referencers", params={...})` | What references this asset? Before deleting or replacing a class |
 | `impact_analysis` | Full blast radius before removing or renaming an actor class or property |
-| `reflect_cmd find_usages` | Where is a property or function referenced across Blueprint graphs |
+| `reflect_cmd(command="find_usages", params={...})` | Where is a property or function referenced across Blueprint graphs |
 
 ## Best Practices
 

@@ -108,14 +108,14 @@ Never query graphs one-by-one in sequential tool calls.
 
 - `get_subgraph` drops `position`, `node_class`, `pin_count`, and hidden pins that have no connections and no non-default value/object; remaining pins omit `is_connected: false` and empty `default_value`
 - `search_nodes` drops `node_class`
-- `blueprint_cmd` `get_info` drops empty `inputs`/`outputs` arrays and the `source` field on functions
+- `blueprint_cmd` `get_info` drops empty `inputs`/`outputs` arrays; `source` is present whenever `include_inherited=true` (compact without inherited omits it)
 
 **Use the default (`compact: true`) for**: gameplay logic review, finding entry points, wiring new nodes, most debugging.
 
 **Pass `compact: false` explicitly when:**
 - You need node positions (visual layout debugging, auto-layout verification)
 - You need to inspect hidden pins (tunnel boundaries, world-context, self pins with defaults)
-- You need to distinguish inherited functions from Blueprint-defined functions in `blueprint_cmd` `get_info`
+- You need full parameter signatures in `blueprint_cmd` `get_info` (`include_inherited: true` already gives you `source` in compact mode)
 - You are generating C++ from a Blueprint graph (migration Ground Truth Table requires full fidelity)
 
 ### Before Destructive Operations
@@ -132,7 +132,7 @@ impact_analysis(
 
 - If `total_affected > 0`, show the user the high-risk Blueprints before proceeding
 - If coverage is partial (`scan_coverage: "partial"`), offer to re-run with `deep_scan=true`
-- For whole-asset deletion with no symbol, use `get_referencers` instead
+- For whole-asset deletion with no symbol, use `reflect_cmd(command="get_referencers", params={...})` instead
 
 ## Blueprint Tools
 
@@ -804,10 +804,10 @@ Use these for class analysis, asset dependency checks, and impact assessment —
 | Tool | Use when |
 |------|----------|
 | `query_class_context` | Understand a Blueprint class — parent, properties, functions, children in one call |
-| `reflect_cmd class_hierarchy` | Browse the class tree from any root (e.g., all AActor subclasses) |
-| `reflect_cmd find_usages` | Where is a property or function referenced across Blueprint graphs |
-| `get_dependencies` | What does this Blueprint import? |
-| `get_referencers` | What references this Blueprint? Run before deleting or making breaking changes |
+| `reflect_cmd(command="class_hierarchy", params={...})` | Browse the class tree from any root (e.g., all AActor subclasses) |
+| `reflect_cmd(command="find_usages", params={...})` | Where is a property or function referenced across Blueprint graphs |
+| `reflect_cmd(command="get_dependencies", params={...})` | What does this Blueprint import? |
+| `reflect_cmd(command="get_referencers", params={...})` | What references this Blueprint? Run before deleting or making breaking changes |
 | `impact_analysis` | Full blast radius before removing or renaming a public function/variable |
 
 ## Best Practices
