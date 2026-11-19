@@ -187,7 +187,7 @@ Do not conflate them:
 
 ### Strict router envelope
 
-**Unknown params are refused.** Every routed domain command enforces its declared parameter set: an undeclared top-level param (a typo, a removed name, a stale alias) is refused with `INVALID_FIELD` (`Unknown param 'x'. Accepted params: ...`), and the error lists the accepted params, so read it instead of guessing. Keys starting with `_` are exempt. A missing required param is refused only by commands that declare `.StrictParams()`; others report it from the handler. Before sending an unfamiliar command, fetch its declared params with `core.get_operation_schema`.
+**Unknown params are refused.** Every routed domain command enforces its declared parameter set: an undeclared top-level param (a typo, a removed name, a stale alias) is refused with `INVALID_FIELD` (`Unknown param 'x'. Accepted params: ...`), and the error lists the accepted params, so read it instead of guessing. Keys starting with `_` pass this router check, but commands with their own closed key sets (`graph.apply_patch`, `blueprint.remove_interface`, `replay_cmd`) still refuse them. A missing required param is refused only by commands that declare `.StrictParams()`; others report it from the handler. Before sending an unfamiliar command, fetch its declared params with `core.get_operation_schema`.
 
 All `{domain}_cmd` tools enforce the canonical shape `{command: string, params: object}`. Extra top-level operation fields or non-object `params` are rejected with `INVALID_INVOCATION_SHAPE`. `core.batch_query` rejects empty/missing/non-array `commands` locally before contacting the editor.
 
