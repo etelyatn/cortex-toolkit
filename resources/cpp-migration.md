@@ -379,7 +379,6 @@ blueprint_cmd(command="cleanup_migration", params={
 - `new_parent_class`: Blueprint path, full class path or unique short name. Optional — omit to skip reparenting.
 - `remove_variables`: Variables to remove (removed by the pre-captured variable GUID). A variable that is still referenced by get/set nodes refuses `MEMBER_REFERENCED` unless `remove_referencing_nodes` is true.
 - `remove_functions`: Function graph names to remove. Optional.
-- `migrated_overrides`: Overrides already migrated (the MCP wrapper prunes the event nodes). Optional.
 - `dry_run`: Report the plan, referencing nodes and SaveGame findings; mutates nothing.
 - `expected_fingerprint`: Stale-write guard from a dry run.
 - `remove_referencing_nodes` (default `false`): Remove the graph nodes that name an explicitly removed variable.

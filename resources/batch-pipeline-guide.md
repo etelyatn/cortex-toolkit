@@ -431,9 +431,9 @@ This prevents orphaned partial assets that block retries with `ASSET_ALREADY_EXI
   "params": {
     "stop_on_error": false,
     "commands": [
-      {"command": "data.query_datatable", "params": {"table": "/Game/Data/DT_Enemies", "filter": {"Type": "Boss"}}},
-      {"command": "data.query_datatable", "params": {"table": "/Game/Data/DT_Enemies", "filter": {"Type": "Minion"}}},
-      {"command": "data.query_datatable", "params": {"table": "/Game/Data/DT_Loot", "filter": {"Rarity": "Legendary"}}}
+      {"command": "data.query_datatable", "params": {"table_path": "/Game/Data/DT_Enemies", "row_name_pattern": "Boss_*"}},
+      {"command": "data.query_datatable", "params": {"table_path": "/Game/Data/DT_Enemies", "row_name_pattern": "Minion_*"}},
+      {"command": "data.query_datatable", "params": {"table_path": "/Game/Data/DT_Loot", "row_name_pattern": "Legendary_*"}}
     ]
   }
 }

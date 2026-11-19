@@ -31,17 +31,11 @@ Router commands use **bare names** — e.g., `get_info`, `create`, `list`. Never
 ### Standalone tools vs the router passthrough
 
 A standalone tool and the router route to the same native command but do **not** expose the same
-parameters. The router passes parameters through verbatim, so any native parameter is reachable there
+parameters. The router passes parameters through verbatim, so any declared native parameter is reachable there
 even when the standalone tool omits it. Two exceptions are the Python-owned pagination controls:
 `limit`/`cursor` are consumed by the commands that page in Python, and a `limit` outside 1–200 is
 refused before dispatch with `INVALID_LIMIT` for any command — so an out-of-range `limit` returns that
-rather than the native `INVALID_FIELD` a strict command gives an in-range undeclared `limit`. Eight
-routed commands now enforce their
-declared parameter set
-— `umg.set_text`, `umg.set_font`, `umg.set_padding`, `umg.set_anchor`, `umg.set_alignment`,
-`umg.set_size`, `data.list_data_assets`, `data.search_assets` — so for those an undeclared parameter is
-refused with `INVALID_FIELD` naming the accepted set (as is a missing declared-required parameter)
-instead of being silently dropped. Known divergences:
+rather than the native `INVALID_FIELD` a command gives an in-range undeclared `limit`. Known divergences:
 
 | Command | Standalone tool exposes | Native-only (router only) |
 |---------|------------------------|---------------------------|
@@ -193,6 +187,8 @@ Do not conflate them:
 
 ### Strict router envelope
 
+**Unknown params are refused.** Every routed domain command enforces its declared parameter set: an undeclared top-level param (a typo, a removed name, a stale alias) is refused with `INVALID_FIELD` (`Unknown param 'x'. Accepted params: ...`), and the error lists the accepted params, so read it instead of guessing. Keys starting with `_` pass this router check, but commands with their own closed key sets (`graph.apply_patch`, `blueprint.remove_interface`, `replay_cmd`) still refuse them. A missing required param is refused only by commands that declare `.StrictParams()`; others report it from the handler. Before sending an unfamiliar command, fetch its declared params with `core.get_operation_schema`.
+
 All `{domain}_cmd` tools enforce the canonical shape `{command: string, params: object}`. Extra top-level operation fields or non-object `params` are rejected with `INVALID_INVOCATION_SHAPE`. `core.batch_query` rejects empty/missing/non-array `commands` locally before contacting the editor.
 
 ### Error preservation
@@ -289,15 +285,15 @@ Generic router dry-run prefix migration:
 
 Dry-run `operation_results` are preview-only: successful operations report `applied=false`, `would_apply=true`, and `status="would_apply"`. Apply with `dry_run=false` only after the preview is clean or after intentionally setting `allow_partial=true`.
 
-Optional direct compatibility wrapper, only if still registered:
+Routed form:
 
 ```text
-update_string_table(
-  string_table_path="/Game/Data/ST_CodexEntries.ST_CodexEntries",
-  operations_json="[{\"type\":\"replace_all\",\"old_prefix\":\"entry.\",\"new_prefix\":\"\"}]",
-  dry_run=true,
-  verbose=false
-)
+data_cmd(command="update_string_table", params={
+  "string_table_path": "/Game/Data/ST_CodexEntries.ST_CodexEntries",
+  "operations": [{"type": "replace_all", "old_prefix": "entry.", "new_prefix": ""}],
+  "dry_run": true,
+  "verbose": false
+})
 ```
 
 Scan DataTable `FText` references:
@@ -441,7 +437,7 @@ A user-defined struct (UDS) or enum (UDE) is replaced by a native `USTRUCT`/`UEN
 - **Structure:** `add_variable`, `remove_variable` (guarded: see Native member adoption), `add_function`, `get_class_defaults`, `set_class_defaults`, `configure_timeline`, `set_component_defaults`, `add_scs_component`, `remove_scs_component`, `rename_scs_component`
 - **Class Settings:** `add_interface`, `remove_interface` (guarded: `preserve_implementations` required, `dry_run` first), `replace_interface` (guarded, one asset), `set_tick_settings`, `set_replication_settings`
 - **Migration:** `analyze_for_migration`, `cleanup_migration`, `remove_scs_component`, `rename_scs_component`, `recompile_dependents`, `fixup_redirectors`, `compare_blueprints`. `fixup_redirectors` is folder-wide and recursive by default and force-deletes unreferenced redirectors; the migration pipeline never calls it (see `resources/cpp-migration.md`). `remove_scs_component` and `rename_scs_component` always write the package; `rename_scs_component` also saves the dependents it touches.
-- **Native member adoption (guarded, strict params, `dry_run` first):** `reparent`, `rename_member`, `adopt_native_member`, `adopt_scs_into_native`, `swap_scs_component_class`, plus guarded `remove_variable` and `cleanup_migration`. All take `dry_run`, an optional `expected_fingerprint` object (returned by a dry run), `compile` and `save` (`save` requires `compile`), and report `apply_status`, `compile_status`, `readback_status`, `rollback_status`, `save_status`. Params: `reparent` {`asset_path`, `new_parent`; `dry_run`, `expected_fingerprint`, `compile`, `save`, `acknowledged_collisions`, `report_path`}; `rename_member` {`asset_path`, `kind` (`variable`/`function`/`dispatcher`/`local`), `old`, `new`; `function`, `dry_run`, `expected_fingerprint`, `compile`, `save`, `acknowledged_losses`}; `adopt_native_member` {`asset_path`, `mappings` [`{bp_variable, native_property, default?}`]; `transfer_default`, `retarget_nodes`, `dry_run`, `expected_fingerprint`, `compile`, `save`, `acknowledged_losses`}; `adopt_scs_into_native` {`asset_path`, `mappings` [`{scs_node, native_component}`]; `copy`, `remove_scs`, `dry_run`, `expected_fingerprint`, `compile`, `save`, `acknowledged_losses`}; `swap_scs_component_class` {`asset_path`, `component_name`, `new_class`; `dry_run`, `expected_fingerprint`, `compile`, `save`, `acknowledged_losses`}; `remove_variable` {`asset_path`, `name`; `dry_run`, `expected_fingerprint`, `compile` (default false), `save` (default false), `remove_referencing_nodes`, `acknowledged_losses`}; `cleanup_migration` {`asset_path`; `new_parent_class`, `remove_variables`, `remove_functions`, `migrated_overrides`, `dry_run`, `expected_fingerprint`, `remove_referencing_nodes`, `acknowledged_collisions`, `acknowledged_losses`, `expected_cdo_values`, `compile`, `save`}. Error codes: `AMBIGUOUS_CLASS`, `INVALID_PARENT_CLASS`, `NAME_COLLISION`, `POTENTIAL_DATA_LOSS` (with `required_acknowledgment`), `MEMBER_REFERENCED`, `MISSING_PROPERTY_REDIRECT` (returns the `[CoreRedirects]` line), `READBACK_MISMATCH`, `STALE_PRECONDITION`. To move a variable into a native parent use `adopt_native_member`, not `remove_variable`/`cleanup_migration` (removal destroys the referencing nodes). Workflow and rules: `resources/cpp-migration.md`, "Guarded native member adoption".
+- **Native member adoption (guarded, strict params, `dry_run` first):** `reparent`, `rename_member`, `adopt_native_member`, `adopt_scs_into_native`, `swap_scs_component_class`, plus guarded `remove_variable` and `cleanup_migration`. All take `dry_run`, an optional `expected_fingerprint` object (returned by a dry run), `compile` and `save` (`save` requires `compile`), and report `apply_status`, `compile_status`, `readback_status`, `rollback_status`, `save_status`. Params: `reparent` {`asset_path`, `new_parent`; `dry_run`, `expected_fingerprint`, `compile`, `save`, `acknowledged_collisions`, `report_path`}; `rename_member` {`asset_path`, `kind` (`variable`/`function`/`dispatcher`/`local`), `old`, `new`; `function`, `dry_run`, `expected_fingerprint`, `compile`, `save`, `acknowledged_losses`}; `adopt_native_member` {`asset_path`, `mappings` [`{bp_variable, native_property, default?}`]; `transfer_default`, `retarget_nodes`, `dry_run`, `expected_fingerprint`, `compile`, `save`, `acknowledged_losses`}; `adopt_scs_into_native` {`asset_path`, `mappings` [`{scs_node, native_component}`]; `copy`, `remove_scs`, `dry_run`, `expected_fingerprint`, `compile`, `save`, `acknowledged_losses`}; `swap_scs_component_class` {`asset_path`, `component_name`, `new_class`; `dry_run`, `expected_fingerprint`, `compile`, `save`, `acknowledged_losses`}; `remove_variable` {`asset_path`, `name`; `dry_run`, `expected_fingerprint`, `compile` (default false), `save` (default false), `remove_referencing_nodes`, `acknowledged_losses`}; `cleanup_migration` {`asset_path`; `new_parent_class`, `remove_variables`, `remove_functions`, `dry_run`, `expected_fingerprint`, `remove_referencing_nodes`, `acknowledged_collisions`, `acknowledged_losses`, `expected_cdo_values`, `compile`, `save`}. Error codes: `AMBIGUOUS_CLASS`, `INVALID_PARENT_CLASS`, `NAME_COLLISION`, `POTENTIAL_DATA_LOSS` (with `required_acknowledgment`), `MEMBER_REFERENCED`, `MISSING_PROPERTY_REDIRECT` (returns the `[CoreRedirects]` line), `READBACK_MISMATCH`, `STALE_PRECONDITION`. To move a variable into a native parent use `adopt_native_member`, not `remove_variable`/`cleanup_migration` (removal destroys the referencing nodes). Workflow and rules: `resources/cpp-migration.md`, "Guarded native member adoption".
 - **Graph maintenance:** `delete_orphaned_nodes`, `remove_graph`, `search`
 - **Text inventory and migration verification:** `export_text_inventory`, `export_snapshot`, `compare_snapshots`, `compile_all`
 - **Project-wide analysis export:** `export_migration_analysis`

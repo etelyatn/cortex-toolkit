@@ -327,7 +327,7 @@ Raw native `batch` envelope; through MCP send the same `params` with `core_cmd(c
     "commands": [
       {"command": "material.add_node", "params": {"asset_path": "/Game/Materials/M_Rock", "expression_class": "MaterialExpressionTextureSample"}},
       {"command": "material.add_node", "params": {"asset_path": "/Game/Materials/M_Rock", "expression_class": "MaterialExpressionMultiply"}},
-      {"command": "material.connect", "params": {"asset_path": "/Game/Materials/M_Rock", "source_node": "$steps[0].data.node_id", "source_pin": "RGB", "target_node": "$steps[1].data.node_id", "target_pin": "A"}}
+      {"command": "material.connect", "params": {"asset_path": "/Game/Materials/M_Rock", "source_node": "$steps[0].data.node_id", "source_output": "RGB", "target_node": "$steps[1].data.node_id", "target_input": "A"}}
     ]
   }
 }

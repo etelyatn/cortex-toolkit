@@ -397,7 +397,7 @@ Raw native `batch` envelope; through MCP send the same `params` with `core_cmd(c
   {"command": "material.add_node",          "params": {"asset_path": "/Game/Materials/M_PulsatingGradient", "expression_class": "MaterialExpressionSphereMask"}},
   {"command": "material.add_node",          "params": {"asset_path": "...", "expression_class": "MaterialExpressionMultiply"}},
   {"command": "material.set_node_property", "params": {"asset_path": "...", "node_id": "$steps[0].data.node_id", "property": "AttenuationRadius", "value": 0.5}},
-  {"command": "material.disconnect",        "params": {"asset_path": "...", "source_node": "MaterialExpressionLinearInterpolate_0", "target_node": "MaterialResult", "target_input": "BaseColor"}},
+  {"command": "material.disconnect",        "params": {"asset_path": "...", "target_node": "MaterialResult", "target_input": "BaseColor"}},
   {"command": "material.connect",           "params": {"asset_path": "...", "source_node": "MaterialExpressionLinearInterpolate_0", "target_node": "$steps[1].data.node_id", "target_input": 0}},
   {"command": "material.connect",           "params": {"asset_path": "...", "source_node": "$steps[0].data.node_id", "target_node": "$steps[1].data.node_id", "target_input": 1}},
   {"command": "material.connect",           "params": {"asset_path": "...", "source_node": "$steps[1].data.node_id", "target_node": "MaterialResult", "target_input": "BaseColor"}},

@@ -168,20 +168,20 @@ Single tool for all level modifications. Pass an `operations` array:
 ### Transforms and Properties
 - `get_actor(actor)` - full actor details
 - `set_transform(actor, location?, rotation?, scale?)`
-- `set_actor_property(actor, property_path, value)`
-- `get_actor_property(actor, property_path)`
+- `set_actor_property(actor, property, value)`
+- `get_actor_property(actor, property)`
 
 ### Components
 - `list_components(actor, include_properties?)` — metadata by default; `include_properties=true` adds a capped (20) editable-value snapshot with `total_property_count`/`returned_property_count`/`properties_complete`
-- `add_component(actor, class_name, name?)`
+- `add_component(actor, class, name?)`
 - `remove_component(actor, component)`
-- `get_component_property(actor, component, property_path)`
-- `set_component_property(actor, component, property_path, value)`
+- `get_component_property(actor, component, property)`
+- `set_component_property(actor, component, property, value)`
 
 ### Queries and Selection
-- `list_actors(class_filter?, tags?, folder?, region?, limit?, offset?)`
+- `list_actors(class?, tags?, folder?, region?, limit?, offset?)`
 - `find_actors(pattern)` - wildcard search by label or name
-- `get_bounds(class_filter?, tags?, folder?, region?)`
+- `get_bounds(class?, tags?, folder?, region?)`
 - `select_actors(actors, add?)`
 - `get_selection()`
 
@@ -192,7 +192,7 @@ Single tool for all level modifications. Pass an `operations` array:
 ### Discovery
 - `list_actor_classes(category?)`
 - `list_component_classes(category?)`
-- `describe_class(class_name)`
+- `describe_class(class)`
 
 ### Streaming and Persistence
 - `get_info()`
@@ -245,7 +245,7 @@ Blueprint actors have three identifiers — understanding these prevents common 
 |-----------|---------|-----------|---------|
 | **Label** | `BP_Lift` | Display name in the Outliner | **Use this** for `actor` parameters |
 | **Internal name** | `BP_Lift_C_1` | Instance name (`_C` = compiled class, `_N` = instance index) | Appears in `list_actors` `name` field — do NOT use as `actor` param |
-| **Class** | `BP_Lift_C` | Compiled Blueprint class | Use for `class_filter` in `list_actors` |
+| **Class** | `BP_Lift_C` | Compiled Blueprint class | Use for `class` in `list_actors` |
 
 **Rule:** Always use the `label` field to target actors. The `name` field (with `_C_N` suffix) is the engine's internal instance name and will fail as an actor identifier.
 
