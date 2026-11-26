@@ -59,7 +59,8 @@ game, pass `world: "pie"` to the actor-scoped `level_cmd` commands: `spawn_actor
 Batched forms apply a top-level `world` to each item unless the item sets its own.
 
 `duplicate_actor` accepts `world` only to refuse `"pie"` explicitly: editor duplication depends on
-editor-world selection state. Use `spawn_actor` with `world: "pie"` for a runtime actor.
+editor-world selection state. Use `spawn_actor` with `world: "pie"` for a runtime actor. A malformed
+top-level `world` in a batch is `INVALID_VALUE` before any item runs.
 
 `set_pie_view(location, rotation, fov?)` is the runtime-screenshot primitive. It requires PIE and a
 local player controller, spawns or reuses a transient `ACameraActor`, applies the pose and FOV, and
