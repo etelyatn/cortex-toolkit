@@ -188,6 +188,7 @@ When calling `graph_cmd(command="add_node")` or specifying nodes in `blueprint_c
 | `ClearDelegate` / `UnbindAllEvents` | `UK2Node_ClearDelegate` | same as AddDelegate but no Delegate pin. Pins: execute, then, self (Target) |
 | `CreateDelegate` / `CreateEvent` | `UK2Node_CreateDelegate` | `{"function_name": "MyHandler"}` — bare name, NOT `ClassName.Function` format. Pins: self (Object), OutputDelegate (Event). Not a CustomEvent — creates a delegate object referencing a function |
 | `Composite` | `UK2Node_Composite` | none — creates a collapsed composite subgraph. Read back `subgraph_name` from the `get_subgraph` or `list_graphs` (`include_subgraphs`) output, then use it as `subgraph_path` to edit nodes inside the composite. |
+| `PropertyAccess` | `K2Node_PropertyAccess` | `{"path": ["GetOwningActor", "bHidden"]}` — Animation Blueprints only (not child Anim Blueprints or macro graphs); segments are properties (`Name[N]` for array elements) or getter functions; output `Value` |
 
 **Removed short names** — no longer accepted: `FunctionEntry`, `FunctionResult`, `ForEachLoop`. For ForEach loops use `CallFunction` with `function_name: "KismetArrayLibrary.Array_ForEach"`.
 
