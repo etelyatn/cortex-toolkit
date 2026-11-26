@@ -43,6 +43,16 @@ Authoring is intentionally narrow and capability-gated:
 
 Named notify mutations apply only to zero-duration sequence skeleton named notifies. Float curves, object notifies, and notify states apply to `UAnimSequence`; montage sections apply to `UAnimMontage`; sockets apply to `USkeleton`. Object-notify selectors use `{ index, class_path, time }`; state selectors also include `duration`. All mutations require `asset_path`, a precise input or selector, and `expected_fingerprint`; they support `dry_run` and optional `save` (`false` by default). Use an authoring family only when live capabilities advertise that complete family.
 
+## AnimGraph Node Settings (`graph_cmd`)
+
+A node's settings (the `Node` struct of an `AnimGraphNode_*`: bone references, enum modes such as `RotationMode` or `AlphaInputType`, blend settings, arrays of structs on custom nodes) are read and written through `graph_cmd`, not `editor.run_python` text edits:
+
+1. `get_node_settings {asset_path, graph_name:"AnimGraph", node_id}` returns `settings` (or one value with `property_path`), `pin_properties`, `target_skeleton` and a `fingerprint`.
+2. `set_node_settings {asset_path, graph_name, node_id, values:{"BoneToModify.BoneName":"spine_01", "AlphaInputType":"Bool", "AlphaBoolBlend.BlendInTime":0.2}, expected_fingerprint, dry_run}`. Paths are relative to the node struct; `Name[N]` addresses an existing array element; a struct value updates only the fields it names. Preview with `dry_run:true`, then apply.
+3. The write is one undo step and behaves like a details-panel edit: the node reacts and is reconstructed, so pins whose visibility changes (`bAlphaBoolEnabled` after `AlphaInputType:"Bool"`) are usable at once and `pins_added`/`pins_removed` report them; links on surviving pins are kept. Link new pins only after the write.
+4. Bone names are validated against the Anim Blueprint's target skeleton (`INVALID_VALUE` for a missing bone; a template Anim Blueprint returns a warning instead). Members in `pin_properties` (exposed as a pin, or bound) are refused with `INVALID_OPERATION`: set them with `set_pin_value`. A `change` with `adjusted:true` means the node changed the value itself, as the editor would.
+5. Compile and save stay explicit. Nested Anim Blueprint graphs (states, transitions) are read-only for every graph mutator.
+
 ## AnimBP Migration To A Native `UAnimInstance`
 
 Nested graphs (state machine, state, transition rule, custom transition, conduit, blend space) are read with `graph_cmd`: `list_graphs` with `include_subgraphs:true`, then `get_subgraph` by `graph_guid` (or `graph_path` when `graph_guid_unique` is false or a repeated name such as `Transition` collides). They are read-only.
@@ -56,7 +66,7 @@ Nested graphs (state machine, state, transition rule, custom transition, conduit
 
 - Use `dry_run=true` before destructive or uncertain changes.
 - Treat stale fingerprint errors as a signal to re-inspect and ask whether to retry.
-- Do not invent later-stage AnimBP authoring, blendspace, retargeting, runtime preview, Sequencer, or Control Rig commands. The only AnimBP mutation is `rebind_function`; bindings, graphs and logic are not editable here and nothing ports Blueprint logic to C++. The anim domain has no save command; use a mutation's `save=true` option, or `core.save_asset` where appropriate.
+- Do not invent later-stage AnimBP authoring, blendspace, retargeting, runtime preview, Sequencer, or Control Rig commands. The only anim-domain AnimBP mutation is `rebind_function`; anim node settings are written with `graph_cmd set_node_settings` (above), bindings and logic are not editable here and nothing ports Blueprint logic to C++. The anim domain has no save command; use a mutation's `save=true` option, or `core.save_asset` where appropriate.
 - If a command is absent from live capabilities, report that the requested animation authoring is unavailable.
 
 ## Verification

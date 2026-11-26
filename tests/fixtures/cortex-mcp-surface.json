@@ -1,7 +1,7 @@
 {
   "provenance": {
-    "plugin_commit": "1432b46975f7bb2581cd2117e30121b1e832b9ee",
-    "plugin_ref": "feat/255-enforce-declared-params",
+    "plugin_commit": "37a66c5ca913c9bcab693f414c741f8cdf93e2ee",
+    "plugin_ref": "37a66c5c",
     "plugin_dirty": false
   },
   "exposed_tools": [
@@ -109,6 +109,8 @@
       "connect",
       "disconnect",
       "set_pin_value",
+      "get_node_settings",
+      "set_node_settings",
       "auto_layout",
       "apply_patch"
     ],
@@ -809,6 +811,22 @@
         "subgraph_path",
         "text",
         "value"
+      ],
+      "get_node_settings": [
+        "asset_path",
+        "graph_name",
+        "node_id",
+        "property_path",
+        "subgraph_path"
+      ],
+      "set_node_settings": [
+        "asset_path",
+        "dry_run",
+        "expected_fingerprint",
+        "graph_name",
+        "node_id",
+        "subgraph_path",
+        "values"
       ],
       "auto_layout": [
         "asset_path",
