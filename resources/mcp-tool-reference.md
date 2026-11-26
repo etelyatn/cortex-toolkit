@@ -508,6 +508,7 @@ always echoed atomically, never as leaf paths.
 
 - `list_graphs`, `get_subgraph`, `search_nodes`, `trace_exec`, `trace_dataflow`, `list_event_handlers`, `find_event_handler`, `find_function_calls`, `describe_node`, `add_node`, `remove_node`, `connect`, `disconnect`, `set_pin_value`, `get_node_settings`, `set_node_settings`, `auto_layout`, `get_authoring_context`, `apply_patch`
 - `set_pin_value`: use `value` for non-text pins and literal-only simple values; use structured `text` for `FText` pins, especially StringTable-backed text. `value` and `text` are mutually exclusive. The new default is validated against the pin's engine schema before it is written: an unacceptable value (including an object/class path that does not resolve) is refused with `INVALID_VALUE` and no pin changes.
+- `disconnect`: `node_id` + `pin_name` breaks every link on that pin; the `connect` shape (`source_node`, `source_pin`, `target_node`, `target_pin`) breaks only that one link and leaves the pins' other links intact. A link that does not exist is refused with `INVALID_OPERATION`; mixing the two shapes is `INVALID_FIELD`.
 - `get_node_settings` / `set_node_settings` (Animation Blueprint graph nodes only): read and write the node's settings struct by property path relative to it (`BoneToModify.BoneName`, `AlphaBoolBlend.BlendInTime`, `LayerSetup[0].BranchFilters`). `set_node_settings` takes `values` (path -> JSON value; write each value once, overlapping paths are refused with `INVALID_FIELD`), `dry_run` and `expected_fingerprint` (from `get_node_settings`, which also digests the node settings so unsaved edits are detected). Every path is validated before anything changes: unknown or read-only members (`INVALID_PROPERTY_PATH`), members whose value comes from a pin or binding, maps, sets and instanced objects (`INVALID_OPERATION`; use `set_pin_value` for pins), unconvertible values, numbers outside `ClampMin`/`ClampMax`, fixed-size array resizes and bones missing from the target skeleton (`INVALID_VALUE`). The apply is one undo step that runs the node's own edit reactions and reconstructs it, reporting `pins_added`/`pins_removed`; compile and save stay explicit.
 - Property Access nodes (Animation Blueprints only): `add_node` / `apply_patch` family `PropertyAccess` with `params.path` (array of segments from the Anim Blueprint class: properties, `Name[N]` array elements, getter functions); the path is validated before mutation and a failing segment is named (`INVALID_FIELD`); non-Anim or child Anim Blueprints and macro graphs are refused (`INVALID_OPERATION`). `get_subgraph`, `search_nodes`, traces and the `add_node` response carry `property_access: {path, text_path, resolved, thread_safe}` on these nodes (`thread_safe` describes the path, not the compiled call site).
 
@@ -1025,7 +1026,7 @@ discard the override. Ejected/SIE editor views remain controllable.
 
 ### Standalone
 
-- `editor_restart` — restart the Unreal Editor process
+- `editor_restart` — restart the Unreal Editor process. Refuses before shutdown when the editor executable (`UE_56_PATH`) cannot be resolved, so the running editor stays open; relaunches once if the new editor process exits before it reports a port. A failure carries `relaunch_attempted`, `launch_attempts`, `editor_pid`, `editor_running` and, for an exited editor, `exit_code`.
 
 ---
 

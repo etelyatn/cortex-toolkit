@@ -106,4 +106,4 @@ Use this when the editor is wedged or must be restarted after code changes.
 4. Call `editor_restart` to perform the graceful shutdown, relaunch, port-file wait, and connection verification.
 5. Report the new port, process ID, registered domains, and total restart time.
 
-If restart fails, report the error and give the user the relevant manual recovery path.
+If restart fails, report the error and give the user the relevant manual recovery path. Read the failure fields: `relaunch_attempted: false` means the old editor was never shut down; `editor_running: true` means the relaunched editor (`editor_pid`) is still starting, so wait for its port file instead of launching another; `editor_running: false` means no relaunched editor is running and the user must launch it manually.
