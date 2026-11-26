@@ -1,7 +1,7 @@
 {
   "provenance": {
-    "plugin_commit": "37a66c5ca913c9bcab693f414c741f8cdf93e2ee",
-    "plugin_ref": "37a66c5c",
+    "plugin_commit": "0fe4531bc7967684c06b48efef17d03ba50c8584",
+    "plugin_ref": "0fe4531b",
     "plugin_dirty": false
   },
   "exposed_tools": [
@@ -390,6 +390,7 @@
       "remove_notify",
       "remove_notify_state",
       "remove_socket",
+      "sample_runtime_pose",
       "set_curve_keys",
       "set_socket_transform",
       "update_montage_section",
@@ -2216,6 +2217,17 @@
         "state_limit",
         "state_machine_limit",
         "transition_limit"
+      ],
+      "sample_runtime_pose": [
+        "actor",
+        "actor_class",
+        "bones",
+        "interval_seconds",
+        "mesh_component",
+        "properties",
+        "sample_count",
+        "space",
+        "timeout_seconds"
       ],
       "rebind_function": [
         "asset_path",
