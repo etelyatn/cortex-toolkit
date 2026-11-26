@@ -2544,7 +2544,8 @@
       "limit"
     ],
     "core.get_capabilities": [
-      "detail"
+      "detail",
+      "domain"
     ]
   },
   "facade_commands": {

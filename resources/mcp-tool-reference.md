@@ -42,14 +42,16 @@ rather than the native `INVALID_FIELD` a command gives an in-range undeclared `l
 | `blueprint.get_class_defaults` | `asset_path`, `properties`, `blueprint_path`, `include_values`, `include_members`, `discovery_offset`, `discovery_limit` | `changed_only` |
 | `blueprint.set_class_defaults` | `asset_path`, `properties`, `compile`, `save`, `expected_fingerprint`, `items`, `blueprint_path` | `echo` |
 | `editor.get_recent_logs` | `severity`, `since_seconds`, `since_cursor`, `category` | `until_cursor`, `limit`, `count_only` |
-| `get_capabilities` | — | Python-only `detail` (`names` default / `full`) |
+| `get_capabilities` | — | Python-only `detail` (`names` default / `full`) and `domain` |
 
-`get_capabilities` also differs the other way: the Python router adds a **Python-only** `detail`
-parameter (`names|full`, default `names`) that is validated and stripped before the native call — the
-native command receives no `detail`, and the default MCP view drops every command's `params` signature
-inventory. Use `detail=full` (or `get_operation_schema` / `profile_operation_schema`) when you need the
-per-command parameter signatures. Native `get_capabilities` itself declares no params and is not
-self-listed in the `core` domain's command array.
+`get_capabilities` also differs the other way: the Python router adds **Python-only** `detail`
+(`names|full`, default `names`) and `domain` parameters that are validated and stripped before the
+native call — the native command receives neither. The default `detail=names` view lists each domain's
+commands as bare name strings; `domain=<name>` narrows either view to one registered domain (an unknown
+domain refuses with `INVALID_FIELD` listing the registered ones). Use `detail=full, domain=<name>` (or
+`get_operation_schema` / `profile_operation_schema` for one operation) when you need descriptions and
+parameter signatures. Native `get_capabilities` itself declares no params and is not self-listed in the
+`core` domain's command array.
 
 ---
 
@@ -104,7 +106,7 @@ that a read was complete. Refusing reads narrow the request instead of retrying 
 (`depth`/`max_nodes`/`names_only`), `graph.get_subgraph` (`node_ids`/`include_edges`),
 `blueprint.get_class_defaults` / `list_settable_defaults` / `list_inherited_properties`
 (`properties`/`include_values`/`discovery_limit`), `data.get_data_catalog` (`sections`,
-`include_asset_paths=false`), `get_capabilities` (`detail=names`), and
+`include_asset_paths=false`), `get_capabilities` (`detail=names`, `domain`), and
 `reflect.class_detail`/`query_class_context` (`detail=summary`).
 
 ### Pagination

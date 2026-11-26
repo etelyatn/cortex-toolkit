@@ -420,6 +420,7 @@ class CortexToolNameLint(unittest.TestCase):
         self.assertEqual([], lint_line('graph_cmd(command="search_nodes", params={"asset_path": "a", "limit": 50})'))
         self.assertTrue(lint_line('umg_cmd(command="set_size", params={"asset_path": "a", "limit": 5})'))
         self.assertEqual([], lint_line('core_cmd(command="get_capabilities", params={"detail": "full"})'))
+        self.assertEqual([], lint_line('core_cmd(command="get_capabilities", params={"domain": "material"})'))
         # a declared dry_run stays valid
         self.assertEqual([], lint_line(
             'umg_cmd(command="rename_widget", params={"asset_path": "a", "widget_name": "w", "new_name": "n", "dry_run": true})'))
