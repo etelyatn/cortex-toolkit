@@ -18,7 +18,8 @@ capabilities advertise every command in the family.
 | `anim.get_sequence_info` | Inspect sequence timing, skeleton, notifies, curves, sync markers, root motion, and fingerprint. |
 | `anim.get_montage_info` | Inspect montage length, sections, slots, segments, notifies, branching points, skeleton, and fingerprint. |
 | `anim.get_skeleton_info` | Inspect bones, parent indexes, sockets, virtual bones, preview mesh, and fingerprint. |
-| `anim.get_animbp_info` | Inspect AnimBP target skeleton, classes, state machines, states, transitions, node GUIDs, and graph GUIDs. |
+| `anim.get_animbp_info` | Inspect AnimBP target skeleton, classes, state machines, states, transitions, node GUIDs, and graph GUIDs; opt-in `include` reports (`nodes`: per-node input sources and fast-path verdict). |
+| `anim.sample_runtime_pose` | Sample bone transforms (local, component or delta from the reference pose) and anim-instance properties of a running PIE skeletal mesh over game time; time dilation slows sampling with the game. |
 | `anim.add_named_notify` | Add one sequence skeleton named notify with `expected_fingerprint`, `dry_run`, and optional `save`. |
 | `anim.update_named_notify` | Update exactly one sequence skeleton named notify selected by `{ index, name, time }`. |
 | `anim.remove_named_notify` | Remove exactly one sequence skeleton named notify selected by `{ index, name, time }`; missing targets are errors. |
@@ -43,7 +44,8 @@ capabilities advertise every command in the family.
 Use this domain for skeletal animation assets only. Do not use it for UMG animation,
 Sequencer, Control Rig authoring, Niagara, material animation, Blueprint Timeline
 components, runtime playback control, retargeting, IK, pose search, motion matching,
-blendspace inspection, or motion/keyframe generation.
+blendspace inspection, or motion/keyframe generation. `anim.sample_runtime_pose` only reads
+a running PIE pose.
 
 Use a family only when live capabilities advertise every command in that family. Named
 notifies, float curves, object notifies, and notify states apply to `UAnimSequence`; montage sections apply to
