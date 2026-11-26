@@ -32,8 +32,9 @@ to inspect, move, spawn, or screenshot something **while PIE is running**, targe
 - For a runtime camera, call `level_cmd(command="set_pie_view", params={"location": [x,y,z],
   "rotation": [pitch,yaw,roll], "fov": 75})`. It spawns or reuses a transient camera and sets the
   player view target; `editor_cmd(command="capture_screenshot")` then captures the PIE game view.
-- `level_compose` has no `world` parameter. For multiple PIE actor operations, call
-  `level_cmd` individually (the composite remains editor-world only). Batched `level_cmd`
+- `level_compose` has no `world` parameter (editor-world only). For multiple PIE actor
+  operations, call `core_cmd(command="batch_query", params={"commands": [...]})` with
+  `world: "pie"` on each level step, or call `level_cmd` individually. Batched `level_cmd`
   forms accept a top-level `world`; a malformed value is `INVALID_VALUE` before any item runs.
 - PIE actors and the view camera are transient: they disappear when the session stops.
   `duplicate_actor` refuses `world: "pie"` in single and batched forms; use `spawn_actor`

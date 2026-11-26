@@ -67,8 +67,10 @@ local player controller, spawns or reuses a transient `ACameraActor`, applies th
 sets the player view target. `fov` defaults to 90 and must be between 0 and 180. A PIE session may
 run with the editor viewport selected; `capture_screenshot` then reports `view: "pie_game_camera"`.
 
-`level_compose` has no `world` parameter. For multi-actor PIE work, call `level_cmd`
-individually; the composite remains editor-world only.
+`level_compose` has no `world` parameter. For multi-actor PIE work, use
+`core_cmd(command="batch_query", params={"commands": [...]})` with `world: "pie"` on each
+`level.*` step (the PIE transaction scope keeps the batch's editor-world undo entry) or
+call `level_cmd` individually; the composite remains editor-world only.
 
 PIE writes do not enter the editor transaction buffer; editor undo history is preserved.
 

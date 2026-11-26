@@ -186,8 +186,10 @@ The first call spawns a transient camera tagged `CortexPIEViewCamera`; later cal
 PIE actors and the camera are destroyed when the session stops.
 
 ### Multi-actor PIE work
-`level_compose` has no `world` parameter and remains editor-world only. For PIE, call
-`level_cmd` individually for each spawn/modify/attach step.
+`level_compose` has no `world` parameter and remains editor-world only. Use
+`core_cmd(command="batch_query", params={"commands": [...]})` with `world: "pie"` on each
+`level.*` step (the batch's editor-world undo entry is preserved by the PIE transaction
+scope), or call `level_cmd` individually for each spawn/modify/attach step.
 
 ### Cleanup
 ```
