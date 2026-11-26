@@ -21,7 +21,8 @@ Inspection:
 - `get_sequence_info`
 - `get_montage_info`
 - `get_skeleton_info`
-- `get_animbp_info` (state machines, states, conduits, transitions with `graph_guid`; opt-in `include`: `bindings`, `node_functions`, `property_access`, `lifecycle`, `notify_handlers`; limits `state_machine_limit`, `state_limit`, `conduit_limit`, `transition_limit`, `binding_limit`)
+- `get_animbp_info` (state machines, states, conduits, transitions with `graph_guid`; opt-in `include`: `bindings`, `node_functions`, `property_access`, `lifecycle`, `notify_handlers`, `nodes`; limits `state_machine_limit`, `state_limit`, `conduit_limit`, `transition_limit`, `binding_limit`)
+- `sample_runtime_pose` (PIE only: bone transforms over game time; see below)
 
 Authoring is intentionally narrow and capability-gated:
 
@@ -62,11 +63,20 @@ Nested graphs (state machine, state, transition rule, custom transition, conduit
 3. Functions: `rebind_function {asset_path, from, to, expected_fingerprint, dry_run}`: dry run lists `would_retarget` and `unmodified_references` (K2 call nodes are never touched; a same-named function of another class is listed `different_owner`), then apply (`compile` defaults to true, `save` to false). Rebind while the old function still exists, then retire the old function with the guarded `blueprint_cmd remove_graph` (preview with `dry_run:true` first); `remove_variable` is for variables only. A failure restores the captured state and runs one recovery compile; `rollback_status:"verification_failed"` / `VERIFICATION_FAILED` means the asset is blocked until the editor restarts: stop and report.
 4. Notify handlers are mapping and readiness only: `notify_handlers` reports `native_declares`, `native_signature_compatible` and `conflict` (a native `AnimNotify_<Name>` makes the Blueprint event fail to compile). Guarded removal of an ordinary editor-created `AnimNotify_*` event entry is currently unavailable (`retire_entries` refuses non-override events; `prune_island` keeps the entry; open request `docs/requests/graph/2026-11-05-graph-policy-driven-reviewed-removal-node-families.md`). Report the conflict instead of adding the native handler to a shipped AnimBP, and never remove the event by other Cortex commands.
 
+## Verifying Procedural Animation In PIE
+
+A correct final pose can hide a mid-blend swing (for example a node that reads component-space transforms as local). Check the pose over time instead of screenshots:
+
+1. `editor_cmd start_pie`, then `editor_cmd set_time_dilation {factor:0.05}` so a short blend spans many samples.
+2. `sample_runtime_pose {actor, bones:["spine_03","hand_r"], space:"delta_from_ref", sample_count:40, interval_seconds:0.02, properties:["bBlendActive"]}`: `angle_degrees` per bone per sample is the swing away from the reference pose; `properties` logs the anim-instance values driving the blend. `space:"local"` (parent-bone, the engine's `RTS_ParentBoneSpace`) or `"component"` read raw transforms. Spacing is game time, so it stays exact under time dilation; `recently_rendered:false` means an unrendered mesh may not refresh bones.
+3. Restore `set_time_dilation {factor:1}`. A stop with `stop_reason:"timeout"` or `"target_destroyed"` keeps the samples taken.
+4. To see why a node misbehaves, `get_animbp_info {include:["nodes"]}` lists each node's inputs (`bound`, `linked`, or `unconnected` with the constant it uses: an expected binding that reads `unconnected` is missing) and its fast-path verdict; `graph_cmd get_node_settings` with the reported `node_id` reads its settings.
+
 ## Guardrails
 
 - Use `dry_run=true` before destructive or uncertain changes.
 - Treat stale fingerprint errors as a signal to re-inspect and ask whether to retry.
-- Do not invent later-stage AnimBP authoring, blendspace, retargeting, runtime preview, Sequencer, or Control Rig commands. The only anim-domain AnimBP mutation is `rebind_function`; anim node settings are written with `graph_cmd set_node_settings` (above), bindings and logic are not editable here and nothing ports Blueprint logic to C++. The anim domain has no save command; use a mutation's `save=true` option, or `core.save_asset` where appropriate.
+- Do not invent later-stage AnimBP authoring, blendspace, retargeting, runtime preview/playback control, Sequencer, or Control Rig commands; `sample_runtime_pose` only reads a running PIE pose. The only anim-domain AnimBP mutation is `rebind_function`; anim node settings are written with `graph_cmd set_node_settings` (above), bindings and logic are not editable here and nothing ports Blueprint logic to C++. The anim domain has no save command; use a mutation's `save=true` option, or `core.save_asset` where appropriate.
 - If a command is absent from live capabilities, report that the requested animation authoring is unavailable.
 
 ## Verification
