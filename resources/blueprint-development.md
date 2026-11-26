@@ -178,6 +178,7 @@ Read commands (`get_subgraph`, `search_nodes`) accept a `compact` boolean (defau
 | `ClearDelegate` / `UnbindAllEvents` | Unbind all events — same params, no Delegate pin. Pins: execute, then, self (Target) |
 | `CreateDelegate` / `CreateEvent` | Create delegate object (NOT CustomEvent) — optional `params: {"function_name": "MyHandler"}` (bare name, not `ClassName.Function`). Pins: self (Object), OutputDelegate (Event) |
 | `Composite` | Collapsed composite subgraph (`UK2Node_Composite`) — no params required. Creates a composite node with an empty `BoundGraph`. Use `get_subgraph` or `list_graphs` (`include_subgraphs`) to read back the `subgraph_name` field, then pass it as `subgraph_path` on subsequent calls to edit nodes inside the composite. |
+| `PropertyAccess` | Property Access node (`K2Node_PropertyAccess`), Animation Blueprints only — requires `params: {"path": ["GetOwningActor", "bHidden"]}` (properties, `Name[N]` array elements, or getter functions, resolved from the Anim Blueprint class). Output: `Value`, typed from the path. Reads return `property_access: {path, text_path, resolved, thread_safe}` |
 
 **Removed short names** — no longer accepted: `FunctionEntry`, `FunctionResult`, `ForEachLoop`. Use `CallFunction` with `function_name: "KismetArrayLibrary.Array_ForEach"` for ForEach loops.
 
