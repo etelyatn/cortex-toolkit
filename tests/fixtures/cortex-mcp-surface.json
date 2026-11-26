@@ -1,7 +1,7 @@
 {
   "provenance": {
-    "plugin_commit": "70331f2af81da96116c10a4909ea71f51cd7537b",
-    "plugin_ref": "70331f2af81da96116c10a4909ea71f51cd7537b",
+    "plugin_commit": "d44cb867fa587c6a256367beb386c857b0c0648e",
+    "plugin_ref": "d44cb867fa587c6a256367beb386c857b0c0648e",
     "plugin_dirty": false
   },
   "exposed_tools": [
@@ -801,7 +801,11 @@
         "graph_name",
         "node_id",
         "pin_name",
-        "subgraph_path"
+        "source_node",
+        "source_pin",
+        "subgraph_path",
+        "target_node",
+        "target_pin"
       ],
       "set_pin_value": [
         "asset_path",
