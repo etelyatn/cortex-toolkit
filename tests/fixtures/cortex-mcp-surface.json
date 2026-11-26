@@ -1,7 +1,7 @@
 {
   "provenance": {
-    "plugin_commit": "0fe4531bc7967684c06b48efef17d03ba50c8584",
-    "plugin_ref": "0fe4531b",
+    "plugin_commit": "06eca308a82fb3a3e02cf18dd0713556df6d44b9",
+    "plugin_ref": "06eca308a82fb3a3e02cf18dd0713556df6d44b9",
     "plugin_dirty": false
   },
   "exposed_tools": [
@@ -311,7 +311,8 @@
       "duplicate_level",
       "rename_level",
       "delete_level",
-      "export_class_instances"
+      "export_class_instances",
+      "set_pie_view"
     ],
     "qa": [
       "observe_state",
@@ -1686,61 +1687,73 @@
         "material",
         "mesh",
         "rotation",
-        "scale"
+        "scale",
+        "world"
       ],
       "delete_actor": [
         "actor",
         "confirm_class",
         "expected_fingerprint",
-        "items"
+        "items",
+        "world"
       ],
       "duplicate_actor": [
         "actor",
         "expected_fingerprint",
         "items",
-        "offset"
+        "offset",
+        "world"
       ],
       "rename_actor": [
         "actor",
         "expected_fingerprint",
         "items",
-        "label"
+        "label",
+        "world"
       ],
       "get_actor": [
-        "actor"
+        "actor",
+        "world"
       ],
       "set_transform": [
         "actor",
         "location",
         "rotation",
-        "scale"
+        "scale",
+        "world"
       ],
       "set_actor_property": [
         "actor",
         "property",
-        "value"
+        "value",
+        "world"
       ],
       "get_actor_property": [
         "actor",
-        "property"
+        "property",
+        "world"
       ],
       "list_components": [
         "actor",
-        "include_properties"
+        "include_properties",
+        "world"
       ],
       "add_component": [
         "actor",
         "class",
-        "name"
+        "name",
+        "world"
       ],
       "remove_component": [
         "actor",
-        "component"
+        "component",
+        "world"
       ],
       "get_component_property": [
         "actor",
         "component",
-        "property"
+        "property",
+        "world"
       ],
       "set_component_property": [
         "actor",
@@ -1748,7 +1761,8 @@
         "expected_fingerprint",
         "items",
         "property",
-        "value"
+        "value",
+        "world"
       ],
       "list_actor_classes": [
         "category"
@@ -1765,17 +1779,20 @@
         "limit",
         "offset",
         "region",
-        "tags"
+        "tags",
+        "world"
       ],
       "find_actors": [
         "include_components",
-        "pattern"
+        "pattern",
+        "world"
       ],
       "get_bounds": [
         "class",
         "folder",
         "region",
-        "tags"
+        "tags",
+        "world"
       ],
       "select_actors": [
         "actors",
@@ -1787,24 +1804,28 @@
         "expected_fingerprint",
         "items",
         "parent",
-        "socket"
+        "socket",
+        "world"
       ],
       "detach_actor": [
         "actor",
         "expected_fingerprint",
-        "items"
+        "items",
+        "world"
       ],
       "set_tags": [
         "actor",
         "expected_fingerprint",
         "items",
-        "tags"
+        "tags",
+        "world"
       ],
       "set_folder": [
         "actor",
         "expected_fingerprint",
         "folder",
-        "items"
+        "items",
+        "world"
       ],
       "group_actors": [
         "actors"
@@ -1812,7 +1833,9 @@
       "ungroup_actors": [
         "group"
       ],
-      "get_info": [],
+      "get_info": [
+        "world"
+      ],
       "list_sublevels": [],
       "load_sublevel": [
         "sublevel"
@@ -1861,6 +1884,11 @@
         "class",
         "maps",
         "out_path"
+      ],
+      "set_pie_view": [
+        "fov",
+        "location",
+        "rotation"
       ]
     },
     "qa": {
