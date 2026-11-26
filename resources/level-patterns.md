@@ -162,6 +162,42 @@ level_cmd("set_sublevel_visibility", params={"sublevel": "SubLevel_Lighting", "v
 level_cmd("list_data_layers") → level_cmd("set_data_layer", params={"actors": ["Actor1", "Actor2"], "data_layer": "Gameplay"}) → level_cmd("save_level")
 ```
 
+## PIE Runtime Workflows
+
+The default `world` for actor commands is `"editor"`. Use `"pie"` while a play session is running;
+without PIE the command returns `PIE_NOT_ACTIVE`.
+
+### Spawn and move in PIE
+```
+editor_cmd(command="start_pie", params={"mode": "selected_viewport"}) → editor_cmd("get_pie_state")
+level_cmd("spawn_actor", params={"class_name": "TargetPoint", "world": "pie", "location": [1200,2400,400], "label": "RuntimeTarget"})
+level_cmd("set_transform", params={"actor": "RuntimeTarget", "world": "pie", "location": [1300,2400,450]})
+level_cmd("find_actors", params={"pattern": "RuntimeTarget", "world": "pie"})
+```
+
+### Runtime screenshot camera
+```
+level_cmd("set_pie_view", params={"location": [800,1800,700], "rotation": [-20,45,0], "fov": 75})
+editor_cmd("capture_screenshot", params={"output_path": "<project>/Saved/CortexScreenshots/runtime.png"})
+```
+
+The first call spawns a transient camera tagged `CortexPIEViewCamera`; later calls reuse it
+(`reused: true`) and move it. `capture_screenshot` reports `view: "pie_game_camera"`.
+PIE actors and the camera are destroyed when the session stops.
+
+### Multi-actor PIE work
+`level_compose` has no `world` parameter and remains editor-world only. For PIE, call
+`level_cmd` individually for each spawn/modify/attach step.
+
+### Cleanup
+```
+level_cmd("delete_actor", params={"actor": "RuntimeTarget", "world": "pie"})
+editor_cmd(command="stop_pie")
+```
+
+`duplicate_actor` refuses `world: "pie"` (`INVALID_OPERATION`) because editor duplication depends on
+editor selection/copy-paste state; spawn a new runtime actor instead.
+
 ## Scene Construction and Modification (level_compose)
 
 ### Multi-Actor Scene Creation

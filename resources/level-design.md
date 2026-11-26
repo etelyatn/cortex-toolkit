@@ -47,6 +47,30 @@ Every level mutation that touches an asset or actor family guarded by the prompt
 
 Independent discovery reads MUST run in parallel. Sequential read chains are only allowed when a later query depends on concrete data returned by the earlier one.
 
+## PIE Runtime Targets
+
+`level_compose` and the default actor commands target the editor world. To act on the running
+game, pass `world: "pie"` to the actor-scoped `level_cmd` commands: `spawn_actor`, `delete_actor`,
+`rename_actor`, `get_actor`, `set_transform`, `set_actor_property`, `get_actor_property`,
+`list_components`, `add_component`, `remove_component`, `get_component_property`,
+`set_component_property`, `attach_actor`, `detach_actor`, `set_tags`, `set_folder`, `list_actors`,
+`find_actors`, `get_bounds`, and `get_info`. The value is resolved through `GEditor->PlayWorld`;
+`PIE_NOT_ACTIVE` means start PIE first, and `INVALID_VALUE` means pass `"editor"` or `"pie"`.
+Batched forms apply a top-level `world` to each item unless the item sets its own.
+
+`duplicate_actor` accepts `world` only to refuse `"pie"` explicitly: editor duplication depends on
+editor-world selection state. Use `spawn_actor` with `world: "pie"` for a runtime actor.
+
+`set_pie_view(location, rotation, fov?)` is the runtime-screenshot primitive. It requires PIE and a
+local player controller, spawns or reuses a transient `ACameraActor`, applies the pose and FOV, and
+sets the player view target. `fov` defaults to 90 and must be between 0 and 180. A PIE session may
+run with the editor viewport selected; `capture_screenshot` then reports `view: "pie_game_camera"`.
+
+`level_compose` has no `world` parameter. For multi-actor PIE work, call `level_cmd`
+individually; the composite remains editor-world only.
+
+PIE writes do not enter the editor transaction buffer; editor undo history is preserved.
+
 ## 3-Phase Methodology
 
 ### When to use `level_compose` vs individual tools
