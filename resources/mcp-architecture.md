@@ -23,7 +23,7 @@ Commands are namespaced: `{domain}.{command}`
 
 Built-in commands (no namespace): `get_status`, `get_capabilities`
 
-The Python router adds a **Python-only** `detail` parameter to `get_capabilities` (`names` default / `full`). It is validated and stripped before the native call — the native command receives no `detail` — and `detail=names` (the default) drops every command's `params` signature inventory. Ask for `detail=full` (or use `get_operation_schema` / `profile_operation_schema`) when you need per-command parameter signatures.
+The Python router adds **Python-only** `detail` (`names` default / `full`) and `domain` parameters to `get_capabilities`. They are validated and stripped before the native call — the native command receives neither. `detail=names` (the default) lists each domain's commands as bare name strings; `domain=<name>` narrows either view to one registered domain. Ask for `detail=full, domain=<name>` (or use `get_operation_schema` / `profile_operation_schema`) when you need descriptions and per-command parameter signatures.
 
 ## MCP Server
 

@@ -1,7 +1,7 @@
 {
   "provenance": {
-    "plugin_commit": "06eca308a82fb3a3e02cf18dd0713556df6d44b9",
-    "plugin_ref": "06eca308a82fb3a3e02cf18dd0713556df6d44b9",
+    "plugin_commit": "5342fccefec84e76a231c1b64ebb76aab5384a02",
+    "plugin_ref": "5342fccefec84e76a231c1b64ebb76aab5384a02",
     "plugin_dirty": false
   },
   "exposed_tools": [
@@ -2538,7 +2538,8 @@
       "limit"
     ],
     "core.get_capabilities": [
-      "detail"
+      "detail",
+      "domain"
     ]
   },
   "facade_commands": {

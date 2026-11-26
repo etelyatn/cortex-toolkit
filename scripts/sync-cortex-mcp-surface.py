@@ -229,12 +229,12 @@ def generate(plugin: Path, ref: str | None) -> dict:
         recorder = _RecordingServer()
         server._register_explicit_tools(recorder, server._connection)
         # Parameters the Python router owns, per command: limit/cursor exist only on the cache-owned
-        # paginated reads; the capabilities projection owns `detail`. Any other command forwards the
-        # field to a strict native contract, which refuses it.
+        # paginated reads; the capabilities projection owns `detail` and `domain`. Any other command
+        # forwards the field to a strict native contract, which refuses it.
         python_owned: dict[str, list[str]] = {}
         for qualified in sorted(routers.CACHED_PAGE_ARRAYS):
             python_owned[qualified] = ["cursor", "limit"]
-        python_owned["core.get_capabilities"] = ["detail"]
+        python_owned["core.get_capabilities"] = ["detail", "domain"]
 
     exposed = sorted(set(recorder.names))
     legacy: set[str] = set()
