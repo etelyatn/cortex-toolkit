@@ -596,6 +596,15 @@ keeps the previous full editable read. A selected read keys `properties` by the 
 validates the root segment against the same editable admission as the full read (a dotted path cannot
 cross a non-editable root); an unknown or non-editable name refuses `PropertyNotFound`.
 
+Graph commands also accept a material function asset path. Reads return `asset_kind` (`material`,
+`material_function`, `material_function_instance`). A material function has no virtual `MaterialResult`
+node: its `FunctionInput` and `FunctionOutput` expressions are the real pins, and a function output's
+input is named `A`. `auto_layout` treats function outputs as sinks. Graph writes run
+`UpdateMaterialFunction`, recompiling loaded dependents once per batch; layout alone does not recompile.
+A `UMaterialFunctionInstance` is read-only: reads resolve its base function, and `get_node` adds
+`parameter_override` = `{name, type, value}` when the instance overrides that parameter. Writes to an
+instance refuse `INVALID_OPERATION`; `set_material_input` and `include_input_state` remain material-only.
+
 ### Root input state
 
 A root input (the `MaterialResult` pins) stores more than its connection: an output index, a channel
