@@ -1,7 +1,7 @@
 {
   "provenance": {
-    "plugin_commit": "06eca308a82fb3a3e02cf18dd0713556df6d44b9",
-    "plugin_ref": "06eca308a82fb3a3e02cf18dd0713556df6d44b9",
+    "plugin_commit": "70331f2af81da96116c10a4909ea71f51cd7537b",
+    "plugin_ref": "70331f2af81da96116c10a4909ea71f51cd7537b",
     "plugin_dirty": false
   },
   "exposed_tools": [
@@ -251,6 +251,7 @@
       "inject_input_continuous",
       "inject_input_sequence",
       "capture_screenshot",
+      "capture_editor_panel",
       "get_viewport_info",
       "set_viewport_camera",
       "focus_actor",
@@ -1618,6 +1619,11 @@
       ],
       "capture_screenshot": [
         "output_path"
+      ],
+      "capture_editor_panel": [
+        "asset_path",
+        "output_path",
+        "panel"
       ],
       "get_viewport_info": [],
       "set_viewport_camera": [
