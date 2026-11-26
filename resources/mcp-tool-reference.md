@@ -967,6 +967,7 @@ no save command; use a mutation's `save=true` option, or `core.save_asset` where
 
 - **PIE lifecycle:** `start_pie` (only `mode`; there is no map override or player-spawn parameter), `stop_pie`, `get_pie_state`, `pause_pie`, `resume_pie`, `restart_pie`
 - **Viewport:** `get_viewport_info`, `capture_screenshot`, `set_viewport_camera`, `focus_actor`, `set_viewport_mode`
+- **Editor UI capture:** `capture_editor_panel(asset_path?, panel?, output_path?)` renders an Editor panel to PNG (asset editor, Details panel, graph, or a whole window)
 - **Utilities:** `get_editor_state`, `get_recent_logs`, `execute_console_command`, `set_time_dilation`, `get_world_info`
 - **Blueprint editor:** `focus_node(asset_path, node_id, graph_name?, graph_guid?)` opens the Blueprint editor on a node; `graph_guid` (from `graph.list_graphs`, nested graphs included) selects the graph when several share a name.
 - **Turnaround** (deferred; the router widens its receive window; the native server honours a per-command deferred timeout instead of its 30 s default): `live_coding_compile` (no params; patches only when Live Coding is already running, never starts it; blocks the editor until the patch is built, so transport timeouts must cover the compile — native bound 1800 s, router window 1830 s; new reflected types need a full build), `wait_ready` (`reopen_assets` array — a map path is refused and reported under `failed`; `timeout` seconds >0 and <=3600, default 120, the transport waits it plus a grace; conditions are Asset Registry loaded and no asset compilation pending — Blueprint compiles are synchronous and not observable; returns `ready`, `waited_seconds`, `opened`, `failed`, or `TIMEOUT`)
@@ -1023,6 +1024,21 @@ pose is unavailable, not guessed. No `source` selector. `set_viewport_camera` re
 default; Boolean `allow_during_pie=true` changes only the transient editor client,
 not the rendered game camera. Read `editor_camera_visible`; engine restoration may
 discard the override. Ejected/SIE editor views remain controllable.
+
+`capture_editor_panel` captures Editor UI, not the 3D view. It reads the window's own Slate back buffer
+(`FSlateApplication::TakeScreenshot`), so it needs no OS screen-capture permission (macOS Screen Recording) and is
+not affected by windows covering the editor. `asset_path` opens (or focuses) that asset's editor; maps are refused
+with `INVALID_OPERATION`, unknown assets with `ASSET_NOT_FOUND`. `panel`: `editor` (default with `asset_path`; the
+asset editor's tab content), `window` (default without; the whole top-level window: the active one, or the main
+frame when the editor is in the background), `details` (largest visible `SDetailsView`), `graph` (largest visible
+`SGraphEditor`). Without `asset_path`, `details` is the level editor's Details panel: select the actor first (an
+empty Details panel is one flat colour). A DataTable row editor is not a `details` panel. A graph whose view is still
+moving (just opened, or after `focus_node`) is captured once it settles (up to 2 s). Response: `path`, `width`,
+`height`, `file_size_bytes`, `capture_time_ms`, `panel`, `widget_type`, `window_title`, `match_count`
+(`details`/`graph`), and with `asset_path` also `asset_path`, `editor_name`. Missing panel → `WIDGET_NOT_FOUND`;
+open modal dialog → `EDITOR_BUSY`; minimized window → `SCREENSHOT_FAILED`; `-NullRHI` → `EDITOR_NOT_AVAILABLE`.
+No refusal writes a file. Example: `editor_cmd capture_editor_panel {"asset_path": "/Game/Materials/MI_Foo", "panel": "details"}`
+for a material instance's parameter list.
 
 ### Standalone
 
