@@ -1,7 +1,7 @@
 {
   "provenance": {
-    "plugin_commit": "d3a7194eca39589dc7ccfd8c611ea1ed93d4d108",
-    "plugin_ref": "d3a7194eca39589dc7ccfd8c611ea1ed93d4d108",
+    "plugin_commit": "dd79e4e501fe7bbeecc9708ca972fa37c634dd1a",
+    "plugin_ref": "dd79e4e501fe7bbeecc9708ca972fa37c634dd1a",
     "plugin_dirty": false
   },
   "exposed_tools": [
@@ -198,6 +198,9 @@
       "check_native_bindings",
       "get_embedded_widget_values",
       "get_commonui_info",
+      "get_live_widgets",
+      "snapshot_live_widgets",
+      "diff_live_widgets",
       "get_embedded_widget_diff"
     ],
     "material": [
@@ -272,7 +275,9 @@
       "get_world_info",
       "run_python",
       "live_coding_compile",
-      "wait_ready"
+      "wait_ready",
+      "capture_stats",
+      "set_pie_cursor"
     ],
     "level": [
       "spawn_actor",
@@ -331,7 +336,8 @@
       "teleport_player",
       "set_actor_property",
       "set_random_seed",
-      "assert_state"
+      "assert_state",
+      "broadcast_delegate"
     ],
     "reflect": [
       "class_hierarchy",
@@ -1410,6 +1416,22 @@
       "get_commonui_info": [
         "asset_path"
       ],
+      "get_live_widgets": [
+        "include_properties",
+        "max_instances",
+        "widget_class",
+        "widgets"
+      ],
+      "snapshot_live_widgets": [
+        "include_properties",
+        "label",
+        "max_instances",
+        "widget_class",
+        "widgets"
+      ],
+      "diff_live_widgets": [
+        "label"
+      ],
       "get_embedded_widget_diff": [
         "asset_path"
       ]
@@ -1723,6 +1745,17 @@
       "wait_ready": [
         "reopen_assets",
         "timeout"
+      ],
+      "capture_stats": [
+        "filter",
+        "frames",
+        "max_depth",
+        "min_ms",
+        "timeout_seconds"
+      ],
+      "set_pie_cursor": [
+        "x",
+        "y"
       ]
     },
     "level": {
@@ -1991,6 +2024,12 @@
         "property",
         "type",
         "value"
+      ],
+      "broadcast_delegate": [
+        "actor",
+        "args",
+        "component",
+        "delegate"
       ]
     },
     "reflect": {
