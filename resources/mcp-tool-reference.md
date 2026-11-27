@@ -824,6 +824,7 @@ not supported.
 - **Properties:** `set_color`, `set_text`, `set_font`, `set_brush`, `set_padding`, `set_anchor`, `set_alignment`, `set_size`, `set_visibility`, `set_property`, `get_property`, `get_schema`
 - **Animations:** `create_animation`, `list_animations`, `remove_animation`, `list_animation_bindings`, `ensure_animation_binding`, `set_animation_property_track`, `remove_animation_binding`
 - **Migration reads (read-only):** `check_native_bindings`, `get_embedded_widget_values`, `get_embedded_widget_diff`, `get_commonui_info`
+- **Live PIE widgets (read-only):** `get_live_widgets(widget_class, widgets?, include_properties?, max_instances?)`, `snapshot_live_widgets(…, label)`, `diff_live_widgets(label)`. Readback per instance: `visibility`, `properties` (declared below `UUserWidget`), and per named child `visibility`, `is_enabled`, `render_opacity`, `text` with `text_source` (`slate` effective / `property`), stored `style` (text color/font, image brush resource/size/tint, button state brushes, border brush), `bindings`; absent names in `missing`. Children are found by name, so non-variable bound widgets are included. The diff re-reads with the snapshot's selectors and returns `summary` (`"<d> of <n> entries differ"`), `differences[{key, before, after}]`, `added_instances`/`removed_instances` and `complete` (false when truncated; `identical` requires it). Snapshots live in `Saved/Cortex/WidgetSnapshots/<label>.json`.
 
 `set_property` requires `value` (absent is refused with `INVALID_FIELD`) and accepts only its declared
 parameters. Every JSON property write — this command, `blueprint.set_class_defaults`/
@@ -983,18 +984,28 @@ no save command; use a mutation's `save=true` option, or `core.save_asset` where
 - **PIE lifecycle:** `start_pie` (only `mode`: `selected_viewport`, the default, plays inside the active level viewport; `new_window` opens a floating PIE window; any other value is `INVALID_FIELD` naming both and changes no PIE state; there is no map override or player-spawn parameter), `stop_pie`, `get_pie_state`, `pause_pie`, `resume_pie`, `restart_pie` (same `mode`)
 - **Viewport:** `get_viewport_info`, `capture_screenshot`, `set_viewport_camera`, `focus_actor`, `set_viewport_mode`
 - **Editor UI capture:** `capture_editor_panel(asset_path?, panel?, output_path?)` renders an Editor panel to PNG (asset editor, Details panel, graph, or a whole window)
-- **Utilities:** `get_editor_state`, `get_recent_logs`, `execute_console_command`, `set_time_dilation`, `get_world_info`
+- **Utilities:** `get_editor_state`, `get_recent_logs`, `execute_console_command`, `set_time_dilation`, `get_world_info`, `capture_stats`
 - **Blueprint editor:** `focus_node(asset_path, node_id, graph_name?, graph_guid?)` opens the Blueprint editor on a node; `graph_guid` (from `graph.list_graphs`, nested graphs included) selects the graph when several share a name.
 - **Turnaround** (deferred; the router widens its receive window; the native server honours a per-command deferred timeout instead of its 30 s default): `live_coding_compile` (no params; patches only when Live Coding is already running, never starts it; blocks the editor until the patch is built, so transport timeouts must cover the compile — native bound 1800 s, router window 1830 s; new reflected types need a full build), `wait_ready` (`reopen_assets` array — a map path is refused and reported under `failed`; `timeout` seconds >0 and <=3600, default 120, the transport waits it plus a grace; conditions are Asset Registry loaded and no asset compilation pending — Blueprint compiles are synchronous and not observable; returns `ready`, `waited_seconds`, `opened`, `failed`, or `TIMEOUT`)
-- **Input injection** (requires active PIE): `inject_key`, `inject_mouse`, `inject_input_action`, `inject_input_continuous`, `inject_input_sequence`
+- **Input injection** (requires active PIE): `inject_key`, `inject_mouse`, `inject_input_action`, `inject_input_continuous`, `inject_input_sequence`, `set_pie_cursor`
 
 `inject_mouse` takes required `action: "click" | "move" | "scroll"`, optional numeric screen-space
 `x`/`y` (current cursor by default), optional `button: "left" | "right" | "middle"` (default left
 for click), and numeric `delta` required for scroll. It has no duration parameter or object-valued
 delta. A handled Slate dispatch does not prove the intended UI control received a click. The move is a
-Slate pointer event: gameplay code that reads the OS cursor through the scene viewport
-(`GetMousePosition`, deprojection) does not see it. For cursor-driven gameplay use a Cortex Replay
-recording (`replay_cmd`, see `resources/replay-workflow.md`).
+Slate pointer event: it does not change the position the player controller reports
+(`GetMousePosition`, deprojection). For cursor-driven gameplay use `set_pie_cursor(x, y)` with PIE
+viewport pixels: it moves the real OS cursor, the reply carries the read-back
+`player_mouse_position`, positions outside the viewport are `INVALID_FIELD`, hidden-cursor mouse
+capture is `INVALID_OPERATION`, and the cursor is restored after PIE when untouched.
+
+`capture_stats(frames?, filter?, max_depth?, min_ms?, timeout_seconds?)` is deferred: it averages the
+engine's hierarchical cycle stats over `frames` (1–600, default 60) and returns `frame_count`,
+game-thread `frame_time_ms {avg, max}` and `nodes` trees of `{name, description, inclusive_ms,
+exclusive_ms, calls_per_frame, children}`. `filter` substrings (stat name or description, e.g. a
+Blueprint function or asset name) make the matching nodes the roots; `max_depth` (default 6) and
+`min_ms` trim. One capture at a time; past `timeout_seconds` (default 30, max 300) it answers `TIMEOUT`.
+Use it before/after a change for comparable per-function cost instead of parsing `stat dumpave`.
 
 See `qa-patterns.md` for input injection documentation.
 
@@ -1074,8 +1085,15 @@ for a material instance's parameter list.
 ## QA (`qa_cmd`)
 
 - **World queries:** `observe_state`, `get_actor_state`, `get_player_state`
-- **Game actions:** `look_at`, `interact`, `move_to`, `wait_for`, `teleport_player`, `set_actor_property`, `set_random_seed`
+- **Game actions:** `look_at`, `interact`, `move_to`, `wait_for`, `teleport_player`, `set_actor_property`, `set_random_seed`, `broadcast_delegate`
 - **Assertions:** `assert_state`
+
+`broadcast_delegate(actor, delegate, component?, args?)` broadcasts an inline or sparse dynamic multicast
+delegate on a PIE actor or one of its components, driving every bound listener as the game would (for
+example an "interaction target changed" delegate, to test a widget against each object without aiming
+at it). `args` are keyed by signature parameter name and all are required; unknown or missing names
+are `INVALID_FIELD` listing the expected `name:type` pairs, and object arguments take object paths.
+The reply reports `signature` and `bound_count` (listeners before the broadcast).
 
 QA no longer records or replays input. The legacy `start_recording`, `stop_recording`, `replay_session`
 and `cancel_replay` commands were removed in the CortexReplay cutover; recorded physical-input

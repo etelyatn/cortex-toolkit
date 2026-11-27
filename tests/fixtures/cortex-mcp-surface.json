@@ -1,7 +1,7 @@
 {
   "provenance": {
-    "plugin_commit": "3970d1c2bb513bbaea6bedd575db738fd1e36d54",
-    "plugin_ref": "3970d1c2",
+    "plugin_commit": "282ca6f67c0830b88bf212f3d5c60d5ad9c777ab",
+    "plugin_ref": "282ca6f6",
     "plugin_dirty": false
   },
   "exposed_tools": [
@@ -196,6 +196,9 @@
       "check_native_bindings",
       "get_embedded_widget_values",
       "get_commonui_info",
+      "get_live_widgets",
+      "snapshot_live_widgets",
+      "diff_live_widgets",
       "get_embedded_widget_diff"
     ],
     "material": [
@@ -270,7 +273,9 @@
       "get_world_info",
       "run_python",
       "live_coding_compile",
-      "wait_ready"
+      "wait_ready",
+      "capture_stats",
+      "set_pie_cursor"
     ],
     "level": [
       "spawn_actor",
@@ -329,7 +334,8 @@
       "teleport_player",
       "set_actor_property",
       "set_random_seed",
-      "assert_state"
+      "assert_state",
+      "broadcast_delegate"
     ],
     "reflect": [
       "class_hierarchy",
@@ -1394,6 +1400,22 @@
       "get_commonui_info": [
         "asset_path"
       ],
+      "get_live_widgets": [
+        "include_properties",
+        "max_instances",
+        "widget_class",
+        "widgets"
+      ],
+      "snapshot_live_widgets": [
+        "include_properties",
+        "label",
+        "max_instances",
+        "widget_class",
+        "widgets"
+      ],
+      "diff_live_widgets": [
+        "label"
+      ],
       "get_embedded_widget_diff": [
         "asset_path"
       ]
@@ -1707,6 +1729,17 @@
       "wait_ready": [
         "reopen_assets",
         "timeout"
+      ],
+      "capture_stats": [
+        "filter",
+        "frames",
+        "max_depth",
+        "min_ms",
+        "timeout_seconds"
+      ],
+      "set_pie_cursor": [
+        "x",
+        "y"
       ]
     },
     "level": {
@@ -1975,6 +2008,12 @@
         "property",
         "type",
         "value"
+      ],
+      "broadcast_delegate": [
+        "actor",
+        "args",
+        "component",
+        "delegate"
       ]
     },
     "reflect": {

@@ -84,9 +84,11 @@ editor_cmd(command="inject_input_continuous", params={
 })
 ```
 Use the actual loaded action path and its value type; axis meanings come from the
-project's binding, not Cortex. `inject_input_action` lasts one frame. Continuous
-start/update/stop normally return immediately; optional positive start-only duration
-defers until expiry/cancellation and must fit the native float delay.
+project's binding, not Cortex. `action_name` takes an object path, a package path
+(`/Game/Input/IA_Move`, loaded if needed) or a loaded action's name. `inject_input_action`
+lasts one frame. Continuous start/update/stop return immediately; a positive start-only
+`duration_ms` also replies at once with `injecting: true`, holds the action for the duration
+and then stops it, so you can observe the held state in between (must fit the native float delay).
 Input values must be actual JSON numbers, not numeric strings; Axis1D must fit float.
 Update cannot acquire another subsystem's injection. Stop is idempotent for unowned
 actions and does not cancel game-managed injection. `injecting` describes Cortex
