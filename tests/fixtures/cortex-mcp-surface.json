@@ -1,7 +1,7 @@
 {
   "provenance": {
-    "plugin_commit": "e1e06576fb3b1b346b18ed464f09b9e3530f66fb",
-    "plugin_ref": "e1e06576fb3b1b346b18ed464f09b9e3530f66fb",
+    "plugin_commit": "3970d1c2bb513bbaea6bedd575db738fd1e36d54",
+    "plugin_ref": "3970d1c2",
     "plugin_dirty": false
   },
   "exposed_tools": [
