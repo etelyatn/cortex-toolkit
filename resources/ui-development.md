@@ -46,6 +46,7 @@ Non-`names_only` nodes also report `is_variable` and (when present) `slot`, so t
 - `umg.rename_widget` reports `display_label_before`, `display_label_after` and `display_label_changed`: the engine rename replaces a custom Designer hierarchy label with the new widget name.
 - `blueprint.export_text_inventory`: capture the FText inventory before and after; the inline limit is 40000 characters, so pass `out_path` for large Blueprints.
 - `umg.get_commonui_info`: CommonUI activatable settings, overrides, button/text/border styles and `style_assets`. `commonui_available: false` means the CommonUI plugin is not loaded — it is not an error.
+- **Runtime parity in PIE:** before the migration, start PIE, drive the screen into the state to check (input, `qa_cmd(broadcast_delegate)` for gameplay events such as a target change), then `umg.snapshot_live_widgets(widget_class, label)`. After the migration, reproduce the same inputs and run `umg.diff_live_widgets(label)`: `"0 of N entries differ"` with `complete: true` is the parity result; otherwise `differences[]` names each changed field (`[0].widgets.Title.text`). `umg.get_live_widgets` reads the same data without saving, including bound widgets that Blueprint cannot see. For before/after cost, use `editor_cmd(capture_stats, filter=[<function or asset name>])` on both sides.
 
 **Properties:** `set_color`, `set_text`, `set_font`, `set_brush`, `set_padding`, `set_anchor`, `set_alignment`, `set_size`, `set_visibility`, `set_property`, `get_property`, `get_schema`
 
