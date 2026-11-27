@@ -1,7 +1,7 @@
 {
   "provenance": {
-    "plugin_commit": "282ca6f67c0830b88bf212f3d5c60d5ad9c777ab",
-    "plugin_ref": "282ca6f6",
+    "plugin_commit": "b8ff85f295b24cd4f95b14e17b4a4fcc204afc3c",
+    "plugin_ref": "b8ff85f295b24cd4f95b14e17b4a4fcc204afc3c",
     "plugin_dirty": false
   },
   "exposed_tools": [
@@ -107,14 +107,15 @@
       "add_node",
       "describe_node",
       "remove_node",
+      "remove_nodes",
+      "split_getter",
       "connect",
       "disconnect",
       "set_pin_value",
       "get_node_settings",
       "set_node_settings",
       "auto_layout",
-      "apply_patch",
-      "remove_nodes"
+      "apply_patch"
     ],
     "blueprint": [
       "create",
@@ -147,6 +148,7 @@
       "compare_blueprints",
       "delete_orphaned_nodes",
       "search",
+      "find_variable_references",
       "export_text_inventory",
       "export_snapshot",
       "compare_snapshots",
@@ -697,6 +699,7 @@
     "graph": {
       "get_authoring_context": [
         "asset_path",
+        "graph_name",
         "target"
       ],
       "list_graphs": [
@@ -777,6 +780,7 @@
         "graph_name",
         "node_class",
         "params",
+        "placement",
         "position",
         "subgraph_path"
       ],
@@ -788,6 +792,21 @@
       ],
       "remove_node": [
         "asset_path",
+        "graph_name",
+        "node_id",
+        "subgraph_path"
+      ],
+      "remove_nodes": [
+        "asset_path",
+        "dry_run",
+        "graph_name",
+        "keep_node_ids",
+        "node_ids",
+        "subgraph_path"
+      ],
+      "split_getter": [
+        "asset_path",
+        "dry_run",
         "graph_name",
         "node_id",
         "subgraph_path"
@@ -869,14 +888,6 @@
         "pin_updates",
         "save",
         "target"
-      ],
-      "remove_nodes": [
-        "asset_path",
-        "dry_run",
-        "graph_name",
-        "keep_node_ids",
-        "node_ids",
-        "subgraph_path"
       ]
     },
     "blueprint": {
@@ -1025,6 +1036,7 @@
       ],
       "graph_metrics": [
         "asset_path",
+        "asset_paths",
         "thresholds"
       ],
       "cleanup_migration": [
@@ -1077,6 +1089,10 @@
         "max_results",
         "query",
         "search_in"
+      ],
+      "find_variable_references": [
+        "asset_path",
+        "variable"
       ],
       "export_text_inventory": [
         "asset_path",
@@ -2090,6 +2106,7 @@
       ],
       "find_interface_implementers": [
         "function",
+        "implementer",
         "include_callers",
         "interface",
         "out_path",
