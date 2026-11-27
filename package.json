@@ -1,6 +1,6 @@
 {
   "name": "cortex-toolkit",
-  "version": "0.12.15",
+  "version": "0.12.16",
   "description": "AI-powered Unreal Engine development toolkit for UnrealCortex.",
   "type": "module",
   "main": ".opencode/plugins/cortex.js",
