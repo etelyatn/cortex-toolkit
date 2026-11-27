@@ -231,6 +231,7 @@ umg_cmd(command="check_native_bindings", params={"asset_path": "/Game/UI/WBP_Pop
 
 # 2. Capture before-state: embedded per-instance values and the FText inventory
 umg_cmd(command="get_embedded_widget_values", params={"asset_path": "/Game/UI/WBP_Popup"})  # is_override per property
+umg_cmd(command="get_embedded_widget_diff", params={"asset_path": "/Game/UI/WBP_Outer"})  # outer Blueprint: embedded templates whose values differ from the class default (stale after a default change or reparent)
 blueprint_cmd(command="export_text_inventory", params={"asset_path": "/Game/UI/WBP_Popup", "out_path": "Saved/Inventories/WBP_Popup.before.json"})
 
 # 3. Reference-aware rename: preview first (dry_run defaults to true for scope=dependents)
