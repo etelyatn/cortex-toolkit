@@ -138,7 +138,9 @@ reflect_cmd(command="find_interface_implementers", params={
 # implementers[]: asset_path, direct (false = inherited, `via` names the ancestor),
 #   functions[]: implementation = function_graph | event | none (+ graph_guid, entry_node_guid, node_count / has_body)
 # callers[]: kind, asset_path, graph_guid, subgraph_path, node_guid, node_class, function; unresolved_callers[] need manual review
-# "include_callers": False lists implementers only; "function": "ApplyStress" restricts one function (cast sites stay)
+# "include_callers": False lists implementers (and no callers/referencers) only; "function": "ApplyStress" restricts one function (cast sites stay)
+# referencers{implements[], calls_or_messages[], other[]}: the BPI package's hard referencers classified per asset (an asset that implements and calls is in both; with out_path only the *_count values are inline)
+# "implementer": "/Game/MyGame/BP_Door.BP_Door" narrows implementers to that asset and adds functions[].implementer_handles; callers/referencers stay global (interface dispatch is a runtime value)
 
 # Where a user struct/enum is used, by category (variable, pin, make_struct, datatable_row_struct, data_asset, ...)
 reflect_cmd(command="find_type_usages", params={

@@ -96,7 +96,11 @@ budgets). Read them live; this guide does not restate numbers that the contract 
    mutability, subgraph paths), the current fingerprint, and the published families. Note that its
    `target` parameter currently resolves only `graph_ref`: asking it to resolve an `implementation`
    target fails with `UNSUPPORTED_OPERATION`, so take the fingerprint without a target and supply
-   `target.implementation` (`owner_class` + `function_name`) from the declaration you read.
+   `target.implementation` (`owner_class` + `function_name`) from the declaration you read. To resolve
+   one graph by name instead of a GUID, pass `graph_name` (top level, or `target.graph_name` without a
+   `graph_ref`; `graph_ref` keeps precedence): a name carried by several graphs is `INVALID_FIELD` with
+   `details.candidates[{graph_guid, graph_name, graph_kind, subgraph_path}]`, a name carried only by
+   nested graphs fails with `nested_candidates`.
 2. `graph.describe_node` for every family you intend to use. It returns the canonical class, the
    accepted construction parameters and the pins that will exist, including the pins allocated from
    a class selector or an exposed-on-spawn input. Use its names; never guess a pin, an alias or a

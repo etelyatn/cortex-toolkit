@@ -142,15 +142,15 @@ impact_analysis(
 
 **Class Defaults (CDO):** `get_class_defaults`, `set_class_defaults`, `list_settable_defaults`, `list_inherited_properties`
 
-**Class Settings:** `add_interface`, `remove_interface` (guarded: `preserve_implementations` required, `dry_run` first), `replace_interface` (guarded), `set_tick_settings`, `set_replication_settings`
+**Class Settings:** `add_interface`, `remove_interface` (guarded: `preserve_implementations` required, `dry_run` first, apply with the dry run's `expected_validation_hash`), `replace_interface` (guarded, same hash-only apply), `set_tick_settings`, `set_replication_settings`
 
-**Graph (logic, via `graph_cmd`):** `list_graphs`, `get_subgraph`, `search_nodes`, `add_node`, `remove_node`, `connect`, `disconnect`, `set_pin_value`, `auto_layout`
+**Graph (logic, via `graph_cmd`):** `list_graphs`, `get_subgraph`, `search_nodes`, `add_node`, `remove_node`, `remove_nodes`, `split_getter`, `connect`, `disconnect`, `set_pin_value`, `auto_layout`
 
 `list_graphs` top-level entries include `kind` (`ubergraph`, `function`, `macro`, `delegate`, or `interface_impl`). `interface_impl` entries also include `owning_interface`. Delegate graphs are readable but not mutable through generic write/layout graph tools.
 
-Read commands (`get_subgraph`, `search_nodes`) accept a `compact` boolean (default `true`). See "Compact vs Verbose Graph Reads" above. `search_nodes` with no filter returns every node of the selected graph (`graph_name`), paged through `limit`/`cursor`; `blueprint_cmd` `graph_metrics` reports the live logic budget.
+Read commands (`get_subgraph`, `search_nodes`) accept a `compact` boolean (default `true`). See "Compact vs Verbose Graph Reads" above. `search_nodes` with no filter returns every node of the selected graph (`graph_name`), paged through `limit`/`cursor`; `blueprint_cmd` `graph_metrics` reports the live logic budget (`asset_paths` measures several Blueprints in one call; `totals` carries `functional_nodes`, `entry_nodes`, `result_nodes`, `all_nodes`). `blueprint_cmd` `find_variable_references` lists the get/set nodes of one variable with the live entries that reach them and their consumers; `blueprint_cmd` `search` also matches variable get/set nodes by variable name (`variable_get`/`variable_set`). When `graph_metrics` reports `max_getter_fanout` above 1, `graph_cmd` `split_getter` gives each consumer of a pure getter its own get node. `add_node` accepts `placement: {relative_to, side, gap?}` as an alternative to `position`; `remove_nodes` previews `override_events` (callers of an override event) before you remove it.
 
-**Whole-graph/custom-event removal:** use `blueprint_cmd(command="remove_graph")` with preview then apply; pass the preview response's `fingerprint_before` and `validation_hash` as the apply request's `expected_fingerprint` and `expected_validation_hash`, respectively. This route is distinct from `graph.apply_patch`; see the [MCP tool reference](mcp-tool-reference.md#blueprint).
+**Whole-graph/custom-event removal:** use `blueprint_cmd(command="remove_graph")` with preview then apply; pass the preview response's `validation_hash` as the apply request's `expected_validation_hash` (it commits to the live fingerprint; `expected_fingerprint` = `fingerprint_before` is optional and checked when supplied). This route is distinct from `graph.apply_patch`; see the [MCP tool reference](mcp-tool-reference.md#blueprint).
 
 **`graph_cmd` `add_node` node types** (use short name or full `UK2Node_*` name):
 
@@ -498,27 +498,28 @@ blueprint_cmd(command="add_interface", params={
 
 ### Removing an Interface
 
-`preserve_implementations` is required (strict boolean). Run a dry run first, then apply with the keys it returned:
+`preserve_implementations` is required (strict boolean). Run a dry run first, then apply with the `validation_hash` it returned (`expected_fingerprint` is optional):
 
 ```python
 blueprint_cmd(command="remove_interface", params={
     "asset_path": "/Game/Blueprints/BP_Door",
     "interface_path": "BPI_Interactable",
-    "preserve_implementations": True,   # True: graphs stay as functions, events become custom events; False: graphs deleted, event bodies orphaned
+    "preserve_implementations": True,   # True: graphs stay as functions, events become custom events; False: graphs deleted and each event is removed with its island (nodes another live entry also reaches are kept)
     "dry_run": True,
 })
-# Returns: functions[{function, implementation, node_count, disposition, in_asset_callers}], validation_hash, fingerprint_before
+# Returns: functions[{function, implementation, node_count, disposition (promoted_to_function|converted_to_custom_event|deleted|removed_with_body), in_asset_callers; with preserve_implementations False also removed_node_guids and retained_node_guids[{node_guid, reason}]}], validation_hash, fingerprint_before
 blueprint_cmd(command="remove_interface", params={
     "asset_path": "/Game/Blueprints/BP_Door",
     "interface_path": "BPI_Interactable",
     "preserve_implementations": True,
     "dry_run": False,
-    "expected_fingerprint": fingerprint_before,
-    "expected_validation_hash": validation_hash,
+    "expected_validation_hash": validation_hash,   # expected_fingerprint (= fingerprint_before) is optional
     "compile": True
 })
 # Returns: asset_path, interface_name, interface_path, preserve_implementations, compiled, removed_graphs / preserved_graphs
 ```
+
+With `preserve_implementations: false` the dry run shows exactly which island nodes apply deletes (`removed_node_guids`) and which it keeps (`retained_node_guids` with reason `shared`, `collapsed_graph`, `macro_instance`, `timeline` or `component_template`). Review the retained nodes: they stay in the graph and nothing behind them is deleted. One editor undo restores the removed nodes and links.
 
 To move to another interface instead of removing, use `replace_interface` (see `resources/cpp-migration.md`, "Interface and user-type replacement").
 

@@ -409,7 +409,10 @@ Moving a Blueprint Interface (BPI) to a native `UINTERFACE`, or a user-defined s
 ```
 1. reflect_cmd find_interface_implementers   interface = the BPI, path_prefixes, out_path under Saved/
                                              -> implementers (direct and inherited), callers
-                                                (message | typed_call | interface_cast), unresolved_callers
+                                                (message | typed_call | interface_cast), unresolved_callers,
+                                                referencers {implements, calls_or_messages, other} (every hard referencer
+                                                of the BPI, classified; `other` = e.g. a variable typed by the BPI);
+                                                optional `implementer` narrows to one asset (implementer_handles)
 2. Resolve unresolved_callers by hand; list derived Blueprints that override a mapped function (the replace_interface
    preview refuses them) and handle them in the same wave
 3. Decide per old function: `to` (default same name) and the pin_map (stale pin -> replacement pin, entry input|output)
@@ -420,12 +423,13 @@ Moving a Blueprint Interface (BPI) to a native `UINTERFACE`, or a user-defined s
 5. APPLY per asset, one call each, from the preview's own keys:
      a. caller assets (and implementers with in-asset callers): retarget_calls with `sites` = the exact preview echo
         and expected_fingerprint / expected_validation_hash from that preview
-     b. implementers: replace_interface dry_run=false with expected_fingerprint (= fingerprint_before) and
-        expected_validation_hash
+     b. implementers: replace_interface dry_run=false with expected_validation_hash (the preview's validation_hash;
+        expected_fingerprint = fingerprint_before is optional and checked when supplied)
    A refused echo, stale hash or READBACK_MISMATCH means: re-run that asset's preview and re-review; nothing was changed
 6. blueprint_cmd compile_all path_prefix = the wave's folders                 -> no new errors
 7. Prove it:
-     reflect_cmd find_interface_implementers (old BPI)  -> implementer_count 0, caller_count 0, unresolved_callers empty
+     reflect_cmd find_interface_implementers (old BPI)  -> implementer_count 0, caller_count 0, unresolved_callers empty,
+                                                           referencers.implements and .calls_or_messages empty
      reflect_cmd find_interface_implementers (new interface) -> every expected implementer and caller
 8. Save explicitly (save:true on each apply, or blueprint_cmd save after inspection), then `reflect_cmd(command="get_referencers", params={"asset_path": <old BPI>})`;
    delete it (core.delete_asset) only when nothing references it
@@ -456,7 +460,7 @@ graph_cmd(command="apply_patch", params={ ...same..., "dry_run": False,
 
 Rules that follow from the contracts: the apply of `retarget_calls` is single-asset with its own exact echo (the wave is a loop of per-asset calls, there is no multi-asset transaction); it has **no replay** (after a success the sites are gone and a repeat is refused, so re-preview instead); `replace_interface` is idempotent for an identical request. Every failed apply restores the asset (journal, exactly one recovery compile); `rollback_status: unverified` blocks the asset and requires manual inspection. `mode` is `message` when `to.owner` is an interface and `call` when it is a class; a message that becomes a direct call is `blocked: target_incompatible` unless its target pin connects directly. Nothing is saved unless `save:true`.
 
-**Removing a BPI without a replacement.** `blueprint_cmd remove_interface` requires `preserve_implementations` and a `dry_run` first: `true` keeps interface graphs as ordinary functions and turns events into custom events (the dry run's `in_asset_callers` shows callers that will now dangle); `false` deletes the graphs and orphans event bodies, which is an explicit loss.
+**Removing a BPI without a replacement.** `blueprint_cmd remove_interface` requires `preserve_implementations` and a `dry_run` first; apply with the dry run's `validation_hash` as `expected_validation_hash` (`expected_fingerprint` is optional). `true` keeps interface graphs as ordinary functions and turns events into custom events (the dry run's `in_asset_callers` shows callers that will now dangle); `false` deletes the graphs and removes each interface event together with its island (the exec chain it drives plus the pure nodes that only feed it). The dry run lists `removed_node_guids` and `retained_node_guids` (`reason`: `shared`, `collapsed_graph`, `macro_instance`, `timeline`, `component_template`), exactly what apply deletes and keeps; a retained node stays in the graph and nothing behind it is deleted, so review it. Dropping an implementation is still an explicit loss; one editor undo restores the removed nodes and links.
 
 **User struct / enum wave:**
 

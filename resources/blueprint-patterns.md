@@ -463,11 +463,11 @@ blueprint_cmd(command="add_interface", params={
 blueprint_cmd(command="remove_interface", params={
     "asset_path": "/Game/Blueprints/BP_Door",
     "interface_path": "/Game/Interfaces/BPI_Interactable",
-    "preserve_implementations": True,   # keep graphs as functions / events as custom events; False deletes them
+    "preserve_implementations": True,   # keep graphs as functions / events as custom events; False deletes the graphs and removes each event with its island (nodes another live entry also reaches are kept)
     "dry_run": True,
 })
-# Returns: functions[{function, implementation, node_count, disposition, in_asset_callers}], validation_hash, fingerprint_before
-# Apply: the same call with dry_run False, expected_fingerprint (= fingerprint_before) and expected_validation_hash
+# Returns: functions[{function, implementation, node_count, disposition, in_asset_callers; with preserve_implementations False also removed_node_guids and retained_node_guids[{node_guid, reason}]}], validation_hash, fingerprint_before
+# Apply: the same call with dry_run False and expected_validation_hash (expected_fingerprint = fingerprint_before is optional, checked when supplied)
 
 # Replace one interface with another in one guarded transaction (graphs are adopted, body node GUIDs kept)
 blueprint_cmd(command="replace_interface", params={
@@ -478,7 +478,7 @@ blueprint_cmd(command="replace_interface", params={
                       "pin_map": [{"entry": "input", "from_pin": "Caller", "to_pin": "Instigator"}]}],
     "dry_run": True,
 })
-# Apply with dry_run False + expected_fingerprint + expected_validation_hash; refuses while this asset still calls the old
+# Apply with dry_run False + expected_validation_hash (expected_fingerprint optional); refuses while this asset still calls the old
 # interface (run graph.apply_patch retarget_calls first). Implementers and callers of one BPI migrate in ONE reviewed wave:
 # see resources/cpp-migration.md "Interface and user-type replacement".
 ```
@@ -490,7 +490,7 @@ blueprint_cmd(command="replace_interface", params={
 - Removing a non-implemented interface → `InvalidOperation`
 - Non-interface class → `InvalidOperation`
 - Unresolvable class → `ClassNotFound`
-- `remove_interface` without `preserve_implementations` or with a non-boolean → `INVALID_FIELD`; apply without the dry run's `expected_fingerprint`/`expected_validation_hash` → `STALE_PRECONDITION`
+- `remove_interface` without `preserve_implementations` or with a non-boolean → `INVALID_FIELD`; apply without the dry run's `expected_validation_hash` → `STALE_PRECONDITION` (`expected_fingerprint` is optional and checked when supplied)
 - `replace_interface` refusals (`INVALID_OPERATION`): old interface not implemented, new already implemented, an implemented function missing from `function_map`, incomplete `pin_map`, an in-asset caller of the old interface, a derived Blueprint overriding a mapped function
 
 ### Configure Tick Settings
@@ -737,9 +737,9 @@ Then send the identical intent with `dry_run=False` and the preview's `validatio
 blueprint_cmd(command="get_info") → graph_cmd(command="list_graphs") → graph_cmd(command="get_subgraph") per graph → assess complexity
 ```
 
-`blueprint_cmd(command="graph_metrics")` reports the live logic budget per entry (functional nodes, conditionals, unreachable nodes) and is the complexity signal to prefer over raw node counts.
+`blueprint_cmd(command="graph_metrics")` reports the live logic budget per entry (functional nodes, conditionals, unreachable nodes) and is the complexity signal to prefer over raw node counts. `totals` also carries `entry_nodes`, `result_nodes` and `all_nodes` (every authored node of the Blueprint's own graphs, collapsed bodies included); pass `asset_paths` instead of `asset_path` to measure several Blueprints in one call (`{assets: [...], count}`). An entry with `max_getter_fanout` above 1 has a variable getter feeding several consumers: `graph_cmd(command="split_getter", params={"asset_path": ..., "node_id": ..., "dry_run": True})` gives each extra consumer its own get node. To list every get/set of one variable with the entries that reach it, use `blueprint_cmd(command="find_variable_references", params={"asset_path": ..., "variable": ...})`.
 
-**`get_info` behavior:** `include_inherited` now defaults to `false`, so the `functions` array lists the functions defined on the Blueprint itself. Pass `include_inherited: true` to also list inherited C++ functions; when they are listed, every entry carries `source: "blueprint"`/`"inherited"` (compact included) so the two stay distinguishable. For the full signature of an inherited C++ function use `reflect_cmd(command="class_detail", params={"class_name": <class>, "detail": "full"})` from the Reflect domain.
+**`get_info` behavior:** `include_inherited` now defaults to `false`, so the `functions` array lists the functions defined on the Blueprint itself. Pass `include_inherited: true` to also list inherited C++ functions; when they are listed, every entry carries `source: "blueprint"`/`"inherited"` (compact included) so the two stay distinguishable. For the full signature of an inherited C++ function use `reflect_cmd(command="class_detail", params={"class_name": <class>, "detail": "full"})` from the Reflect domain. `get_info` also returns `interfaces: [{name, path, is_blueprint, implementation_graphs}]` for the interfaces the Blueprint itself implements (parent-inherited ones are not listed).
 
 ### Compact Serialization — Default Behavior of Graph Reads
 
