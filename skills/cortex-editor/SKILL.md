@@ -107,7 +107,7 @@ Use this when the editor is wedged or must be restarted after code changes.
 5. The engine is taken from the running editor (its executable), falling back to the `.uproject` `EngineAssociation`. There is no `UE_56_PATH` and no manual engine selection; if neither resolves, the call fails with `INVALID_OPERATION` before anything is shut down.
 6. Success means the old process exited, the relaunched process published its own port file and `get_status` reported the project. Report `port`, `old_pid` and `new_pid` (the result has no `pid`), `engine_path`, the registered `domains` and `restart_time_seconds`.
 
-If restart fails, report the error and give the user the relevant manual recovery path.
+If restart fails, report the error and give the user the relevant manual recovery path. Read the failure fields: `relaunch_attempted: false` means nothing was launched (the engine or the old pid could not be resolved, or `core.shutdown` refused); `editor_running: true` means the relaunched editor (`editor_pid`) is still starting, so wait for its port file rather than launching another; `editor_running: false` means no relaunched editor is running (`exit_code` says why) and the user must launch it manually. `launch_attempts` is 1 unless the first launch exited before reporting a port.
 
 ## Editor Command Notes
 
