@@ -101,9 +101,20 @@ Run this only if `get_status` fails while the editor still appears to be running
 Use this when the editor is wedged or must be restarted after code changes.
 
 1. Check current state: editor process, port file, and whether the request is really just a start request.
-2. Ask whether to save assets before restart.
+2. Check for unsaved work with `core_cmd(command="list_dirty_packages")` (`count`, `packages: [{package, file}]`; `file` is empty for a never-saved package) and ask whether to save assets before restart.
 3. If the user wants a build, stop and route them to `cortex-build`. Do not run build steps inside this skill.
-4. Call `editor_restart` to perform the graceful shutdown, relaunch, port-file wait, and connection verification.
-5. Report the new port, process ID, registered domains, and total restart time.
+4. Call `editor_restart` (`timeout` default 120, `force` default `false`). The restart is not unconditional: `force` is passed to `core.shutdown`, so with dirty packages and `force=false` it is refused with `UNSAVED_CHANGES` (the dirty packages are listed in `dirty_packages`), nothing is shut down and the editor keeps running. Ask the user to save those assets or to confirm discarding them, and only then repeat the call with `force: true`. Never pass `force: true` on your own.
+5. The engine is taken from the running editor (its executable), falling back to the `.uproject` `EngineAssociation`. There is no `UE_56_PATH` and no manual engine selection; if neither resolves, the call fails with `INVALID_OPERATION` before anything is shut down.
+6. Success means the old process exited, the relaunched process published its own port file and `get_status` reported the project. Report `port`, `old_pid` and `new_pid` (the result has no `pid`), `engine_path`, the registered `domains` and `restart_time_seconds`.
 
-If restart fails, report the error and give the user the relevant manual recovery path. Read the failure fields: `relaunch_attempted: false` means the old editor was never shut down; `editor_running: true` means the relaunched editor (`editor_pid`) is still starting, so wait for its port file instead of launching another; `editor_running: false` means no relaunched editor is running and the user must launch it manually.
+If restart fails, report the error and give the user the relevant manual recovery path.
+
+## Editor Command Notes
+
+Use these through `editor_cmd` when driving PIE or reading editor state:
+
+- `start_pie` / `restart_pie` take `mode`: `selected_viewport` (default, plays inside the active level viewport) or `new_window` (floating PIE window). Any other value is `INVALID_FIELD` and changes no PIE state.
+- `execute_console_command` runs in the PIE world while PIE is active, else in the editor world (`EDITOR_NOT_READY` only when neither exists). The response reports `world` (`pie`/`editor`) and `route` (`world_exec`, `console` or `engine_exec`; `stat` commands use `engine_exec`).
+- `capture_screenshot` takes `source`: `auto` (default: the PIE window while PIE runs, else the level viewport), `editor` (scene only) or `pie` (`PIE_NOT_ACTIVE` without PIE). The PIE window capture includes UMG; the response reports `source` and `includes_ui`.
+- `get_recent_logs` takes `contains`, a case-insensitive substring filter on the message, combinable with `category` and `severity`.
+- `inject_mouse` moves are Slate pointer events only: gameplay code that reads the OS cursor through the scene viewport (`GetMousePosition`, deprojection) does not see them. For cursor-driven gameplay use a Cortex Replay recording (`cortex-replay` skill).

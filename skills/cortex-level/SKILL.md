@@ -31,7 +31,8 @@ to inspect, move, spawn, or screenshot something **while PIE is running**, targe
   an unknown value returns `INVALID_VALUE`.
 - For a runtime camera, call `level_cmd(command="set_pie_view", params={"location": [x,y,z],
   "rotation": [pitch,yaw,roll], "fov": 75})`. It spawns or reuses a transient camera and sets the
-  player view target; `editor_cmd(command="capture_screenshot")` then captures the PIE game view.
+  player view target; `editor_cmd(command="capture_screenshot")` then captures the PIE game view
+  (`source: auto` reads the PIE window while PIE runs, so UMG is included: `includes_ui: true`).
 - `level_compose` has no `world` parameter (editor-world only). For multiple PIE actor
   operations, call `core_cmd(command="batch_query", params={"commands": [...]})` with
   `world: "pie"` on each level step, or call `level_cmd` individually. Batched `level_cmd`

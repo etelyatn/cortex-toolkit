@@ -33,11 +33,14 @@ on a single one-shot finite `editor.get_recent_logs` window — a `count_only` b
 Severity detection reads `entries[].severity` (canonical lowercase `log|warning|error`) from
 `editor.get_recent_logs`; the removed `logs[].level` field and the `"Error:"` text heuristic are no
 longer used. The standalone `get_recent_logs` tool only exposes `severity`, `since_seconds`,
-`since_cursor`, `category` — use `editor_cmd` for `until_cursor`/`limit`/`count_only`.
+`since_cursor`, `category` — use `editor_cmd` for `until_cursor`/`limit`/`count_only` and the
+case-insensitive message filter `contains`.
 
 ## Input-Driven Testing Patterns
 
-**Single interaction:** Use `qa_cmd(command="interact")` — it handles look-at + key press + timeout in one call.
+**Single interaction:** Use `qa_cmd(command="interact")` — it handles look-at + key press + timeout in one call. `look_at` aims from the player's camera viewpoint and reports `view_origin`.
+
+**Cursor-driven gameplay:** `inject_mouse` moves are Slate pointer events; code that reads the OS cursor through the scene viewport (`GetMousePosition`, deprojection) does not see them. Use a Cortex Replay recording for cursor-driven gameplay (`resources/replay-workflow.md`).
 
 **Hold mechanics (charge, sprint, aim):**
 ```

@@ -74,7 +74,7 @@ The native envelope (all fields published by the live schema):
 | `target` | Locator: `graph_ref` with a canonical `graph_guid` (plus optional `subgraph_path`), or `implementation` with `owner_class` + `function_name`. In `graph_ref`, `graph_guid` names the **target** graph — a root graph or a nested composite child, exactly as `graph.get_authoring_context` publishes it; `subgraph_path`, when supplied, must equal that target's own root-relative path and is verified, so a pair that disagrees is refused (`INVALID_FIELD`) instead of addressing another graph. Pass a discovered locator through unchanged; never substitute a different GUID or path. Required by the authoring shell and by `replace_entry`; must be **absent** for `copy_subgraph` / `move_subgraph` / `prune_island`, which address their graphs inside `migration`. |
 | `patch_id` | Caller-generated UUID that deterministically derives the identity of every new node. Reuse it for an idempotent repeat, never for a different mutation set. |
 | `expected_fingerprint` | Stale-write guard copied from `graph.get_authoring_context`. Never fabricate or reuse a fingerprint across edits. |
-| `nodes`, `connections`, `pin_updates` | The authoring shell. One family identifier per node, tagged defaults, structured edges. |
+| `nodes`, `connections`, `disconnect`, `pin_updates` | The authoring shell. One family identifier per node (a `CallFunction` with `call_kind: interface_message`, or the `Message` family with `function_name`, creates a `K2Node_Message` for an interface function), tagged defaults, structured edges. `disconnect` is an array of `{from, to}` pairs (output pin to input pin, same endpoint forms as `connections`) removed **before** any `connect` runs, so the default entry -> result link can be replaced in one apply; a link that does not exist is refused at preview. |
 | `migration` | The migration shell: exactly one operation per request. Never mixed with a non-empty authoring array. |
 | `dry_run` | Preview only. Default `true`. |
 | `compile` | Compile the target once after a reversible apply. Default `true`. |
@@ -119,8 +119,8 @@ storage mode and an unresolvable class/object path all fail preflight.
 1. Inspect the exact asset and the exact graph or implementation target.
 2. Build the intent from live canonical selectors and tags: `client_id` (1–32 ASCII letters, digits,
    `_` or `-`; `entry` is reserved), `node_class`, `params`, tagged `defaults` and optional
-   `position`; `connections` whose `from`/`to` carry exactly one identity (`client_id`, `node_guid`,
-   or `entry: true` for the implementation entry) plus `pin`.
+   `position`; `connections` and `disconnect` endpoints whose `from`/`to` carry exactly one identity (`client_id`, `node_guid`,
+   `entry: true` for the implementation entry, `result: true` for the single function result node, or `parent_call: true` for the single parent-call node a BlueprintCallable override gets) plus `pin`.
 3. Obtain the fingerprint and send the intent with `dry_run=true`, `compile=true`, `save=false`.
 4. Keep `patch_id`, the returned `node_mappings`, `validation_hash` and the previewed intent
    together. The token is a precondition derived from the normalized intent, the fingerprint, the
@@ -324,6 +324,8 @@ large for the bounded route remains future scope; see the preceding section.
 `complete=false` means the scan budget was exhausted — it never means "empty island". Never send an
 empty approved set, and never substitute disconnect-plus-orphan-deletion for ownership-aware
 pruning: a node the entry does not uniquely own is `shared` or listed in `blocked_nodes` and stays.
+
+`prune_island` removes reroute knots whose links all stay inside the removed set with the island (no `additional_node_guids`). The opt-in `migration.include_result_producers: true` (strict boolean, default `false`) additionally removes pure data nodes whose only consumers are removed nodes or a retained function result node; the severed result pins keep their stored default and each severed link is journaled.
 
 ## When something is wrong
 
